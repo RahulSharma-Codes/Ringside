@@ -918,6 +918,34 @@ export const GetWeeklyReviewResponse = zod.object({
       updatedAt: zod.string().nullish(),
     }),
   ),
+  diligenceHealth: zod.object({
+    lowCompletionMustWin: zod.array(
+      zod.object({
+        id: zod.number(),
+        targetCode: zod.string(),
+        projectName: zod.string(),
+        priorityTier: zod.string(),
+        currentStage: zod.string(),
+        total: zod.number(),
+        completed: zod.number(),
+        pct: zod.number(),
+        blocked: zod.number(),
+      }),
+    ),
+    blockedTargets: zod.array(
+      zod.object({
+        id: zod.number(),
+        targetCode: zod.string(),
+        projectName: zod.string(),
+        priorityTier: zod.string(),
+        currentStage: zod.string(),
+        total: zod.number(),
+        completed: zod.number(),
+        pct: zod.number(),
+        blocked: zod.number(),
+      }),
+    ),
+  }),
 });
 
 /**

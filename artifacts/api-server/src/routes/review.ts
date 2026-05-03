@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, inArray, gte, desc, isNull } from "drizzle-orm";
+import { eq, and, inArray, gte, desc, isNull, isNotNull } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   targetsTable,
@@ -43,7 +43,7 @@ router.get("/weekly", async (_req, res) => {
   const fortyFiveDaysAgo = new Date(today.getTime() - 45 * 24 * 60 * 60 * 1000);
 
   // ── Batch all DB reads in parallel ──────────────────────────────────────
-  const [targetsWithMilestones, allOpenActions, allInteractions, recentStageChangesRaw] =
+  const [targetsWithMilestones, allOpenActions, allInteractions, recentStageChangesRaw, allDiligenceItems] =
     await Promise.all([
       // Active targets + milestone (for currentStage / stageEnteredAt)
       db
@@ -112,6 +112,16 @@ router.get("/weekly", async (_req, res) => {
         .leftJoin(targetsTable, eq(stageChangeLogTable.targetId, targetsTable.id))
         .where(gte(stageChangeLogTable.changedAt, sevenDaysAgo))
         .orderBy(desc(stageChangeLogTable.changedAt)),
+
+      // Diligence items (actions with a workstream) for active targets
+      db
+        .select({
+          targetId: actionItemsTable.targetId,
+          status: actionItemsTable.status,
+        })
+        .from(actionItemsTable)
+        .leftJoin(targetsTable, eq(actionItemsTable.targetId, targetsTable.id))
+        .where(and(isNotNull(actionItemsTable.workstream), eq(targetsTable.isActive, true))),
     ]);
 
   // ── Build lookup maps ────────────────────────────────────────────────────
@@ -241,6 +251,52 @@ router.get("/weekly", async (_req, res) => {
     })
     .map((t) => fmtTarget(t));
 
+  // ── 9. Diligence Health ──────────────────────────────────────────────────
+  // Per-target counts from diligence items (workstream-tagged actions)
+  const diligenceStatsByTarget = new Map<number, { total: number; completed: number; blocked: number }>();
+  for (const item of allDiligenceItems) {
+    if (!diligenceStatsByTarget.has(item.targetId)) {
+      diligenceStatsByTarget.set(item.targetId, { total: 0, completed: 0, blocked: 0 });
+    }
+    const stats = diligenceStatsByTarget.get(item.targetId)!;
+    stats.total += 1;
+    if (item.status === "Completed") stats.completed += 1;
+    if (item.status === "Blocked") stats.blocked += 1;
+  }
+
+  const fmtDiligenceTarget = (t: (typeof targetsWithMilestones)[number]) => {
+    const stats = diligenceStatsByTarget.get(t.id) ?? { total: 0, completed: 0, blocked: 0 };
+    return {
+      id: t.id,
+      targetCode: t.targetCode,
+      projectName: t.projectName,
+      priorityTier: t.priorityTier,
+      currentStage: t.currentStage ?? "Sourcing",
+      total: stats.total,
+      completed: stats.completed,
+      pct: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0,
+      blocked: stats.blocked,
+    };
+  };
+
+  const lowCompletionMustWin = targetsWithMilestones
+    .filter((t) => {
+      if (t.priorityTier !== "Must-Win") return false;
+      const stats = diligenceStatsByTarget.get(t.id) ?? { total: 0, completed: 0, blocked: 0 };
+      const pct = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+      return pct < 50;
+    })
+    .map(fmtDiligenceTarget)
+    .sort((a, b) => a.pct - b.pct);
+
+  const blockedTargets = targetsWithMilestones
+    .filter((t) => {
+      const stats = diligenceStatsByTarget.get(t.id);
+      return stats ? stats.blocked > 0 : false;
+    })
+    .map(fmtDiligenceTarget)
+    .sort((a, b) => b.blocked - a.blocked);
+
   return res.json({
     mustWin,
     needsAttention,
@@ -250,6 +306,10 @@ router.get("/weekly", async (_req, res) => {
     recentlyUpdated,
     noOpenAction,
     noRecentInteraction,
+    diligenceHealth: {
+      lowCompletionMustWin,
+      blockedTargets,
+    },
   });
 });
 

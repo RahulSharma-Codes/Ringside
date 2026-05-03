@@ -1503,6 +1503,42 @@ components:
           nullable: true
       required: [id, targetId, targetName, newStage]
 
+    WeeklyReviewDiligenceTargetSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetCode:
+          type: string
+        projectName:
+          type: string
+        priorityTier:
+          type: string
+        currentStage:
+          type: string
+        total:
+          type: integer
+        completed:
+          type: integer
+        pct:
+          type: integer
+        blocked:
+          type: integer
+      required: [id, targetCode, projectName, priorityTier, currentStage, total, completed, pct, blocked]
+
+    WeeklyReviewDiligenceHealth:
+      type: object
+      properties:
+        lowCompletionMustWin:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReviewDiligenceTargetSummary"
+        blockedTargets:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReviewDiligenceTargetSummary"
+      required: [lowCompletionMustWin, blockedTargets]
+
     WeeklyReviewResponse:
       type: object
       properties:
@@ -1538,7 +1574,9 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/WeeklyReviewTargetSummary"
-      required: [mustWin, needsAttention, overdueActions, dueThisWeek, recentStageChanges, recentlyUpdated, noOpenAction, noRecentInteraction]
+        diligenceHealth:
+          $ref: "#/components/schemas/WeeklyReviewDiligenceHealth"
+      required: [mustWin, needsAttention, overdueActions, dueThisWeek, recentStageChanges, recentlyUpdated, noOpenAction, noRecentInteraction, diligenceHealth]
 
     DiligenceReadiness:
       type: object

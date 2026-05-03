@@ -391,6 +391,23 @@ export interface WeeklyReviewStageChange {
   changedAt?: string | null;
 }
 
+export interface WeeklyReviewDiligenceTargetSummary {
+  id: number;
+  targetCode: string;
+  projectName: string;
+  priorityTier: string;
+  currentStage: string;
+  total: number;
+  completed: number;
+  pct: number;
+  blocked: number;
+}
+
+export interface WeeklyReviewDiligenceHealth {
+  lowCompletionMustWin: WeeklyReviewDiligenceTargetSummary[];
+  blockedTargets: WeeklyReviewDiligenceTargetSummary[];
+}
+
 export interface WeeklyReviewResponse {
   mustWin: WeeklyReviewTargetSummary[];
   needsAttention: WeeklyReviewTargetSummary[];
@@ -400,6 +417,7 @@ export interface WeeklyReviewResponse {
   recentlyUpdated: WeeklyReviewTargetSummary[];
   noOpenAction: WeeklyReviewTargetSummary[];
   noRecentInteraction: WeeklyReviewTargetSummary[];
+  diligenceHealth: WeeklyReviewDiligenceHealth;
 }
 
 export interface DiligenceReadiness {

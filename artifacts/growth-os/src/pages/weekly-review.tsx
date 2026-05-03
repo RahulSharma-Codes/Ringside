@@ -5,7 +5,7 @@ import { Link } from "wouter";
 import { format, parseISO } from "date-fns";
 import {
   ChevronDown, ChevronRight, RefreshCw, AlertTriangle, Clock,
-  Target, ArrowRight, CalendarCheck, Zap,
+  Target, ArrowRight, CalendarCheck, Zap, ShieldAlert,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -51,6 +51,23 @@ interface ReviewStageChange {
   changedAt: string | null;
 }
 
+interface DiligenceHealthTarget {
+  id: number;
+  targetCode: string;
+  projectName: string;
+  priorityTier: string;
+  currentStage: string;
+  total: number;
+  completed: number;
+  pct: number;
+  blocked: number;
+}
+
+interface DiligenceHealth {
+  lowCompletionMustWin: DiligenceHealthTarget[];
+  blockedTargets: DiligenceHealthTarget[];
+}
+
 interface WeeklyReviewData {
   mustWin: ReviewTarget[];
   needsAttention: ReviewTarget[];
@@ -60,6 +77,7 @@ interface WeeklyReviewData {
   recentlyUpdated: ReviewTarget[];
   noOpenAction: ReviewTarget[];
   noRecentInteraction: ReviewTarget[];
+  diligenceHealth: DiligenceHealth;
 }
 
 // ── Small display helpers ──────────────────────────────────────────────────
@@ -147,6 +165,34 @@ function ActionCard({ a }: { a: ReviewAction }) {
               {a.owner ?? "Unassigned"}
             </span>
           </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
+function DiligenceTargetCard({ t }: { t: DiligenceHealthTarget }) {
+  return (
+    <Link href={`/targets/${t.id}`}>
+      <Card className="border-border bg-card/60 rounded-sm hover:bg-muted/40 transition-colors cursor-pointer">
+        <CardContent className="p-3 flex items-center justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{t.projectName}</p>
+            <div className="flex flex-wrap gap-1.5 mt-1.5 items-center">
+              <span className="text-[10px] font-mono text-muted-foreground">{t.targetCode}</span>
+              <TierPill tier={t.priorityTier} />
+              <StagePill stage={t.currentStage} />
+              <span className="text-[10px] font-mono text-muted-foreground">
+                {t.completed}/{t.total} done ({t.pct}%)
+              </span>
+              {t.blocked > 0 && (
+                <span className="text-[10px] font-mono text-destructive font-semibold">
+                  {t.blocked} blocked
+                </span>
+              )}
+            </div>
+          </div>
+          <ArrowRight size={14} className="text-muted-foreground shrink-0" />
         </CardContent>
       </Card>
     </Link>
@@ -347,6 +393,38 @@ export default function WeeklyReview() {
               count={d.noRecentInteraction.length}
             >
               {d.noRecentInteraction.map((t) => <TargetCard key={t.id} t={t} />)}
+            </Section>
+
+            <Section
+              label="Diligence Health"
+              icon={<ShieldAlert size={14} />}
+              emptyMsg="All Must-Win diligence is on track — no blocked or low-completion items."
+              defaultOpen
+              count={new Set([
+                ...d.diligenceHealth.lowCompletionMustWin.map((t) => t.id),
+                ...d.diligenceHealth.blockedTargets.map((t) => t.id),
+              ]).size}
+            >
+              {d.diligenceHealth.lowCompletionMustWin.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground pt-1">
+                    Must-Win · Below 50% Complete
+                  </p>
+                  {d.diligenceHealth.lowCompletionMustWin.map((t) => (
+                    <DiligenceTargetCard key={`low-${t.id}`} t={t} />
+                  ))}
+                </div>
+              )}
+              {d.diligenceHealth.blockedTargets.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground pt-1">
+                    Blocked Diligence Items
+                  </p>
+                  {d.diligenceHealth.blockedTargets.map((t) => (
+                    <DiligenceTargetCard key={`blocked-${t.id}`} t={t} />
+                  ))}
+                </div>
+              )}
             </Section>
           </>
         )}
