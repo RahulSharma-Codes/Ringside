@@ -1,0 +1,145 @@
+We have completed:
+- Phase 1A: Opportunity Detail Cockpit
+- Phase 1B: Dashboard + Pipeline Intelligence
+- Phase 2A: CSV / Excel Import Wizard
+- Phase 3A: AI Copilot read-only, built but API usage awaits OpenAI credits
+- Phase 4A: Action Command Center + Weekly Review
+
+Now implement Phase 4B: Diligence Workspace + Deal Readiness.
+
+Important safety rules:
+- Do NOT rebuild from scratch.
+- Do NOT create a new architecture.
+- Do NOT run seed.ts.
+- Do NOT insert Apollo/Orion/Beacon/Catalyst/Helios demo data.
+- Do NOT modify DATABASE_URL.
+- Do NOT modify auth middleware unless absolutely required.
+- Supabase Postgres remains the source of truth.
+- Preserve all existing features from Phases 1A, 1B, 2A, 3A, and 4A.
+- AI must remain unchanged and read-only.
+- Prefer reusing existing tables where possible.
+- If new tables are truly required, propose the exact SQL first and do not apply automatically without approval.
+
+Current structure:
+- React/Vite frontend: artifacts/growth-os
+- Express API backend: artifacts/api-server
+- Drizzle/Postgres DB layer: lib/db
+- Existing tables include targets, milestones, interactions, actions, stage_change_log, lookup_values, users.
+- actions table is named actions, not action_items.
+- Stage comes from milestones/current stage logic.
+
+Phase 4B goal:
+Add a diligence workspace that helps users manage due diligence readiness for each opportunity and across the pipeline.
+
+Required features:
+
+1. Target Detail Diligence Tab
+Add a Diligence tab or section to the target detail page.
+
+Show diligence workstreams:
+- Commercial
+- Financial
+- Legal
+- Tax
+- HR
+- Technology
+- Operations
+- Integration
+
+Each workstream should show checklist/action items related to diligence:
+- description/title
+- owner
+- due date
+- priority
+- status
+- notes/description
+- linked opportunity
+- workstream/category
+
+If the existing actions schema can support this with existing fields, reuse actions.
+If it cannot support workstream/category cleanly, stop and propose the smallest schema addition instead of applying migrations automatically.
+
+2. Add Diligence Item
+From the target detail Diligence tab, user can add a diligence item:
+- workstream
+- title/description
+- owner
+- due date
+- priority
+- status
+- notes
+
+3. Edit Diligence Item
+User can edit diligence item fields.
+Use existing action update logic if diligence items are represented as actions.
+
+4. Complete/Reopen Diligence Item
+User can mark a diligence item complete or reopen it.
+Reuse existing action status update logic where possible.
+
+5. Diligence Readiness Score
+For each target, calculate a readiness score:
+- percentage of diligence items completed
+- show blocked count
+- show overdue count
+- show missing workstreams with no items
+
+Display this on the Diligence tab and, if easy, on target overview.
+
+6. Global Diligence Review Page
+Add a new page called Diligence Review.
+
+Show:
+- targets with blocked diligence items
+- targets with overdue diligence items
+- Must-Win targets with incomplete diligence
+- diligence completion percentage by target
+- missing workstreams by target
+- recently completed diligence items
+
+Each card should link to the target detail page.
+
+7. Navigation
+Add "Diligence Review" to the sidebar/nav.
+
+8. Mobile-first UI
+- Card-based layout
+- No cramped tables
+- Readable on 375px screen
+- Use workstream chips, status badges, priority badges, overdue badges
+
+9. Backend/API
+Inspect existing actions and targets routes first.
+Extend existing routes where appropriate.
+Add read/write endpoints only if needed.
+All data must come from Supabase.
+No mock data.
+No demo data.
+
+10. Testing
+After implementation:
+- Run pnpm run typecheck.
+- Restart the app.
+- Confirm login works.
+- Confirm Dashboard loads.
+- Confirm Pipeline loads.
+- Confirm Actions Command Center loads.
+- Confirm Weekly Review loads.
+- Confirm Import Wizard opens.
+- Confirm AI Copilot still handles no-credits state gracefully.
+- Confirm target detail opens.
+- Confirm Diligence tab appears.
+- Confirm adding a diligence item works.
+- Confirm editing a diligence item works.
+- Confirm complete/reopen works.
+- Confirm Diligence Review page loads.
+- Confirm no Apollo/Orion demo data appears unless already in Supabase.
+
+Report:
+- files changed
+- API routes added/modified
+- whether existing actions table was reused
+- whether any schema change was proposed
+- packages added, if any
+- typecheck result
+- manual testing checklist
