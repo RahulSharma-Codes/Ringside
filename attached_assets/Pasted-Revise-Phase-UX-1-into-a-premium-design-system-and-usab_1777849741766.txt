@@ -1,0 +1,150 @@
+Revise Phase UX-1 into a premium design-system and usability uplift, not just a decorative glassmorphism pass.
+
+Important safety rules:
+- This is frontend-only.
+- Do NOT change API routes.
+- Do NOT change database schema.
+- Do NOT run drizzle push.
+- Do NOT run seed.ts.
+- Do NOT change DATABASE_URL.
+- Do NOT change auth logic.
+- Do NOT modify api-server, mockup-sandbox, or DB logic.
+- Preserve all existing functionality from all completed phases.
+- Run pnpm run typecheck after changes.
+
+Design direction:
+Create a premium, executive, Apple-inspired “glass-lite” interface for an M&A / Corporate Development operating system.
+
+The app should feel:
+- senior
+- calm
+- high-trust
+- boardroom-ready
+- mobile-first
+- operational
+- not generic
+- not overly colorful
+- not obviously AI-generated
+
+Core principles:
+1. Readability before decoration.
+2. Glass effects used sparingly and semantically.
+3. Strong hierarchy on every page.
+4. Consistent status colors.
+5. Mobile-first cards with no horizontal overflow.
+6. Accessible contrast on all surfaces.
+7. Subtle transitions only.
+8. No flashy landing-page styling.
+
+Design-system requirements:
+1. Update global visual tokens in index.css:
+   - app background
+   - surface colors
+   - elevated surfaces
+   - glass surfaces
+   - border colors
+   - primary accent
+   - status colors
+   - radius scale
+   - shadow scale
+   - focus rings
+   - typography hierarchy helpers
+   - safe-area utility for mobile sticky bars
+
+2. Add reusable utility classes where appropriate:
+   - glass-shell
+   - glass-panel
+   - premium-card
+   - command-bar
+   - section-header
+   - metric-number
+   - metadata-label
+   - status-chip
+   - mobile-safe-bottom
+
+3. Uplift shared UI components:
+   - card.tsx
+   - button.tsx
+   - badge.tsx
+   - input.tsx
+   - select.tsx
+   - dialog.tsx
+
+Component goals:
+- consistent radius
+- refined borders
+- premium shadows
+- better focus states
+- smoother hover states
+- stronger disabled states
+- better contrast
+
+4. Uplift app shell:
+   - layout.tsx
+   - sidebar becomes subtle frosted shell
+   - active nav uses refined accent treatment, not loud background flood
+   - nav groups may be introduced if low-risk
+   - brand mark should look premium and restrained
+   - footer/status indicator should be subtle
+
+5. Uplift dashboard:
+   - improve KPI hierarchy
+   - make Needs Attention visually important
+   - improve chart/card headers
+   - reduce clutter
+   - make executive scanning easier
+
+6. Uplift pipeline:
+   - improve target card hierarchy
+   - refine filter command bar
+   - make stage/priority/attention badges consistent
+   - improve owner/country/sector metadata layout
+
+7. Uplift target detail:
+   - improve cockpit header
+   - refine tab bar
+   - improve interaction/action/timeline/diligence cards
+   - ensure sticky mobile action bar has safe-area padding
+
+8. Uplift actions, weekly review, and diligence review:
+   - consistent grouped section headers
+   - premium action cards
+   - clearer status badges
+   - better empty states
+   - stronger mobile readability
+
+9. Uplift import wizard:
+   - clearer stepper
+   - better review/warning cards
+   - safer-looking Apply step
+   - premium but practical
+
+10. Uplift AI Copilot:
+   - integrated chat panel
+   - premium suggested prompts
+   - polished setup/billing/no-credit state
+   - disclaimer is visible but understated
+
+Accessibility requirements:
+- Maintain strong contrast.
+- Do not place low-contrast text over translucent surfaces.
+- Do not rely on color alone for status.
+- Make buttons and tap targets comfortable on mobile.
+- Verify 375px mobile width has no horizontal overflow.
+
+Specific warnings:
+- Do not make every card transparent.
+- Do not use rainbow gradients everywhere.
+- Do not introduce random new colors per page.
+- Do not make the UI look like a crypto dashboard.
+- Do not reduce information density so much that it becomes inefficient.
+- Do not hide key operating data behind visual effects.
+
+After implementation, report:
+1. changed files
+2. design tokens changed
+3. shared components updated
+4. pages visually touched
+5. typecheck result
+6. any visual or accessibility risks
+7. any follow-up polish recommendations

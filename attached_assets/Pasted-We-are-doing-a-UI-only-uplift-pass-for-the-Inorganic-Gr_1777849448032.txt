@@ -1,0 +1,80 @@
+We are doing a UI-only uplift pass for the Inorganic Growth Operating System.
+
+Important:
+- Do NOT rebuild from scratch.
+- Do NOT change database schema.
+- Do NOT run drizzle push.
+- Do NOT run seed.ts.
+- Do NOT change auth logic, API routes, or Supabase connection logic unless required for styling only.
+- This is a visual design system and UX polish pass.
+- Preserve all working functionality.
+
+Design direction:
+Create a premium, executive, Apple-inspired “glass-lite” UI system for a corporate development / M&A operating system.
+The goal is to look polished, modern, and intentional — not generic, not template-like, and not “AI-generated.”
+
+Visual principles:
+- Use frosted / translucent effects sparingly, mainly for app shell, nav, sticky bars, modals, and elevated panels.
+- Keep most content cards readable and more opaque.
+- Use clear visual hierarchy and strong typography.
+- Use color sparingly.
+- Maintain accessibility and strong contrast.
+- Keep the UI mobile-first and card-based.
+
+Design system requirements:
+1. Define or refine visual tokens for:
+   - background colors
+   - surface colors
+   - text colors
+   - border colors
+   - accent color
+   - semantic status colors
+   - border radius
+   - shadows
+   - spacing
+2. Refine typography hierarchy:
+   - page titles
+   - section headers
+   - card titles
+   - body text
+   - secondary metadata
+3. Refresh shared components:
+   - cards
+   - buttons
+   - chips/badges
+   - inputs
+   - selects
+   - modals/drawers
+   - sticky mobile action bars
+   - sidebar/nav
+4. Add subtle premium touches:
+   - soft shadows
+   - thin borders
+   - backdrop blur where appropriate
+   - restrained gradient/background treatment
+   - clean hover/focus states
+   - smooth transitions
+
+Page uplift targets:
+- App shell / sidebar / top layout
+- Dashboard
+- Pipeline
+- Target Detail Cockpit
+- Actions Command Center
+- Weekly Review
+- Import Wizard
+- AI Copilot
+
+Accessibility requirements:
+- Preserve readability on 375px mobile width
+- Ensure strong text/background contrast
+- Do not rely on color alone for statuses
+- Avoid low-contrast text on translucent surfaces
+
+Implementation instructions:
+- Inspect the current frontend structure first.
+- Modify the smallest number of files needed to establish a reusable design system.
+- Prefer shared classes/components/tokens over page-by-page hardcoding.
+- Keep the UI professional and understated.
+- Avoid looking like a flashy startup landing page.
+- After changes, run pnpm run typecheck and report changed files and any UI risks.
