@@ -611,7 +611,7 @@ export default function TargetDetail() {
                               {inter.interactionDatetime ? format(parseISO(inter.interactionDatetime), "MMM d, yyyy · HH:mm") : "—"}
                             </span>
                           </div>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={() => openEditInteraction(inter)}>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0" onClick={() => openEditInteraction(inter)}>
                             <Pencil size={12} />
                           </Button>
                         </div>
@@ -1148,7 +1148,7 @@ function ActionRow({ action, onEdit, onToggle, isPending }: ActionRowProps) {
         <Button
           size="icon"
           variant="ghost"
-          className="h-7 w-7 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+          className="h-7 w-7 text-muted-foreground md:opacity-0 md:group-hover:opacity-100 transition-opacity"
           onClick={onEdit}
           title="Edit"
         >
