@@ -1,0 +1,52 @@
+We are editing forward an existing working Replit app called Inorganic Growth Operating System.
+
+Important:
+- Do NOT rebuild from scratch.
+- Do NOT create a new architecture.
+- Do NOT run drizzle push.
+- Do NOT run seed.ts.
+- Do NOT modify DATABASE_URL.
+- Do NOT insert Apollo/Orion/Beacon/Catalyst/Helios demo data.
+- Supabase Postgres is the source of truth.
+- The app currently reads and writes Supabase successfully.
+- The current working baseline shows Project Test and can create new targets, interactions, and actions.
+
+Current structure:
+- React/Vite frontend: artifacts/growth-os
+- Express API backend: artifacts/api-server
+- Drizzle/Postgres DB layer: lib/db
+- Existing tables include targets, milestones, interactions, actions, stage_change_log, lookup_values, users.
+
+Goal:
+Implement Phase 1A: Opportunity Detail Cockpit.
+
+Required features:
+1. Add ability to edit target/opportunity overview fields from the detail page.
+2. Add ability to edit existing interactions.
+3. Add ability to edit existing actions.
+4. Add ability to complete and reopen actions.
+5. Render hyperlinks in interaction notes and action descriptions as clickable links.
+6. Add a Change Stage modal on the target detail page.
+7. Change Stage modal must:
+   - show current stage
+   - allow user to choose a new stage
+   - require a reason/note
+   - update the current stage using the existing database model
+   - insert a timestamped row into stage_change_log
+8. Improve the opportunity detail UI to be mobile-first and professional:
+   - card-based layout
+   - clean section headers
+   - stage and priority chips
+   - action status badges
+   - sticky or easy-to-reach mobile buttons for Add Interaction, Add Action, Change Stage
+   - no cramped tables on mobile
+9. Preserve existing working login and Supabase read/write behavior.
+
+Implementation instructions:
+- First inspect the existing files and data flow.
+- Modify the smallest number of files needed.
+- Keep existing naming conventions where possible.
+- If a field/table mismatch is found, adapt to the current existing schema rather than creating a new schema.
+- Add or update API routes as needed for update/edit flows.
+- After changes, run typecheck/build if available.
+- Report exactly which files changed and what was tested.

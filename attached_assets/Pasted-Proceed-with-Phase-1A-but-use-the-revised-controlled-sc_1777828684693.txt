@@ -1,0 +1,124 @@
+Proceed with Phase 1A, but use the revised controlled scope below.
+
+Important safety rules:
+- Do NOT rebuild from scratch.
+- Do NOT create a new architecture.
+- Do NOT run drizzle push.
+- Do NOT run seed.ts.
+- Do NOT modify DATABASE_URL.
+- Do NOT modify auth middleware unless absolutely required.
+- Do NOT insert Apollo/Orion/Beacon/Catalyst/Helios demo data.
+- Supabase Postgres is the source of truth.
+- Existing login, Supabase read, Supabase write, target creation, interaction creation, and action creation are already working.
+- Preserve the current patched structure.
+
+Current structure:
+- React/Vite frontend: artifacts/growth-os
+- Express API backend: artifacts/api-server
+- Drizzle/Postgres DB layer: lib/db
+- Existing tables include targets, milestones, interactions, actions, stage_change_log, lookup_values, users.
+
+Phase 1A goal:
+Upgrade the target detail page into a professional mobile-first Opportunity Detail Cockpit.
+
+Required features:
+
+1. Edit Target Overview
+- Add an Edit Target modal/drawer on the target detail page.
+- Editable fields should include:
+  - project name
+  - priority tier
+  - strategic rationale
+  - sector
+  - subsector
+  - geography/country
+  - deal owner
+  - deal champion
+  - executive sponsor
+  - score fields if already supported by current schema/API
+- Do not add migrations. If a requested field does not exist in the current schema, skip it and report it.
+
+2. Edit Interactions
+- Each interaction card should have an edit icon.
+- Clicking edit opens a pre-filled modal.
+- Editable fields:
+  - type
+  - summary/notes
+  - participants internal, if existing schema supports it
+  - participants external, if existing schema supports it
+  - sentiment, if existing schema supports it
+  - valuation signal, if existing schema supports it
+- Saving should PATCH/PUT the interaction and refresh the interaction list.
+- Do NOT add delete interaction in this phase unless it already exists safely. Prefer no delete for auditability.
+
+3. Add Interaction Form Improvements
+- Existing Add Interaction form should expose:
+  - type
+  - summary/notes
+  - participants internal, if supported
+  - participants external, if supported
+  - sentiment: Positive / Neutral / Negative, if supported
+  - valuation signal, if supported
+- If fields are not in the current schema, do not create migrations. Report skipped fields.
+
+4. Edit Actions
+- Each action card/row should have an edit icon.
+- Clicking edit opens a pre-filled modal.
+- Editable fields:
+  - title/description, matching current schema
+  - owner
+  - due date
+  - priority
+  - status
+- Saving should update the action and refresh the action list.
+
+5. Complete/Reopen Actions
+- Each action should show:
+  - Complete button when status is not Completed
+  - Reopen button when status is Completed
+- Complete should set status to Completed.
+- Reopen should set status to Open.
+- Keep this inline without leaving the detail page.
+
+6. Clickable Hyperlinks
+- Create a small reusable LinkifiedText React component.
+- It should detect URLs in interaction notes/summaries and action descriptions.
+- Render URLs as clickable links with target="_blank" and rel="noopener noreferrer".
+- Apply it wherever notes/descriptions are displayed.
+
+7. Change Stage Modal with Audit Log
+- Add a Change Stage button on the target detail page.
+- Modal must show current stage.
+- Modal must allow selecting a new stage from the existing stage list or accepted stage values.
+- Modal must require a reason/note.
+- On submit:
+  - update the current stage using the existing database model
+  - insert a timestamped row into stage_change_log
+  - refresh target detail and stage history
+- Do not bypass stage_change_log.
+
+8. Mobile-first UI
+- Make the target detail page readable on a 375px mobile screen.
+- Use card-based layout.
+- Avoid cramped tables on mobile.
+- Add clear section headers.
+- Use stage chips, priority chips, and action status badges.
+- Add a sticky bottom action bar on mobile with:
+  - Log Interaction
+  - Add Action
+  - Change Stage
+
+Implementation instructions:
+- First inspect existing files and data flow.
+- Modify the smallest number of files needed.
+- Prefer extending existing routes over creating unnecessary new architecture.
+- Only touch OpenAPI/codegen if the app is actually using generated hooks for these flows.
+- If OpenAPI/codegen is used, run the relevant codegen and confirm generated files compile.
+- If direct frontend API calls are used, update those consistently instead.
+- Run pnpm run typecheck after changes.
+- Report:
+  - files changed
+  - routes added/modified
+  - fields skipped because schema did not support them
+  - build/typecheck result
+  - manual testing checklist
