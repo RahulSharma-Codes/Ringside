@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, ilike, or, desc, inArray, isNull } from "drizzle-orm";
+import { eq, and, ilike, or, desc, inArray, isNull, isNotNull } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   targetsTable,
@@ -123,7 +123,7 @@ async function enrichTargetRows(rows: { target: TargetRow; milestone: MilestoneR
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
   const [allActions, allInteractions, allStageChanges] = await Promise.all([
-    db.select().from(actionItemsTable).where(inArray(actionItemsTable.targetId, targetIds)),
+    db.select().from(actionItemsTable).where(and(inArray(actionItemsTable.targetId, targetIds), isNull(actionItemsTable.workstream))),
     db.select().from(interactionsTable).where(inArray(interactionsTable.targetId, targetIds)),
     db
       .select()
@@ -351,7 +351,7 @@ router.get("/summary", async (_req, res) => {
   }).length;
 
   // Reuse action data already fetched by enrichment (avoid double-fetch via summary path)
-  const allActionsForSummary = await db.select().from(actionItemsTable);
+  const allActionsForSummary = await db.select().from(actionItemsTable).where(isNull(actionItemsTable.workstream));
   const openActions = allActionsForSummary.filter((a) =>
     ["Open", "In Progress", "Blocked"].includes(a.status),
   );
@@ -748,14 +748,13 @@ router.post("/:id/actions", async (req, res) => {
 // GET /api/targets/:id/diligence — per-target diligence tab data
 router.get("/:id/diligence", async (req, res) => {
   const id = parseInt(req.params.id, 10);
-  const { isNotNull: isNotNullDril } = await import("drizzle-orm");
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const items = await db
     .select()
     .from(actionItemsTable)
-    .where(and(eq(actionItemsTable.targetId, id), isNotNullDril(actionItemsTable.workstream)));
+    .where(and(eq(actionItemsTable.targetId, id), isNotNull(actionItemsTable.workstream)));
 
   const total = items.length;
   const completed = items.filter((i) => i.status === "Completed").length;

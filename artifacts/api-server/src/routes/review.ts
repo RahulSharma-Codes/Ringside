@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, inArray, gte, desc } from "drizzle-orm";
+import { eq, and, inArray, gte, desc, isNull } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   targetsTable,
@@ -80,7 +80,12 @@ router.get("/weekly", async (_req, res) => {
         .from(actionItemsTable)
         .leftJoin(targetsTable, eq(actionItemsTable.targetId, targetsTable.id))
         .leftJoin(milestonesTable, eq(milestonesTable.targetId, actionItemsTable.targetId))
-        .where(inArray(actionItemsTable.status, ["Open", "In Progress", "Blocked"])),
+        .where(
+          and(
+            inArray(actionItemsTable.status, ["Open", "In Progress", "Blocked"]),
+            isNull(actionItemsTable.workstream),
+          ),
+        ),
 
       // All interactions — only targetId + datetime for recency checks
       db
