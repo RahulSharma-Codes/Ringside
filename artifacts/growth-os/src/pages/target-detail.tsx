@@ -41,7 +41,7 @@ const STAGES = [
   "Integration Planning", "Closed", "On Hold", "Dropped",
 ];
 const INTERACTION_TYPES = ["Meeting", "Call", "Email", "Material Received", "Internal Review", "Site Visit", "Other"];
-const SENTIMENTS = ["Positive", "Neutral", "Cautious", "Negative"];
+const SENTIMENTS = ["Positive", "Neutral", "Negative"];
 const PRIORITY_TIERS = ["Must-Win", "Priority 1", "Priority 2", "Watchlist"];
 const ACTION_PRIORITIES = ["Critical", "High", "Medium", "Low"];
 const ACTION_STATUSES = ["Open", "In Progress", "Blocked", "Completed"];
@@ -100,7 +100,7 @@ export default function TargetDetail() {
   const [interSummary, setInterSummary] = useState("");
   const [interParticipantsInternal, setInterParticipantsInternal] = useState("");
   const [interParticipantsExternal, setInterParticipantsExternal] = useState("");
-  const [interSentiment, setInterSentiment] = useState("");
+  const [interSentiment, setInterSentiment] = useState("__none__");
   const [interValuationSignal, setInterValuationSignal] = useState("");
 
   const [editInterOpen, setEditInterOpen] = useState(false);
@@ -110,7 +110,7 @@ export default function TargetDetail() {
     summary: "",
     participantsInternal: "",
     participantsExternal: "",
-    sentiment: "",
+    sentiment: "__none__",
     valuationSignal: "",
   });
 
@@ -198,7 +198,7 @@ export default function TargetDetail() {
     setInterSummary("");
     setInterParticipantsInternal("");
     setInterParticipantsExternal("");
-    setInterSentiment("");
+    setInterSentiment("__none__");
     setInterValuationSignal("");
   };
   const resetActionForm = () => {
@@ -238,7 +238,7 @@ export default function TargetDetail() {
           summary: interSummary,
           participantsInternal: interParticipantsInternal || undefined,
           participantsExternal: interParticipantsExternal || undefined,
-          sentiment: interSentiment || undefined,
+          sentiment: interSentiment === "__none__" ? undefined : interSentiment || undefined,
           valuationSignal: interValuationSignal || undefined,
         },
       },
@@ -259,7 +259,7 @@ export default function TargetDetail() {
       summary: inter.summary ?? "",
       participantsInternal: inter.participantsInternal ?? "",
       participantsExternal: inter.participantsExternal ?? "",
-      sentiment: inter.sentiment ?? "",
+      sentiment: inter.sentiment || "__none__",
       valuationSignal: inter.valuationSignal ?? "",
     });
     setEditInterOpen(true);
@@ -275,7 +275,7 @@ export default function TargetDetail() {
           summary: editInterData.summary || undefined,
           participantsInternal: editInterData.participantsInternal || undefined,
           participantsExternal: editInterData.participantsExternal || undefined,
-          sentiment: editInterData.sentiment || undefined,
+          sentiment: editInterData.sentiment === "__none__" ? undefined : editInterData.sentiment || undefined,
           valuationSignal: editInterData.valuationSignal || undefined,
         },
       },
@@ -818,7 +818,7 @@ export default function TargetDetail() {
                 <Select value={interSentiment} onValueChange={setInterSentiment}>
                   <SelectTrigger className="rounded-sm bg-background/50"><SelectValue placeholder="Optional" /></SelectTrigger>
                   <SelectContent className="rounded-sm">
-                    <SelectItem value="">— None —</SelectItem>
+                    <SelectItem value="__none__">— None —</SelectItem>
                     {SENTIMENTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -870,7 +870,7 @@ export default function TargetDetail() {
                 <Select value={editInterData.sentiment} onValueChange={(v) => setEditInterData((d) => ({ ...d, sentiment: v }))}>
                   <SelectTrigger className="rounded-sm bg-background/50"><SelectValue placeholder="None" /></SelectTrigger>
                   <SelectContent className="rounded-sm">
-                    <SelectItem value="">— None —</SelectItem>
+                    <SelectItem value="__none__">— None —</SelectItem>
                     {SENTIMENTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -1132,7 +1132,7 @@ function ActionRow({ action, onEdit, onToggle, isPending }: ActionRowProps) {
       </button>
       <div className="flex-1 min-w-0">
         <div className={`text-sm font-medium leading-snug ${isCompleted ? "line-through text-muted-foreground" : ""}`}>
-          {action.description}
+          <LinkifiedText text={action.description} />
         </div>
         <div className="flex items-center gap-3 mt-1 flex-wrap">
           <span className={`text-[10px] font-mono uppercase ${
