@@ -14,6 +14,7 @@ import {
   UpdateTargetStageBody,
   ListTargetsQueryParams,
 } from "@workspace/api-zod";
+import { TERMINAL_STAGES } from "../constants";
 
 const router = Router();
 
@@ -22,9 +23,6 @@ type MilestoneRow = typeof milestonesTable.$inferSelect | null;
 type ActionRow = typeof actionItemsTable.$inferSelect;
 type InteractionRow = typeof interactionsTable.$inferSelect;
 type StageChangeRow = typeof stageChangeLogTable.$inferSelect;
-
-// Per guardrail #4: terminal stages as specified
-const TERMINAL_STAGES = new Set(["Rejected", "Closing", "Closed", "Completed", "Signed"]);
 
 function toIso(value: Date | string | null | undefined): string | null {
   if (!value) return null;

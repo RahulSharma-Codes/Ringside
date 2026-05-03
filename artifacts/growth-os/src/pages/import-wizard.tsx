@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Upload, FileText, CheckCircle, AlertTriangle, XCircle,
-  ChevronRight, ChevronLeft, RotateCcw, Info,
+  ChevronRight, ChevronLeft, RotateCcw, Info, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { getListTargetsQueryKey, getGetDashboardSummaryQueryKey, customFetch } from "@workspace/api-client-react";
 
@@ -40,48 +40,31 @@ const DB_FIELDS = [
   { value: "notes", label: "Notes → Strategic Rationale" },
 ];
 
+const FIELD_LABELS: Record<string, string> = Object.fromEntries(
+  DB_FIELDS.filter((f) => f.value !== "__skip__").map((f) => [f.value, f.label])
+);
+
 // Heuristic auto-map: csv column header → db field (no score fields)
 function autoMap(header: string): string {
   const h = header.toLowerCase().replace(/[\s_\-/]+/g, "");
   const MAP: Record<string, string> = {
-    targetcode: "targetCode",
-    code: "targetCode",
-    projectname: "projectName",
-    project: "projectName",
-    name: "projectName",
-    legalname: "legalName",
-    legal: "legalName",
-    businessunit: "businessUnit",
-    bu: "businessUnit",
-    division: "businessUnit",
-    sector: "sector",
-    industry: "sector",
-    subsector: "subsector",
-    subindustry: "subsector",
-    region: "geographyRegion",
-    geographyregion: "geographyRegion",
-    geography: "geographyRegion",
-    country: "country",
-    location: "country",
-    sourcingchannel: "sourcingChannel",
-    channel: "sourcingChannel",
-    sourcingfirm: "sourcingFirm",
-    firm: "sourcingFirm",
-    dealowner: "dealOwner",
-    owner: "dealOwner",
-    dealchampion: "dealChampion",
-    champion: "dealChampion",
-    executivesponsor: "executiveSponsor",
-    sponsor: "executiveSponsor",
-    prioritytier: "priorityTier",
-    priority: "priorityTier",
-    tier: "priorityTier",
-    stage: "stage",
-    pipelinestage: "stage",
-    strategicrationale: "strategicRationale",
-    rationale: "strategicRationale",
-    notes: "notes",
-    note: "notes",
+    targetcode: "targetCode", code: "targetCode",
+    projectname: "projectName", project: "projectName", name: "projectName",
+    legalname: "legalName", legal: "legalName",
+    businessunit: "businessUnit", bu: "businessUnit", division: "businessUnit",
+    sector: "sector", industry: "sector",
+    subsector: "subsector", subindustry: "subsector",
+    region: "geographyRegion", geographyregion: "geographyRegion", geography: "geographyRegion",
+    country: "country", location: "country",
+    sourcingchannel: "sourcingChannel", channel: "sourcingChannel",
+    sourcingfirm: "sourcingFirm", firm: "sourcingFirm",
+    dealowner: "dealOwner", owner: "dealOwner",
+    dealchampion: "dealChampion", champion: "dealChampion",
+    executivesponsor: "executiveSponsor", sponsor: "executiveSponsor",
+    prioritytier: "priorityTier", priority: "priorityTier", tier: "priorityTier",
+    stage: "stage", pipelinestage: "stage",
+    strategicrationale: "strategicRationale", rationale: "strategicRationale",
+    notes: "notes", note: "notes",
   };
   return MAP[h] ?? "__skip__";
 }
@@ -96,6 +79,7 @@ type RowClassified = {
   existingId?: number;
   changedFields?: string[];
   newStage?: string;
+  existingValues?: Record<string, string>;
 };
 
 type RowSkipped = { rowIndex: number; targetCode?: string; reason: string };
@@ -146,6 +130,149 @@ function StepIndicator({ step }: { step: WizardStep }) {
   );
 }
 
+// ─── Collapsible diff card for update rows ───────────────────────────────────
+
+function UpdateDiffRow({ row }: { row: RowClassified }) {
+  const [open, setOpen] = useState(false);
+  const fields = row.changedFields ?? [];
+  const existing = row.existingValues ?? {};
+  const incoming = row.data as Record<string, unknown>;
+  const code = String(incoming.targetCode ?? "—");
+
+  return (
+    <div className="border border-border rounded-sm">
+      <button
+        type="button"
+        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-mono hover:bg-muted/30 transition-colors text-left"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="text-muted-foreground w-12 shrink-0">Row {row.rowIndex}</span>
+        <span className="font-medium flex-1">{code}</span>
+        <div className="flex flex-wrap gap-1 mr-2">
+          {fields.slice(0, 3).map((f) => (
+            <Badge key={f} variant="outline" className="font-mono text-[9px] rounded-sm border-border">
+              {FIELD_LABELS[f] ?? f}
+            </Badge>
+          ))}
+          {fields.length > 3 && (
+            <Badge variant="outline" className="font-mono text-[9px] rounded-sm border-border text-muted-foreground">
+              +{fields.length - 3} more
+            </Badge>
+          )}
+        </div>
+        {open ? <ChevronUp size={12} className="text-muted-foreground shrink-0" /> : <ChevronDown size={12} className="text-muted-foreground shrink-0" />}
+      </button>
+      {open && (
+        <div className="border-t border-border">
+          <table className="w-full text-[10px] font-mono">
+            <thead>
+              <tr className="bg-muted/20">
+                <th className="text-left px-3 py-1.5 text-muted-foreground font-normal w-1/3">Field</th>
+                <th className="text-left px-3 py-1.5 text-muted-foreground font-normal w-1/3">Current (DB)</th>
+                <th className="text-left px-3 py-1.5 text-muted-foreground font-normal w-1/3">Incoming</th>
+              </tr>
+            </thead>
+            <tbody>
+              {fields.map((f) => (
+                <tr key={f} className="border-t border-border/50">
+                  <td className="px-3 py-1.5 text-muted-foreground">{FIELD_LABELS[f] ?? f}</td>
+                  <td className="px-3 py-1.5 text-destructive/70 line-through">
+                    {existing[f] || <span className="text-muted-foreground/50 no-underline">(empty)</span>}
+                  </td>
+                  <td className="px-3 py-1.5 text-green-600 dark:text-green-400">
+                    {String(incoming[f] ?? "")}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Mapped row preview ──────────────────────────────────────────────────────
+
+function MappedRowsPreview({
+  rows,
+  headers,
+  columnMap,
+}: {
+  rows: ParsedRow[];
+  headers: string[];
+  columnMap: Record<string, string>;
+}) {
+  const previewRows = rows.slice(0, 3);
+  const mappedHeaders = headers.filter((h) => columnMap[h] && columnMap[h] !== "__skip__");
+  if (mappedHeaders.length === 0 || previewRows.length === 0) return null;
+
+  return (
+    <div className="bg-muted/20 rounded-sm border border-border overflow-auto max-h-48">
+      <div className="flex items-center gap-2 px-3 pt-2 pb-1">
+        <Info size={10} className="text-muted-foreground" />
+        <span className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground">
+          Preview of first {previewRows.length} mapped rows
+        </span>
+      </div>
+      <table className="w-full text-[10px] font-mono min-w-max">
+        <thead>
+          <tr className="border-t border-border bg-muted/30">
+            {mappedHeaders.map((h) => (
+              <th key={h} className="text-left px-3 py-1.5 text-muted-foreground font-normal whitespace-nowrap">
+                {FIELD_LABELS[columnMap[h]] ?? columnMap[h]}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {previewRows.map((row) => (
+            <tr key={row.rowIndex} className="border-t border-border/50">
+              {mappedHeaders.map((h) => (
+                <td key={h} className="px-3 py-1.5 whitespace-nowrap max-w-[160px] truncate">
+                  {String(row.data[h] ?? "")}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── Raw file preview table ──────────────────────────────────────────────────
+
+function RawFilePreview({ rows, headers }: { rows: ParsedRow[]; headers: string[] }) {
+  const previewRows = rows.slice(0, 5);
+  return (
+    <div className="bg-muted/20 rounded-sm border border-border overflow-auto max-h-48">
+      <table className="w-full text-[10px] font-mono min-w-max">
+        <thead>
+          <tr className="bg-muted/30">
+            {headers.map((h) => (
+              <th key={h} className="text-left px-3 py-1.5 text-muted-foreground font-normal whitespace-nowrap border-b border-border">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {previewRows.map((row) => (
+            <tr key={row.rowIndex} className="border-t border-border/50">
+              {headers.map((h) => (
+                <td key={h} className="px-3 py-1.5 whitespace-nowrap max-w-[160px] truncate">
+                  {String(row.data[h] ?? "")}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // ─── Main wizard ─────────────────────────────────────────────────────────────
 
 export default function ImportWizard() {
@@ -159,6 +286,7 @@ export default function ImportWizard() {
   const [columnMap, setColumnMap] = useState<Record<string, string>>({});
   const [dragOver, setDragOver] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [fileReady, setFileReady] = useState(false); // true after file parsed, before advancing to map
   const [validateResult, setValidateResult] = useState<ValidateResult | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
@@ -166,10 +294,11 @@ export default function ImportWizard() {
   const [apiError, setApiError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── File parsing ────────────────────────────────────────────────────────────
+  // ── File parsing — stays on upload step, shows preview ──────────────────
 
   const parseFile = useCallback(async (file: File) => {
     setParseError(null);
+    setFileReady(false);
     setFileName(file.name);
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
 
@@ -187,12 +316,12 @@ export default function ImportWizard() {
             rowIndex: i + 2,
             data: row,
           }));
-          setHeaders(hdrs);
-          setRows(parsed);
           const initialMap: Record<string, string> = {};
           for (const h of hdrs) initialMap[h] = autoMap(h);
+          setHeaders(hdrs);
+          setRows(parsed);
           setColumnMap(initialMap);
-          setStep("map");
+          setFileReady(true); // show preview on upload step
         },
         error: (err) => setParseError("CSV parse error: " + err.message),
       });
@@ -209,12 +338,12 @@ export default function ImportWizard() {
           hdrs.forEach((h: string, j: number) => { obj[h] = row[j] ?? ""; });
           return { rowIndex: i + 2, data: obj };
         });
-        setHeaders(hdrs);
-        setRows(dataRows);
         const initialMap: Record<string, string> = {};
         for (const h of hdrs) initialMap[h] = autoMap(h);
+        setHeaders(hdrs);
+        setRows(dataRows);
         setColumnMap(initialMap);
-        setStep("map");
+        setFileReady(true);
       } catch (err) {
         setParseError("Failed to parse Excel file: " + (err instanceof Error ? err.message : String(err)));
       }
@@ -290,6 +419,7 @@ export default function ImportWizard() {
     setRows([]);
     setColumnMap({});
     setParseError(null);
+    setFileReady(false);
     setValidateResult(null);
     setApplyResult(null);
     setApiError(null);
@@ -316,52 +446,105 @@ export default function ImportWizard() {
             <CardTitle className="font-mono text-sm uppercase tracking-wider">Upload File</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div
-              className={`border-2 border-dashed rounded-sm p-10 text-center transition-colors cursor-pointer ${
-                dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-              }`}
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="mx-auto mb-3 text-muted-foreground" size={32} />
-              <p className="text-sm font-mono text-muted-foreground">
-                Drag & drop a <span className="text-foreground">.csv</span>,{" "}
-                <span className="text-foreground">.xlsx</span>, or{" "}
-                <span className="text-foreground">.xls</span> file here
-              </p>
-              <p className="text-xs font-mono text-muted-foreground mt-1">or click to browse</p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-            </div>
+            {!fileReady ? (
+              <>
+                <div
+                  className={`border-2 border-dashed rounded-sm p-10 text-center transition-colors cursor-pointer ${
+                    dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                  }`}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="mx-auto mb-3 text-muted-foreground" size={32} />
+                  <p className="text-sm font-mono text-muted-foreground">
+                    Drag & drop a <span className="text-foreground">.csv</span>,{" "}
+                    <span className="text-foreground">.xlsx</span>, or{" "}
+                    <span className="text-foreground">.xls</span> file here
+                  </p>
+                  <p className="text-xs font-mono text-muted-foreground mt-1">or click to browse</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv,.xlsx,.xls"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </div>
 
-            {parseError && (
-              <Alert className="border-destructive/50 bg-destructive/10 rounded-sm">
-                <XCircle size={14} className="text-destructive" />
-                <AlertDescription className="text-destructive font-mono text-xs">{parseError}</AlertDescription>
-              </Alert>
+                {parseError && (
+                  <Alert className="border-destructive/50 bg-destructive/10 rounded-sm">
+                    <XCircle size={14} className="text-destructive" />
+                    <AlertDescription className="text-destructive font-mono text-xs">{parseError}</AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Format guide */}
+                <div className="bg-muted/30 rounded-sm p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Info size={12} className="text-muted-foreground" />
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Format Guide</span>
+                  </div>
+                  <ul className="space-y-1 text-xs font-mono text-muted-foreground list-disc list-inside">
+                    <li>First row must be column headers</li>
+                    <li>Rows with an existing <strong>Target Code</strong> will be updated</li>
+                    <li>Rows with a new code (+ project name) will be created</li>
+                    <li>Blank cells will never overwrite existing data</li>
+                    <li>You will map column headers to fields in the next step</li>
+                  </ul>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* File parsed — show preview before advancing */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText size={14} className="text-primary" />
+                    <span className="text-xs font-mono font-medium">{fileName}</span>
+                    <Badge className="bg-primary/10 text-primary border-0 font-mono text-[9px]">
+                      {rows.length} row{rows.length !== 1 ? "s" : ""} detected
+                    </Badge>
+                    <Badge className="bg-muted text-muted-foreground border-0 font-mono text-[9px]">
+                      {headers.length} column{headers.length !== 1 ? "s" : ""}
+                    </Badge>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-sm font-mono text-[10px] uppercase text-muted-foreground h-6"
+                    onClick={() => { setFileReady(false); setFileName(""); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                  >
+                    Change File
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv,.xlsx,.xls"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </div>
+
+                <RawFilePreview rows={rows} headers={headers} />
+
+                {rows.length > 5 && (
+                  <p className="text-[10px] font-mono text-muted-foreground">
+                    Showing first 5 of {rows.length} rows
+                  </p>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    className="rounded-sm font-mono text-[10px] uppercase"
+                    onClick={() => setStep("map")}
+                  >
+                    Continue to Map Columns <ChevronRight size={12} className="ml-1" />
+                  </Button>
+                </div>
+              </>
             )}
-
-            {/* Format guide */}
-            <div className="bg-muted/30 rounded-sm p-4 space-y-2">
-              <div className="flex items-center gap-2">
-                <Info size={12} className="text-muted-foreground" />
-                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Format Guide</span>
-              </div>
-              <ul className="space-y-1 text-xs font-mono text-muted-foreground list-disc list-inside">
-                <li>First row must be column headers</li>
-                <li>Rows with an existing <strong>Target Code</strong> will be updated</li>
-                <li>Rows with a new code (+ project name) will be created</li>
-                <li>Blank cells will never overwrite existing data</li>
-                <li>You will map column headers to fields in the next step</li>
-              </ul>
-            </div>
           </CardContent>
         </Card>
       )}
@@ -380,7 +563,7 @@ export default function ImportWizard() {
               Assign each spreadsheet column to a field. Columns set to "Skip" will be ignored.
             </p>
 
-            <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
               {headers.map((header) => {
                 const sampleVal = rows.slice(0, 3).map((r) => r.data[header]).filter(Boolean).join(", ");
                 return (
@@ -410,6 +593,9 @@ export default function ImportWizard() {
               })}
             </div>
 
+            {/* Mapped rows preview */}
+            <MappedRowsPreview rows={rows} headers={headers} columnMap={columnMap} />
+
             {apiError && (
               <Alert className="border-destructive/50 bg-destructive/10 rounded-sm">
                 <AlertDescription className="text-destructive font-mono text-xs">{apiError}</AlertDescription>
@@ -417,7 +603,8 @@ export default function ImportWizard() {
             )}
 
             <div className="flex gap-2 pt-2">
-              <Button variant="outline" size="sm" className="rounded-sm font-mono text-[10px] uppercase" onClick={reset}>
+              <Button variant="outline" size="sm" className="rounded-sm font-mono text-[10px] uppercase"
+                onClick={() => setStep("upload")}>
                 <ChevronLeft size={12} className="mr-1" /> Back
               </Button>
               <Button
@@ -494,31 +681,20 @@ export default function ImportWizard() {
             </Card>
           )}
 
-          {/* To Update */}
+          {/* To Update — collapsible diff per row */}
           {validateResult.toUpdate.length > 0 && (
             <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="font-mono text-xs uppercase tracking-wider flex items-center gap-2">
                   <Badge className="bg-primary/20 text-primary border-0 font-mono text-[9px]">Update</Badge>
                   {validateResult.toUpdate.length} target{validateResult.toUpdate.length !== 1 ? "s" : ""} to update
+                  <span className="text-muted-foreground font-normal text-[9px] ml-1">(click a row to see before/after)</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 max-h-52 overflow-y-auto">
+                <div className="space-y-1.5 max-h-72 overflow-y-auto">
                   {validateResult.toUpdate.map((row) => (
-                    <div key={row.rowIndex} className="text-xs font-mono">
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground w-12 shrink-0">Row {row.rowIndex}</span>
-                        <span className="font-medium">{String(row.data.targetCode ?? "—")}</span>
-                      </div>
-                      <div className="ml-14 flex flex-wrap gap-1 mt-0.5">
-                        {(row.changedFields ?? []).map((f) => (
-                          <Badge key={f} variant="outline" className="font-mono text-[9px] rounded-sm border-border">
-                            {f}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
+                    <UpdateDiffRow key={row.rowIndex} row={row} />
                   ))}
                 </div>
               </CardContent>
@@ -550,7 +726,8 @@ export default function ImportWizard() {
           )}
 
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="rounded-sm font-mono text-[10px] uppercase" onClick={() => setStep("map")}>
+            <Button variant="outline" size="sm" className="rounded-sm font-mono text-[10px] uppercase"
+              onClick={() => setStep("map")}>
               <ChevronLeft size={12} className="mr-1" /> Back
             </Button>
             <Button

@@ -6,42 +6,9 @@ import {
   milestonesTable,
   stageChangeLogTable,
 } from "@workspace/db";
+import { VALID_TIERS, VALID_STAGES, TERMINAL_STAGES } from "../constants";
 
 const router = Router();
-
-// ─── Valid values ────────────────────────────────────────────────────────────
-
-const VALID_TIERS = new Set([
-  "Must-Win",
-  "Priority 1",
-  "Priority 2",
-  "Watchlist",
-  "On Hold",
-  "Dropped",
-]);
-
-const VALID_STAGES = new Set([
-  "Sourcing",
-  "Outreach",
-  "Introductory Discussion",
-  "NDA / CIM",
-  "Preliminary Due Diligence",
-  "Management Meeting",
-  "Non-Binding Offer",
-  "Confirmatory Due Diligence",
-  "Binding Offer",
-  "SPA Negotiation",
-  "Integration Planning",
-  "On Hold",
-  "Rejected",
-  "Closing",
-  "Closed",
-  "Completed",
-  "Signed",
-]);
-
-// Terminal stages drive isActive — must match targets.ts exactly
-const TERMINAL_STAGES = new Set(["Rejected", "Closing", "Closed", "Completed", "Signed"]);
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -75,6 +42,8 @@ interface RowClassified {
   existingId?: number;
   changedFields?: string[];
   newStage?: string;
+  /** Current DB values for each changed field — used to render before/after diff in UI */
+  existingValues?: Record<string, string>;
 }
 
 interface RowSkipped {
@@ -195,7 +164,7 @@ router.post("/validate", async (req, res) => {
     );
   }
 
-  // Fetch existing targets for match lookup (only fields we compare on import)
+  // Fetch existing targets for match lookup (only importable string fields)
   const existingRows = await db
     .select({
       id: targetsTable.id,
@@ -260,6 +229,7 @@ router.post("/validate", async (req, res) => {
       // UPDATE path — compare only importable string fields (no scores)
       const existing = codeToExisting.get(code)!;
       const changedFields: string[] = [];
+      const existingValues: Record<string, string> = {};
 
       type StringField = keyof Pick<ImportRow,
         "projectName" | "legalName" | "businessUnit" | "sector" | "subsector" |
@@ -277,7 +247,10 @@ router.post("/validate", async (req, res) => {
         const incoming = data[field];
         if (incoming === undefined || isBlank(incoming)) continue;
         const dbVal = (existing as Record<string, unknown>)[field];
-        if (String(incoming) !== String(dbVal ?? "")) changedFields.push(field);
+        if (String(incoming) !== String(dbVal ?? "")) {
+          changedFields.push(field);
+          existingValues[field] = String(dbVal ?? "");
+        }
       }
 
       let newStage: string | undefined;
@@ -286,6 +259,7 @@ router.post("/validate", async (req, res) => {
         if (data.stage !== currentStage) {
           newStage = data.stage;
           changedFields.push("stage");
+          existingValues["stage"] = currentStage;
         }
       }
 
@@ -298,7 +272,7 @@ router.post("/validate", async (req, res) => {
         continue;
       }
 
-      toUpdate.push({ rowIndex, data, existingId: existing.id, changedFields, newStage });
+      toUpdate.push({ rowIndex, data, existingId: existing.id, changedFields, newStage, existingValues });
     } else {
       // CREATE path
       if (!data.targetCode || !data.projectName) {
@@ -449,12 +423,12 @@ router.post("/apply", async (req, res) => {
       if (changedFields.includes("strategicRationale") && !isBlank(data.strategicRationale))
         patch.strategicRationale = data.strategicRationale!;
 
-      // If stage is changing, fold isActive into the same targets update
+      // If stage is changing, fold isActive into the same targets UPDATE
       if (newStage && changedFields.includes("stage") && VALID_STAGES.has(newStage)) {
         patch.isActive = !TERMINAL_STAGES.has(newStage);
       }
 
-      // Always update targets table (at minimum bumps updatedAt + possibly isActive)
+      // Always update targets table (bumps updatedAt + any field/isActive changes)
       await db
         .update(targetsTable)
         .set(patch)
