@@ -477,48 +477,52 @@ export default function TargetDetail() {
     <div className="flex flex-col h-full overflow-hidden animate-in fade-in duration-500">
 
       {/* Header */}
-      <div className="border-b border-border bg-sidebar/50 backdrop-blur-sm p-4 md:p-6 shrink-0">
+      <div className="border-b border-border/60 bg-background/80 backdrop-blur-sm p-4 md:p-5 shrink-0">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
               <Link href="/pipeline">
-                <Button variant="ghost" size="icon" className="rounded-sm h-8 w-8 text-muted-foreground hover:text-foreground shrink-0">
+                <Button variant="ghost" size="icon" className="rounded-lg h-8 w-8 text-muted-foreground hover:text-foreground shrink-0">
                   <ArrowLeft size={16} />
                 </Button>
               </Link>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl md:text-2xl font-bold font-mono tracking-tight truncate">{target.projectName}</h1>
+                  <h1 className="text-lg md:text-xl font-bold font-mono tracking-tight truncate">{target.projectName}</h1>
                   {target.isConfidential && (
-                    <Badge variant="outline" className="font-mono text-[10px] uppercase bg-amber-500/10 text-amber-500 border-amber-500/20 shrink-0">
+                    <Badge variant="outline" className="font-mono text-[10px] uppercase bg-amber-500/10 text-amber-500 border-amber-500/25 shrink-0">
                       <ShieldAlert size={10} className="mr-1" /> Confidential
                     </Badge>
                   )}
                 </div>
-                <div className="text-xs font-mono text-muted-foreground uppercase flex items-center gap-2 mt-1 flex-wrap">
-                  <span>{target.targetCode}</span>
+                <div className="text-[10px] font-mono text-muted-foreground uppercase flex items-center gap-2 mt-0.5 flex-wrap">
+                  <span className="text-muted-foreground/70">{target.targetCode}</span>
                   <span className="w-1 h-1 bg-border rounded-full" />
                   <span>{target.sector || "Uncategorized"}</span>
                   <span className="w-1 h-1 bg-border rounded-full" />
-                  <span className="text-primary font-bold">{target.priorityTier}</span>
+                  <span className={`font-bold ${
+                    target.priorityTier === "Must-Win"   ? "text-destructive" :
+                    target.priorityTier === "Priority 1" ? "text-amber-500" :
+                    "text-primary"
+                  }`}>{target.priorityTier}</span>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <Button size="icon" variant="outline" className="rounded-sm border-border text-muted-foreground h-9 w-9" onClick={() => setEditOpen(true)}>
-                <Edit size={14} />
+              <Button size="icon" variant="outline" className="rounded-lg border-border/70 text-muted-foreground h-8 w-8" onClick={() => setEditOpen(true)}>
+                <Edit size={13} />
               </Button>
-              <Button size="icon" variant="outline" className="rounded-sm border-border text-destructive hover:bg-destructive/10 h-9 w-9" onClick={() => setDeleteOpen(true)}>
-                <Trash2 size={14} />
+              <Button size="icon" variant="outline" className="rounded-lg border-border/70 text-destructive hover:bg-destructive/10 h-8 w-8" onClick={() => setDeleteOpen(true)}>
+                <Trash2 size={13} />
               </Button>
-              <div className="hidden md:flex items-center gap-3 border-l border-border pl-3">
+              <div className="hidden md:flex items-center gap-3 border-l border-border/60 pl-3">
                 <div className="text-right">
-                  <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Stage</div>
-                  <div className="font-medium text-sm">{target.currentStage}</div>
+                  <div className="text-[9px] font-mono text-muted-foreground/70 uppercase tracking-wider">Stage</div>
+                  <div className="font-semibold text-sm font-mono">{target.currentStage}</div>
                 </div>
-                <Button size="sm" className="rounded-sm font-mono uppercase text-[11px] gap-1.5 tracking-wider h-9" onClick={() => setStageOpen(true)}>
-                  <TargetIcon size={13} /> Change Stage
+                <Button size="sm" className="rounded-lg font-mono uppercase text-[10px] gap-1.5 tracking-wider h-8" onClick={() => setStageOpen(true)}>
+                  <TargetIcon size={12} /> Change Stage
                 </Button>
               </div>
             </div>
@@ -551,8 +555,8 @@ export default function TargetDetail() {
             {/* Overview */}
             <TabsContent value="overview" className="space-y-6 mt-0">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="col-span-1 md:col-span-2 bg-card/30 border-border rounded-sm">
-                  <CardHeader className="border-b border-border pb-3">
+                <Card className="col-span-1 md:col-span-2 bg-card/40 border-border/70 rounded-xl">
+                  <CardHeader className="border-b border-border/60 pb-3">
                     <CardTitle className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Strategic Thesis</CardTitle>
                   </CardHeader>
                   <CardContent className="pt-4">
@@ -565,8 +569,8 @@ export default function TargetDetail() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-card/30 border-border rounded-sm overflow-hidden">
-                  <div className="bg-muted/50 p-4 border-b border-border flex items-center justify-between">
+                <Card className="bg-card/40 border-border/70 rounded-xl overflow-hidden">
+                  <div className="bg-muted/40 p-4 border-b border-border/60 flex items-center justify-between">
                     <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Priority Score</div>
                     <div className={`text-3xl font-mono font-bold ${getScoreColor(target.priorityScore)}`}>
                       {Math.round(target.priorityScore)}
@@ -593,8 +597,8 @@ export default function TargetDetail() {
                   </CardContent>
                 </Card>
 
-                <Card className="col-span-1 md:col-span-3 bg-card/30 border-border rounded-sm">
-                  <CardHeader className="border-b border-border pb-3">
+                <Card className="col-span-1 md:col-span-3 bg-card/40 border-border/70 rounded-xl">
+                  <CardHeader className="border-b border-border/60 pb-3">
                     <CardTitle className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Entity Details</CardTitle>
                   </CardHeader>
                   <CardContent className="pt-4">

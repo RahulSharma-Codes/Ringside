@@ -27,14 +27,14 @@ const FLAG_LABELS: Record<string, { label: string; color: string }> = {
 
 function getTierColor(tier: string) {
   switch (tier) {
-    case "Must-Win": return "bg-destructive text-destructive-foreground";
-    case "Priority 1": return "bg-amber-500 text-white";
-    case "Priority 2": return "bg-primary text-primary-foreground";
-    default: return "bg-muted text-muted-foreground";
+    case "Must-Win":   return "bg-destructive text-destructive-foreground border-0";
+    case "Priority 1": return "bg-amber-500 text-white border-0";
+    case "Priority 2": return "bg-primary text-primary-foreground border-0";
+    default:           return "bg-muted text-muted-foreground";
   }
 }
 
-function BarChart3({ size, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) {
+function BarChart3Icon({ size, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) {
   const s = size ?? 24;
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width={s} height={s}
@@ -42,6 +42,16 @@ function BarChart3({ size, ...props }: React.SVGProps<SVGSVGElement> & { size?: 
       strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" />
     </svg>
+  );
+}
+
+function SectionLabel({ icon, label, children }: { icon: React.ReactNode; label: string; children?: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-muted-foreground/70">{icon}</span>
+      <h2 className="text-[11px] font-mono font-semibold uppercase tracking-wider text-muted-foreground">{label}</h2>
+      {children}
+    </div>
   );
 }
 
@@ -63,7 +73,6 @@ export default function Dashboard() {
     query: { queryKey: getGetTargetsNeedingAttentionQueryKey() },
   });
 
-  // Recently updated: top 5 by updatedAt (list endpoint already orders by updatedAt desc)
   const { data: allTargets, isLoading: loadingRecent } = useListTargets(
     { isActive: true },
     { query: { queryKey: getListTargetsQueryKey({ isActive: true }) } },
@@ -72,10 +81,10 @@ export default function Dashboard() {
 
   if (loadingSummary) {
     return (
-      <div className="p-8 space-y-6">
-        <h1 className="text-2xl font-bold font-mono tracking-tight uppercase">Executive Summary</h1>
+      <div className="p-6 md:p-8 space-y-6">
+        <div className="h-7 w-48 bg-muted rounded animate-pulse" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
+          {Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}
         </div>
       </div>
     );
@@ -83,109 +92,109 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 md:p-8 space-y-8 animate-in fade-in duration-500 pb-20 md:pb-8">
+
+      {/* Page header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-mono tracking-tight uppercase">Executive Summary</h1>
-          <p className="text-sm text-muted-foreground">Live M&A pipeline intelligence</p>
+          <h1 className="text-xl font-bold font-mono tracking-tight uppercase">Executive Summary</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Live M&amp;A pipeline intelligence</p>
         </div>
-        <div className="text-xs font-mono text-muted-foreground bg-muted/50 px-3 py-1 rounded-sm border border-border">
-          SYSTEM STATUS: LIVE
+        <div className="text-[10px] font-mono text-muted-foreground/70 bg-card border border-border/60 px-3 py-1.5 rounded-lg">
+          LIVE
         </div>
       </div>
 
-      {/* KPI Cards — 2-column on mobile, 4 on desktop */}
+      {/* KPI row 1 — 2-up on mobile, 4-up on desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
+        <Card className="rounded-xl bg-card border-border/80">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
-            <CardTitle className="text-[10px] font-medium text-muted-foreground uppercase font-mono tracking-wider">Active</CardTitle>
+            <CardTitle className="metadata-label">Active</CardTitle>
             <Target size={13} className="text-primary shrink-0" />
           </CardHeader>
           <CardContent className="px-4 pb-4 pt-0">
-            <div className="text-2xl font-mono">{summary?.activeTargets ?? 0}</div>
-            <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider font-mono">opportunities</p>
+            <div className="metric-number">{summary?.activeTargets ?? 0}</div>
+            <p className="metadata-label mt-1">opportunities</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
+        <Card className="rounded-xl bg-card border-border/80">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
-            <CardTitle className="text-[10px] font-medium text-muted-foreground uppercase font-mono tracking-wider">Must-Win</CardTitle>
+            <CardTitle className="metadata-label">Must-Win</CardTitle>
             <AlertOctagon size={13} className="text-destructive shrink-0" />
           </CardHeader>
           <CardContent className="px-4 pb-4 pt-0">
-            <div className="text-2xl font-mono text-destructive">{summary?.mustWinCount ?? 0}</div>
-            <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider font-mono">+ {summary?.priority1Count ?? 0} P1</p>
+            <div className="metric-number text-destructive">{summary?.mustWinCount ?? 0}</div>
+            <p className="metadata-label mt-1">+ {summary?.priority1Count ?? 0} P1</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
+        <Card className="rounded-xl bg-card border-border/80">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
-            <CardTitle className="text-[10px] font-medium text-muted-foreground uppercase font-mono tracking-wider">Avg Score</CardTitle>
+            <CardTitle className="metadata-label">Avg Score</CardTitle>
             <TrendingUp size={13} className="text-emerald-500 shrink-0" />
           </CardHeader>
           <CardContent className="px-4 pb-4 pt-0">
-            <div className="text-2xl font-mono">{Math.round(summary?.avgPriorityScore ?? 0)}</div>
-            <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider font-mono">out of 100</p>
+            <div className="metric-number">{Math.round(summary?.avgPriorityScore ?? 0)}</div>
+            <p className="metadata-label mt-1">out of 100</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 backdrop-blur border-border rounded-sm border-l-2 border-l-amber-500">
+        <Card className="rounded-xl bg-card border-border/80 border-l-2 border-l-amber-500">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
-            <CardTitle className="text-[10px] font-medium text-muted-foreground uppercase font-mono tracking-wider">Actions</CardTitle>
+            <CardTitle className="metadata-label">Actions</CardTitle>
             <AlertCircle size={13} className="text-amber-500 shrink-0" />
           </CardHeader>
           <CardContent className="px-4 pb-4 pt-0">
-            <div className="text-2xl font-mono text-amber-500">{summary?.openActionsCount ?? 0}</div>
-            <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider font-mono">
-              {summary?.overdueActionsCount ?? 0} overdue
-            </p>
+            <div className="metric-number text-amber-500">{summary?.openActionsCount ?? 0}</div>
+            <p className="metadata-label mt-1">{summary?.overdueActionsCount ?? 0} overdue</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Second KPI row — attention + closed/dropped */}
+      {/* KPI row 2 */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-        <Card className={`bg-card/50 backdrop-blur border-border rounded-sm ${(summary?.needsAttentionCount ?? 0) > 0 ? "border-l-2 border-l-destructive" : ""}`}>
+        <Card className={`rounded-xl bg-card border-border/80 ${(summary?.needsAttentionCount ?? 0) > 0 ? "border-l-2 border-l-destructive" : ""}`}>
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
-            <CardTitle className="text-[10px] font-medium text-muted-foreground uppercase font-mono tracking-wider">Needs Attention</CardTitle>
+            <CardTitle className="metadata-label">Needs Attention</CardTitle>
             <AlertTriangle size={13} className={(summary?.needsAttentionCount ?? 0) > 0 ? "text-destructive shrink-0" : "text-muted-foreground shrink-0"} />
           </CardHeader>
           <CardContent className="px-4 pb-4 pt-0">
-            <div className={`text-2xl font-mono ${(summary?.needsAttentionCount ?? 0) > 0 ? "text-destructive" : ""}`}>
+            <div className={`metric-number ${(summary?.needsAttentionCount ?? 0) > 0 ? "text-destructive" : ""}`}>
               {summary?.needsAttentionCount ?? 0}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider font-mono">flagged</p>
+            <p className="metadata-label mt-1">flagged</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
+        <Card className="rounded-xl bg-card border-border/80">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
-            <CardTitle className="text-[10px] font-medium text-muted-foreground uppercase font-mono tracking-wider">Closed</CardTitle>
+            <CardTitle className="metadata-label">Closed</CardTitle>
             <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
           </CardHeader>
           <CardContent className="px-4 pb-4 pt-0">
-            <div className="text-2xl font-mono">{summary?.closedDealsCount ?? 0}</div>
-            <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider font-mono">deals</p>
+            <div className="metric-number">{summary?.closedDealsCount ?? 0}</div>
+            <p className="metadata-label mt-1">deals</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 backdrop-blur border-border rounded-sm col-span-2 md:col-span-1">
+        <Card className="rounded-xl bg-card border-border/80 col-span-2 md:col-span-1">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
-            <CardTitle className="text-[10px] font-medium text-muted-foreground uppercase font-mono tracking-wider">Dropped</CardTitle>
+            <CardTitle className="metadata-label">Dropped</CardTitle>
             <XCircle size={13} className="text-muted-foreground shrink-0" />
           </CardHeader>
           <CardContent className="px-4 pb-4 pt-0">
-            <div className="text-2xl font-mono text-muted-foreground">{summary?.droppedDealsCount ?? 0}</div>
-            <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider font-mono">deals</p>
+            <div className="metric-number text-muted-foreground">{summary?.droppedDealsCount ?? 0}</div>
+            <p className="metadata-label mt-1">deals</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Pipeline chart + Top Opportunities */}
+      {/* Chart + Top Opportunities */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 bg-card/50 backdrop-blur border-border rounded-sm">
+        <Card className="lg:col-span-2 rounded-xl bg-card border-border/80">
           <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground uppercase font-mono tracking-wider flex items-center gap-2">
-              <BarChart3 size={14} />
+            <CardTitle className="text-[11px] font-medium text-muted-foreground uppercase font-mono tracking-wider flex items-center gap-2">
+              <BarChart3Icon size={13} />
               Pipeline Distribution
             </CardTitle>
           </CardHeader>
@@ -195,7 +204,7 @@ export default function Dashboard() {
             ) : stageData && stageData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stageData} margin={{ top: 10, right: 10, left: -20, bottom: 40 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border)/0.5)" />
                   <XAxis
                     dataKey="stage"
                     tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9, fontFamily: "var(--app-font-mono)" }}
@@ -212,33 +221,33 @@ export default function Dashboard() {
                     allowDecimals={false}
                   />
                   <Tooltip
-                    cursor={{ fill: "hsl(var(--muted)/0.5)" }}
+                    cursor={{ fill: "hsl(var(--muted)/0.4)" }}
                     contentStyle={{
                       backgroundColor: "hsl(var(--popover))",
                       borderColor: "hsl(var(--border))",
-                      borderRadius: "2px",
+                      borderRadius: "8px",
                       fontFamily: "var(--app-font-mono)",
                       fontSize: "12px",
                       color: "hsl(var(--popover-foreground))",
                     }}
                     itemStyle={{ color: "hsl(var(--primary))" }}
                   />
-                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-full items-center justify-center text-sm font-mono text-muted-foreground uppercase tracking-widest">
+              <div className="flex h-full items-center justify-center text-xs font-mono text-muted-foreground uppercase tracking-widest">
                 No active targets in pipeline
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 backdrop-blur border-border rounded-sm flex flex-col">
+        <Card className="rounded-xl bg-card border-border/80 flex flex-col">
           <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground uppercase font-mono tracking-wider flex items-center justify-between">
+            <CardTitle className="text-[11px] font-medium text-muted-foreground uppercase font-mono tracking-wider flex items-center justify-between">
               <span className="flex items-center gap-2"><Zap size={13} /> Top Opportunities</span>
-              <Badge variant="outline" className="font-mono text-[10px] rounded-sm">Score</Badge>
+              <Badge variant="outline" className="font-mono text-[10px]">Score</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col gap-3 px-4 pb-4">
@@ -251,7 +260,7 @@ export default function Dashboard() {
                     <Link href={`/targets/${target.id}`} className="hover:underline underline-offset-4 text-sm font-medium truncate block">
                       {target.projectName}
                     </Link>
-                    <div className="text-[10px] text-muted-foreground font-mono truncate uppercase flex items-center gap-2">
+                    <div className="metadata-label truncate flex items-center gap-2">
                       <span className={target.priorityTier === "Must-Win" ? "text-destructive font-bold" : ""}>{target.priorityTier}</span>
                       {target.sector && <><span className="w-1 h-1 bg-border rounded-full shrink-0" /><span>{target.sector}</span></>}
                     </div>
@@ -277,36 +286,35 @@ export default function Dashboard() {
 
       {/* Needs Attention */}
       <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <AlertTriangle size={14} className="text-destructive" />
-          <h2 className="text-xs font-mono font-medium uppercase tracking-wider text-muted-foreground">Needs Attention</h2>
+        <SectionLabel icon={<AlertTriangle size={13} className="text-destructive" />} label="Needs Attention">
           {(attentionTargets?.length ?? 0) > 0 && (
-            <Badge className="font-mono text-[10px] rounded-sm bg-destructive text-destructive-foreground">
+            <Badge className="font-mono text-[10px] bg-destructive text-destructive-foreground border-0">
               {attentionTargets!.length}
             </Badge>
           )}
-        </div>
+        </SectionLabel>
+
         {loadingAttention ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {Array(2).fill(0).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+            {Array(2).fill(0).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
           </div>
         ) : attentionTargets && attentionTargets.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {attentionTargets.map((target) => (
               <Link key={target.id} href={`/targets/${target.id}`}>
-                <Card className="bg-card/50 backdrop-blur border-border rounded-sm hover:bg-card/80 transition-colors cursor-pointer border-l-2 border-l-destructive">
+                <Card className="bg-card border-border/80 rounded-xl hover:bg-muted/20 transition-colors cursor-pointer border-l-2 border-l-destructive">
                   <CardContent className="p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="font-medium text-sm truncate">{target.projectName}</div>
-                        <div className="text-[10px] font-mono text-muted-foreground uppercase mt-0.5 flex items-center gap-2">
+                        <div className="metadata-label mt-0.5 flex items-center gap-2">
                           <span>{target.targetCode}</span>
                           {target.currentStage && (
                             <><span className="w-1 h-1 bg-border rounded-full" /><span>{target.currentStage}</span></>
                           )}
                         </div>
                       </div>
-                      <Badge className={`font-mono text-[10px] rounded-sm shrink-0 ${getTierColor(target.priorityTier)}`}>
+                      <Badge className={`font-mono text-[10px] shrink-0 ${getTierColor(target.priorityTier)}`}>
                         {target.priorityTier}
                       </Badge>
                     </div>
@@ -317,7 +325,7 @@ export default function Dashboard() {
                           <Badge
                             key={flag}
                             variant="outline"
-                            className={`font-mono text-[9px] uppercase rounded-sm ${info.color}`}
+                            className={`font-mono text-[9px] uppercase ${info.color}`}
                           >
                             {info.label}
                           </Badge>
@@ -330,7 +338,7 @@ export default function Dashboard() {
             ))}
           </div>
         ) : (
-          <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
+          <Card className="bg-card border-border/80 rounded-xl">
             <CardContent className="p-6 text-center">
               <CheckCircle2 size={20} className="text-emerald-500 mx-auto mb-2" />
               <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
@@ -343,28 +351,27 @@ export default function Dashboard() {
 
       {/* Recently Updated */}
       <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <RefreshCw size={13} className="text-muted-foreground" />
-          <h2 className="text-xs font-mono font-medium uppercase tracking-wider text-muted-foreground">Recently Updated</h2>
+        <SectionLabel icon={<RefreshCw size={13} />} label="Recently Updated">
           {(summary?.recentlyUpdatedCount ?? 0) > 0 && (
-            <Badge variant="outline" className="font-mono text-[10px] rounded-sm">
+            <Badge variant="outline" className="font-mono text-[10px]">
               {summary!.recentlyUpdatedCount} in 7d
             </Badge>
           )}
-        </div>
+        </SectionLabel>
+
         {loadingRecent ? (
           <div className="space-y-2">
-            {Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+            {Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
           </div>
         ) : recentlyUpdated.length > 0 ? (
-          <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
-            <CardContent className="p-0 divide-y divide-border">
+          <Card className="bg-card border-border/80 rounded-xl overflow-hidden">
+            <CardContent className="p-0 divide-y divide-border/60">
               {recentlyUpdated.map((target) => (
                 <Link key={target.id} href={`/targets/${target.id}`}>
-                  <div className="flex items-center justify-between p-3 hover:bg-muted/30 transition-colors group">
+                  <div className="flex items-center justify-between p-3 hover:bg-muted/20 transition-colors group">
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium truncate">{target.projectName}</div>
-                      <div className="text-[10px] font-mono text-muted-foreground uppercase flex items-center gap-2 mt-0.5">
+                      <div className="metadata-label flex items-center gap-2 mt-0.5">
                         <span>{target.targetCode}</span>
                         {target.sector && <><span className="w-1 h-1 bg-border rounded-full" /><span>{target.sector}</span></>}
                         {target.currentStage && <><span className="w-1 h-1 bg-border rounded-full" /><span>{target.currentStage}</span></>}
@@ -385,7 +392,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
+          <Card className="bg-card border-border/80 rounded-xl">
             <CardContent className="p-6 text-center text-xs font-mono text-muted-foreground uppercase tracking-widest">
               No active targets
             </CardContent>

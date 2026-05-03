@@ -68,65 +68,80 @@
 
 :root {
   --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --badge-outline: rgba(255,255,255, .08);
   --opaque-button-border-intensity: 9;
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: 222 47% 11%; /* slate-900 */
-  --foreground: 210 40% 98%; /* slate-50 */
-  --border: 215 25% 27%; /* slate-700 */
-  --card: 222 47% 11%;
+  /* ── Surface ramp (darkest → lightest) ──────────────────── */
+  /* sidebar (6%) → background (11%) → card (15%) → secondary (22%) */
+
+  --background: 222 47% 11%;       /* page canvas — deep slate */
+  --foreground: 210 40% 98%;
+  --border: 215 18% 22%;           /* refined — slightly more subtle */
+
+  /* Card sits visually above the page background */
+  --card: 220 43% 15%;
   --card-foreground: 210 40% 98%;
-  --card-border: 215 25% 27%;
-  
-  --sidebar: 217 33% 17%; /* slate-800 */
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-border: 215 25% 27%;
+  --card-border: 215 18% 22%;
+
+  /* Sidebar recedes behind content for clear depth hierarchy */
+  --sidebar: 224 51% 7%;
+  --sidebar-foreground: 210 30% 88%;
+  --sidebar-border: 215 20% 16%;
   --sidebar-primary: 221 83% 53%;
   --sidebar-primary-foreground: 210 40% 98%;
-  --sidebar-accent: 215 25% 27%;
+  --sidebar-accent: 215 25% 16%;
   --sidebar-accent-foreground: 210 40% 98%;
   --sidebar-ring: 221 83% 53%;
 
-  --popover: 217 33% 17%;
+  --popover: 220 43% 13%;
   --popover-foreground: 210 40% 98%;
-  --popover-border: 215 25% 27%;
+  --popover-border: 215 18% 22%;
 
-  --primary: 221 83% 53%; /* blue-600 */
+  /* ── Colour scale ────────────────────────────────────────── */
+  --primary: 221 83% 53%;          /* blue-600 */
   --primary-foreground: 210 40% 98%;
-  --secondary: 215 25% 27%;
+  --secondary: 215 22% 22%;
   --secondary-foreground: 210 40% 98%;
-  --muted: 217 33% 17%;
-  --muted-foreground: 215 20% 65%; /* slate-400 */
-  --accent: 215 25% 27%;
+  --muted: 220 35% 18%;
+  --muted-foreground: 215 18% 58%;
+  --accent: 215 22% 22%;
   --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
+
+  /* Vivid red — clearly legible on dark backgrounds */
+  --destructive: 0 84% 60%;
   --destructive-foreground: 210 40% 98%;
 
-  --input: 215 25% 27%;
+  --input: 215 22% 22%;
   --ring: 221 83% 53%;
-  
-  --chart-1: 221 83% 53%;
-  --chart-2: 160 84% 39%; /* emerald-500 */
-  --chart-3: 45 93% 47%; /* amber-500 */
-  --chart-4: 280 65% 60%; /* purple-500 */
-  --chart-5: 0 84% 60%; /* red-500 */
 
+  /* ── Charts ──────────────────────────────────────────────── */
+  --chart-1: 221 83% 53%;
+  --chart-2: 160 84% 39%;          /* emerald-500 */
+  --chart-3: 45 93% 47%;           /* amber-500 */
+  --chart-4: 280 65% 60%;          /* purple-500 */
+  --chart-5: 0 84% 60%;            /* red-500 */
+
+  /* ── Typography ──────────────────────────────────────────── */
   --app-font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  --radius: 0.25rem;
-  
-  --shadow-2xs: 0px 2px 0px 0px rgba(0,0,0, .3);
-  --shadow-xs: 0px 2px 0px 0px rgba(0,0,0, .3);
-  --shadow-sm: 0px 2px 0px 0px rgba(0,0,0, .3), 0px 1px 2px -1px rgba(0,0,0, .3);
-  --shadow: 0px 2px 0px 0px rgba(0,0,0, .3), 0px 1px 2px -1px rgba(0,0,0, .3);
-  --shadow-md: 0px 2px 0px 0px rgba(0,0,0, .3), 0px 2px 4px -1px rgba(0,0,0, .3);
-  --shadow-lg: 0px 2px 0px 0px rgba(0,0,0, .3), 0px 4px 6px -1px rgba(0,0,0, .3);
-  --shadow-xl: 0px 2px 0px 0px rgba(0,0,0, .3), 0px 8px 10px -1px rgba(0,0,0, .3);
-  --shadow-2xl: 0px 2px 0px 0px rgba(0,0,0, .3);
 
+  /* ── Radius — increased for premium feel ─────────────────── */
+  --radius: 0.5rem;                /* was 0.25rem */
+
+  /* ── Realistic multi-layer shadows ───────────────────────── */
+  --shadow-2xs: 0 1px 2px 0 rgba(0,0,0,.35);
+  --shadow-xs:  0 1px 3px 0 rgba(0,0,0,.4),  0 1px 2px -1px rgba(0,0,0,.3);
+  --shadow-sm:  0 2px 4px 0 rgba(0,0,0,.4),  0 1px 2px -1px rgba(0,0,0,.25);
+  --shadow:     0 4px 8px 0 rgba(0,0,0,.4),  0 2px 4px -1px rgba(0,0,0,.25);
+  --shadow-md:  0 6px 16px 0 rgba(0,0,0,.4), 0 3px 6px  -1px rgba(0,0,0,.3);
+  --shadow-lg:  0 12px 24px 0 rgba(0,0,0,.45), 0 6px 12px -2px rgba(0,0,0,.3);
+  --shadow-xl:  0 20px 40px 0 rgba(0,0,0,.5), 0 10px 20px -4px rgba(0,0,0,.3);
+  --shadow-2xl: 0 32px 64px 0 rgba(0,0,0,.55);
+
+  /* ── Token aliases ───────────────────────────────────────── */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-accent-border: hsl(var(--sidebar-accent));
   --primary-border: hsl(var(--primary));
@@ -144,7 +159,6 @@
   * {
     @apply border-border;
   }
-
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
@@ -159,6 +173,8 @@
     color: hsl(var(--muted-foreground));
     pointer-events: none;
   }
+
+  /* ── Elevate system ─────────────────────────────────────── */
   .no-default-hover-elevate {}
   .no-default-active-elevate {}
 
@@ -209,5 +225,101 @@
   .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
+  }
+
+  /* ── Premium design-system utilities ───────────────────────
+
+     glass-shell     — frosted sidebar / sticky-header surfaces
+     glass-panel     — dialogs and elevated modal surfaces
+     premium-card    — elevated content card with realistic shadow
+     command-bar     — filter bars, sticky action rows
+     section-header  — collapsible group header rows
+     metric-number   — large KPI display numbers
+     metadata-label  — small uppercase mono metadata
+     status-chip     — inline status pill base
+     mobile-safe-bottom — safe-area bottom padding for sticky bars
+  ─────────────────────────────────────────────────────────── */
+
+  .glass-shell {
+    backdrop-filter: blur(12px) saturate(1.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    background-color: hsl(var(--sidebar) / 0.94);
+    border-right: 1px solid hsl(var(--sidebar-border) / 0.8);
+  }
+
+  .glass-panel {
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    background-color: hsl(var(--card) / 0.96);
+  }
+
+  .premium-card {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius-xl);
+    box-shadow: 0 2px 8px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
+    transition: box-shadow 150ms ease, background-color 150ms ease;
+  }
+  .premium-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,.38), 0 2px 4px rgba(0,0,0,.22);
+  }
+
+  .command-bar {
+    background-color: hsl(var(--card) / 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius-xl);
+    box-shadow: 0 1px 4px rgba(0,0,0,.2);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    width: 100%;
+    text-align: left;
+    background-color: hsl(var(--card) / 0.5);
+    transition: background-color 150ms ease;
+    cursor: pointer;
+  }
+  .section-header:hover {
+    background-color: hsl(var(--card) / 0.75);
+  }
+
+  .metric-number {
+    font-family: var(--app-font-mono);
+    font-size: 1.875rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1;
+  }
+
+  .metadata-label {
+    font-family: var(--app-font-mono);
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .status-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.375rem;
+    border-radius: calc(var(--radius) - 2px);
+    font-family: var(--app-font-mono);
+    font-size: 0.625rem;
+    font-weight: 600;
+    border: 1px solid;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+
+  .mobile-safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 }

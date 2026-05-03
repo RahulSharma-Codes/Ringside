@@ -17,51 +17,67 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row font-sans">
-      <aside className="w-full md:w-64 border-r border-border bg-sidebar shrink-0 flex flex-col">
-        <div className="p-4 border-b border-border flex items-center gap-2">
-          <div className="bg-primary/20 p-2 rounded text-primary">
-            <Briefcase size={20} />
+      <aside className="glass-shell w-full md:w-60 shrink-0 flex flex-col md:sticky md:top-0 md:h-screen">
+        {/* Brand mark */}
+        <div className="px-4 py-4 border-b border-sidebar-border/60 flex items-center gap-3">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/15 border border-primary/20 shrink-0">
+            <Briefcase size={15} className="text-primary" />
           </div>
-          <div>
-            <h1 className="font-bold text-sm tracking-tight">INORGANIC GROWTH OS</h1>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">Confidential</p>
+          <div className="min-w-0">
+            <p className="font-bold text-[11px] tracking-widest text-sidebar-foreground uppercase truncate">
+              Growth OS
+            </p>
+            <p className="text-[9px] text-sidebar-foreground/40 uppercase tracking-widest font-mono">
+              Confidential
+            </p>
           </div>
         </div>
 
-        <nav className="p-4 space-y-1 flex-1">
-          <div className="mb-4">
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+          <div className="mb-3">
             <Link href="/targets/new">
-              <Button className="w-full justify-start gap-2" variant="default" size="sm">
-                <Plus size={16} />
+              <Button className="w-full justify-start gap-2 h-8 text-xs font-mono uppercase tracking-wider" size="sm">
+                <Plus size={14} />
                 New Opportunity
               </Button>
             </Link>
           </div>
-          <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2 px-2">Navigation</div>
+
+          <p className="px-2 mb-2 text-[9px] font-mono uppercase tracking-widest text-sidebar-foreground/35">
+            Navigate
+          </p>
+
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location === item.href || (location.startsWith(item.href) && item.href !== "/");
+            const isActive = location === item.href ||
+              (item.href !== "/" && location.startsWith(item.href));
             return (
               <Link key={item.href} href={item.href}>
-                <div
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded-sm text-sm font-medium transition-colors cursor-pointer ${
-                    isActive 
-                      ? "bg-primary/10 text-primary" 
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                  }`}
-                >
-                  <Icon size={16} />
-                  {item.label}
+                <div className={`relative flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 cursor-pointer ${
+                  isActive
+                    ? "bg-primary/10 text-primary"
+                    : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-white/5"
+                }`}>
+                  {isActive && (
+                    <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-primary rounded-full" />
+                  )}
+                  <Icon size={15} className="shrink-0" />
+                  <span className="truncate">{item.label}</span>
                 </div>
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-border mt-auto">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
-            System Online
+        {/* Status footer */}
+        <div className="px-4 py-3 border-t border-sidebar-border/50 mt-auto">
+          <div className="flex items-center gap-2 text-[10px] text-sidebar-foreground/40 font-mono">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+            </span>
+            Live
           </div>
         </div>
       </aside>

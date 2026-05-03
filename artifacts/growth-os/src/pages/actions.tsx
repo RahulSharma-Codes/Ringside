@@ -36,19 +36,19 @@ interface CommandCenterAction {
 const PRIORITY_ORDER: Record<string, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
 
 function tierClass(tier: string | null) {
-  if (tier === "Must-Win") return "bg-primary/10 text-primary border-primary/30";
-  if (tier === "Priority 1") return "bg-amber-500/10 text-amber-600 border-amber-500/30";
+  if (tier === "Must-Win")   return "bg-destructive/10 text-destructive border-destructive/30";
+  if (tier === "Priority 1") return "bg-amber-500/10 text-amber-500 border-amber-500/30";
   return "bg-muted text-muted-foreground border-border";
 }
 
 function StatusPill({ status }: { status: string }) {
   const cls =
-    status === "Blocked" ? "bg-destructive/10 text-destructive border-destructive/20" :
+    status === "Blocked"     ? "bg-destructive/10 text-destructive border-destructive/20" :
     status === "In Progress" ? "bg-primary/10 text-primary border-primary/20" :
-    status === "Completed" ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20" :
+    status === "Completed"   ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
     "bg-muted text-muted-foreground border-border";
   return (
-    <span className={`inline-flex px-1.5 py-0.5 rounded-sm text-[10px] font-mono border ${cls}`}>
+    <span className={`inline-flex px-1.5 py-0.5 rounded-md text-[10px] font-mono border ${cls}`}>
       {status}
     </span>
   );
@@ -65,20 +65,20 @@ type GroupDef = {
 };
 
 const GROUPS: GroupDef[] = [
-  { key: "overdue",   label: "Overdue",           emptyMsg: "No overdue actions — pipeline looks clean.",        badgeCls: "bg-destructive text-white",             defaultOpen: true  },
-  { key: "blocked",   label: "Blocked",            emptyMsg: "No blocked actions.",                               badgeCls: "bg-orange-500 text-white",              defaultOpen: true  },
-  { key: "this-week", label: "Due This Week",       emptyMsg: "Nothing due in the next 7 days.",                  badgeCls: "bg-amber-500 text-white",               defaultOpen: true  },
-  { key: "upcoming",  label: "Upcoming",            emptyMsg: "No upcoming actions with a future due date.",       badgeCls: "bg-primary/80 text-primary-foreground", defaultOpen: true  },
-  { key: "no-date",   label: "No Due Date",         emptyMsg: "All actions have due dates assigned.",             badgeCls: "bg-muted-foreground text-white",         defaultOpen: false },
-  { key: "completed", label: "Recently Completed",  emptyMsg: "No actions completed in the last 14 days.",        badgeCls: "bg-emerald-600 text-white",             defaultOpen: false },
+  { key: "overdue",   label: "Overdue",           emptyMsg: "No overdue actions — pipeline looks clean.",      badgeCls: "bg-destructive text-white",             defaultOpen: true  },
+  { key: "blocked",   label: "Blocked",            emptyMsg: "No blocked actions.",                             badgeCls: "bg-orange-500 text-white",              defaultOpen: true  },
+  { key: "this-week", label: "Due This Week",       emptyMsg: "Nothing due in the next 7 days.",                badgeCls: "bg-amber-500 text-white",               defaultOpen: true  },
+  { key: "upcoming",  label: "Upcoming",            emptyMsg: "No upcoming actions with a future due date.",     badgeCls: "bg-primary/80 text-primary-foreground", defaultOpen: true  },
+  { key: "no-date",   label: "No Due Date",         emptyMsg: "All actions have due dates assigned.",           badgeCls: "bg-muted-foreground text-white",        defaultOpen: false },
+  { key: "completed", label: "Recently Completed",  emptyMsg: "No actions completed in the last 14 days.",      badgeCls: "bg-emerald-600 text-white",             defaultOpen: false },
 ];
 
 function classifyAction(a: CommandCenterAction, todayStr: string, weekEndStr: string): GroupKey {
   if (a.status === "Completed") return "completed";
-  if (a.status === "Blocked") return "blocked";
-  if (!a.dueDate) return "no-date";
-  if (a.dueDate < todayStr) return "overdue";
-  if (a.dueDate <= weekEndStr) return "this-week";
+  if (a.status === "Blocked")   return "blocked";
+  if (!a.dueDate)               return "no-date";
+  if (a.dueDate < todayStr)     return "overdue";
+  if (a.dueDate <= weekEndStr)  return "this-week";
   return "upcoming";
 }
 
@@ -94,14 +94,14 @@ function ActionCard({
   const isOverdue = action.dueDate && action.dueDate < todayStr && action.status !== "Completed";
 
   return (
-    <Card className="border-border bg-card/60 rounded-sm">
+    <Card className="border-border/70 bg-card rounded-xl">
       <CardContent className="p-4 space-y-2.5">
         <div className="flex items-start gap-3">
           <p className="text-sm font-medium leading-snug flex-1">{action.description}</p>
           {action.status !== "Completed" ? (
             <Button
               size="sm"
-              className="h-7 text-[10px] font-mono uppercase rounded-sm bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
+              className="h-7 text-[10px] font-mono uppercase rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
               onClick={onComplete}
               disabled={isPending}
             >
@@ -111,7 +111,7 @@ function ActionCard({
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-[10px] font-mono uppercase rounded-sm shrink-0"
+              className="h-7 text-[10px] font-mono uppercase rounded-lg shrink-0"
               onClick={onReopen}
               disabled={isPending}
             >
@@ -127,11 +127,11 @@ function ActionCard({
             </span>
           </Link>
           {action.priorityTier && (
-            <span className={`inline-flex px-1.5 py-0.5 rounded-sm text-[10px] font-mono border ${tierClass(action.priorityTier)}`}>
+            <span className={`inline-flex px-1.5 py-0.5 rounded-md text-[10px] font-mono border ${tierClass(action.priorityTier)}`}>
               {action.priorityTier}
             </span>
           )}
-          <span className="text-[10px] font-mono text-muted-foreground border border-border px-1.5 py-0.5 rounded-sm">
+          <span className="text-[10px] font-mono text-muted-foreground border border-border/70 px-1.5 py-0.5 rounded-md">
             {action.currentStage}
           </span>
           <StatusPill status={action.status} />
@@ -154,7 +154,7 @@ function ActionCard({
             </span>
           )}
           {action.completedAt && action.status === "Completed" && (
-            <span className="flex items-center gap-1 text-emerald-600">
+            <span className="flex items-center gap-1 text-emerald-500">
               <CheckCircle2 size={11} />
               Completed {format(parseISO(action.completedAt), "MMM d")}
             </span>
@@ -178,24 +178,26 @@ function GroupSection({
   const [open, setOpen] = useState(group.defaultOpen);
 
   return (
-    <div>
+    <div className="border border-border/70 rounded-xl overflow-hidden">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 py-1.5 text-left"
+        className="section-header rounded-t-xl"
       >
         {open
-          ? <ChevronDown size={14} className="text-muted-foreground" />
-          : <ChevronRight size={14} className="text-muted-foreground" />}
-        <span className="text-[11px] font-mono uppercase tracking-wider font-semibold">{group.label}</span>
-        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${group.badgeCls}`}>
+          ? <ChevronDown size={13} className="text-muted-foreground shrink-0" />
+          : <ChevronRight size={13} className="text-muted-foreground shrink-0" />}
+        <span className="text-[11px] font-mono uppercase tracking-wider font-semibold flex-1 text-left">
+          {group.label}
+        </span>
+        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full shrink-0 ${group.badgeCls}`}>
           {actions.length}
         </span>
       </button>
 
       {open && (
-        <div className="mt-2 space-y-2">
+        <div className="p-3 space-y-2 border-t border-border/50">
           {actions.length === 0 ? (
-            <p className="text-[11px] text-muted-foreground font-mono px-3 py-3 border border-dashed border-border rounded-sm">
+            <p className="text-[11px] text-muted-foreground font-mono px-2 py-3 border border-dashed border-border/60 rounded-lg">
               {group.emptyMsg}
             </p>
           ) : (
@@ -217,13 +219,13 @@ function GroupSection({
 }
 
 export default function Actions() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [ownerFilter, setOwnerFilter] = useState("all");
+  const { toast }      = useToast();
+  const queryClient    = useQueryClient();
+  const [ownerFilter, setOwnerFilter]       = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
-  const [mustWinOnly, setMustWinOnly] = useState(false);
-  const [overdueOnly, setOverdueOnly] = useState(false);
-  const [search, setSearch] = useState("");
+  const [mustWinOnly, setMustWinOnly]       = useState(false);
+  const [overdueOnly, setOverdueOnly]       = useState(false);
+  const [search, setSearch]                 = useState("");
 
   const { data: actions, isLoading } = useQuery({
     queryKey: ["actions-command-center"],
@@ -250,7 +252,7 @@ export default function Actions() {
     [actions],
   );
 
-  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayStr  = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const weekEndStr = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -293,7 +295,8 @@ export default function Actions() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 md:p-6 border-b border-border shrink-0 space-y-3">
+      {/* Sticky header + filter bar */}
+      <div className="p-4 md:p-6 border-b border-border/60 shrink-0 space-y-3 bg-background/80 backdrop-blur-sm">
         <div>
           <h1 className="text-xl font-bold font-mono tracking-tight uppercase">Action Command Center</h1>
           <p className="text-sm text-muted-foreground">
@@ -308,12 +311,12 @@ export default function Actions() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search actions…"
-              className="pl-8 h-8 text-sm rounded-sm"
+              className="pl-8 h-8 text-sm rounded-lg bg-card/60"
             />
           </div>
 
           <Select value={ownerFilter} onValueChange={setOwnerFilter}>
-            <SelectTrigger className="w-[140px] h-8 rounded-sm font-mono text-[11px]">
+            <SelectTrigger className="w-[140px] h-8 rounded-lg font-mono text-[11px]">
               <SelectValue placeholder="Owner" />
             </SelectTrigger>
             <SelectContent>
@@ -323,7 +326,7 @@ export default function Actions() {
           </Select>
 
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-[130px] h-8 rounded-sm font-mono text-[11px]">
+            <SelectTrigger className="w-[130px] h-8 rounded-lg font-mono text-[11px]">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
@@ -337,10 +340,10 @@ export default function Actions() {
 
           <button
             onClick={() => setMustWinOnly((v) => !v)}
-            className={`h-8 px-3 rounded-sm text-[11px] font-mono border transition-colors ${
+            className={`h-8 px-3 rounded-lg text-[11px] font-mono border transition-all duration-150 ${
               mustWinOnly
                 ? "bg-primary text-primary-foreground border-primary"
-                : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/40"
+                : "border-border/70 text-muted-foreground hover:text-foreground hover:border-foreground/40"
             }`}
           >
             Must-Win
@@ -348,10 +351,10 @@ export default function Actions() {
 
           <button
             onClick={() => setOverdueOnly((v) => !v)}
-            className={`h-8 px-3 rounded-sm text-[11px] font-mono border transition-colors flex items-center gap-1.5 ${
+            className={`h-8 px-3 rounded-lg text-[11px] font-mono border transition-all duration-150 flex items-center gap-1.5 ${
               overdueOnly
                 ? "bg-destructive text-white border-destructive"
-                : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/40"
+                : "border-border/70 text-muted-foreground hover:text-foreground hover:border-foreground/40"
             }`}
           >
             <SlidersHorizontal size={12} />
@@ -360,13 +363,12 @@ export default function Actions() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 md:p-6 space-y-5">
+      <div className="flex-1 overflow-auto p-4 md:p-6 space-y-3">
         {isLoading ? (
           Array(3).fill(0).map((_, i) => (
             <div key={i} className="space-y-2">
-              <Skeleton className="h-5 w-32" />
-              <Skeleton className="h-24 w-full rounded-sm" />
-              <Skeleton className="h-24 w-full rounded-sm" />
+              <Skeleton className="h-10 w-full rounded-xl" />
+              <Skeleton className="h-24 w-full rounded-xl" />
             </div>
           ))
         ) : (
