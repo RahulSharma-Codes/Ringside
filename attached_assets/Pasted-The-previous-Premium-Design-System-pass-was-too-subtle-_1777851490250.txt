@@ -1,0 +1,104 @@
+The previous Premium Design System pass was too subtle. The UI does not look meaningfully different to the user.
+
+Now do Phase UX-2: Visible Page-Level Premium Uplift.
+
+Important:
+- This is frontend-only.
+- Do NOT touch api-server.
+- Do NOT touch lib/db.
+- Do NOT change API routes.
+- Do NOT change auth.
+- Do NOT change DATABASE_URL.
+- Do NOT run drizzle push.
+- Do NOT run seed.ts.
+- Do NOT change business logic or data fetching.
+- Preserve every feature and workflow.
+- Preserve information density.
+- Run pnpm run typecheck after changes.
+
+Goal:
+Make the app visibly feel like a premium, executive-grade M&A operating system. The prior pass adjusted tokens but did not create enough visible difference. This pass must make the major pages noticeably more polished, more structured, and more boardroom-ready.
+
+Design direction:
+- Premium dark executive UI
+- Apple-inspired glass-lite, but not excessive glassmorphism
+- More visible hierarchy
+- More refined layout
+- Stronger page headers
+- Better card composition
+- Better use of whitespace
+- Clearer status and priority styling
+- More premium dashboard and pipeline presentation
+- Still readable on 375px mobile width
+
+Required visible changes:
+
+1. App shell
+- Make sidebar/top shell visibly more premium.
+- Improve brand area with a stronger product identity block.
+- Use subtle frosted sidebar treatment.
+- Improve active nav state so it is obvious but restrained.
+- Group navigation into sections if low-risk:
+  Operating System, Review Cadence, Intelligence, Data.
+
+2. Dashboard
+- Add a stronger executive header area:
+  "Inorganic Growth Operating System"
+  short subtitle
+  last updated / portfolio health indicator if available.
+- Make KPI cards more visually distinct with larger metric numbers.
+- Make Needs Attention visually more prominent.
+- Improve layout so dashboard feels like an executive cockpit, not a generic grid.
+
+3. Pipeline
+- Make target cards visibly more premium.
+- Strengthen project name / target code / stage / priority hierarchy.
+- Improve filters into a proper command bar.
+- Make cards feel clickable and structured.
+- Add clearer visual indicators for overdue, needs attention, and must-win.
+
+4. Target Detail
+- Upgrade the cockpit header substantially.
+- Make project name, target code, current stage, priority tier, and key actions feel like a deal command center.
+- Improve tabs so the active tab is obvious.
+- Improve interaction/action/diligence cards with stronger grouping and spacing.
+
+5. Actions Command Center
+- Make grouped sections feel like an operating board.
+- Make overdue, blocked, due this week, and completed groups visually distinct.
+- Improve action cards and quick action buttons.
+
+6. Weekly Review
+- Make this feel like a management meeting page.
+- Add stronger section headers and better visual rhythm.
+- Improve empty states so they feel intentional.
+
+7. Diligence Review
+- Make readiness/completion information more visually executive.
+- Improve workstream badges and completion cards.
+
+8. Import Wizard
+- Make the stepper and review/apply states more polished and trustworthy.
+- Warnings/errors should be clear but calm.
+
+9. AI Copilot
+- Make the chat panel look integrated and premium.
+- Suggested prompts should feel like smart operating questions, not generic buttons.
+- No-credit/setup state should look like a designed product state.
+
+Specific visual requirements:
+- Use more noticeable premium-card styling on actual page cards.
+- Use more visible page headers.
+- Increase metric number size.
+- Improve spacing between sections.
+- Use subtle gradients/background depth only at page/shell level.
+- Avoid making every card transparent.
+- Avoid rainbow colors.
+- Avoid crypto-dashboard aesthetics.
+- Maintain accessibility and contrast.
+
+Before finishing:
+- Take a screenshot or visual check of Dashboard, Pipeline, Target Detail, Actions, Weekly Review, and Diligence Review.
+- Confirm the UI is visibly different from before.
+- Run pnpm run typecheck.
+- Report changed files and any visual risks.

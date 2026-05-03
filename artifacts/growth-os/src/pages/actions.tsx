@@ -61,16 +61,17 @@ type GroupDef = {
   label: string;
   emptyMsg: string;
   badgeCls: string;
+  headerCls: string;
   defaultOpen: boolean;
 };
 
 const GROUPS: GroupDef[] = [
-  { key: "overdue",   label: "Overdue",           emptyMsg: "No overdue actions — pipeline looks clean.",      badgeCls: "bg-destructive text-white",             defaultOpen: true  },
-  { key: "blocked",   label: "Blocked",            emptyMsg: "No blocked actions.",                             badgeCls: "bg-orange-500 text-white",              defaultOpen: true  },
-  { key: "this-week", label: "Due This Week",       emptyMsg: "Nothing due in the next 7 days.",                badgeCls: "bg-amber-500 text-white",               defaultOpen: true  },
-  { key: "upcoming",  label: "Upcoming",            emptyMsg: "No upcoming actions with a future due date.",     badgeCls: "bg-primary/80 text-primary-foreground", defaultOpen: true  },
-  { key: "no-date",   label: "No Due Date",         emptyMsg: "All actions have due dates assigned.",           badgeCls: "bg-muted-foreground text-white",        defaultOpen: false },
-  { key: "completed", label: "Recently Completed",  emptyMsg: "No actions completed in the last 14 days.",      badgeCls: "bg-emerald-600 text-white",             defaultOpen: false },
+  { key: "overdue",   label: "Overdue",           emptyMsg: "No overdue actions — pipeline looks clean.",        badgeCls: "bg-destructive text-white",             headerCls: "group-header-overdue",  defaultOpen: true  },
+  { key: "blocked",   label: "Blocked",            emptyMsg: "No blocked actions.",                               badgeCls: "bg-orange-500 text-white",              headerCls: "group-header-blocked",  defaultOpen: true  },
+  { key: "this-week", label: "Due This Week",       emptyMsg: "Nothing due in the next 7 days.",                  badgeCls: "bg-amber-500 text-white",               headerCls: "group-header-thisweek", defaultOpen: true  },
+  { key: "upcoming",  label: "Upcoming",            emptyMsg: "No upcoming actions with a future due date.",       badgeCls: "bg-primary/80 text-primary-foreground", headerCls: "",                      defaultOpen: true  },
+  { key: "no-date",   label: "No Due Date",         emptyMsg: "All actions have due dates assigned.",             badgeCls: "bg-muted-foreground text-white",        headerCls: "",                      defaultOpen: false },
+  { key: "completed", label: "Recently Completed",  emptyMsg: "No actions completed in the last 14 days.",        badgeCls: "bg-emerald-600 text-white",             headerCls: "group-header-complete", defaultOpen: false },
 ];
 
 function classifyAction(a: CommandCenterAction, todayStr: string, weekEndStr: string): GroupKey {
@@ -94,7 +95,7 @@ function ActionCard({
   const isOverdue = action.dueDate && action.dueDate < todayStr && action.status !== "Completed";
 
   return (
-    <Card className="border-border/70 bg-card rounded-xl">
+    <Card className={`border-border/60 rounded-xl transition-colors ${isOverdue ? "bg-destructive/5 border-l-2 border-l-destructive" : "bg-card"}`}>
       <CardContent className="p-4 space-y-2.5">
         <div className="flex items-start gap-3">
           <p className="text-sm font-medium leading-snug flex-1">{action.description}</p>
@@ -131,7 +132,7 @@ function ActionCard({
               {action.priorityTier}
             </span>
           )}
-          <span className="text-[10px] font-mono text-muted-foreground border border-border/70 px-1.5 py-0.5 rounded-md">
+          <span className="text-[10px] font-mono text-muted-foreground border border-border/60 px-1.5 py-0.5 rounded-md">
             {action.currentStage}
           </span>
           <StatusPill status={action.status} />
@@ -143,7 +144,7 @@ function ActionCard({
           </Badge>
         </div>
 
-        <div className="flex flex-wrap gap-4 text-[11px] text-muted-foreground">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
           <span>Owner: <span className="text-foreground">{action.owner ?? "Unassigned"}</span></span>
           {action.dueDate && (
             <span className={`flex items-center gap-1 ${isOverdue ? "text-destructive font-semibold" : ""}`}>
@@ -178,10 +179,10 @@ function GroupSection({
   const [open, setOpen] = useState(group.defaultOpen);
 
   return (
-    <div className="border border-border/70 rounded-xl overflow-hidden">
+    <div className="border border-border/60 rounded-xl overflow-hidden">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="section-header rounded-t-xl"
+        className={`section-header rounded-t-xl w-full ${group.headerCls}`}
       >
         {open
           ? <ChevronDown size={13} className="text-muted-foreground shrink-0" />
@@ -189,15 +190,20 @@ function GroupSection({
         <span className="text-[11px] font-mono uppercase tracking-wider font-semibold flex-1 text-left">
           {group.label}
         </span>
-        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full shrink-0 ${group.badgeCls}`}>
-          {actions.length}
-        </span>
+        {actions.length > 0 && (
+          <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full shrink-0 font-semibold ${group.badgeCls}`}>
+            {actions.length}
+          </span>
+        )}
+        {actions.length === 0 && (
+          <span className="text-[10px] font-mono text-muted-foreground/50 shrink-0">0</span>
+        )}
       </button>
 
       {open && (
-        <div className="p-3 space-y-2 border-t border-border/50">
+        <div className="p-3 space-y-2 border-t border-border/40 bg-background/20">
           {actions.length === 0 ? (
-            <p className="text-[11px] text-muted-foreground font-mono px-2 py-3 border border-dashed border-border/60 rounded-lg">
+            <p className="text-[11px] text-muted-foreground font-mono px-2 py-3 border border-dashed border-border/50 rounded-lg">
               {group.emptyMsg}
             </p>
           ) : (
@@ -293,30 +299,44 @@ export default function Actions() {
     [actions],
   );
 
+  const overdueCount = useMemo(
+    () => (actions ?? []).filter((a) => a.dueDate && a.dueDate < todayStr && a.status !== "Completed").length,
+    [actions, todayStr],
+  );
+
   return (
     <div className="flex flex-col h-full">
-      {/* Sticky header + filter bar */}
-      <div className="p-4 md:p-6 border-b border-border/60 shrink-0 space-y-3 bg-background/80 backdrop-blur-sm">
-        <div>
-          <h1 className="text-xl font-bold font-mono tracking-tight uppercase">Action Command Center</h1>
-          <p className="text-sm text-muted-foreground">
-            {isLoading ? "Loading…" : `${totalOpen} open action${totalOpen !== 1 ? "s" : ""} across all deals`}
-          </p>
+      {/* Sticky header */}
+      <div className="page-hero px-4 md:px-6 pt-6 pb-5 shrink-0">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="metadata-label mb-1.5 text-primary/80">Action Command Center</p>
+            <h1 className="text-xl md:text-2xl font-bold font-mono tracking-tight">
+              {isLoading ? "Loading…" : `${totalOpen} Open Action${totalOpen !== 1 ? "s" : ""}`}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Across all active deals
+              {overdueCount > 0 && (
+                <span className="ml-2 text-destructive font-mono font-semibold text-xs">· {overdueCount} overdue</span>
+              )}
+            </p>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 items-center">
+        {/* Filter bar */}
+        <div className="flex flex-wrap gap-2 items-center mt-4">
           <div className="relative flex-1 min-w-[160px] max-w-xs">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search actions…"
-              className="pl-8 h-8 text-sm rounded-lg bg-card/60"
+              className="pl-8 h-8 text-sm rounded-lg bg-card/60 border-border/60"
             />
           </div>
 
           <Select value={ownerFilter} onValueChange={setOwnerFilter}>
-            <SelectTrigger className="w-[140px] h-8 rounded-lg font-mono text-[11px]">
+            <SelectTrigger className="w-[140px] h-8 rounded-lg font-mono text-[11px] border-border/60">
               <SelectValue placeholder="Owner" />
             </SelectTrigger>
             <SelectContent>
@@ -326,7 +346,7 @@ export default function Actions() {
           </Select>
 
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-[130px] h-8 rounded-lg font-mono text-[11px]">
+            <SelectTrigger className="w-[130px] h-8 rounded-lg font-mono text-[11px] border-border/60">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
@@ -343,7 +363,7 @@ export default function Actions() {
             className={`h-8 px-3 rounded-lg text-[11px] font-mono border transition-all duration-150 ${
               mustWinOnly
                 ? "bg-primary text-primary-foreground border-primary"
-                : "border-border/70 text-muted-foreground hover:text-foreground hover:border-foreground/40"
+                : "border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/40"
             }`}
           >
             Must-Win
@@ -354,7 +374,7 @@ export default function Actions() {
             className={`h-8 px-3 rounded-lg text-[11px] font-mono border transition-all duration-150 flex items-center gap-1.5 ${
               overdueOnly
                 ? "bg-destructive text-white border-destructive"
-                : "border-border/70 text-muted-foreground hover:text-foreground hover:border-foreground/40"
+                : "border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/40"
             }`}
           >
             <SlidersHorizontal size={12} />
@@ -363,11 +383,11 @@ export default function Actions() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 md:p-6 space-y-3">
+      <div className="flex-1 overflow-auto p-4 md:p-6 space-y-2.5">
         {isLoading ? (
           Array(3).fill(0).map((_, i) => (
             <div key={i} className="space-y-2">
-              <Skeleton className="h-10 w-full rounded-xl" />
+              <Skeleton className="h-12 w-full rounded-xl" />
               <Skeleton className="h-24 w-full rounded-xl" />
             </div>
           ))

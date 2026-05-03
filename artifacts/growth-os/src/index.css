@@ -290,9 +290,9 @@
 
   .metric-number {
     font-family: var(--app-font-mono);
-    font-size: 1.875rem;
+    font-size: 2.5rem;
     font-weight: 700;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.04em;
     line-height: 1;
   }
 
@@ -321,5 +321,40 @@
 
   .mobile-safe-bottom {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  /* ── Executive page hero header ─────────────────────────────── */
+  .page-hero {
+    background: linear-gradient(160deg, hsl(var(--card) / 0.9) 0%, hsl(var(--background)) 100%);
+    border-bottom: 1px solid hsl(var(--border) / 0.7);
+  }
+
+  /* ── KPI card top-border accent lines ────────────────────────── */
+  .kpi-accent-blue    { border-top: 3px solid hsl(var(--primary)); }
+  .kpi-accent-red     { border-top: 3px solid hsl(var(--destructive)); }
+  .kpi-accent-amber   { border-top: 3px solid hsl(45 93% 47%); }
+  .kpi-accent-emerald { border-top: 3px solid hsl(160 84% 39%); }
+  .kpi-accent-muted   { border-top: 3px solid hsl(var(--muted-foreground) / 0.4); }
+
+  /* ── Pipeline tier border utilities ─────────────────────────── */
+  .tier-must-win { border-left: 3px solid hsl(var(--destructive)); background-color: hsl(var(--destructive) / 0.04); }
+  .tier-p1       { border-left: 3px solid hsl(45 93% 47%); background-color: hsl(45 93% 47% / 0.04); }
+  .tier-p2       { border-left: 3px solid hsl(var(--primary)); }
+
+  /* ── Group severity section headers ──────────────────────────── */
+  .group-header-overdue  { background-color: hsl(var(--destructive) / 0.1) !important; }
+  .group-header-blocked  { background-color: hsl(30 100% 50% / 0.08) !important; }
+  .group-header-thisweek { background-color: hsl(45 93% 47% / 0.07) !important; }
+  .group-header-complete { background-color: hsl(160 84% 39% / 0.07) !important; }
+
+  /* ── Nav section label ────────────────────────────────────────── */
+  .nav-section-label {
+    font-family: var(--app-font-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: hsl(var(--sidebar-foreground) / 0.28);
+    padding: 0 0.5rem;
+    margin-bottom: 0.125rem;
   }
 }

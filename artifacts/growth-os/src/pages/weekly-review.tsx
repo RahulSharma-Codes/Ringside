@@ -88,34 +88,31 @@ function TierPill({ tier }: { tier: string | null }) {
     tier === "Must-Win"   ? "bg-destructive/10 text-destructive border-destructive/25" :
     tier === "Priority 1" ? "bg-amber-500/10 text-amber-500 border-amber-500/25" :
     "bg-muted text-muted-foreground border-border/60";
-  return (
-    <span className={`status-chip ${cls}`}>{tier}</span>
-  );
+  return <span className={`status-chip ${cls}`}>{tier}</span>;
 }
 
 function StagePill({ stage }: { stage: string }) {
-  return (
-    <span className="status-chip text-muted-foreground border-border/60">
-      {stage}
-    </span>
-  );
+  return <span className="status-chip text-muted-foreground border-border/60">{stage}</span>;
 }
 
 // ── Card components ────────────────────────────────────────────────────────
 
-function TargetCard({ t }: { t: ReviewTarget }) {
+function TargetCard({ t, accent }: { t: ReviewTarget; accent?: "destructive" | "amber" }) {
   return (
     <Link href={`/targets/${t.id}`}>
-      <Card className="bg-card border-border/70 rounded-xl hover:bg-muted/20 transition-colors cursor-pointer">
-        <CardContent className="p-3 flex items-center justify-between gap-3">
+      <Card className={`bg-card border-border/60 rounded-xl hover:shadow-sm transition-all duration-150 cursor-pointer group ${
+        accent === "destructive" ? "border-l-2 border-l-destructive" :
+        accent === "amber"       ? "border-l-2 border-l-amber-500" : ""
+      }`}>
+        <CardContent className="p-3.5 flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{t.projectName}</p>
+            <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{t.projectName}</p>
             <div className="flex flex-wrap gap-1.5 mt-1.5 items-center">
               <span className="metadata-label">{t.targetCode}</span>
               <TierPill tier={t.priorityTier} />
               <StagePill stage={t.currentStage} />
-              {t.openActionCount !== undefined && (
-                <span className="metadata-label">
+              {t.openActionCount !== undefined && t.openActionCount > 0 && (
+                <span className="metadata-label text-amber-500">
                   {t.openActionCount} open action{t.openActionCount !== 1 ? "s" : ""}
                 </span>
               )}
@@ -131,7 +128,7 @@ function TargetCard({ t }: { t: ReviewTarget }) {
               )}
             </div>
           </div>
-          <ArrowRight size={13} className="text-muted-foreground shrink-0" />
+          <ArrowRight size={13} className="text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 transition-colors" />
         </CardContent>
       </Card>
     </Link>
@@ -143,9 +140,9 @@ function ActionCard({ a }: { a: ReviewAction }) {
   const isOverdue = a.dueDate && a.dueDate < todayStr;
   return (
     <Link href={`/targets/${a.targetId}`}>
-      <Card className="bg-card border-border/70 rounded-xl hover:bg-muted/20 transition-colors cursor-pointer">
-        <CardContent className="p-3 space-y-1.5">
-          <p className="text-sm font-medium leading-snug">{a.description}</p>
+      <Card className={`bg-card border-border/60 rounded-xl hover:shadow-sm transition-all duration-150 cursor-pointer group ${isOverdue ? "border-l-2 border-l-destructive bg-destructive/5" : ""}`}>
+        <CardContent className="p-3.5 space-y-1.5">
+          <p className="text-sm font-medium leading-snug group-hover:text-primary transition-colors">{a.description}</p>
           <div className="flex flex-wrap gap-1.5 items-center">
             <span className="text-[11px] font-mono text-primary">
               {a.targetName}{a.targetCode ? ` · ${a.targetCode}` : ""}
@@ -170,25 +167,29 @@ function ActionCard({ a }: { a: ReviewAction }) {
 function DiligenceTargetCard({ t }: { t: DiligenceHealthTarget }) {
   return (
     <Link href={`/targets/${t.id}`}>
-      <Card className="bg-card border-border/70 rounded-xl hover:bg-muted/20 transition-colors cursor-pointer">
-        <CardContent className="p-3 flex items-center justify-between gap-3">
+      <Card className="bg-card border-border/60 rounded-xl hover:shadow-sm transition-all duration-150 cursor-pointer group">
+        <CardContent className="p-3.5 flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{t.projectName}</p>
+            <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{t.projectName}</p>
             <div className="flex flex-wrap gap-1.5 mt-1.5 items-center">
               <span className="metadata-label">{t.targetCode}</span>
               <TierPill tier={t.priorityTier} />
               <StagePill stage={t.currentStage} />
-              <span className="metadata-label">
-                {t.completed}/{t.total} done ({t.pct}%)
-              </span>
+              <span className="metadata-label">{t.completed}/{t.total} done ({t.pct}%)</span>
               {t.blocked > 0 && (
-                <span className="text-[10px] font-mono text-destructive font-semibold">
-                  {t.blocked} blocked
-                </span>
+                <span className="text-[10px] font-mono text-destructive font-semibold">{t.blocked} blocked</span>
               )}
             </div>
+            <div className="mt-2 h-1 bg-muted rounded-full overflow-hidden w-full max-w-[160px]">
+              <div
+                className={`h-full rounded-full ${
+                  t.pct === 100 ? "bg-emerald-500" : t.pct >= 60 ? "bg-primary" : t.pct >= 30 ? "bg-amber-500" : "bg-destructive"
+                }`}
+                style={{ width: `${t.pct}%` }}
+              />
+            </div>
           </div>
-          <ArrowRight size={13} className="text-muted-foreground shrink-0" />
+          <ArrowRight size={13} className="text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 transition-colors" />
         </CardContent>
       </Card>
     </Link>
@@ -198,21 +199,21 @@ function DiligenceTargetCard({ t }: { t: DiligenceHealthTarget }) {
 function StageChangeCard({ s }: { s: ReviewStageChange }) {
   return (
     <Link href={`/targets/${s.targetId}`}>
-      <Card className="bg-card border-border/70 rounded-xl hover:bg-muted/20 transition-colors cursor-pointer">
-        <CardContent className="p-3 flex items-center justify-between gap-3">
+      <Card className="bg-card border-border/60 rounded-xl hover:shadow-sm transition-all duration-150 cursor-pointer group">
+        <CardContent className="p-3.5 flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{s.targetName}</p>
+            <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{s.targetName}</p>
             <div className="flex flex-wrap gap-1.5 mt-1.5 items-center">
               {s.targetCode && <span className="metadata-label">{s.targetCode}</span>}
               <TierPill tier={s.priorityTier} />
               <span className="metadata-label">{s.previousStage ?? "—"}</span>
               <ArrowRight size={9} className="text-muted-foreground shrink-0" />
-              <span className="text-[10px] font-mono font-semibold">{s.newStage}</span>
+              <span className="text-[10px] font-mono font-semibold text-primary">{s.newStage}</span>
               {s.changedBy && <span className="metadata-label">by {s.changedBy}</span>}
               {s.changedAt && <span className="metadata-label">{format(parseISO(s.changedAt), "MMM d")}</span>}
             </div>
           </div>
-          <ArrowRight size={13} className="text-muted-foreground shrink-0" />
+          <ArrowRight size={13} className="text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 transition-colors" />
         </CardContent>
       </Card>
     </Link>
@@ -222,38 +223,49 @@ function StageChangeCard({ s }: { s: ReviewStageChange }) {
 // ── Section wrapper ────────────────────────────────────────────────────────
 
 function Section({
-  label, icon, emptyMsg, defaultOpen, count, children,
+  label, icon, emptyMsg, defaultOpen, count, urgency, children,
 }: {
   label: string;
   icon: React.ReactNode;
   emptyMsg: string;
   defaultOpen: boolean;
   count: number;
+  urgency?: "high" | "medium" | "low";
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const headerCls =
+    urgency === "high"   ? "group-header-overdue" :
+    urgency === "medium" ? "group-header-thisweek" :
+    "";
+
   return (
-    <div className="border border-border/70 rounded-xl bg-card/30 overflow-hidden">
+    <div className="border border-border/60 rounded-xl overflow-hidden">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="section-header rounded-t-xl"
+        className={`section-header rounded-t-xl ${headerCls}`}
       >
         {open
           ? <ChevronDown size={13} className="text-muted-foreground shrink-0" />
           : <ChevronRight size={13} className="text-muted-foreground shrink-0" />}
-        <span className="text-muted-foreground/80 shrink-0">{icon}</span>
+        <span className="text-muted-foreground/70 shrink-0">{icon}</span>
         <span className="text-[11px] font-mono uppercase tracking-wider font-semibold flex-1 text-left">{label}</span>
         <Badge
           variant={count > 0 ? "default" : "secondary"}
-          className="text-[10px] font-mono shrink-0 ml-auto"
+          className={`text-[10px] font-mono shrink-0 ml-auto ${
+            urgency === "high" && count > 0 ? "bg-destructive text-white border-0" :
+            urgency === "medium" && count > 0 ? "bg-amber-500 text-white border-0" : ""
+          }`}
         >
           {count}
         </Badge>
       </button>
       {open && (
-        <div className="px-4 pb-4 pt-3 border-t border-border/50 space-y-2">
+        <div className="px-4 pb-4 pt-3 border-t border-border/40 bg-background/20 space-y-2">
           {count === 0 ? (
-            <p className="text-[11px] text-muted-foreground font-mono py-1">{emptyMsg}</p>
+            <div className="border border-dashed border-border/50 rounded-lg py-4 px-3">
+              <p className="text-[11px] text-muted-foreground font-mono">{emptyMsg}</p>
+            </div>
           ) : (
             children
           )}
@@ -284,21 +296,22 @@ export default function WeeklyReview() {
   return (
     <div className="flex flex-col h-full">
       {/* Sticky header */}
-      <div className="p-4 md:p-6 border-b border-border/60 shrink-0 bg-background/80 backdrop-blur-sm">
+      <div className="page-hero px-4 md:px-6 pt-6 pb-5 shrink-0">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <CalendarCheck size={17} className="text-primary" />
-              <h1 className="text-lg font-bold font-mono tracking-tight uppercase">Weekly Review</h1>
+            <p className="metadata-label mb-1.5 text-primary/80">Review Cadence</p>
+            <div className="flex items-center gap-2.5">
+              <CalendarCheck size={20} className="text-primary shrink-0" />
+              <h1 className="text-xl md:text-2xl font-bold font-mono tracking-tight">Weekly Review</h1>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5 font-mono">
+            <p className="text-xs text-muted-foreground mt-1 font-mono">
               Pipeline cadence summary · refreshed {format(refreshedAt, "MMM d 'at' h:mm a")}
             </p>
           </div>
           <Button
             size="sm"
             variant="outline"
-            className="rounded-lg font-mono text-[11px] uppercase shrink-0"
+            className="rounded-lg font-mono text-[11px] uppercase shrink-0 border-border/60"
             onClick={handleRefresh}
             disabled={isLoading}
           >
@@ -308,34 +321,34 @@ export default function WeeklyReview() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 md:p-6 space-y-3">
+      <div className="flex-1 overflow-auto p-4 md:p-6 space-y-2.5">
         {isLoading ? (
           Array(6).fill(0).map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)
         ) : !d ? (
           <p className="text-muted-foreground text-sm font-mono">Failed to load review data.</p>
         ) : (
           <>
-            <Section label="Must-Win Opportunities" icon={<Zap size={13} />}
+            <Section label="Must-Win Opportunities" icon={<Zap size={13} className="text-destructive" />}
               emptyMsg="No Must-Win opportunities in the active pipeline."
-              defaultOpen count={d.mustWin.length}>
-              {d.mustWin.map((t) => <TargetCard key={t.id} t={t} />)}
+              defaultOpen urgency="high" count={d.mustWin.length}>
+              {d.mustWin.map((t) => <TargetCard key={t.id} t={t} accent="destructive" />)}
             </Section>
 
             <Section label="Needs Attention" icon={<AlertTriangle size={13} />}
               emptyMsg="All active opportunities look healthy — no attention flags."
-              defaultOpen count={d.needsAttention.length}>
-              {d.needsAttention.map((t) => <TargetCard key={t.id} t={t} />)}
+              defaultOpen urgency="high" count={d.needsAttention.length}>
+              {d.needsAttention.map((t) => <TargetCard key={t.id} t={t} accent="destructive" />)}
             </Section>
 
-            <Section label="Overdue Actions" icon={<AlertTriangle size={13} className="text-destructive" />}
+            <Section label="Overdue Actions" icon={<AlertTriangle size={13} />}
               emptyMsg="No overdue actions — great pipeline hygiene."
-              defaultOpen count={d.overdueActions.length}>
+              defaultOpen urgency="high" count={d.overdueActions.length}>
               {d.overdueActions.map((a) => <ActionCard key={a.id} a={a} />)}
             </Section>
 
             <Section label="Actions Due This Week" icon={<Clock size={13} />}
               emptyMsg="No actions due in the next 7 days."
-              defaultOpen count={d.dueThisWeek.length}>
+              defaultOpen urgency="medium" count={d.dueThisWeek.length}>
               {d.dueThisWeek.map((a) => <ActionCard key={a.id} a={a} />)}
             </Section>
 

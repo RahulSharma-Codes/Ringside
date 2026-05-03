@@ -64,14 +64,13 @@ function ReadinessBadge({ pct }: { pct: number }) {
     pct >= 60   ? "text-primary" :
     pct >= 30   ? "text-amber-500" :
     "text-destructive";
-  return <span className={`font-mono font-bold text-sm ${cls}`}>{pct}%</span>;
+  return <span className={`font-mono font-bold text-base ${cls}`}>{pct}%</span>;
 }
 
-/* Clickable item row shared across all sections */
 function ItemRow({ children, href }: { children: React.ReactNode; href: string }) {
   return (
     <Link href={href}>
-      <div className="flex items-start gap-3 p-3 border border-border/60 rounded-xl bg-card/30 hover:bg-card/60 transition-colors cursor-pointer">
+      <div className="flex items-start gap-3 p-3.5 border border-border/50 rounded-xl bg-card hover:bg-muted/20 hover:shadow-sm transition-all duration-150 cursor-pointer group">
         {children}
       </div>
     </Link>
@@ -85,21 +84,34 @@ type CollapsibleSection = {
   count: number;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  urgency?: "high" | "medium";
 };
 
-function Section({ id: _id, title, icon, count, children, defaultOpen = true }: CollapsibleSection) {
+function Section({ id: _id, title, icon, count, children, defaultOpen = true, urgency }: CollapsibleSection) {
   const [open, setOpen] = useState(defaultOpen);
+  const headerCls =
+    urgency === "high"   ? "group-header-overdue" :
+    urgency === "medium" ? "group-header-thisweek" :
+    "";
+
   return (
-    <div className="border border-border/70 rounded-xl overflow-hidden">
+    <div className="border border-border/60 rounded-xl overflow-hidden">
       <button
-        className="section-header rounded-t-xl"
+        className={`section-header rounded-t-xl ${headerCls}`}
         onClick={() => setOpen((v) => !v)}
       >
-        <span className="text-muted-foreground/80 shrink-0">{icon}</span>
+        <span className="text-muted-foreground/70 shrink-0">{icon}</span>
         <span className="font-mono text-[11px] uppercase tracking-wider font-semibold flex-1 text-left">
           {title}
         </span>
-        <Badge variant="outline" className="font-mono text-[9px] rounded-md shrink-0">
+        <Badge
+          variant="outline"
+          className={`font-mono text-[9px] rounded-md shrink-0 ${
+            urgency === "high" && count > 0 ? "bg-destructive/10 text-destructive border-destructive/30" :
+            urgency === "medium" && count > 0 ? "bg-amber-500/10 text-amber-500 border-amber-500/30" :
+            ""
+          }`}
+        >
           {count}
         </Badge>
         {open
@@ -107,7 +119,7 @@ function Section({ id: _id, title, icon, count, children, defaultOpen = true }: 
           : <ChevronRight size={13} className="text-muted-foreground shrink-0" />}
       </button>
       {open && (
-        <div className="p-3 space-y-2 border-t border-border/50 bg-background/10">
+        <div className="p-3 space-y-2 border-t border-border/40 bg-background/20">
           {children}
         </div>
       )}
@@ -117,7 +129,7 @@ function Section({ id: _id, title, icon, count, children, defaultOpen = true }: 
 
 function EmptyState({ label }: { label: string }) {
   return (
-    <div className="border border-dashed border-border/60 rounded-xl py-7 text-center text-muted-foreground font-mono text-[10px] uppercase tracking-widest">
+    <div className="border border-dashed border-border/50 rounded-xl py-7 text-center text-muted-foreground font-mono text-[10px] uppercase tracking-widest">
       {label}
     </div>
   );
@@ -135,20 +147,22 @@ export default function DiligenceReview() {
   return (
     <div className="flex flex-col h-full overflow-hidden animate-in fade-in duration-500">
       {/* Sticky header */}
-      <div className="border-b border-border/60 bg-background/80 backdrop-blur-sm p-4 md:p-6 shrink-0">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
+      <div className="page-hero px-4 md:px-6 pt-6 pb-5 shrink-0">
+        <div className="max-w-5xl mx-auto flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold font-mono tracking-tight flex items-center gap-2">
-              <ClipboardCheck size={18} className="text-primary" /> Diligence Review
-            </h1>
-            <p className="text-xs text-muted-foreground mt-0.5 font-mono">
+            <p className="metadata-label mb-1.5 text-primary/80">Review Cadence</p>
+            <div className="flex items-center gap-2.5">
+              <ClipboardCheck size={20} className="text-primary shrink-0" />
+              <h1 className="text-xl md:text-2xl font-bold font-mono tracking-tight">Diligence Review</h1>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1 font-mono">
               Pipeline-wide due diligence status · refreshed {format(lastRefresh, "HH:mm")}
             </p>
           </div>
           <Button
             size="sm"
             variant="outline"
-            className="rounded-lg font-mono text-[10px] uppercase gap-1.5"
+            className="rounded-lg font-mono text-[10px] uppercase gap-1.5 border-border/60 shrink-0"
             onClick={handleRefresh}
             disabled={isFetching}
           >
@@ -158,7 +172,7 @@ export default function DiligenceReview() {
       </div>
 
       <div className="flex-1 overflow-auto bg-background">
-        <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-3">
+        <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-2.5">
           {isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}
@@ -173,9 +187,10 @@ export default function DiligenceReview() {
               <Section
                 id="must-win"
                 title="Must-Win with Incomplete Diligence"
-                icon={<AlertTriangle size={13} />}
+                icon={<AlertTriangle size={13} className={data.mustWinIncomplete.length > 0 ? "text-destructive" : ""} />}
                 count={data.mustWinIncomplete.length}
                 defaultOpen={true}
+                urgency="high"
               >
                 {data.mustWinIncomplete.length === 0 ? (
                   <EmptyState label="All Must-Win targets have complete diligence" />
@@ -184,16 +199,16 @@ export default function DiligenceReview() {
                     <ItemRow key={t.id} href={`/targets/${t.id}`}>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm truncate">{t.projectName}</span>
+                          <span className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{t.projectName}</span>
                           {tierBadge(t.priorityTier)}
                         </div>
                         <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground flex-wrap">
                           <span>{t.targetCode}</span>
                           <span>{t.currentStage}</span>
-                          {t.blocked > 0 && <span className="text-destructive">{t.blocked} blocked</span>}
-                          {t.overdue > 0 && <span className="text-amber-500">{t.overdue} overdue</span>}
+                          {t.blocked > 0 && <span className="text-destructive font-semibold">{t.blocked} blocked</span>}
+                          {t.overdue > 0 && <span className="text-amber-500 font-semibold">{t.overdue} overdue</span>}
                           {t.missingWorkstreams.length > 0 && (
-                            <span>{t.missingWorkstreams.length} workstreams missing</span>
+                            <span>{t.missingWorkstreams.length} workstream{t.missingWorkstreams.length !== 1 ? "s" : ""} missing</span>
                           )}
                         </div>
                       </div>
@@ -202,7 +217,7 @@ export default function DiligenceReview() {
                           <ReadinessBadge pct={t.pct} />
                           <div className="text-[9px] font-mono text-muted-foreground">{t.completed}/{t.total}</div>
                         </div>
-                        <ExternalLink size={12} className="text-muted-foreground" />
+                        <ExternalLink size={12} className="text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
                       </div>
                     </ItemRow>
                   ))
@@ -213,9 +228,10 @@ export default function DiligenceReview() {
               <Section
                 id="blocked"
                 title="Blocked Diligence Items"
-                icon={<AlertTriangle size={13} className="text-destructive" />}
+                icon={<AlertTriangle size={13} className={data.blockedItems.length > 0 ? "text-destructive" : ""} />}
                 count={data.blockedItems.length}
                 defaultOpen={true}
+                urgency="high"
               >
                 {data.blockedItems.length === 0 ? (
                   <EmptyState label="No blocked diligence items" />
@@ -225,16 +241,16 @@ export default function DiligenceReview() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           {wsChip(item.workstream)}
-                          <span className="text-[10px] font-mono text-destructive uppercase">Blocked</span>
+                          <span className="text-[10px] font-mono text-destructive uppercase font-semibold">Blocked</span>
                         </div>
-                        <div className="text-sm font-medium truncate">{item.description}</div>
+                        <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">{item.description}</div>
                         <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground flex-wrap">
                           <span className="text-primary">{item.targetName}</span>
                           {item.owner && <span>{item.owner}</span>}
                           {item.dueDate && <span>Due {format(parseISO(item.dueDate), "MMM d")}</span>}
                         </div>
                       </div>
-                      <ExternalLink size={12} className="text-muted-foreground shrink-0 mt-1" />
+                      <ExternalLink size={12} className="text-muted-foreground/50 group-hover:text-muted-foreground shrink-0 mt-1 transition-colors" />
                     </ItemRow>
                   ))
                 )}
@@ -244,9 +260,10 @@ export default function DiligenceReview() {
               <Section
                 id="overdue"
                 title="Overdue Diligence Items"
-                icon={<Clock size={13} className="text-amber-500" />}
+                icon={<Clock size={13} className={data.overdueItems.length > 0 ? "text-amber-500" : ""} />}
                 count={data.overdueItems.length}
                 defaultOpen={true}
+                urgency="medium"
               >
                 {data.overdueItems.length === 0 ? (
                   <EmptyState label="No overdue diligence items" />
@@ -256,10 +273,10 @@ export default function DiligenceReview() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           {wsChip(item.workstream)}
-                          <span className={`text-[10px] font-mono uppercase ${statusColor(item.status)}`}>{item.status}</span>
+                          <span className={`text-[10px] font-mono uppercase font-semibold ${statusColor(item.status)}`}>{item.status}</span>
                           <span className={`text-[10px] font-mono uppercase ${priorityColor(item.priority)}`}>{item.priority}</span>
                         </div>
-                        <div className="text-sm font-medium truncate">{item.description}</div>
+                        <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">{item.description}</div>
                         <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground flex-wrap">
                           <span className="text-primary">{item.targetName}</span>
                           {item.owner && <span>{item.owner}</span>}
@@ -270,7 +287,7 @@ export default function DiligenceReview() {
                           )}
                         </div>
                       </div>
-                      <ExternalLink size={12} className="text-muted-foreground shrink-0 mt-1" />
+                      <ExternalLink size={12} className="text-muted-foreground/50 group-hover:text-muted-foreground shrink-0 mt-1 transition-colors" />
                     </ItemRow>
                   ))
                 )}
@@ -291,14 +308,14 @@ export default function DiligenceReview() {
                     <ItemRow key={t.id} href={`/targets/${t.id}`}>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm truncate">{t.projectName}</span>
+                          <span className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{t.projectName}</span>
                           {tierBadge(t.priorityTier)}
                         </div>
                         <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground flex-wrap">
                           <span>{t.targetCode}</span>
                           <span>{t.currentStage}</span>
-                          {t.blocked > 0 && <span className="text-destructive">{t.blocked} blocked</span>}
-                          {t.overdue > 0 && <span className="text-amber-500">{t.overdue} overdue</span>}
+                          {t.blocked > 0 && <span className="text-destructive font-semibold">{t.blocked} blocked</span>}
+                          {t.overdue > 0 && <span className="text-amber-500 font-semibold">{t.overdue} overdue</span>}
                         </div>
                         <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden w-full">
                           <div
@@ -316,7 +333,7 @@ export default function DiligenceReview() {
                         <ReadinessBadge pct={t.pct} />
                         <div className="text-[9px] font-mono text-muted-foreground">{t.completed}/{t.total}</div>
                       </div>
-                      <ExternalLink size={12} className="text-muted-foreground shrink-0" />
+                      <ExternalLink size={12} className="text-muted-foreground/50 group-hover:text-muted-foreground shrink-0 transition-colors" />
                     </ItemRow>
                   ))
                 )}
@@ -339,7 +356,7 @@ export default function DiligenceReview() {
                       <ItemRow key={t.id} href={`/targets/${t.id}`}>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-2">
-                            <span className="font-semibold text-sm">{t.projectName}</span>
+                            <span className="font-semibold text-sm group-hover:text-primary transition-colors">{t.projectName}</span>
                             {tierBadge(t.priorityTier)}
                           </div>
                           <div className="flex flex-wrap gap-1">
@@ -354,7 +371,7 @@ export default function DiligenceReview() {
                             ))}
                           </div>
                         </div>
-                        <ExternalLink size={12} className="text-muted-foreground shrink-0 mt-1" />
+                        <ExternalLink size={12} className="text-muted-foreground/50 group-hover:text-muted-foreground shrink-0 mt-1 transition-colors" />
                       </ItemRow>
                     ))
                 )}
@@ -376,7 +393,7 @@ export default function DiligenceReview() {
                       <div className="flex-1 min-w-0 opacity-75">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           {wsChip(item.workstream)}
-                          <span className="text-[10px] font-mono text-emerald-500 uppercase">Completed</span>
+                          <span className="text-[10px] font-mono text-emerald-500 uppercase font-semibold">Completed</span>
                         </div>
                         <div className="text-sm font-medium line-through text-muted-foreground truncate">
                           {item.description}
@@ -386,7 +403,7 @@ export default function DiligenceReview() {
                           {item.completedAt && <span>{format(parseISO(item.completedAt), "MMM d")}</span>}
                         </div>
                       </div>
-                      <ExternalLink size={12} className="text-muted-foreground shrink-0 mt-1" />
+                      <ExternalLink size={12} className="text-muted-foreground/50 group-hover:text-muted-foreground shrink-0 mt-1 transition-colors" />
                     </ItemRow>
                   ))
                 )}
