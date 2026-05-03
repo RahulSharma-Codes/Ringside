@@ -18,6 +18,8 @@ import type {
 
 import type {
   ActionItem,
+  AiAskRequest,
+  AiAskResponse,
   CreateActionBody,
   CreateInteractionBody,
   CreateTargetBody,
@@ -1990,6 +1992,92 @@ export const useValidateImport = <
   TContext
 > => {
   return useMutation(getValidateImportMutationOptions(options));
+};
+
+/**
+ * @summary Ask the AI Copilot a question about the pipeline
+ */
+export const getAskAiUrl = () => {
+  return `/api/ai/ask`;
+};
+
+export const askAi = async (
+  aiAskRequest: AiAskRequest,
+  options?: RequestInit,
+): Promise<AiAskResponse> => {
+  return customFetch<AiAskResponse>(getAskAiUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(aiAskRequest),
+  });
+};
+
+export const getAskAiMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof askAi>>,
+    TError,
+    { data: BodyType<AiAskRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof askAi>>,
+  TError,
+  { data: BodyType<AiAskRequest> },
+  TContext
+> => {
+  const mutationKey = ["askAi"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof askAi>>,
+    { data: BodyType<AiAskRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return askAi(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AskAiMutationResult = NonNullable<
+  Awaited<ReturnType<typeof askAi>>
+>;
+export type AskAiMutationBody = BodyType<AiAskRequest>;
+export type AskAiMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Ask the AI Copilot a question about the pipeline
+ */
+export const useAskAi = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof askAi>>,
+    TError,
+    { data: BodyType<AiAskRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof askAi>>,
+  TError,
+  { data: BodyType<AiAskRequest> },
+  TContext
+> => {
+  return useMutation(getAskAiMutationOptions(options));
 };
 
 /**

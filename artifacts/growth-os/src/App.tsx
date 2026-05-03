@@ -14,6 +14,7 @@ import NewTarget from "@/pages/new-target";
 import TargetDetail from "@/pages/target-detail";
 import Actions from "@/pages/actions";
 import ImportWizard from "@/pages/import-wizard";
+import Copilot from "@/pages/copilot";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -105,6 +106,9 @@ function Router() {
       </Route>
       <Route path="/import">
         <Layout><ImportWizard /></Layout>
+      </Route>
+      <Route path="/copilot">
+        <Layout><Copilot /></Layout>
       </Route>
       <Route path="*">
         <Layout><NotFound /></Layout>

@@ -1,0 +1,73 @@
+Approved, but revise the plan with these guardrails before implementation:
+
+1. We already added OPENAI_API_KEY as a Replit Secret.
+   Use OPENAI_API_KEY directly from the backend.
+   Do not run setupReplitAIIntegrations unless you inspect the project and prove it is required.
+   Do not create a parallel AI_INTEGRATIONS_OPENAI_API_KEY flow unless necessary.
+
+2. Do not hardcode gpt-5.1.
+   Add support for an optional OPENAI_MODEL environment variable.
+   If OPENAI_MODEL is missing, use a safe default supported by the installed OpenAI SDK/current docs.
+   Report which default model was used.
+
+3. Prefer the official OpenAI Node SDK if already installed or easy to add safely.
+   If using the Responses API is straightforward, use it.
+   If the existing project pattern makes Chat Completions simpler, that is acceptable for Phase 3A, but keep the model configurable.
+
+4. Keep Phase 3A strictly read-only.
+   The AI route must not insert, update, delete, import, or mutate anything.
+   It may only SELECT/read from existing tables.
+
+5. Do not add new database tables.
+   Do not persist chat history.
+   Do not run drizzle push.
+   Do not run seed.ts.
+   Do not modify DATABASE_URL.
+   Do not modify auth middleware unless absolutely required.
+
+6. Build compact context from Supabase:
+   - active targets
+   - current stages from milestones
+   - priority tiers
+   - open and overdue actions
+   - recent interactions
+   - latest stage changes
+   - needs-attention flags if already available
+
+7. Put strict instructions in the AI system prompt:
+   - answer only from provided app data
+   - say when data is unavailable
+   - do not invent targets, stages, actions, risks, or facts
+   - do not claim to have changed anything
+   - do not provide legal, tax, valuation, or financial advice as fact
+   - use concise executive language
+
+8. Be careful with OpenAPI path naming.
+   Inspect existing OpenAPI conventions first.
+   If existing paths omit the /api prefix because Express mounts routes under /api, follow that convention.
+   Do not accidentally create /api/api/ai/ask.
+
+9. Register the AI router in the existing route registration file after inspecting the project.
+   If routes are registered in artifacts/api-server/src/routes/index.ts, register it there.
+   Do not assume routes are registered directly in src/index.ts.
+
+10. If the OpenAI key is missing, invalid, or the API call fails, the frontend should show a friendly setup/error message and the app should not crash.
+
+11. Preserve all existing behavior:
+   - login
+   - dashboard
+   - pipeline
+   - import wizard
+   - target detail cockpit
+   - interaction/action editing
+   - complete/reopen actions
+   - stage change audit logging
+
+12. After implementation, run pnpm run typecheck and report:
+   - files changed
+   - API route added
+   - packages added
+   - default model used
+   - whether OPENAI_API_KEY was detected
+   - typecheck result
+   - manual test results

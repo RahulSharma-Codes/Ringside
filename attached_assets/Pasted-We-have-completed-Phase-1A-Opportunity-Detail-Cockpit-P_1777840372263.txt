@@ -1,0 +1,111 @@
+We have completed:
+- Phase 1A: Opportunity Detail Cockpit
+- Phase 1B: Dashboard + Pipeline Intelligence
+- Phase 2A: CSV / Excel Import Wizard
+
+Login works, Supabase read/write works, Project Test appears, dashboard and pipeline work, detail cockpit works, stage-change audit logging works, and import wizard works.
+
+Now implement Phase 3A: AI Copilot — Read-Only Analyst.
+
+Important safety rules:
+- Do NOT rebuild from scratch.
+- Do NOT create a new architecture.
+- Do NOT run drizzle push.
+- Do NOT run seed.ts.
+- Do NOT modify DATABASE_URL.
+- Do NOT modify auth middleware unless absolutely required.
+- Do NOT insert Apollo/Orion/Beacon/Catalyst/Helios demo data.
+- Supabase Postgres remains the source of truth.
+- Preserve all Phase 1A, Phase 1B, and Phase 2A functionality.
+- AI must be read-only in this phase.
+- AI must NOT write to the database.
+- AI must NOT create targets, actions, interactions, stage changes, imports, or delete anything.
+
+Current structure:
+- React/Vite frontend: artifacts/growth-os
+- Express API backend: artifacts/api-server
+- Drizzle/Postgres DB layer: lib/db
+- Existing tables include targets, milestones, interactions, actions, stage_change_log, lookup_values, users.
+- Stage is stored through milestones/current stage logic.
+- actions table is named actions, not action_items.
+
+Phase 3A goal:
+Add a read-only AI Copilot that can answer questions using the structured Supabase data already available in the app.
+
+Required UX:
+1. Add an “AI Copilot” entry point in the app navigation and/or dashboard.
+2. Create an AI Copilot page or right-side panel.
+3. User can type a question.
+4. The app sends the question to a backend AI endpoint.
+5. Backend gathers relevant Supabase data and gives the AI a structured context.
+6. AI responds in a clean chat-style interface.
+7. Show suggested starter questions:
+   - Which Must-Win opportunities need attention?
+   - Which deals have overdue actions?
+   - Summarize the active pipeline.
+   - Which opportunities have had no interaction in 30 days?
+   - What changed recently?
+   - Which deals are stuck by stage?
+   - What should I review before the weekly pipeline meeting?
+
+Backend requirements:
+1. Add a read-only API route, for example POST /api/ai/ask.
+2. The route should require existing app authentication.
+3. The route should read from Supabase using existing Drizzle models/routes.
+4. Build a compact data context including:
+   - targets
+   - current stages
+   - priority tiers
+   - open and overdue actions
+   - recent interactions
+   - latest stage changes
+   - needs-attention flags if available
+5. Keep context compact so it does not send excessive data.
+6. The model must be instructed:
+   - answer only from provided app data
+   - say when data is unavailable
+   - do not invent targets or facts
+   - do not claim to have changed anything
+   - do not provide legal/financial advice as fact
+7. Use an environment variable for the AI API key.
+8. Prefer OPENAI_API_KEY if present.
+9. If no AI API key is configured, return a friendly setup message instead of crashing.
+10. Do not expose API keys to frontend.
+
+Frontend requirements:
+1. Add a clean mobile-friendly AI Copilot page/panel.
+2. Chat-style layout:
+   - user question
+   - AI answer
+   - loading state
+   - error state
+3. Add suggested prompt buttons.
+4. Allow follow-up questions in the same session.
+5. Display a small warning/footer:
+   “AI answers are generated from available pipeline data and should be reviewed before decisions.”
+6. No AI write buttons in Phase 3A.
+
+Testing:
+After implementation:
+- Run pnpm run typecheck.
+- Restart the app.
+- Confirm login still works.
+- Confirm Project Test still appears.
+- Confirm dashboard still loads.
+- Confirm pipeline still loads.
+- Confirm import page still opens.
+- Confirm AI page opens.
+- If AI key is missing, confirm the app shows a setup message.
+- If AI key is present, test:
+  - “Summarize the active pipeline”
+  - “Which opportunities need attention?”
+  - “Summarize Project Test”
+- Confirm AI does not create or update any database records.
+
+Report:
+- files changed
+- API routes added
+- whether any packages were added
+- required Replit Secret name for AI key
+- typecheck result
+- manual testing checklist

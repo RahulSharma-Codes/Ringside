@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { Activity, Target, ListTodo, Briefcase, Plus, BarChart3 } from "lucide-react";
+import { Target, ListTodo, Briefcase, Plus, BarChart3, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -10,6 +10,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { href: "/", label: "Dashboard", icon: BarChart3 },
     { href: "/pipeline", label: "Pipeline", icon: Target },
     { href: "/actions", label: "Actions Tracker", icon: ListTodo },
+    { href: "/copilot", label: "AI Copilot", icon: Bot },
   ];
 
   return (

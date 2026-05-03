@@ -20,6 +20,8 @@ tags:
     description: Dashboard and analytics
   - name: import
     description: CSV / Excel bulk import
+  - name: ai
+    description: AI Copilot — read-only pipeline analyst
 paths:
   /healthz:
     get:
@@ -478,6 +480,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ImportValidateResult"
+
+  /ai/ask:
+    post:
+      operationId: askAi
+      tags: [ai]
+      summary: Ask the AI Copilot a question about the pipeline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiAskRequest"
+      responses:
+        "200":
+          description: AI answer or setup-required response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiAskResponse"
 
   /import/apply:
     post:
@@ -1223,3 +1244,39 @@ components:
                 type: string
             required: [rowIndex, message]
       required: [created, updated, skipped, errors]
+
+    AiAskRequest:
+      type: object
+      properties:
+        question:
+          type: string
+        history:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+                enum: [user, assistant]
+              content:
+                type: string
+            required: [role, content]
+      required: [question]
+
+    AiAskResponse:
+      type: object
+      properties:
+        answer:
+          type: string
+          nullable: true
+        model:
+          type: string
+          nullable: true
+        setupRequired:
+          type: boolean
+          nullable: true
+        error:
+          type: string
+          nullable: true
+      required: []

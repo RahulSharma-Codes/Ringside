@@ -307,6 +307,31 @@ export interface ImportApplyResult {
   errors: ImportApplyResultErrorsItem[];
 }
 
+export type AiAskRequestHistoryItemRole =
+  (typeof AiAskRequestHistoryItemRole)[keyof typeof AiAskRequestHistoryItemRole];
+
+export const AiAskRequestHistoryItemRole = {
+  user: "user",
+  assistant: "assistant",
+} as const;
+
+export type AiAskRequestHistoryItem = {
+  role: AiAskRequestHistoryItemRole;
+  content: string;
+};
+
+export interface AiAskRequest {
+  question: string;
+  history?: AiAskRequestHistoryItem[] | null;
+}
+
+export interface AiAskResponse {
+  answer?: string | null;
+  model?: string | null;
+  setupRequired?: boolean | null;
+  error?: string | null;
+}
+
 export type ListTargetsParams = {
   sector?: string;
   priorityTier?: string;

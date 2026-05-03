@@ -732,6 +732,28 @@ export const ValidateImportResponse = zod.object({
 });
 
 /**
+ * @summary Ask the AI Copilot a question about the pipeline
+ */
+export const AskAiBody = zod.object({
+  question: zod.string(),
+  history: zod
+    .array(
+      zod.object({
+        role: zod.enum(["user", "assistant"]),
+        content: zod.string(),
+      }),
+    )
+    .nullish(),
+});
+
+export const AskAiResponse = zod.object({
+  answer: zod.string().nullish(),
+  model: zod.string().nullish(),
+  setupRequired: zod.boolean().nullish(),
+  error: zod.string().nullish(),
+});
+
+/**
  * @summary Apply a validated import (create + update targets)
  */
 export const ApplyImportBody = zod.object({
