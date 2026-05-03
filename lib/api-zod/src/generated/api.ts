@@ -307,6 +307,14 @@ export const GetTargetResponse = zod
           completedAt: zod.coerce.date().nullish(),
           workstream: zod.string().nullish(),
           notes: zod.string().nullish(),
+          evidenceLinks: zod
+            .array(
+              zod.object({
+                label: zod.string(),
+                url: zod.string(),
+              }),
+            )
+            .nullish(),
         }),
       ),
       stageHistory: zod.array(
@@ -563,6 +571,14 @@ export const ListActionsResponseItem = zod.object({
   completedAt: zod.coerce.date().nullish(),
   workstream: zod.string().nullish(),
   notes: zod.string().nullish(),
+  evidenceLinks: zod
+    .array(
+      zod.object({
+        label: zod.string(),
+        url: zod.string(),
+      }),
+    )
+    .nullish(),
 });
 export const ListActionsResponse = zod.array(ListActionsResponseItem);
 
@@ -600,6 +616,14 @@ export const UpdateActionBody = zod.object({
   status: zod.string().optional(),
   workstream: zod.string().nullish(),
   notes: zod.string().nullish(),
+  evidenceLinks: zod
+    .array(
+      zod.object({
+        label: zod.string(),
+        url: zod.string(),
+      }),
+    )
+    .nullish(),
 });
 
 export const UpdateActionResponse = zod.object({
@@ -616,6 +640,14 @@ export const UpdateActionResponse = zod.object({
   completedAt: zod.coerce.date().nullish(),
   workstream: zod.string().nullish(),
   notes: zod.string().nullish(),
+  evidenceLinks: zod
+    .array(
+      zod.object({
+        label: zod.string(),
+        url: zod.string(),
+      }),
+    )
+    .nullish(),
 });
 
 /**
@@ -642,6 +674,14 @@ export const ListOpenActionsResponseItem = zod.object({
   completedAt: zod.coerce.date().nullish(),
   workstream: zod.string().nullish(),
   notes: zod.string().nullish(),
+  evidenceLinks: zod
+    .array(
+      zod.object({
+        label: zod.string(),
+        url: zod.string(),
+      }),
+    )
+    .nullish(),
 });
 export const ListOpenActionsResponse = zod.array(ListOpenActionsResponseItem);
 
@@ -690,6 +730,14 @@ export const GetDiligenceForTargetResponse = zod.object({
       completedAt: zod.coerce.date().nullish(),
       workstream: zod.string().nullish(),
       notes: zod.string().nullish(),
+      evidenceLinks: zod
+        .array(
+          zod.object({
+            label: zod.string(),
+            url: zod.string(),
+          }),
+        )
+        .nullish(),
     }),
   ),
   readiness: zod.object({
@@ -719,6 +767,14 @@ export const CreateDiligenceItemBody = zod.object({
   priority: zod.string().default(createDiligenceItemBodyPriorityDefault),
   status: zod.string().default(createDiligenceItemBodyStatusDefault),
   notes: zod.string().nullish(),
+  evidenceLinks: zod
+    .array(
+      zod.object({
+        label: zod.string(),
+        url: zod.string(),
+      }),
+    )
+    .nullish(),
 });
 
 /**

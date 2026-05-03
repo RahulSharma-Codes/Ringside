@@ -58,6 +58,11 @@ export interface Interaction {
   createdAt: string;
 }
 
+export interface EvidenceLink {
+  label: string;
+  url: string;
+}
+
 export interface ActionItem {
   id: number;
   targetId: number;
@@ -72,6 +77,7 @@ export interface ActionItem {
   completedAt?: string | null;
   workstream?: string | null;
   notes?: string | null;
+  evidenceLinks?: EvidenceLink[] | null;
 }
 
 export interface StageChange {
@@ -185,6 +191,7 @@ export interface UpdateActionBody {
   status?: string;
   workstream?: string | null;
   notes?: string | null;
+  evidenceLinks?: EvidenceLink[] | null;
 }
 
 export interface DashboardSummary {
@@ -441,6 +448,7 @@ export interface CreateDiligenceItemBody {
   priority?: string;
   status?: string;
   notes?: string | null;
+  evidenceLinks?: EvidenceLink[] | null;
 }
 
 export interface DiligenceReviewTargetSummary {

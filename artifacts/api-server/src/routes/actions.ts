@@ -129,6 +129,7 @@ router.put("/:id", async (req, res) => {
   }
   if (d.workstream !== undefined) updates.workstream = d.workstream;
   if (d.notes !== undefined) updates.notes = d.notes;
+  if (d.evidenceLinks !== undefined) updates.evidenceLinks = d.evidenceLinks ?? null;
 
   const [action] = await db
     .update(actionItemsTable)

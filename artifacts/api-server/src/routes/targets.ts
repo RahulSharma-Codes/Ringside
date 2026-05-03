@@ -797,6 +797,7 @@ router.post("/:id/diligence", async (req, res) => {
       priority: d.priority ?? "Medium",
       status: d.status ?? "Open",
       notes: d.notes ?? null,
+      evidenceLinks: d.evidenceLinks ?? null,
       createdAt: now,
     })
     .returning();

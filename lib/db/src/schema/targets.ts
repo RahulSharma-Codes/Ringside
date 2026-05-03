@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, boolean, timestamp, date } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, boolean, timestamp, date, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -92,6 +92,7 @@ export const actionItemsTable = pgTable("actions", {
   completedAt: timestamp("completed_at"),
   workstream: text("workstream"),
   notes: text("notes"),
+  evidenceLinks: jsonb("evidence_links").$type<{ label: string; url: string }[]>(),
 });
 
 export const insertActionItemSchema = createInsertSchema(actionItemsTable).omit({ id: true, createdAt: true, completedAt: true });

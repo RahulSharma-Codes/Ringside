@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Plus, CheckCircle2, RotateCcw, Pencil, Trash2,
-  ChevronDown, ChevronRight, ShieldCheck,
+  ChevronDown, ChevronRight, ShieldCheck, Link2, X,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -42,6 +42,8 @@ const WORKSTREAM_COLORS: Record<string, string> = {
 const ACTION_PRIORITIES = ["Critical", "High", "Medium", "Low"];
 const ACTION_STATUSES = ["Open", "In Progress", "Blocked", "Completed"];
 
+type EvidenceLink = { label: string; url: string };
+
 type DiligenceItem = {
   id: number;
   targetId: number;
@@ -53,6 +55,7 @@ type DiligenceItem = {
   workstream?: string | null;
   notes?: string | null;
   completedAt?: string | null;
+  evidenceLinks?: EvidenceLink[] | null;
 };
 
 type EditDilData = {
@@ -64,6 +67,7 @@ type EditDilData = {
   priority: string;
   status: string;
   notes: string;
+  evidenceLinks: EvidenceLink[];
 };
 
 function statusColor(status: string) {
@@ -130,6 +134,23 @@ function WorkstreamSection({ ws, items, onEdit, onToggle, onDelete, isPending }:
                     </div>
                     {item.notes && (
                       <div className="text-[10px] text-muted-foreground mt-0.5 italic truncate">{item.notes}</div>
+                    )}
+                    {item.evidenceLinks && item.evidenceLinks.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {item.evidenceLinks.map((link, i) => (
+                          <a
+                            key={i}
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 text-[9px] font-mono px-1.5 py-0.5 rounded-sm border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                          >
+                            <Link2 size={9} />
+                            {link.label}
+                          </a>
+                        ))}
+                      </div>
                     )}
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <span className={`text-[10px] font-mono uppercase ${statusColor(item.status)}`}>{item.status}</span>
@@ -210,12 +231,17 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
   const [addPriority, setAddPriority] = useState("Medium");
   const [addStatus, setAddStatus] = useState("Open");
   const [addNotes, setAddNotes] = useState("");
+  const [addLinks, setAddLinks] = useState<EvidenceLink[]>([]);
+  const [addLinkLabel, setAddLinkLabel] = useState("");
+  const [addLinkUrl, setAddLinkUrl] = useState("");
 
   const [editOpen, setEditOpen] = useState(false);
   const [editData, setEditData] = useState<EditDilData>({
     id: 0, workstream: "Commercial", description: "", owner: "",
-    dueDate: "", priority: "Medium", status: "Open", notes: "",
+    dueDate: "", priority: "Medium", status: "Open", notes: "", evidenceLinks: [],
   });
+  const [editLinkLabel, setEditLinkLabel] = useState("");
+  const [editLinkUrl, setEditLinkUrl] = useState("");
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -227,6 +253,21 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
     setAddWorkstream("Commercial");
     setAddDesc(""); setAddOwner(""); setAddDueDate("");
     setAddPriority("Medium"); setAddStatus("Open"); setAddNotes("");
+    setAddLinks([]); setAddLinkLabel(""); setAddLinkUrl("");
+  };
+
+  const handleAddLink = () => {
+    if (!addLinkLabel.trim() || !addLinkUrl.trim()) return;
+    const url = addLinkUrl.trim().startsWith("http") ? addLinkUrl.trim() : `https://${addLinkUrl.trim()}`;
+    setAddLinks((prev) => [...prev, { label: addLinkLabel.trim(), url }]);
+    setAddLinkLabel(""); setAddLinkUrl("");
+  };
+
+  const handleEditAddLink = () => {
+    if (!editLinkLabel.trim() || !editLinkUrl.trim()) return;
+    const url = editLinkUrl.trim().startsWith("http") ? editLinkUrl.trim() : `https://${editLinkUrl.trim()}`;
+    setEditData((d) => ({ ...d, evidenceLinks: [...d.evidenceLinks, { label: editLinkLabel.trim(), url }] }));
+    setEditLinkLabel(""); setEditLinkUrl("");
   };
 
   const handleAdd = () => {
@@ -242,6 +283,7 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
           priority: addPriority,
           status: addStatus,
           notes: addNotes || null,
+          evidenceLinks: addLinks.length > 0 ? addLinks : null,
         },
       },
       {
@@ -264,7 +306,9 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
       priority: item.priority ?? "Medium",
       status: item.status ?? "Open",
       notes: item.notes ?? "",
+      evidenceLinks: item.evidenceLinks ?? [],
     });
+    setEditLinkLabel(""); setEditLinkUrl("");
     setEditOpen(true);
   };
 
@@ -280,6 +324,7 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
           priority: editData.priority || undefined,
           status: editData.status || undefined,
           notes: editData.notes || null,
+          evidenceLinks: editData.evidenceLinks.length > 0 ? editData.evidenceLinks : null,
         },
       },
       {
@@ -466,6 +511,46 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
                 placeholder="Optional context or blockers…"
               />
             </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Evidence Links</label>
+              {addLinks.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {addLinks.map((link, i) => (
+                    <span key={i} className="inline-flex items-center gap-1 text-[9px] font-mono px-1.5 py-0.5 rounded-sm border border-primary/30 bg-primary/10 text-primary">
+                      <Link2 size={9} />{link.label}
+                      <button onClick={() => setAddLinks((prev) => prev.filter((_, j) => j !== i))} className="ml-0.5 hover:text-destructive">
+                        <X size={9} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Input
+                  value={addLinkLabel}
+                  onChange={(e) => setAddLinkLabel(e.target.value)}
+                  className="rounded-sm bg-background/50 text-xs h-8"
+                  placeholder="Label (e.g. Data Room)"
+                />
+                <Input
+                  value={addLinkUrl}
+                  onChange={(e) => setAddLinkUrl(e.target.value)}
+                  className="rounded-sm bg-background/50 text-xs h-8"
+                  placeholder="URL"
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddLink(); } }}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2 rounded-sm shrink-0"
+                  onClick={handleAddLink}
+                  disabled={!addLinkLabel.trim() || !addLinkUrl.trim()}
+                >
+                  <Plus size={12} />
+                </Button>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setAddOpen(false); resetAddForm(); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
@@ -531,6 +616,46 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
                 onChange={(e) => setEditData((d) => ({ ...d, notes: e.target.value }))}
                 className="rounded-sm bg-background/50 resize-none h-16"
               />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Evidence Links</label>
+              {editData.evidenceLinks.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {editData.evidenceLinks.map((link, i) => (
+                    <span key={i} className="inline-flex items-center gap-1 text-[9px] font-mono px-1.5 py-0.5 rounded-sm border border-primary/30 bg-primary/10 text-primary">
+                      <Link2 size={9} />{link.label}
+                      <button onClick={() => setEditData((d) => ({ ...d, evidenceLinks: d.evidenceLinks.filter((_, j) => j !== i) }))} className="ml-0.5 hover:text-destructive">
+                        <X size={9} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Input
+                  value={editLinkLabel}
+                  onChange={(e) => setEditLinkLabel(e.target.value)}
+                  className="rounded-sm bg-background/50 text-xs h-8"
+                  placeholder="Label (e.g. Data Room)"
+                />
+                <Input
+                  value={editLinkUrl}
+                  onChange={(e) => setEditLinkUrl(e.target.value)}
+                  className="rounded-sm bg-background/50 text-xs h-8"
+                  placeholder="URL"
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleEditAddLink(); } }}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2 rounded-sm shrink-0"
+                  onClick={handleEditAddLink}
+                  disabled={!editLinkLabel.trim() || !editLinkUrl.trim()}
+                >
+                  <Plus size={12} />
+                </Button>
+              </div>
             </div>
           </div>
           <DialogFooter>
