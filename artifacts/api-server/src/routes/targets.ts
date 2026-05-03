@@ -13,6 +13,9 @@ import {
   UpdateTargetBody,
   UpdateTargetStageBody,
   ListTargetsQueryParams,
+  CreateInteractionBody,
+  CreateActionBody,
+  CreateDiligenceItemBody,
 } from "@workspace/api-zod";
 import { TERMINAL_STAGES } from "../constants";
 
@@ -669,7 +672,6 @@ router.get("/:id/interactions", async (req, res) => {
 // POST /api/targets/:id/interactions
 router.post("/:id/interactions", async (req, res) => {
   const targetId = parseInt(req.params.id, 10);
-  const { CreateInteractionBody } = await import("@workspace/api-zod");
   const parsed = CreateInteractionBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.flatten() });
@@ -716,7 +718,6 @@ router.get("/:id/actions", async (req, res) => {
 // POST /api/targets/:id/actions
 router.post("/:id/actions", async (req, res) => {
   const targetId = parseInt(req.params.id, 10);
-  const { CreateActionBody } = await import("@workspace/api-zod");
   const parsed = CreateActionBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.flatten() });
@@ -778,7 +779,6 @@ router.get("/:id/diligence", async (req, res) => {
 // POST /api/targets/:id/diligence — create a diligence item for a target
 router.post("/:id/diligence", async (req, res) => {
   const targetId = parseInt(req.params.id, 10);
-  const { CreateDiligenceItemBody } = await import("@workspace/api-zod");
   const parsed = CreateDiligenceItemBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.flatten() });
