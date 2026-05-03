@@ -307,6 +307,19 @@ paths:
                 $ref: "#/components/schemas/Interaction"
         "404":
           description: Not found
+    delete:
+      operationId: deleteInteraction
+      tags: [interactions]
+      summary: Delete an interaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
 
   /targets/{id}/actions:
     get:

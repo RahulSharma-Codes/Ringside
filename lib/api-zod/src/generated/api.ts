@@ -455,6 +455,13 @@ export const UpdateInteractionResponse = zod.object({
 });
 
 /**
+ * @summary Delete an interaction
+ */
+export const DeleteInteractionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
  * @summary List action items for a target
  */
 export const ListActionsParams = zod.object({

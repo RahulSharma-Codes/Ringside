@@ -54,4 +54,13 @@ router.put("/:id", async (req, res) => {
   });
 });
 
+// DELETE /api/interactions/:id
+router.delete("/:id", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+
+  await db.delete(interactionsTable).where(eq(interactionsTable.id, id));
+  return res.status(204).send();
+});
+
 export default router;

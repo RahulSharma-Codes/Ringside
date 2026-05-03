@@ -6,9 +6,11 @@ import {
   useListInteractions, getListInteractionsQueryKey,
   useCreateInteraction,
   useUpdateInteraction,
+  useDeleteInteraction,
   useListActions, getListActionsQueryKey,
   useCreateAction,
   useUpdateAction,
+  useDeleteAction,
   useGetStageHistory, getGetStageHistoryQueryKey,
   useDeleteTarget,
   useUpdateTarget,
@@ -150,6 +152,12 @@ export default function TargetDetail() {
   });
   const [deleteOpen, setDeleteOpen] = useState(false);
 
+  const [deleteInterOpen, setDeleteInterOpen] = useState(false);
+  const [deleteInterId, setDeleteInterId] = useState<number | null>(null);
+
+  const [deleteActionOpen, setDeleteActionOpen] = useState(false);
+  const [deleteActionId, setDeleteActionId] = useState<number | null>(null);
+
   const { data: target, isLoading: loadingTarget } = useGetTarget(targetId, {
     query: { enabled: !!targetId, queryKey: getGetTargetQueryKey(targetId) },
   });
@@ -170,6 +178,8 @@ export default function TargetDetail() {
   const updateAction = useUpdateAction();
   const updateTarget = useUpdateTarget();
   const deleteTarget = useDeleteTarget();
+  const deleteInteraction = useDeleteInteraction();
+  const deleteAction = useDeleteAction();
 
   useEffect(() => {
     if (target) {
@@ -404,6 +414,38 @@ export default function TargetDetail() {
     );
   };
 
+  const handleDeleteInteraction = () => {
+    if (!deleteInterId) return;
+    deleteInteraction.mutate(
+      { id: deleteInterId },
+      {
+        onSuccess: () => {
+          toast({ title: "Interaction Deleted" });
+          setDeleteInterOpen(false);
+          setDeleteInterId(null);
+          invalidateInteractions();
+        },
+        onError: () => toast({ title: "Error", description: "Could not delete interaction", variant: "destructive" }),
+      }
+    );
+  };
+
+  const handleDeleteAction = () => {
+    if (!deleteActionId) return;
+    deleteAction.mutate(
+      { id: deleteActionId },
+      {
+        onSuccess: () => {
+          toast({ title: "Action Deleted" });
+          setDeleteActionOpen(false);
+          setDeleteActionId(null);
+          invalidateActions();
+        },
+        onError: () => toast({ title: "Error", description: "Could not delete action", variant: "destructive" }),
+      }
+    );
+  };
+
   if (loadingTarget || !target) {
     return (
       <div className="p-8 space-y-6">
@@ -611,9 +653,14 @@ export default function TargetDetail() {
                               {inter.interactionDatetime ? format(parseISO(inter.interactionDatetime), "MMM d, yyyy · HH:mm") : "—"}
                             </span>
                           </div>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0" onClick={() => openEditInteraction(inter)}>
-                            <Pencil size={12} />
-                          </Button>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground md:opacity-0 md:group-hover:opacity-100 transition-opacity" onClick={() => openEditInteraction(inter)}>
+                              <Pencil size={12} />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive/60 hover:text-destructive md:opacity-0 md:group-hover:opacity-100 transition-opacity" onClick={() => { setDeleteInterId(inter.id); setDeleteInterOpen(true); }}>
+                              <Trash2 size={12} />
+                            </Button>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="px-4 pb-4 space-y-2">
@@ -671,7 +718,7 @@ export default function TargetDetail() {
                       <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2">Open ({openActions.length})</div>
                       <div className="space-y-2">
                         {openActions.map((action) => (
-                          <ActionRow key={action.id} action={action} onEdit={() => openEditAction(action)} onToggle={() => handleToggleActionComplete(action.id, action.status)} isPending={updateAction.isPending} />
+                          <ActionRow key={action.id} action={action} onEdit={() => openEditAction(action)} onToggle={() => handleToggleActionComplete(action.id, action.status)} onDelete={() => { setDeleteActionId(action.id); setDeleteActionOpen(true); }} isPending={updateAction.isPending} />
                         ))}
                       </div>
                     </div>
@@ -681,7 +728,7 @@ export default function TargetDetail() {
                       <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2">Completed ({completedActions.length})</div>
                       <div className="space-y-2 opacity-60">
                         {completedActions.map((action) => (
-                          <ActionRow key={action.id} action={action} onEdit={() => openEditAction(action)} onToggle={() => handleToggleActionComplete(action.id, action.status)} isPending={updateAction.isPending} />
+                          <ActionRow key={action.id} action={action} onEdit={() => openEditAction(action)} onToggle={() => handleToggleActionComplete(action.id, action.status)} onDelete={() => { setDeleteActionId(action.id); setDeleteActionOpen(true); }} isPending={updateAction.isPending} />
                         ))}
                       </div>
                     </div>
@@ -1080,6 +1127,42 @@ export default function TargetDetail() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Interaction */}
+      <Dialog open={deleteInterOpen} onOpenChange={(open) => { if (!open) setDeleteInterId(null); setDeleteInterOpen(open); }}>
+        <DialogContent className="sm:max-w-[400px] border-destructive bg-sidebar rounded-sm">
+          <DialogHeader>
+            <DialogTitle className="font-mono uppercase tracking-tight text-lg text-destructive">Delete Interaction</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              This will permanently remove the interaction log entry. This action cannot be undone.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDeleteInterOpen(false); setDeleteInterId(null); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteInteraction} disabled={deleteInteraction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Action */}
+      <Dialog open={deleteActionOpen} onOpenChange={(open) => { if (!open) setDeleteActionId(null); setDeleteActionOpen(open); }}>
+        <DialogContent className="sm:max-w-[400px] border-destructive bg-sidebar rounded-sm">
+          <DialogHeader>
+            <DialogTitle className="font-mono uppercase tracking-tight text-lg text-destructive">Delete Action</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              This will permanently remove the action item. This action cannot be undone.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDeleteActionOpen(false); setDeleteActionId(null); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteAction} disabled={deleteAction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete/Archive Target */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="sm:max-w-[425px] border-destructive bg-sidebar rounded-sm">
@@ -1112,10 +1195,11 @@ type ActionRowProps = {
   };
   onEdit: () => void;
   onToggle: () => void;
+  onDelete: () => void;
   isPending: boolean;
 };
 
-function ActionRow({ action, onEdit, onToggle, isPending }: ActionRowProps) {
+function ActionRow({ action, onEdit, onToggle, onDelete, isPending }: ActionRowProps) {
   const isCompleted = action.status === "Completed";
   const isOverdue =
     !isCompleted && action.dueDate && new Date(action.dueDate) < new Date(new Date().toDateString());
@@ -1153,6 +1237,15 @@ function ActionRow({ action, onEdit, onToggle, isPending }: ActionRowProps) {
           title="Edit"
         >
           <Pencil size={12} />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7 text-destructive/60 hover:text-destructive md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+          onClick={onDelete}
+          title="Delete"
+        >
+          <Trash2 size={12} />
         </Button>
         {isCompleted ? (
           <Button

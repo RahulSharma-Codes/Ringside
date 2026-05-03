@@ -1242,6 +1242,90 @@ export const useUpdateInteraction = <
 };
 
 /**
+ * @summary Delete an interaction
+ */
+export const getDeleteInteractionUrl = (id: number) => {
+  return `/api/interactions/${id}`;
+};
+
+export const deleteInteraction = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteInteractionUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteInteractionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteInteraction>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteInteraction>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteInteraction"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteInteraction>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteInteraction(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteInteractionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteInteraction>>
+>;
+
+export type DeleteInteractionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete an interaction
+ */
+export const useDeleteInteraction = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteInteraction>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteInteraction>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteInteractionMutationOptions(options));
+};
+
+/**
  * @summary List action items for a target
  */
 export const getListActionsUrl = (id: number) => {
