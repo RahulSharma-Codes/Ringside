@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, inArray, and, or, gte, isNotNull } from "drizzle-orm";
+import { eq, inArray, and, or, gte, isNotNull, isNull } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { actionItemsTable, targetsTable, milestonesTable } from "@workspace/db";
 import { UpdateActionBody } from "@workspace/api-zod";
@@ -18,7 +18,7 @@ function toDateString(value: Date | string | null | undefined): string | null {
   return String(value).slice(0, 10);
 }
 
-// GET /api/actions/open
+// GET /api/actions/open — only regular actions (workstream IS NULL)
 router.get("/open", async (_req, res) => {
   const actions = await db
     .select({
@@ -32,11 +32,18 @@ router.get("/open", async (_req, res) => {
       status: actionItemsTable.status,
       createdAt: actionItemsTable.createdAt,
       completedAt: actionItemsTable.completedAt,
+      workstream: actionItemsTable.workstream,
+      notes: actionItemsTable.notes,
       targetName: targetsTable.projectName,
     })
     .from(actionItemsTable)
     .innerJoin(targetsTable, eq(actionItemsTable.targetId, targetsTable.id))
-    .where(inArray(actionItemsTable.status, ["Open", "In Progress", "Blocked"]));
+    .where(
+      and(
+        isNull(actionItemsTable.workstream),
+        inArray(actionItemsTable.status, ["Open", "In Progress", "Blocked"]),
+      ),
+    );
 
   return res.json(
     actions.map((a) => ({
@@ -49,10 +56,8 @@ router.get("/open", async (_req, res) => {
 });
 
 // GET /api/actions/command-center
-// Returns open/blocked/in-progress actions + recently completed (last 14 days).
-// "Recently completed" requires completedAt to be populated — set by PUT /:id when
-// status → Completed. Rows completed before that write path existed (completedAt IS NULL)
-// are excluded from the recently-completed bucket; this is by design, not a schema change.
+// Returns open/blocked/in-progress regular actions + recently completed (last 14 days).
+// Excludes diligence items (workstream IS NOT NULL) — those appear in the Diligence tab.
 router.get("/command-center", async (_req, res) => {
   const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
 
@@ -67,6 +72,8 @@ router.get("/command-center", async (_req, res) => {
       status: actionItemsTable.status,
       createdAt: actionItemsTable.createdAt,
       completedAt: actionItemsTable.completedAt,
+      workstream: actionItemsTable.workstream,
+      notes: actionItemsTable.notes,
       targetName: targetsTable.projectName,
       targetCode: targetsTable.targetCode,
       priorityTier: targetsTable.priorityTier,
@@ -76,12 +83,15 @@ router.get("/command-center", async (_req, res) => {
     .leftJoin(targetsTable, eq(actionItemsTable.targetId, targetsTable.id))
     .leftJoin(milestonesTable, eq(milestonesTable.targetId, actionItemsTable.targetId))
     .where(
-      or(
-        inArray(actionItemsTable.status, ["Open", "In Progress", "Blocked"]),
-        and(
-          eq(actionItemsTable.status, "Completed"),
-          isNotNull(actionItemsTable.completedAt),
-          gte(actionItemsTable.completedAt, fourteenDaysAgo),
+      and(
+        isNull(actionItemsTable.workstream),
+        or(
+          inArray(actionItemsTable.status, ["Open", "In Progress", "Blocked"]),
+          and(
+            eq(actionItemsTable.status, "Completed"),
+            isNotNull(actionItemsTable.completedAt),
+            gte(actionItemsTable.completedAt, fourteenDaysAgo),
+          ),
         ),
       ),
     )
@@ -99,7 +109,7 @@ router.get("/command-center", async (_req, res) => {
   );
 });
 
-// PUT /api/actions/:id
+// PUT /api/actions/:id — handles both regular actions and diligence items
 router.put("/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const parsed = UpdateActionBody.safeParse(req.body);
@@ -117,6 +127,8 @@ router.put("/:id", async (req, res) => {
     updates.status = d.status;
     updates.completedAt = d.status === "Completed" ? new Date() : null;
   }
+  if (d.workstream !== undefined) updates.workstream = d.workstream;
+  if (d.notes !== undefined) updates.notes = d.notes;
 
   const [action] = await db
     .update(actionItemsTable)

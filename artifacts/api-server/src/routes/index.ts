@@ -6,6 +6,7 @@ import interactionsRouter from "./interactions";
 import importRouter from "./import";
 import aiRouter from "./ai";
 import reviewRouter from "./review";
+import diligenceRouter from "./diligence";
 
 const router: IRouter = Router();
 
@@ -16,6 +17,7 @@ router.use("/interactions", interactionsRouter);
 router.use("/import", importRouter);
 router.use("/ai", aiRouter);
 router.use("/review", reviewRouter);
+router.use("/diligence", diligenceRouter);
 
 export default router;
 

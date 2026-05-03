@@ -90,6 +90,8 @@ export const actionItemsTable = pgTable("actions", {
   status: text("status").notNull().default("Open"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   completedAt: timestamp("completed_at"),
+  workstream: text("workstream"),
+  notes: text("notes"),
 });
 
 export const insertActionItemSchema = createInsertSchema(actionItemsTable).omit({ id: true, createdAt: true, completedAt: true });

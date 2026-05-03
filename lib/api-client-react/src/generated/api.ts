@@ -22,9 +22,12 @@ import type {
   AiAskResponse,
   CommandCenterAction,
   CreateActionBody,
+  CreateDiligenceItemBody,
   CreateInteractionBody,
   CreateTargetBody,
   DashboardSummary,
+  DiligenceReviewResponse,
+  DiligenceTabResponse,
   FilterOptions,
   GetTopPriorityTargetsParams,
   HealthStatus,
@@ -1978,6 +1981,256 @@ export function useListCommandCenterActions<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListCommandCenterActionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get all diligence items for a target, grouped by workstream, with readiness score
+ */
+export const getGetDiligenceForTargetUrl = (id: number) => {
+  return `/api/targets/${id}/diligence`;
+};
+
+export const getDiligenceForTarget = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DiligenceTabResponse> => {
+  return customFetch<DiligenceTabResponse>(getGetDiligenceForTargetUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDiligenceForTargetQueryKey = (id: number) => {
+  return [`/api/targets/${id}/diligence`] as const;
+};
+
+export const getGetDiligenceForTargetQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDiligenceForTarget>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDiligenceForTarget>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDiligenceForTargetQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDiligenceForTarget>>
+  > = ({ signal }) => getDiligenceForTarget(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDiligenceForTarget>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDiligenceForTargetQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDiligenceForTarget>>
+>;
+export type GetDiligenceForTargetQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get all diligence items for a target, grouped by workstream, with readiness score
+ */
+
+export function useGetDiligenceForTarget<
+  TData = Awaited<ReturnType<typeof getDiligenceForTarget>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDiligenceForTarget>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDiligenceForTargetQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a diligence item for a target
+ */
+export const getCreateDiligenceItemUrl = (id: number) => {
+  return `/api/targets/${id}/diligence`;
+};
+
+export const createDiligenceItem = async (
+  id: number,
+  createDiligenceItemBody: CreateDiligenceItemBody,
+  options?: RequestInit,
+): Promise<ActionItem> => {
+  return customFetch<ActionItem>(getCreateDiligenceItemUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createDiligenceItemBody),
+  });
+};
+
+export const getCreateDiligenceItemMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createDiligenceItem>>,
+    TError,
+    { id: number; data: BodyType<CreateDiligenceItemBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createDiligenceItem>>,
+  TError,
+  { id: number; data: BodyType<CreateDiligenceItemBody> },
+  TContext
+> => {
+  const mutationKey = ["createDiligenceItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createDiligenceItem>>,
+    { id: number; data: BodyType<CreateDiligenceItemBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createDiligenceItem(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateDiligenceItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createDiligenceItem>>
+>;
+export type CreateDiligenceItemMutationBody = BodyType<CreateDiligenceItemBody>;
+export type CreateDiligenceItemMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a diligence item for a target
+ */
+export const useCreateDiligenceItem = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createDiligenceItem>>,
+    TError,
+    { id: number; data: BodyType<CreateDiligenceItemBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createDiligenceItem>>,
+  TError,
+  { id: number; data: BodyType<CreateDiligenceItemBody> },
+  TContext
+> => {
+  return useMutation(getCreateDiligenceItemMutationOptions(options));
+};
+
+/**
+ * @summary Pipeline-wide diligence review — blocked, overdue, completion by target, recently completed
+ */
+export const getGetDiligenceReviewUrl = () => {
+  return `/api/diligence/review`;
+};
+
+export const getDiligenceReview = async (
+  options?: RequestInit,
+): Promise<DiligenceReviewResponse> => {
+  return customFetch<DiligenceReviewResponse>(getGetDiligenceReviewUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDiligenceReviewQueryKey = () => {
+  return [`/api/diligence/review`] as const;
+};
+
+export const getGetDiligenceReviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDiligenceReview>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDiligenceReview>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDiligenceReviewQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDiligenceReview>>
+  > = ({ signal }) => getDiligenceReview({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDiligenceReview>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDiligenceReviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDiligenceReview>>
+>;
+export type GetDiligenceReviewQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Pipeline-wide diligence review — blocked, overdue, completion by target, recently completed
+ */
+
+export function useGetDiligenceReview<
+  TData = Awaited<ReturnType<typeof getDiligenceReview>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDiligenceReview>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDiligenceReviewQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

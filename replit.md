@@ -66,6 +66,39 @@ Chat interface at `/copilot` backed by `POST /api/ai/ask`. Reads a live DB snaps
 
 **Nav**: Weekly Review added to sidebar with CalendarCheck icon.
 
+### Phase 4B — Diligence Workspace + Deal Readiness
+
+**Diligence Tab** (per-target, inside Target Detail at `/targets/:id`):
+- 5th tab "Diligence" with ClipboardCheck icon in Target Detail
+- 8 collapsible workstream sections: Commercial, Financial, Legal, Tax, HR, Technology, Operations, Integration
+- Readiness Score card: % complete progress bar, blocked/overdue/missing workstream counts
+- Add Item dialog: workstream, description, owner, due date, priority, status, notes fields
+- Edit Item dialog: same fields, pre-filled from existing item
+- Quick Complete / Reopen buttons per item; Delete with confirmation dialog
+- Items isolated from regular Actions tab (workstream IS NULL vs IS NOT NULL filter)
+- Component extracted to `target-detail-diligence.tsx` for maintainability
+- New backend routes: `GET /api/targets/:id/diligence`, `POST /api/targets/:id/diligence`
+
+**Diligence Review** (`/diligence-review`):
+- Pipeline-wide diligence health view with collapsible sections
+- Sections: Must-Win Incomplete, Blocked Items, Overdue Items, Completion by Target (progress bars), Missing Workstreams, Recently Completed (14d)
+- Per-target progress bars colored by completion % (red → amber → blue → green)
+- All rows link to the target detail Diligence tab
+- Refresh button with timestamp
+- New backend endpoint: `GET /api/diligence/review` (diligence router)
+
+**Schema changes**:
+- `actions` table: added `workstream text` and `notes text` nullable columns (applied via direct SQL)
+- OpenAPI: new `diligence` tag, 3 new paths, 7 new schemas (DiligenceReadiness, DiligenceTabResponse, CreateDiligenceItemBody, DiligenceReviewTargetSummary, DiligenceReviewItem, DiligenceReviewResponse)
+- `workstream` and `notes` fields added to ActionItem, CreateActionBody, UpdateActionBody
+
+**Other updates**:
+- `GET /api/actions/open` and `GET /api/actions/command-center` now filter `workstream IS NULL` (diligence items excluded from Action Command Center)
+- `GET /api/targets/:id/actions` filters `workstream IS NULL` (keeps Actions and Diligence tabs cleanly separated)
+- `PUT /api/actions/:id` extended to accept `workstream` and `notes` (handles diligence item edits)
+
+**Nav**: Diligence Review added to sidebar with ClipboardCheck icon.
+
 ## Checkpoints
 
 | Label | Commit | Notes |

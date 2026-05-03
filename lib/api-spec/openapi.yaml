@@ -22,6 +22,8 @@ tags:
     description: CSV / Excel bulk import
   - name: ai
     description: AI Copilot — read-only pipeline analyst
+  - name: diligence
+    description: Due diligence workstream management
 paths:
   /healthz:
     get:
@@ -476,6 +478,61 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/CommandCenterAction"
+
+  /targets/{id}/diligence:
+    get:
+      operationId: getDiligenceForTarget
+      tags: [diligence]
+      summary: Get all diligence items for a target, grouped by workstream, with readiness score
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Diligence tab data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiligenceTabResponse"
+    post:
+      operationId: createDiligenceItem
+      tags: [diligence]
+      summary: Create a diligence item for a target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDiligenceItemBody"
+      responses:
+        "201":
+          description: Diligence item created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionItem"
+
+  /diligence/review:
+    get:
+      operationId: getDiligenceReview
+      tags: [diligence]
+      summary: Pipeline-wide diligence review — blocked, overdue, completion by target, recently completed
+      responses:
+        "200":
+          description: Diligence review data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiligenceReviewResponse"
 
   /review/weekly:
     get:
@@ -964,6 +1021,12 @@ components:
           type: string
           format: date-time
           nullable: true
+        workstream:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
       required: [id, targetId, description, priority, status, createdAt]
 
     CreateActionBody:
@@ -984,6 +1047,12 @@ components:
         interactionId:
           type: integer
           nullable: true
+        workstream:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
       required: [description]
 
     UpdateActionBody:
@@ -1002,6 +1071,12 @@ components:
           type: string
         status:
           type: string
+        workstream:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
 
     DashboardSummary:
       type: object
@@ -1464,3 +1539,152 @@ components:
           items:
             $ref: "#/components/schemas/WeeklyReviewTargetSummary"
       required: [mustWin, needsAttention, overdueActions, dueThisWeek, recentStageChanges, recentlyUpdated, noOpenAction, noRecentInteraction]
+
+    DiligenceReadiness:
+      type: object
+      properties:
+        total:
+          type: integer
+        completed:
+          type: integer
+        blocked:
+          type: integer
+        overdue:
+          type: integer
+        missingWorkstreams:
+          type: array
+          items:
+            type: string
+      required: [total, completed, blocked, overdue, missingWorkstreams]
+
+    DiligenceTabResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActionItem"
+        readiness:
+          $ref: "#/components/schemas/DiligenceReadiness"
+      required: [items, readiness]
+
+    CreateDiligenceItemBody:
+      type: object
+      properties:
+        workstream:
+          type: string
+        description:
+          type: string
+        owner:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+        priority:
+          type: string
+          default: Medium
+        status:
+          type: string
+          default: Open
+        notes:
+          type: string
+          nullable: true
+      required: [workstream, description]
+
+    DiligenceReviewTargetSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetCode:
+          type: string
+        projectName:
+          type: string
+        priorityTier:
+          type: string
+        currentStage:
+          type: string
+        total:
+          type: integer
+        completed:
+          type: integer
+        pct:
+          type: integer
+        blocked:
+          type: integer
+        overdue:
+          type: integer
+        missingWorkstreams:
+          type: array
+          items:
+            type: string
+      required: [id, targetCode, projectName, priorityTier, currentStage, total, completed, pct, blocked, overdue, missingWorkstreams]
+
+    DiligenceReviewItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        targetCode:
+          type: string
+          nullable: true
+        targetName:
+          type: string
+          nullable: true
+        priorityTier:
+          type: string
+          nullable: true
+        currentStage:
+          type: string
+          nullable: true
+        workstream:
+          type: string
+          nullable: true
+        description:
+          type: string
+        owner:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          nullable: true
+        priority:
+          type: string
+        status:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        completedAt:
+          type: string
+          nullable: true
+      required: [id, targetId, description, priority, status]
+
+    DiligenceReviewResponse:
+      type: object
+      properties:
+        mustWinIncomplete:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiligenceReviewTargetSummary"
+        blockedItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiligenceReviewItem"
+        overdueItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiligenceReviewItem"
+        recentlyCompleted:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiligenceReviewItem"
+        targetSummaries:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiligenceReviewTargetSummary"
+      required: [mustWinIncomplete, blockedItems, overdueItems, recentlyCompleted, targetSummaries]

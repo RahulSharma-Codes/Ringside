@@ -305,6 +305,8 @@ export const GetTargetResponse = zod
           targetName: zod.string().nullish(),
           createdAt: zod.coerce.date(),
           completedAt: zod.coerce.date().nullish(),
+          workstream: zod.string().nullish(),
+          notes: zod.string().nullish(),
         }),
       ),
       stageHistory: zod.array(
@@ -559,6 +561,8 @@ export const ListActionsResponseItem = zod.object({
   targetName: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   completedAt: zod.coerce.date().nullish(),
+  workstream: zod.string().nullish(),
+  notes: zod.string().nullish(),
 });
 export const ListActionsResponse = zod.array(ListActionsResponseItem);
 
@@ -577,6 +581,8 @@ export const CreateActionBody = zod.object({
   dueDate: zod.coerce.date().nullish(),
   priority: zod.string().default(createActionBodyPriorityDefault),
   interactionId: zod.number().nullish(),
+  workstream: zod.string().nullish(),
+  notes: zod.string().nullish(),
 });
 
 /**
@@ -592,6 +598,8 @@ export const UpdateActionBody = zod.object({
   dueDate: zod.coerce.date().nullish(),
   priority: zod.string().optional(),
   status: zod.string().optional(),
+  workstream: zod.string().nullish(),
+  notes: zod.string().nullish(),
 });
 
 export const UpdateActionResponse = zod.object({
@@ -606,6 +614,8 @@ export const UpdateActionResponse = zod.object({
   targetName: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   completedAt: zod.coerce.date().nullish(),
+  workstream: zod.string().nullish(),
+  notes: zod.string().nullish(),
 });
 
 /**
@@ -630,6 +640,8 @@ export const ListOpenActionsResponseItem = zod.object({
   targetName: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   completedAt: zod.coerce.date().nullish(),
+  workstream: zod.string().nullish(),
+  notes: zod.string().nullish(),
 });
 export const ListOpenActionsResponse = zod.array(ListOpenActionsResponseItem);
 
@@ -654,6 +666,150 @@ export const ListCommandCenterActionsResponseItem = zod.object({
 export const ListCommandCenterActionsResponse = zod.array(
   ListCommandCenterActionsResponseItem,
 );
+
+/**
+ * @summary Get all diligence items for a target, grouped by workstream, with readiness score
+ */
+export const GetDiligenceForTargetParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetDiligenceForTargetResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetId: zod.number(),
+      interactionId: zod.number().nullish(),
+      description: zod.string(),
+      owner: zod.string().nullish(),
+      dueDate: zod.coerce.date().nullish(),
+      priority: zod.string(),
+      status: zod.string(),
+      targetName: zod.string().nullish(),
+      createdAt: zod.coerce.date(),
+      completedAt: zod.coerce.date().nullish(),
+      workstream: zod.string().nullish(),
+      notes: zod.string().nullish(),
+    }),
+  ),
+  readiness: zod.object({
+    total: zod.number(),
+    completed: zod.number(),
+    blocked: zod.number(),
+    overdue: zod.number(),
+    missingWorkstreams: zod.array(zod.string()),
+  }),
+});
+
+/**
+ * @summary Create a diligence item for a target
+ */
+export const CreateDiligenceItemParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const createDiligenceItemBodyPriorityDefault = `Medium`;
+export const createDiligenceItemBodyStatusDefault = `Open`;
+
+export const CreateDiligenceItemBody = zod.object({
+  workstream: zod.string(),
+  description: zod.string(),
+  owner: zod.string().nullish(),
+  dueDate: zod.coerce.date().nullish(),
+  priority: zod.string().default(createDiligenceItemBodyPriorityDefault),
+  status: zod.string().default(createDiligenceItemBodyStatusDefault),
+  notes: zod.string().nullish(),
+});
+
+/**
+ * @summary Pipeline-wide diligence review — blocked, overdue, completion by target, recently completed
+ */
+export const GetDiligenceReviewResponse = zod.object({
+  mustWinIncomplete: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetCode: zod.string(),
+      projectName: zod.string(),
+      priorityTier: zod.string(),
+      currentStage: zod.string(),
+      total: zod.number(),
+      completed: zod.number(),
+      pct: zod.number(),
+      blocked: zod.number(),
+      overdue: zod.number(),
+      missingWorkstreams: zod.array(zod.string()),
+    }),
+  ),
+  blockedItems: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetId: zod.number(),
+      targetCode: zod.string().nullish(),
+      targetName: zod.string().nullish(),
+      priorityTier: zod.string().nullish(),
+      currentStage: zod.string().nullish(),
+      workstream: zod.string().nullish(),
+      description: zod.string(),
+      owner: zod.string().nullish(),
+      dueDate: zod.string().nullish(),
+      priority: zod.string(),
+      status: zod.string(),
+      notes: zod.string().nullish(),
+      completedAt: zod.string().nullish(),
+    }),
+  ),
+  overdueItems: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetId: zod.number(),
+      targetCode: zod.string().nullish(),
+      targetName: zod.string().nullish(),
+      priorityTier: zod.string().nullish(),
+      currentStage: zod.string().nullish(),
+      workstream: zod.string().nullish(),
+      description: zod.string(),
+      owner: zod.string().nullish(),
+      dueDate: zod.string().nullish(),
+      priority: zod.string(),
+      status: zod.string(),
+      notes: zod.string().nullish(),
+      completedAt: zod.string().nullish(),
+    }),
+  ),
+  recentlyCompleted: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetId: zod.number(),
+      targetCode: zod.string().nullish(),
+      targetName: zod.string().nullish(),
+      priorityTier: zod.string().nullish(),
+      currentStage: zod.string().nullish(),
+      workstream: zod.string().nullish(),
+      description: zod.string(),
+      owner: zod.string().nullish(),
+      dueDate: zod.string().nullish(),
+      priority: zod.string(),
+      status: zod.string(),
+      notes: zod.string().nullish(),
+      completedAt: zod.string().nullish(),
+    }),
+  ),
+  targetSummaries: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetCode: zod.string(),
+      projectName: zod.string(),
+      priorityTier: zod.string(),
+      currentStage: zod.string(),
+      total: zod.number(),
+      completed: zod.number(),
+      pct: zod.number(),
+      blocked: zod.number(),
+      overdue: zod.number(),
+      missingWorkstreams: zod.array(zod.string()),
+    }),
+  ),
+});
 
 /**
  * @summary Weekly pipeline review — 8 sections computed server-side in one batch

@@ -70,6 +70,8 @@ export interface ActionItem {
   targetName?: string | null;
   createdAt: string;
   completedAt?: string | null;
+  workstream?: string | null;
+  notes?: string | null;
 }
 
 export interface StageChange {
@@ -171,6 +173,8 @@ export interface CreateActionBody {
   dueDate?: string | null;
   priority?: string;
   interactionId?: number | null;
+  workstream?: string | null;
+  notes?: string | null;
 }
 
 export interface UpdateActionBody {
@@ -179,6 +183,8 @@ export interface UpdateActionBody {
   dueDate?: string | null;
   priority?: string;
   status?: string;
+  workstream?: string | null;
+  notes?: string | null;
 }
 
 export interface DashboardSummary {
@@ -394,6 +400,68 @@ export interface WeeklyReviewResponse {
   recentlyUpdated: WeeklyReviewTargetSummary[];
   noOpenAction: WeeklyReviewTargetSummary[];
   noRecentInteraction: WeeklyReviewTargetSummary[];
+}
+
+export interface DiligenceReadiness {
+  total: number;
+  completed: number;
+  blocked: number;
+  overdue: number;
+  missingWorkstreams: string[];
+}
+
+export interface DiligenceTabResponse {
+  items: ActionItem[];
+  readiness: DiligenceReadiness;
+}
+
+export interface CreateDiligenceItemBody {
+  workstream: string;
+  description: string;
+  owner?: string | null;
+  dueDate?: string | null;
+  priority?: string;
+  status?: string;
+  notes?: string | null;
+}
+
+export interface DiligenceReviewTargetSummary {
+  id: number;
+  targetCode: string;
+  projectName: string;
+  priorityTier: string;
+  currentStage: string;
+  total: number;
+  completed: number;
+  pct: number;
+  blocked: number;
+  overdue: number;
+  missingWorkstreams: string[];
+}
+
+export interface DiligenceReviewItem {
+  id: number;
+  targetId: number;
+  targetCode?: string | null;
+  targetName?: string | null;
+  priorityTier?: string | null;
+  currentStage?: string | null;
+  workstream?: string | null;
+  description: string;
+  owner?: string | null;
+  dueDate?: string | null;
+  priority: string;
+  status: string;
+  notes?: string | null;
+  completedAt?: string | null;
+}
+
+export interface DiligenceReviewResponse {
+  mustWinIncomplete: DiligenceReviewTargetSummary[];
+  blockedItems: DiligenceReviewItem[];
+  overdueItems: DiligenceReviewItem[];
+  recentlyCompleted: DiligenceReviewItem[];
+  targetSummaries: DiligenceReviewTargetSummary[];
 }
 
 export type ListTargetsParams = {

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, ilike, or, desc, inArray } from "drizzle-orm";
+import { eq, and, ilike, or, desc, inArray, isNull } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   targetsTable,
@@ -701,13 +701,13 @@ router.post("/:id/interactions", async (req, res) => {
   return res.status(201).json(formatInteraction(interaction));
 });
 
-// GET /api/targets/:id/actions
+// GET /api/targets/:id/actions — regular actions only (workstream IS NULL)
 router.get("/:id/actions", async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const actions = await db
     .select()
     .from(actionItemsTable)
-    .where(eq(actionItemsTable.targetId, id))
+    .where(and(eq(actionItemsTable.targetId, id), isNull(actionItemsTable.workstream)))
     .orderBy(desc(actionItemsTable.createdAt));
 
   return res.json(actions.map(formatAction));
@@ -743,6 +743,69 @@ router.post("/:id/actions", async (req, res) => {
     .where(eq(targetsTable.id, targetId));
 
   return res.status(201).json(formatAction(action));
+});
+
+// GET /api/targets/:id/diligence — per-target diligence tab data
+router.get("/:id/diligence", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const { isNotNull: isNotNullDril } = await import("drizzle-orm");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const items = await db
+    .select()
+    .from(actionItemsTable)
+    .where(and(eq(actionItemsTable.targetId, id), isNotNullDril(actionItemsTable.workstream)));
+
+  const total = items.length;
+  const completed = items.filter((i) => i.status === "Completed").length;
+  const blocked = items.filter((i) => i.status === "Blocked").length;
+  const overdue = items.filter(
+    (i) => i.status !== "Completed" && i.dueDate && new Date(i.dueDate) < today,
+  ).length;
+
+  const WORKSTREAMS = ["Commercial", "Financial", "Legal", "Tax", "HR", "Technology", "Operations", "Integration"];
+  const presentWorkstreams = new Set(items.map((i) => i.workstream!));
+  const missingWorkstreams = WORKSTREAMS.filter((w) => !presentWorkstreams.has(w));
+
+  return res.json({
+    items: items.map(formatAction),
+    readiness: { total, completed, blocked, overdue, missingWorkstreams },
+  });
+});
+
+// POST /api/targets/:id/diligence — create a diligence item for a target
+router.post("/:id/diligence", async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  const { CreateDiligenceItemBody } = await import("@workspace/api-zod");
+  const parsed = CreateDiligenceItemBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.flatten() });
+  }
+  const d = parsed.data;
+  const now = new Date();
+
+  const [item] = await db
+    .insert(actionItemsTable)
+    .values({
+      targetId,
+      description: d.description,
+      workstream: d.workstream,
+      owner: d.owner ?? null,
+      dueDate: d.dueDate ? d.dueDate.toISOString().split("T")[0] : null,
+      priority: d.priority ?? "Medium",
+      status: d.status ?? "Open",
+      notes: d.notes ?? null,
+      createdAt: now,
+    })
+    .returning();
+
+  await db
+    .update(targetsTable)
+    .set({ updatedAt: now })
+    .where(eq(targetsTable.id, targetId));
+
+  return res.status(201).json(formatAction(item));
 });
 
 export default router;

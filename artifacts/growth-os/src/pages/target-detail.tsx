@@ -26,9 +26,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft, Target as TargetIcon, Plus, ShieldAlert, Edit, Trash2,
   CheckCircle2, RotateCcw, Pencil, MessageSquare, ListChecks, GitBranch,
-  LayoutGrid,
+  LayoutGrid, ClipboardCheck,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { DiligenceTab } from "@/pages/target-detail-diligence";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -535,6 +536,7 @@ export default function TargetDetail() {
                 { value: "interactions", label: "Log", icon: <MessageSquare size={13} /> },
                 { value: "actions", label: "Actions", icon: <ListChecks size={13} /> },
                 { value: "history", label: "Timeline", icon: <GitBranch size={13} /> },
+                { value: "diligence", label: "Diligence", icon: <ClipboardCheck size={13} /> },
               ].map(({ value, label, icon }) => (
                 <TabsTrigger
                   key={value}
@@ -777,6 +779,11 @@ export default function TargetDetail() {
                   </div>
                 </div>
               )}
+            </TabsContent>
+
+            {/* Diligence */}
+            <TabsContent value="diligence" className="space-y-4 mt-0">
+              <DiligenceTab targetId={targetId} />
             </TabsContent>
           </Tabs>
         </div>
