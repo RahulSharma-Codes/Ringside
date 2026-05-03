@@ -1,0 +1,111 @@
+We have completed Phase 1A: Opportunity Detail Cockpit. Login works, Supabase read/write works, target creation works, interaction/action creation and editing work, and stage-change audit logging works.
+
+Now implement Phase 1B: Dashboard + Pipeline Intelligence.
+
+Important safety rules:
+- Do NOT rebuild from scratch.
+- Do NOT create a new architecture.
+- Do NOT run drizzle push.
+- Do NOT run seed.ts.
+- Do NOT modify DATABASE_URL.
+- Do NOT modify auth middleware unless absolutely required.
+- Do NOT insert Apollo/Orion/Beacon/Catalyst/Helios demo data.
+- Supabase Postgres remains the source of truth.
+- Preserve all Phase 1A functionality.
+
+Current structure:
+- React/Vite frontend: artifacts/growth-os
+- Express API backend: artifacts/api-server
+- Drizzle/Postgres DB layer: lib/db
+- Existing tables include targets, milestones, interactions, actions, stage_change_log, lookup_values, users.
+
+Phase 1B goal:
+Upgrade the dashboard and pipeline page into a professional portfolio operating view for an M&A / Corporate Development team.
+
+Required features:
+
+1. Executive Dashboard Metrics
+Show real metrics from Supabase:
+- Active opportunities
+- Must-Win opportunities
+- Average priority / attractiveness score if supported by current schema
+- Open actions
+- Overdue actions
+- Opportunities by stage
+- Recently updated opportunities
+- Stale opportunities with no recent interaction
+
+2. Pipeline by Stage
+Add a visual pipeline-by-stage section:
+- Count of opportunities per stage
+- Mobile-friendly cards or compact chart
+- Use professional stage labels:
+  Origination, Initial Screening, Management Discussion, NDA / CIM, Due Diligence, Non-Binding Offer, Binding Offer, Signing, Closing, Integration Planning, On Hold, Rejected
+- If current lookup/stage values differ, adapt to existing data instead of creating migrations.
+
+3. Priority-Ranked Opportunities
+Add a ranked list/card section:
+- Must-Win first
+- Then High, Medium, Low
+- Within each tier, sort by score if available
+- Show project name, target code, sector, country/geography, owner, stage, priority tier, open actions, overdue actions
+
+4. Needs Attention View
+Add logic to flag opportunities needing attention:
+- overdue actions
+- no interaction in 30 days
+- no next action
+- stale stage, if stage_change_log indicates no movement in 45+ days
+- Must-Win with no open action
+Use current available data. If some data is missing, implement what is possible and report what was skipped.
+
+5. Pipeline Page Improvements
+Upgrade the pipeline page:
+- Search by project name, target code, legal name, sector, country, owner
+- Filters for stage, priority tier, owner, sector, country/geography
+- Toggle or filter for “Needs Attention”
+- Card-based mobile-first opportunity list
+- Each card should show:
+  project name
+  target code
+  sector
+  country/geography
+  owner
+  stage chip
+  priority chip
+  open action count
+  overdue action count
+  last interaction date if available
+  needs-attention badge if applicable
+
+6. Mobile-first UI
+- Dashboard and pipeline must be readable on 375px mobile screen.
+- Avoid cramped tables.
+- Use cards, chips, badges, and clear section headers.
+- Keep desktop layout clean but prioritize mobile usability.
+
+7. Backend/API
+- Inspect existing dashboard and targets routes first.
+- Extend existing routes where appropriate.
+- Add new API endpoints only if needed.
+- Do not change schema or run migrations.
+- Do not use mock data.
+- All dashboard and pipeline data must come from Supabase.
+
+8. Testing
+After implementation:
+- Run pnpm run typecheck.
+- Restart the app.
+- Confirm login still works.
+- Confirm Project Test still appears.
+- Confirm created targets still appear.
+- Confirm dashboard metrics are calculated from Supabase.
+- Confirm pipeline filters/search work.
+- Confirm no Apollo/Orion demo records appear unless they exist in Supabase.
+
+Report:
+- files changed
+- API routes added/modified
+- fields or metrics skipped because schema did not support them
+- typecheck result
+- manual testing checklist

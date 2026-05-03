@@ -58,6 +58,18 @@ paths:
           in: query
           schema:
             type: boolean
+        - name: owner
+          in: query
+          schema:
+            type: string
+        - name: country
+          in: query
+          schema:
+            type: string
+        - name: needsAttention
+          in: query
+          schema:
+            type: boolean
       responses:
         "200":
           description: List of targets
@@ -133,6 +145,34 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Target"
+
+  /targets/filter-options:
+    get:
+      operationId: getTargetFilterOptions
+      tags: [targets]
+      summary: Distinct owners and countries for filter dropdowns
+      responses:
+        "200":
+          description: Filter options
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FilterOptions"
+
+  /targets/needs-attention:
+    get:
+      operationId: getTargetsNeedingAttention
+      tags: [dashboard]
+      summary: Active targets flagged as needing attention
+      responses:
+        "200":
+          description: Needs-attention targets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NeedsAttentionTarget"
 
   /targets/{id}:
     get:
@@ -498,6 +538,19 @@ components:
         updatedAt:
           type: string
           format: date-time
+        openActionCount:
+          type: integer
+          nullable: true
+        overdueActionCount:
+          type: integer
+          nullable: true
+        lastInteractionDate:
+          type: string
+          format: date-time
+          nullable: true
+        needsAttention:
+          type: boolean
+          nullable: true
       required:
         - id
         - targetCode
@@ -880,6 +933,10 @@ components:
           type: integer
         avgPriorityScore:
           type: number
+        needsAttentionCount:
+          type: integer
+        recentlyUpdatedCount:
+          type: integer
       required:
         - activeTargets
         - mustWinCount
@@ -889,6 +946,8 @@ components:
         - closedDealsCount
         - droppedDealsCount
         - avgPriorityScore
+        - needsAttentionCount
+        - recentlyUpdatedCount
 
     StageCount:
       type: object
@@ -898,3 +957,27 @@ components:
         count:
           type: integer
       required: [stage, count]
+
+    NeedsAttentionTarget:
+      allOf:
+        - $ref: "#/components/schemas/Target"
+        - type: object
+          properties:
+            flags:
+              type: array
+              items:
+                type: string
+          required: [flags]
+
+    FilterOptions:
+      type: object
+      properties:
+        owners:
+          type: array
+          items:
+            type: string
+        countries:
+          type: array
+          items:
+            type: string
+      required: [owners, countries]

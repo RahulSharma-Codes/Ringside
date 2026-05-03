@@ -23,6 +23,9 @@ export const ListTargetsQueryParams = zod.object({
   stage: zod.coerce.string().optional(),
   search: zod.coerce.string().optional(),
   isActive: zod.coerce.boolean().optional(),
+  owner: zod.coerce.string().optional(),
+  country: zod.coerce.string().optional(),
+  needsAttention: zod.coerce.boolean().optional(),
 });
 
 export const ListTargetsResponseItem = zod.object({
@@ -53,6 +56,10 @@ export const ListTargetsResponseItem = zod.object({
   isConfidential: zod.boolean(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
+  openActionCount: zod.number().nullish(),
+  overdueActionCount: zod.number().nullish(),
+  lastInteractionDate: zod.coerce.date().nullish(),
+  needsAttention: zod.boolean().nullish(),
 });
 export const ListTargetsResponse = zod.array(ListTargetsResponseItem);
 
@@ -111,6 +118,8 @@ export const GetDashboardSummaryResponse = zod.object({
   closedDealsCount: zod.number(),
   droppedDealsCount: zod.number(),
   avgPriorityScore: zod.number(),
+  needsAttentionCount: zod.number(),
+  recentlyUpdatedCount: zod.number(),
 });
 
 /**
@@ -161,9 +170,67 @@ export const GetTopPriorityTargetsResponseItem = zod.object({
   isConfidential: zod.boolean(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
+  openActionCount: zod.number().nullish(),
+  overdueActionCount: zod.number().nullish(),
+  lastInteractionDate: zod.coerce.date().nullish(),
+  needsAttention: zod.boolean().nullish(),
 });
 export const GetTopPriorityTargetsResponse = zod.array(
   GetTopPriorityTargetsResponseItem,
+);
+
+/**
+ * @summary Distinct owners and countries for filter dropdowns
+ */
+export const GetTargetFilterOptionsResponse = zod.object({
+  owners: zod.array(zod.string()),
+  countries: zod.array(zod.string()),
+});
+
+/**
+ * @summary Active targets flagged as needing attention
+ */
+export const GetTargetsNeedingAttentionResponseItem = zod
+  .object({
+    id: zod.number(),
+    targetCode: zod.string(),
+    projectName: zod.string(),
+    legalName: zod.string().nullish(),
+    businessUnit: zod.string().nullish(),
+    sector: zod.string().nullish(),
+    subsector: zod.string().nullish(),
+    geographyRegion: zod.string().nullish(),
+    country: zod.string().nullish(),
+    sourcingChannel: zod.string().nullish(),
+    sourcingFirm: zod.string().nullish(),
+    dealOwner: zod.string().nullish(),
+    dealChampion: zod.string().nullish(),
+    executiveSponsor: zod.string().nullish(),
+    priorityTier: zod.string(),
+    strategicRationale: zod.string().nullish(),
+    strategicFitScore: zod.number(),
+    synergyScore: zod.number(),
+    financialAttractivenessScore: zod.number(),
+    processMaturityScore: zod.number(),
+    riskPenaltyScore: zod.number(),
+    priorityScore: zod.number(),
+    currentStage: zod.string(),
+    isActive: zod.boolean(),
+    isConfidential: zod.boolean(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+    openActionCount: zod.number().nullish(),
+    overdueActionCount: zod.number().nullish(),
+    lastInteractionDate: zod.coerce.date().nullish(),
+    needsAttention: zod.boolean().nullish(),
+  })
+  .and(
+    zod.object({
+      flags: zod.array(zod.string()),
+    }),
+  );
+export const GetTargetsNeedingAttentionResponse = zod.array(
+  GetTargetsNeedingAttentionResponseItem,
 );
 
 /**
@@ -202,6 +269,10 @@ export const GetTargetResponse = zod
     isConfidential: zod.boolean(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
+    openActionCount: zod.number().nullish(),
+    overdueActionCount: zod.number().nullish(),
+    lastInteractionDate: zod.coerce.date().nullish(),
+    needsAttention: zod.boolean().nullish(),
   })
   .and(
     zod.object({
@@ -309,6 +380,10 @@ export const UpdateTargetResponse = zod.object({
   isConfidential: zod.boolean(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
+  openActionCount: zod.number().nullish(),
+  overdueActionCount: zod.number().nullish(),
+  lastInteractionDate: zod.coerce.date().nullish(),
+  needsAttention: zod.boolean().nullish(),
 });
 
 /**
@@ -359,6 +434,10 @@ export const UpdateTargetStageResponse = zod.object({
   isConfidential: zod.boolean(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
+  openActionCount: zod.number().nullish(),
+  overdueActionCount: zod.number().nullish(),
+  lastInteractionDate: zod.coerce.date().nullish(),
+  needsAttention: zod.boolean().nullish(),
 });
 
 /**

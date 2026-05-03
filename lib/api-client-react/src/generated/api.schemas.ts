@@ -37,6 +37,10 @@ export interface Target {
   isConfidential: boolean;
   createdAt: string;
   updatedAt: string;
+  openActionCount?: number | null;
+  overdueActionCount?: number | null;
+  lastInteractionDate?: string | null;
+  needsAttention?: boolean | null;
 }
 
 export interface Interaction {
@@ -186,11 +190,22 @@ export interface DashboardSummary {
   closedDealsCount: number;
   droppedDealsCount: number;
   avgPriorityScore: number;
+  needsAttentionCount: number;
+  recentlyUpdatedCount: number;
 }
 
 export interface StageCount {
   stage: string;
   count: number;
+}
+
+export type NeedsAttentionTarget = Target & {
+  flags: string[];
+};
+
+export interface FilterOptions {
+  owners: string[];
+  countries: string[];
 }
 
 export type ListTargetsParams = {
@@ -199,6 +214,9 @@ export type ListTargetsParams = {
   stage?: string;
   search?: string;
   isActive?: boolean;
+  owner?: string;
+  country?: string;
+  needsAttention?: boolean;
 };
 
 export type GetTopPriorityTargetsParams = {

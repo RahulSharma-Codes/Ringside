@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, ilike, or, desc } from "drizzle-orm";
+import { eq, and, ilike, or, desc, inArray } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   targetsTable,
@@ -23,7 +23,8 @@ type ActionRow = typeof actionItemsTable.$inferSelect;
 type InteractionRow = typeof interactionsTable.$inferSelect;
 type StageChangeRow = typeof stageChangeLogTable.$inferSelect;
 
-const TERMINAL_STAGES = new Set(["Closed", "Dropped"]);
+// Per guardrail #4: terminal stages as specified
+const TERMINAL_STAGES = new Set(["Rejected", "Closing", "Closed", "Completed", "Signed"]);
 
 function toIso(value: Date | string | null | undefined): string | null {
   if (!value) return null;
@@ -107,13 +108,129 @@ function defaultMilestoneValues(targetId: number, now: Date, currentStageValue =
   };
 }
 
+// Batch-enrich a list of target rows with action counts, last interaction, and needs-attention flags.
+// Per guardrails #2 and #3 for flagging logic.
+async function enrichTargetRows(rows: { target: TargetRow; milestone: MilestoneRow }[]) {
+  if (rows.length === 0) return [];
+
+  const targetIds = rows.map((r) => r.target.id);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const fortyFiveDaysAgo = new Date(today);
+  fortyFiveDaysAgo.setDate(fortyFiveDaysAgo.getDate() - 45);
+  const sevenDaysAgo = new Date(today);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const [allActions, allInteractions, allStageChanges] = await Promise.all([
+    db.select().from(actionItemsTable).where(inArray(actionItemsTable.targetId, targetIds)),
+    db.select().from(interactionsTable).where(inArray(interactionsTable.targetId, targetIds)),
+    db
+      .select()
+      .from(stageChangeLogTable)
+      .where(inArray(stageChangeLogTable.targetId, targetIds))
+      .orderBy(desc(stageChangeLogTable.changedAt)),
+  ]);
+
+  // Group by targetId
+  const actionsByTarget = new Map<number, ActionRow[]>();
+  const interactionsByTarget = new Map<number, InteractionRow[]>();
+  // First entry per target is the latest stage change (ordered desc)
+  const latestStageChangeByTarget = new Map<number, StageChangeRow>();
+
+  for (const action of allActions) {
+    if (!actionsByTarget.has(action.targetId)) actionsByTarget.set(action.targetId, []);
+    actionsByTarget.get(action.targetId)!.push(action);
+  }
+  for (const inter of allInteractions) {
+    if (!interactionsByTarget.has(inter.targetId)) interactionsByTarget.set(inter.targetId, []);
+    interactionsByTarget.get(inter.targetId)!.push(inter);
+  }
+  for (const sc of allStageChanges) {
+    if (!latestStageChangeByTarget.has(sc.targetId)) {
+      latestStageChangeByTarget.set(sc.targetId, sc);
+    }
+  }
+
+  return rows.map(({ target, milestone }) => {
+    const actions = actionsByTarget.get(target.id) ?? [];
+    const interactions = interactionsByTarget.get(target.id) ?? [];
+    const latestStageChange = latestStageChangeByTarget.get(target.id);
+
+    const openActions = actions.filter((a) =>
+      ["Open", "In Progress", "Blocked"].includes(a.status),
+    );
+    const overdueActions = openActions.filter(
+      (a) => a.dueDate && new Date(a.dueDate) < today,
+    );
+
+    // Most recent interaction date (interactions already fetched unsorted)
+    const sortedInteractions = [...interactions].sort(
+      (a, b) =>
+        new Date(b.interactionDatetime).getTime() -
+        new Date(a.interactionDatetime).getTime(),
+    );
+    const lastInteractionDate =
+      sortedInteractions.length > 0
+        ? toIso(sortedInteractions[0].interactionDatetime)
+        : null;
+
+    const flags: string[] = [];
+
+    // Flag: overdue action
+    if (overdueActions.length > 0) flags.push("overdue_action");
+
+    // Flag: no recent interaction
+    // Guardrail #2: only flag if (no interaction AND created > 30d ago) OR (latest interaction > 30d ago)
+    const targetCreatedAt = target.createdAt ? new Date(target.createdAt) : null;
+    if (interactions.length === 0) {
+      if (targetCreatedAt && targetCreatedAt < thirtyDaysAgo) {
+        flags.push("no_recent_interaction");
+      }
+    } else {
+      const latestInteractionDate = new Date(sortedInteractions[0].interactionDatetime);
+      if (latestInteractionDate < thirtyDaysAgo) flags.push("no_recent_interaction");
+    }
+
+    // Flag: Must-Win with no open action
+    if (target.priorityTier === "Must-Win" && openActions.length === 0) {
+      flags.push("must_win_no_action");
+    }
+
+    // Flag: stale stage (45+ days)
+    // Guardrail #3: use stage_change_log first, fallback to milestone.stageEnteredAt, skip if neither
+    if (latestStageChange) {
+      if (new Date(latestStageChange.changedAt) < fortyFiveDaysAgo) {
+        flags.push("stale_stage");
+      }
+    } else if (milestone?.stageEnteredAt) {
+      if (new Date(milestone.stageEnteredAt) < fortyFiveDaysAgo) {
+        flags.push("stale_stage");
+      }
+    }
+    // If neither exists, stale_stage flag is skipped per guardrail
+
+    return {
+      ...formatTarget(target, milestone),
+      openActionCount: openActions.length,
+      overdueActionCount: overdueActions.length,
+      lastInteractionDate,
+      needsAttention: flags.length > 0,
+      flags,
+    };
+  });
+}
+
 // GET /api/targets
 router.get("/", async (req, res) => {
   const parsed = ListTargetsQueryParams.safeParse(req.query);
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.flatten() });
   }
-  const { sector, priorityTier, stage, search, isActive } = parsed.data;
+  const { sector, priorityTier, stage, search, isActive, owner, country, needsAttention } =
+    parsed.data;
 
   const conditions = [];
   if (isActive !== undefined) conditions.push(eq(targetsTable.isActive, isActive));
@@ -121,6 +238,8 @@ router.get("/", async (req, res) => {
   if (sector) conditions.push(eq(targetsTable.sector, sector));
   if (priorityTier) conditions.push(eq(targetsTable.priorityTier, priorityTier));
   if (stage) conditions.push(eq(milestonesTable.currentStage, stage));
+  if (owner) conditions.push(eq(targetsTable.dealOwner, owner));
+  if (country) conditions.push(eq(targetsTable.country, country));
   if (search) {
     conditions.push(
       or(
@@ -140,7 +259,14 @@ router.get("/", async (req, res) => {
     .where(and(...conditions))
     .orderBy(desc(targetsTable.updatedAt));
 
-  return res.json(rows.map((row) => formatTarget(row.target, row.milestone)));
+  let enriched = await enrichTargetRows(rows);
+
+  // Apply needs-attention post-filter (enrichment required first)
+  if (needsAttention) {
+    enriched = enriched.filter((t) => t.needsAttention);
+  }
+
+  return res.json(enriched);
 });
 
 // POST /api/targets
@@ -211,14 +337,30 @@ router.get("/summary", async (_req, res) => {
     return row.target.isActive && !TERMINAL_STAGES.has(stage);
   });
 
-  const allActions = await db.select().from(actionItemsTable);
-  const openActions = allActions.filter((a) =>
-    ["Open", "In Progress", "Blocked"].includes(a.status),
-  );
+  // Batch enrichment for needs-attention count
+  const enriched = await enrichTargetRows(active);
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const sevenDaysAgo = new Date(today);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  // recentlyUpdatedCount: targets updated in last 7 days
+  // target.updatedAt is reliably set on all mutations (per guardrail #1)
+  const recentlyUpdatedCount = active.filter((row) => {
+    const updatedAt = row.target.updatedAt ? new Date(row.target.updatedAt) : null;
+    return updatedAt && updatedAt >= sevenDaysAgo;
+  }).length;
+
+  // Reuse action data already fetched by enrichment (avoid double-fetch via summary path)
+  const allActionsForSummary = await db.select().from(actionItemsTable);
+  const openActions = allActionsForSummary.filter((a) =>
+    ["Open", "In Progress", "Blocked"].includes(a.status),
+  );
+  const todayForOverdue = new Date();
+  todayForOverdue.setHours(0, 0, 0, 0);
   const overdue = openActions.filter(
-    (a) => a.dueDate && new Date(a.dueDate) < today,
+    (a) => a.dueDate && new Date(a.dueDate) < todayForOverdue,
   );
 
   const avgScore =
@@ -232,13 +374,15 @@ router.get("/summary", async (_req, res) => {
     priority1Count: active.filter((row) => row.target.priorityTier === "Priority 1").length,
     openActionsCount: openActions.length,
     overdueActionsCount: overdue.length,
-    closedDealsCount: rows.filter((row) => currentStage(row.milestone) === "Closed").length,
-    droppedDealsCount: rows.filter((row) => currentStage(row.milestone) === "Dropped" || !row.target.isActive).length,
+    closedDealsCount: rows.filter((row) => TERMINAL_STAGES.has(currentStage(row.milestone)) && row.target.isActive).length,
+    droppedDealsCount: rows.filter((row) => !row.target.isActive).length,
     avgPriorityScore: Math.round(avgScore),
+    needsAttentionCount: enriched.filter((t) => t.needsAttention).length,
+    recentlyUpdatedCount,
   });
 });
 
-// GET /api/targets/by-stage
+// GET /api/targets/by-stage -- must come before /:id
 router.get("/by-stage", async (_req, res) => {
   const rows = await db
     .select({ target: targetsTable, milestone: milestonesTable })
@@ -249,7 +393,9 @@ router.get("/by-stage", async (_req, res) => {
   const counts: Record<string, number> = {};
   for (const row of rows) {
     const stage = currentStage(row.milestone);
-    counts[stage] = (counts[stage] ?? 0) + 1;
+    if (!TERMINAL_STAGES.has(stage)) {
+      counts[stage] = (counts[stage] ?? 0) + 1;
+    }
   }
 
   const STAGE_ORDER = [
@@ -264,9 +410,7 @@ router.get("/by-stage", async (_req, res) => {
     "Binding Offer",
     "SPA Negotiation",
     "Integration Planning",
-    "Closed",
     "On Hold",
-    "Dropped",
   ];
 
   const result = STAGE_ORDER.filter((s) => counts[s]).map((s) => ({
@@ -274,10 +418,17 @@ router.get("/by-stage", async (_req, res) => {
     count: counts[s],
   }));
 
+  // Append any stages present in data that aren't in STAGE_ORDER (future-proof)
+  for (const [stage, count] of Object.entries(counts)) {
+    if (!STAGE_ORDER.includes(stage)) {
+      result.push({ stage, count });
+    }
+  }
+
   return res.json(result);
 });
 
-// GET /api/targets/top-priority
+// GET /api/targets/top-priority -- must come before /:id
 router.get("/top-priority", async (req, res) => {
   const limit = Math.min(parseInt(String(req.query.limit ?? "5"), 10), 20);
   const rows = await db
@@ -287,12 +438,53 @@ router.get("/top-priority", async (req, res) => {
     .where(eq(targetsTable.isActive, true));
 
   const ranked = rows
-    .map((row) => ({ target: row.target, milestone: row.milestone, priorityScore: calcPriorityScore(row.target) }))
+    .filter((row) => !TERMINAL_STAGES.has(currentStage(row.milestone)))
+    .map((row) => ({
+      target: row.target,
+      milestone: row.milestone,
+      priorityScore: calcPriorityScore(row.target),
+    }))
     .sort((a, b) => b.priorityScore - a.priorityScore)
     .slice(0, limit)
     .map((row) => formatTarget(row.target, row.milestone));
 
   return res.json(ranked);
+});
+
+// GET /api/targets/filter-options -- must come before /:id
+// Returns distinct non-null owners and countries from all active targets
+// for populating filter dropdowns (guardrail #5: unfiltered, stable options)
+router.get("/filter-options", async (_req, res) => {
+  const rows = await db
+    .select({ dealOwner: targetsTable.dealOwner, country: targetsTable.country })
+    .from(targetsTable)
+    .where(eq(targetsTable.isActive, true));
+
+  const owners = [
+    ...new Set(rows.map((r) => r.dealOwner).filter((v): v is string => v !== null)),
+  ].sort();
+  const countries = [
+    ...new Set(rows.map((r) => r.country).filter((v): v is string => v !== null)),
+  ].sort();
+
+  return res.json({ owners, countries });
+});
+
+// GET /api/targets/needs-attention -- must come before /:id
+router.get("/needs-attention", async (_req, res) => {
+  const rows = await db
+    .select({ target: targetsTable, milestone: milestonesTable })
+    .from(targetsTable)
+    .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id))
+    .where(eq(targetsTable.isActive, true));
+
+  // Only flag active, non-terminal opportunities
+  const activeRows = rows.filter(
+    (row) => !TERMINAL_STAGES.has(currentStage(row.milestone)),
+  );
+
+  const enriched = await enrichTargetRows(activeRows);
+  return res.json(enriched.filter((t) => t.needsAttention));
 });
 
 // GET /api/targets/:id
@@ -360,7 +552,8 @@ router.put("/:id", async (req, res) => {
   if (d.strategicRationale !== undefined) updates.strategicRationale = d.strategicRationale;
   if (d.strategicFitScore !== undefined) updates.strategicFitScore = d.strategicFitScore;
   if (d.synergyScore !== undefined) updates.synergyScore = d.synergyScore;
-  if (d.financialAttractivenessScore !== undefined) updates.financialAttractivenessScore = d.financialAttractivenessScore;
+  if (d.financialAttractivenessScore !== undefined)
+    updates.financialAttractivenessScore = d.financialAttractivenessScore;
   if (d.processMaturityScore !== undefined) updates.processMaturityScore = d.processMaturityScore;
   if (d.riskPenaltyScore !== undefined) updates.riskPenaltyScore = d.riskPenaltyScore;
   if (d.isActive !== undefined) updates.isActive = d.isActive;

@@ -22,10 +22,12 @@ import type {
   CreateInteractionBody,
   CreateTargetBody,
   DashboardSummary,
+  FilterOptions,
   GetTopPriorityTargetsParams,
   HealthStatus,
   Interaction,
   ListTargetsParams,
+  NeedsAttentionTarget,
   StageChange,
   StageCount,
   Target,
@@ -542,6 +544,161 @@ export function useGetTopPriorityTargets<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetTopPriorityTargetsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Distinct owners and countries for filter dropdowns
+ */
+export const getGetTargetFilterOptionsUrl = () => {
+  return `/api/targets/filter-options`;
+};
+
+export const getTargetFilterOptions = async (
+  options?: RequestInit,
+): Promise<FilterOptions> => {
+  return customFetch<FilterOptions>(getGetTargetFilterOptionsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTargetFilterOptionsQueryKey = () => {
+  return [`/api/targets/filter-options`] as const;
+};
+
+export const getGetTargetFilterOptionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTargetFilterOptions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getTargetFilterOptions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetTargetFilterOptionsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getTargetFilterOptions>>
+  > = ({ signal }) => getTargetFilterOptions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTargetFilterOptions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTargetFilterOptionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTargetFilterOptions>>
+>;
+export type GetTargetFilterOptionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Distinct owners and countries for filter dropdowns
+ */
+
+export function useGetTargetFilterOptions<
+  TData = Awaited<ReturnType<typeof getTargetFilterOptions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getTargetFilterOptions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTargetFilterOptionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Active targets flagged as needing attention
+ */
+export const getGetTargetsNeedingAttentionUrl = () => {
+  return `/api/targets/needs-attention`;
+};
+
+export const getTargetsNeedingAttention = async (
+  options?: RequestInit,
+): Promise<NeedsAttentionTarget[]> => {
+  return customFetch<NeedsAttentionTarget[]>(
+    getGetTargetsNeedingAttentionUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetTargetsNeedingAttentionQueryKey = () => {
+  return [`/api/targets/needs-attention`] as const;
+};
+
+export const getGetTargetsNeedingAttentionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTargetsNeedingAttention>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getTargetsNeedingAttention>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetTargetsNeedingAttentionQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getTargetsNeedingAttention>>
+  > = ({ signal }) => getTargetsNeedingAttention({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTargetsNeedingAttention>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTargetsNeedingAttentionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTargetsNeedingAttention>>
+>;
+export type GetTargetsNeedingAttentionQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Active targets flagged as needing attention
+ */
+
+export function useGetTargetsNeedingAttention<
+  TData = Awaited<ReturnType<typeof getTargetsNeedingAttention>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getTargetsNeedingAttention>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTargetsNeedingAttentionQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
