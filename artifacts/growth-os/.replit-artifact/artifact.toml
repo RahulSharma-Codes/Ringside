@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Inorganic Growth OS"
+version = "1.0.0"
+id = "artifacts/growth-os"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18539
+
+[services.development]
+run = "pnpm --filter @workspace/growth-os run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/growth-os", "run", "build" ]
+publicDir = "artifacts/growth-os/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18539"
+BASE_PATH = "/"
