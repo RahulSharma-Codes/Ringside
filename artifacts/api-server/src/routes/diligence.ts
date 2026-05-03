@@ -95,9 +95,10 @@ router.get("/review", async (_req, res) => {
     };
   });
 
-  // Must-Win targets with any incomplete diligence (including those with zero items)
+  // Must-Win targets with any incomplete diligence, including those with zero items
+  // (total === 0 means no diligence coverage yet — always incomplete)
   const mustWinIncomplete = targetSummaries
-    .filter((s) => s.priorityTier === "Must-Win" && s.completed < s.total)
+    .filter((s) => s.priorityTier === "Must-Win" && (s.total === 0 || s.completed < s.total))
     .sort((a, b) => a.pct - b.pct);
 
   const formatReviewItem = (i: (typeof allItems)[number]) => ({
