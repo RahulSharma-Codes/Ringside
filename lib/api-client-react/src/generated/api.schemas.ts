@@ -150,6 +150,17 @@ export interface CreateInteractionBody {
   interactionDatetime?: string | null;
 }
 
+export interface UpdateInteractionBody {
+  interactionType?: string | null;
+  summary?: string | null;
+  participantsInternal?: string | null;
+  participantsExternal?: string | null;
+  sentiment?: string | null;
+  promoterWillingness?: string | null;
+  valuationSignal?: string | null;
+  interactionDatetime?: string | null;
+}
+
 export interface CreateActionBody {
   description: string;
   owner?: string | null;

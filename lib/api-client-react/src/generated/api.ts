@@ -31,6 +31,7 @@ import type {
   Target,
   TargetDetail,
   UpdateActionBody,
+  UpdateInteractionBody,
   UpdateStageBody,
   UpdateTargetBody,
 } from "./api.schemas";
@@ -1151,6 +1152,93 @@ export const useCreateInteraction = <
   TContext
 > => {
   return useMutation(getCreateInteractionMutationOptions(options));
+};
+
+/**
+ * @summary Update an existing interaction
+ */
+export const getUpdateInteractionUrl = (id: number) => {
+  return `/api/interactions/${id}`;
+};
+
+export const updateInteraction = async (
+  id: number,
+  updateInteractionBody: UpdateInteractionBody,
+  options?: RequestInit,
+): Promise<Interaction> => {
+  return customFetch<Interaction>(getUpdateInteractionUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateInteractionBody),
+  });
+};
+
+export const getUpdateInteractionMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateInteraction>>,
+    TError,
+    { id: number; data: BodyType<UpdateInteractionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateInteraction>>,
+  TError,
+  { id: number; data: BodyType<UpdateInteractionBody> },
+  TContext
+> => {
+  const mutationKey = ["updateInteraction"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateInteraction>>,
+    { id: number; data: BodyType<UpdateInteractionBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateInteraction(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateInteractionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateInteraction>>
+>;
+export type UpdateInteractionMutationBody = BodyType<UpdateInteractionBody>;
+export type UpdateInteractionMutationError = ErrorType<void>;
+
+/**
+ * @summary Update an existing interaction
+ */
+export const useUpdateInteraction = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateInteraction>>,
+    TError,
+    { id: number; data: BodyType<UpdateInteractionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateInteraction>>,
+  TError,
+  { id: number; data: BodyType<UpdateInteractionBody> },
+  TContext
+> => {
+  return useMutation(getUpdateInteractionMutationOptions(options));
 };
 
 /**

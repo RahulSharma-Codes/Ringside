@@ -422,6 +422,39 @@ export const CreateInteractionBody = zod.object({
 });
 
 /**
+ * @summary Update an existing interaction
+ */
+export const UpdateInteractionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateInteractionBody = zod.object({
+  interactionType: zod.string().nullish(),
+  summary: zod.string().nullish(),
+  participantsInternal: zod.string().nullish(),
+  participantsExternal: zod.string().nullish(),
+  sentiment: zod.string().nullish(),
+  promoterWillingness: zod.string().nullish(),
+  valuationSignal: zod.string().nullish(),
+  interactionDatetime: zod.coerce.date().nullish(),
+});
+
+export const UpdateInteractionResponse = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  interactionType: zod.string(),
+  interactionDatetime: zod.coerce.date(),
+  participantsInternal: zod.string().nullish(),
+  participantsExternal: zod.string().nullish(),
+  summary: zod.string(),
+  sentiment: zod.string().nullish(),
+  promoterWillingness: zod.string().nullish(),
+  valuationSignal: zod.string().nullish(),
+  createdBy: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
  * @summary List action items for a target
  */
 export const ListActionsParams = zod.object({
