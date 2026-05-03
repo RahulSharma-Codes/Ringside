@@ -24,14 +24,14 @@ router.put("/:id", async (req, res) => {
 
   const d = parsed.data;
   const updates: Partial<typeof interactionsTable.$inferInsert> = {};
-  if (d.interactionType !== undefined) updates.interactionType = d.interactionType as string;
-  if (d.summary !== undefined) updates.summary = d.summary as string;
-  if (d.participantsInternal !== undefined) updates.participantsInternal = d.participantsInternal;
-  if (d.participantsExternal !== undefined) updates.participantsExternal = d.participantsExternal;
-  if (d.sentiment !== undefined) updates.sentiment = d.sentiment;
-  if (d.promoterWillingness !== undefined) updates.promoterWillingness = d.promoterWillingness;
-  if (d.valuationSignal !== undefined) updates.valuationSignal = d.valuationSignal;
-  if (d.interactionDatetime !== undefined && d.interactionDatetime !== null) {
+  if (d.interactionType != null) updates.interactionType = d.interactionType;
+  if (d.summary != null) updates.summary = d.summary;
+  if (d.participantsInternal !== undefined) updates.participantsInternal = d.participantsInternal ?? null;
+  if (d.participantsExternal !== undefined) updates.participantsExternal = d.participantsExternal ?? null;
+  if (d.sentiment !== undefined) updates.sentiment = d.sentiment ?? null;
+  if (d.promoterWillingness !== undefined) updates.promoterWillingness = d.promoterWillingness ?? null;
+  if (d.valuationSignal !== undefined) updates.valuationSignal = d.valuationSignal ?? null;
+  if (d.interactionDatetime != null) {
     updates.interactionDatetime = new Date(d.interactionDatetime);
   }
 

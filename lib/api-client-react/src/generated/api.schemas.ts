@@ -151,8 +151,8 @@ export interface CreateInteractionBody {
 }
 
 export interface UpdateInteractionBody {
-  interactionType?: string | null;
-  summary?: string | null;
+  interactionType?: string;
+  summary?: string;
   participantsInternal?: string | null;
   participantsExternal?: string | null;
   sentiment?: string | null;

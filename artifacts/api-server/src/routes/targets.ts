@@ -539,7 +539,7 @@ router.post("/:id/actions", async (req, res) => {
       interactionId: d.interactionId ?? null,
       description: d.description,
       owner: d.owner ?? null,
-      dueDate: d.dueDate ?? null,
+      dueDate: d.dueDate ? d.dueDate.toISOString().split("T")[0] : null,
       priority: d.priority ?? "Medium",
       status: "Open",
       createdAt: now,

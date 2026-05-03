@@ -754,10 +754,8 @@ components:
       properties:
         interactionType:
           type: string
-          nullable: true
         summary:
           type: string
-          nullable: true
         participantsInternal:
           type: string
           nullable: true

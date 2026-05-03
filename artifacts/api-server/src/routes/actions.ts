@@ -60,7 +60,7 @@ router.put("/:id", async (req, res) => {
   const updates: Partial<typeof actionItemsTable.$inferInsert> = {};
   if (d.description !== undefined) updates.description = d.description;
   if (d.owner !== undefined) updates.owner = d.owner;
-  if (d.dueDate !== undefined) updates.dueDate = d.dueDate;
+  if (d.dueDate !== undefined) updates.dueDate = d.dueDate ? d.dueDate.toISOString().split("T")[0] : null;
   if (d.priority !== undefined) updates.priority = d.priority;
   if (d.status !== undefined) {
     updates.status = d.status;

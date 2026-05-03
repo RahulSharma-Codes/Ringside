@@ -429,8 +429,8 @@ export const UpdateInteractionParams = zod.object({
 });
 
 export const UpdateInteractionBody = zod.object({
-  interactionType: zod.string().nullish(),
-  summary: zod.string().nullish(),
+  interactionType: zod.string().optional(),
+  summary: zod.string().optional(),
   participantsInternal: zod.string().nullish(),
   participantsExternal: zod.string().nullish(),
   sentiment: zod.string().nullish(),
