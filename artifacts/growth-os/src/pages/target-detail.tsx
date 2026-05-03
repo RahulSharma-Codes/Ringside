@@ -1122,14 +1122,6 @@ function ActionRow({ action, onEdit, onToggle, isPending }: ActionRowProps) {
 
   return (
     <div className="flex items-start gap-3 p-3 border border-border rounded-sm bg-card/20 group hover:bg-card/40 transition-colors">
-      <button
-        className={`mt-0.5 shrink-0 transition-colors rounded-full ${isCompleted ? "text-emerald-500 hover:text-muted-foreground/60" : "text-muted-foreground/30 hover:text-emerald-500"}`}
-        onClick={onToggle}
-        disabled={isPending}
-        title={isCompleted ? "Reopen" : "Mark complete"}
-      >
-        {isCompleted ? <CheckCircle2 size={18} /> : <RotateCcw size={18} />}
-      </button>
       <div className="flex-1 min-w-0">
         <div className={`text-sm font-medium leading-snug ${isCompleted ? "line-through text-muted-foreground" : ""}`}>
           <LinkifiedText text={action.description} />
@@ -1152,9 +1144,37 @@ function ActionRow({ action, onEdit, onToggle, isPending }: ActionRowProps) {
           )}
         </div>
       </div>
-      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5" onClick={onEdit}>
-        <Pencil size={12} />
-      </Button>
+      <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={onEdit}
+          title="Edit"
+        >
+          <Pencil size={12} />
+        </Button>
+        {isCompleted ? (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-[10px] font-mono uppercase rounded-sm border-border text-muted-foreground"
+            onClick={onToggle}
+            disabled={isPending}
+          >
+            <RotateCcw size={11} className="mr-1" /> Reopen
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            className="h-7 text-[10px] font-mono uppercase rounded-sm bg-emerald-600 hover:bg-emerald-700 text-white"
+            onClick={onToggle}
+            disabled={isPending}
+          >
+            <CheckCircle2 size={11} className="mr-1" /> Complete
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
