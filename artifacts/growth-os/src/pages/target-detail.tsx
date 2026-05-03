@@ -236,10 +236,10 @@ export default function TargetDetail() {
         data: {
           interactionType: interType,
           summary: interSummary,
-          participantsInternal: interParticipantsInternal || undefined,
-          participantsExternal: interParticipantsExternal || undefined,
-          sentiment: interSentiment === "__none__" ? undefined : interSentiment || undefined,
-          valuationSignal: interValuationSignal || undefined,
+          participantsInternal: interParticipantsInternal || null,
+          participantsExternal: interParticipantsExternal || null,
+          sentiment: interSentiment === "__none__" ? null : interSentiment || null,
+          valuationSignal: interValuationSignal || null,
         },
       },
       {
@@ -273,10 +273,10 @@ export default function TargetDetail() {
         data: {
           interactionType: editInterData.interactionType || undefined,
           summary: editInterData.summary || undefined,
-          participantsInternal: editInterData.participantsInternal || undefined,
-          participantsExternal: editInterData.participantsExternal || undefined,
-          sentiment: editInterData.sentiment === "__none__" ? undefined : editInterData.sentiment || undefined,
-          valuationSignal: editInterData.valuationSignal || undefined,
+          participantsInternal: editInterData.participantsInternal || null,
+          participantsExternal: editInterData.participantsExternal || null,
+          sentiment: editInterData.sentiment === "__none__" ? null : editInterData.sentiment || null,
+          valuationSignal: editInterData.valuationSignal || null,
         },
       },
       {
@@ -329,8 +329,8 @@ export default function TargetDetail() {
         id: editActionData.id,
         data: {
           description: editActionData.description || undefined,
-          owner: editActionData.owner || undefined,
-          dueDate: editActionData.dueDate || undefined,
+          owner: editActionData.owner || null,
+          dueDate: editActionData.dueDate || null,
           priority: editActionData.priority || undefined,
           status: editActionData.status || undefined,
         },
@@ -601,7 +601,7 @@ export default function TargetDetail() {
                               <Badge variant="outline" className={`font-mono text-[10px] uppercase rounded-sm ${
                                 inter.sentiment === "Positive" ? "text-emerald-500 border-emerald-500/30" :
                                 inter.sentiment === "Negative" ? "text-destructive border-destructive/30" :
-                                inter.sentiment === "Cautious" ? "text-amber-500 border-amber-500/30" :
+                                inter.sentiment === "Neutral" ? "text-amber-500 border-amber-500/30" :
                                 "text-muted-foreground"
                               }`}>
                                 {inter.sentiment}
