@@ -232,12 +232,21 @@ export interface ImportRow {
   riskPenaltyScore?: number | null;
 }
 
+/**
+ * Current DB values for each changed field (present on update rows only)
+ */
+export type ImportRowClassifiedExistingValues = {
+  [key: string]: string;
+} | null;
+
 export interface ImportRowClassified {
   rowIndex: number;
   data: ImportRow;
   existingId?: number | null;
   changedFields?: string[] | null;
   newStage?: string | null;
+  /** Current DB values for each changed field (present on update rows only) */
+  existingValues?: ImportRowClassifiedExistingValues;
 }
 
 export interface ImportRowSkipped {

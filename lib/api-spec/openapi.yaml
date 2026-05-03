@@ -1105,6 +1105,12 @@ components:
         newStage:
           type: string
           nullable: true
+        existingValues:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+          description: Current DB values for each changed field (present on update rows only)
       required: [rowIndex, data]
 
     ImportRowSkipped:

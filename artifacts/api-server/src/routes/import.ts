@@ -329,6 +329,18 @@ router.post("/apply", async (req, res) => {
         continue;
       }
 
+      // Server-side revalidation: reject invalid tier/stage from client payload
+      if (data.priorityTier && !VALID_TIERS.has(data.priorityTier)) {
+        errors.push({ rowIndex, message: `Invalid priorityTier: "${data.priorityTier}"` });
+        skipped++;
+        continue;
+      }
+      if (data.stage && !VALID_STAGES.has(data.stage)) {
+        errors.push({ rowIndex, message: `Invalid stage: "${data.stage}"` });
+        skipped++;
+        continue;
+      }
+
       const now = new Date();
       const initialStage = data.stage && VALID_STAGES.has(data.stage) ? data.stage : "Sourcing";
 
@@ -387,6 +399,24 @@ router.post("/apply", async (req, res) => {
   // ── Updates ───────────────────────────────────────────────────────────────
   for (const { rowIndex, existingId, data, changedFields, newStage } of toUpdate) {
     try {
+      // Server-side revalidation: existingId must be a positive integer
+      if (!existingId || typeof existingId !== "number" || existingId < 1) {
+        errors.push({ rowIndex, message: "existingId must be a valid target ID" });
+        skipped++;
+        continue;
+      }
+      // Reject crafted invalid tier/stage values
+      if (data.priorityTier && !VALID_TIERS.has(data.priorityTier)) {
+        errors.push({ rowIndex, message: `Invalid priorityTier: "${data.priorityTier}"` });
+        skipped++;
+        continue;
+      }
+      if (newStage && !VALID_STAGES.has(newStage)) {
+        errors.push({ rowIndex, message: `Invalid stage: "${newStage}"` });
+        skipped++;
+        continue;
+      }
+
       const now = new Date();
 
       // Build patch for non-stage fields — never include score fields

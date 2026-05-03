@@ -676,6 +676,12 @@ export const ValidateImportResponse = zod.object({
       existingId: zod.number().nullish(),
       changedFields: zod.array(zod.string()).nullish(),
       newStage: zod.string().nullish(),
+      existingValues: zod
+        .record(zod.string(), zod.string())
+        .nullish()
+        .describe(
+          "Current DB values for each changed field (present on update rows only)",
+        ),
     }),
   ),
   toUpdate: zod.array(
@@ -707,6 +713,12 @@ export const ValidateImportResponse = zod.object({
       existingId: zod.number().nullish(),
       changedFields: zod.array(zod.string()).nullish(),
       newStage: zod.string().nullish(),
+      existingValues: zod
+        .record(zod.string(), zod.string())
+        .nullish()
+        .describe(
+          "Current DB values for each changed field (present on update rows only)",
+        ),
     }),
   ),
   toSkip: zod.array(
