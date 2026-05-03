@@ -788,10 +788,10 @@ export default function TargetDetail() {
           <MessageSquare size={13} className="mr-1" /> Log
         </Button>
         <Button variant="outline" size="sm" className="flex-1 rounded-sm font-mono text-[10px] uppercase border-border" onClick={() => setActionOpen(true)}>
-          <Plus size={13} className="mr-1" /> Action
+          <Plus size={13} className="mr-1" /> Add Action
         </Button>
         <Button size="sm" className="flex-1 rounded-sm font-mono text-[10px] uppercase" onClick={() => setStageOpen(true)}>
-          <TargetIcon size={13} className="mr-1" /> Stage
+          <TargetIcon size={13} className="mr-1" /> Change Stage
         </Button>
       </div>
 
