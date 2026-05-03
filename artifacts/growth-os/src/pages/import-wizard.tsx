@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Upload, FileText, CheckCircle, AlertTriangle, XCircle,
-  ChevronRight, ChevronLeft, RotateCcw, Info, ChevronDown, ChevronUp,
+  ChevronRight, ChevronLeft, RotateCcw, Info, ChevronDown, ChevronUp, Download,
 } from "lucide-react";
 import { getListTargetsQueryKey, getGetDashboardSummaryQueryKey, customFetch } from "@workspace/api-client-react";
 
@@ -273,6 +273,48 @@ function RawFilePreview({ rows, headers }: { rows: ParsedRow[]; headers: string[
   );
 }
 
+// ─── Template CSV download ───────────────────────────────────────────────────
+
+// "notes" is a legacy alias for strategicRationale — excluded from template
+// since the canonical "Strategic Rationale" header is already present.
+const TEMPLATE_FIELDS = DB_FIELDS.filter(
+  (f) => f.value !== "__skip__" && f.value !== "notes"
+);
+
+const TEMPLATE_SAMPLE: Record<string, string> = {
+  targetCode: "TGT-001",
+  projectName: "Acme Corp",
+  legalName: "Acme Corporation Ltd.",
+  businessUnit: "Corporate Development",
+  sector: "Technology",
+  subsector: "Software",
+  geographyRegion: "North America",
+  country: "United States",
+  sourcingChannel: "Direct Outreach",
+  sourcingFirm: "",
+  dealOwner: "Jane Smith",
+  dealChampion: "John Doe",
+  executiveSponsor: "CEO",
+  priorityTier: "Tier 1",
+  stage: "Initial Outreach",
+  strategicRationale: "Strong product-market fit in adjacent vertical",
+};
+
+function downloadTemplate() {
+  const headers = TEMPLATE_FIELDS.map((f) => f.label);
+  const sampleRow = TEMPLATE_FIELDS.map((f) => TEMPLATE_SAMPLE[f.value] ?? "");
+  const csvContent = [headers, sampleRow]
+    .map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(","))
+    .join("\r\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "import-template.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 // ─── Main wizard ─────────────────────────────────────────────────────────────
 
 export default function ImportWizard() {
@@ -482,9 +524,20 @@ export default function ImportWizard() {
 
                 {/* Format guide */}
                 <div className="bg-muted/30 rounded-sm p-4 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Info size={12} className="text-muted-foreground" />
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Format Guide</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Info size={12} className="text-muted-foreground" />
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Format Guide</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-sm font-mono text-[10px] uppercase gap-1.5 h-6 border-border text-muted-foreground hover:text-foreground"
+                      onClick={downloadTemplate}
+                    >
+                      <Download size={11} />
+                      Download Template
+                    </Button>
                   </div>
                   <ul className="space-y-1 text-xs font-mono text-muted-foreground list-disc list-inside">
                     <li>First row must be column headers</li>
