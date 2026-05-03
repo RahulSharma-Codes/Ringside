@@ -25,6 +25,10 @@ import type {
   FilterOptions,
   GetTopPriorityTargetsParams,
   HealthStatus,
+  ImportApplyRequest,
+  ImportApplyResult,
+  ImportValidateRequest,
+  ImportValidateResult,
   Interaction,
   ListTargetsParams,
   NeedsAttentionTarget,
@@ -1901,3 +1905,175 @@ export function useListOpenActions<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Validate parsed CSV/Excel rows before applying
+ */
+export const getValidateImportUrl = () => {
+  return `/api/import/validate`;
+};
+
+export const validateImport = async (
+  importValidateRequest: ImportValidateRequest,
+  options?: RequestInit,
+): Promise<ImportValidateResult> => {
+  return customFetch<ImportValidateResult>(getValidateImportUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(importValidateRequest),
+  });
+};
+
+export const getValidateImportMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof validateImport>>,
+    TError,
+    { data: BodyType<ImportValidateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof validateImport>>,
+  TError,
+  { data: BodyType<ImportValidateRequest> },
+  TContext
+> => {
+  const mutationKey = ["validateImport"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof validateImport>>,
+    { data: BodyType<ImportValidateRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return validateImport(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ValidateImportMutationResult = NonNullable<
+  Awaited<ReturnType<typeof validateImport>>
+>;
+export type ValidateImportMutationBody = BodyType<ImportValidateRequest>;
+export type ValidateImportMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Validate parsed CSV/Excel rows before applying
+ */
+export const useValidateImport = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof validateImport>>,
+    TError,
+    { data: BodyType<ImportValidateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof validateImport>>,
+  TError,
+  { data: BodyType<ImportValidateRequest> },
+  TContext
+> => {
+  return useMutation(getValidateImportMutationOptions(options));
+};
+
+/**
+ * @summary Apply a validated import (create + update targets)
+ */
+export const getApplyImportUrl = () => {
+  return `/api/import/apply`;
+};
+
+export const applyImport = async (
+  importApplyRequest: ImportApplyRequest,
+  options?: RequestInit,
+): Promise<ImportApplyResult> => {
+  return customFetch<ImportApplyResult>(getApplyImportUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(importApplyRequest),
+  });
+};
+
+export const getApplyImportMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof applyImport>>,
+    TError,
+    { data: BodyType<ImportApplyRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof applyImport>>,
+  TError,
+  { data: BodyType<ImportApplyRequest> },
+  TContext
+> => {
+  const mutationKey = ["applyImport"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof applyImport>>,
+    { data: BodyType<ImportApplyRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return applyImport(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApplyImportMutationResult = NonNullable<
+  Awaited<ReturnType<typeof applyImport>>
+>;
+export type ApplyImportMutationBody = BodyType<ImportApplyRequest>;
+export type ApplyImportMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Apply a validated import (create + update targets)
+ */
+export const useApplyImport = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof applyImport>>,
+    TError,
+    { data: BodyType<ImportApplyRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof applyImport>>,
+  TError,
+  { data: BodyType<ImportApplyRequest> },
+  TContext
+> => {
+  return useMutation(getApplyImportMutationOptions(options));
+};

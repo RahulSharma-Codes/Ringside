@@ -632,3 +632,167 @@ export const ListOpenActionsResponseItem = zod.object({
   completedAt: zod.coerce.date().nullish(),
 });
 export const ListOpenActionsResponse = zod.array(ListOpenActionsResponseItem);
+
+/**
+ * @summary Validate parsed CSV/Excel rows before applying
+ */
+export const ValidateImportBody = zod.object({
+  rows: zod.array(
+    zod.object({
+      rowIndex: zod.number(),
+      data: zod.record(zod.string(), zod.unknown()),
+    }),
+  ),
+  columnMap: zod.record(zod.string(), zod.string()),
+});
+
+export const ValidateImportResponse = zod.object({
+  toCreate: zod.array(
+    zod.object({
+      rowIndex: zod.number(),
+      data: zod.object({
+        targetCode: zod.string().optional(),
+        projectName: zod.string().optional(),
+        legalName: zod.string().nullish(),
+        businessUnit: zod.string().nullish(),
+        sector: zod.string().nullish(),
+        subsector: zod.string().nullish(),
+        geographyRegion: zod.string().nullish(),
+        country: zod.string().nullish(),
+        sourcingChannel: zod.string().nullish(),
+        sourcingFirm: zod.string().nullish(),
+        dealOwner: zod.string().nullish(),
+        dealChampion: zod.string().nullish(),
+        executiveSponsor: zod.string().nullish(),
+        priorityTier: zod.string().nullish(),
+        stage: zod.string().nullish(),
+        strategicRationale: zod.string().nullish(),
+        strategicFitScore: zod.number().nullish(),
+        synergyScore: zod.number().nullish(),
+        financialAttractivenessScore: zod.number().nullish(),
+        processMaturityScore: zod.number().nullish(),
+        riskPenaltyScore: zod.number().nullish(),
+      }),
+      existingId: zod.number().nullish(),
+      changedFields: zod.array(zod.string()).nullish(),
+      newStage: zod.string().nullish(),
+    }),
+  ),
+  toUpdate: zod.array(
+    zod.object({
+      rowIndex: zod.number(),
+      data: zod.object({
+        targetCode: zod.string().optional(),
+        projectName: zod.string().optional(),
+        legalName: zod.string().nullish(),
+        businessUnit: zod.string().nullish(),
+        sector: zod.string().nullish(),
+        subsector: zod.string().nullish(),
+        geographyRegion: zod.string().nullish(),
+        country: zod.string().nullish(),
+        sourcingChannel: zod.string().nullish(),
+        sourcingFirm: zod.string().nullish(),
+        dealOwner: zod.string().nullish(),
+        dealChampion: zod.string().nullish(),
+        executiveSponsor: zod.string().nullish(),
+        priorityTier: zod.string().nullish(),
+        stage: zod.string().nullish(),
+        strategicRationale: zod.string().nullish(),
+        strategicFitScore: zod.number().nullish(),
+        synergyScore: zod.number().nullish(),
+        financialAttractivenessScore: zod.number().nullish(),
+        processMaturityScore: zod.number().nullish(),
+        riskPenaltyScore: zod.number().nullish(),
+      }),
+      existingId: zod.number().nullish(),
+      changedFields: zod.array(zod.string()).nullish(),
+      newStage: zod.string().nullish(),
+    }),
+  ),
+  toSkip: zod.array(
+    zod.object({
+      rowIndex: zod.number(),
+      targetCode: zod.string().nullish(),
+      reason: zod.string(),
+    }),
+  ),
+  warnings: zod.array(zod.string()),
+});
+
+/**
+ * @summary Apply a validated import (create + update targets)
+ */
+export const ApplyImportBody = zod.object({
+  toCreate: zod.array(
+    zod.object({
+      rowIndex: zod.number(),
+      data: zod.object({
+        targetCode: zod.string().optional(),
+        projectName: zod.string().optional(),
+        legalName: zod.string().nullish(),
+        businessUnit: zod.string().nullish(),
+        sector: zod.string().nullish(),
+        subsector: zod.string().nullish(),
+        geographyRegion: zod.string().nullish(),
+        country: zod.string().nullish(),
+        sourcingChannel: zod.string().nullish(),
+        sourcingFirm: zod.string().nullish(),
+        dealOwner: zod.string().nullish(),
+        dealChampion: zod.string().nullish(),
+        executiveSponsor: zod.string().nullish(),
+        priorityTier: zod.string().nullish(),
+        stage: zod.string().nullish(),
+        strategicRationale: zod.string().nullish(),
+        strategicFitScore: zod.number().nullish(),
+        synergyScore: zod.number().nullish(),
+        financialAttractivenessScore: zod.number().nullish(),
+        processMaturityScore: zod.number().nullish(),
+        riskPenaltyScore: zod.number().nullish(),
+      }),
+    }),
+  ),
+  toUpdate: zod.array(
+    zod.object({
+      rowIndex: zod.number(),
+      existingId: zod.number(),
+      data: zod.object({
+        targetCode: zod.string().optional(),
+        projectName: zod.string().optional(),
+        legalName: zod.string().nullish(),
+        businessUnit: zod.string().nullish(),
+        sector: zod.string().nullish(),
+        subsector: zod.string().nullish(),
+        geographyRegion: zod.string().nullish(),
+        country: zod.string().nullish(),
+        sourcingChannel: zod.string().nullish(),
+        sourcingFirm: zod.string().nullish(),
+        dealOwner: zod.string().nullish(),
+        dealChampion: zod.string().nullish(),
+        executiveSponsor: zod.string().nullish(),
+        priorityTier: zod.string().nullish(),
+        stage: zod.string().nullish(),
+        strategicRationale: zod.string().nullish(),
+        strategicFitScore: zod.number().nullish(),
+        synergyScore: zod.number().nullish(),
+        financialAttractivenessScore: zod.number().nullish(),
+        processMaturityScore: zod.number().nullish(),
+        riskPenaltyScore: zod.number().nullish(),
+      }),
+      changedFields: zod.array(zod.string()),
+      newStage: zod.string().nullish(),
+    }),
+  ),
+  changedBy: zod.string().nullish(),
+});
+
+export const ApplyImportResponse = zod.object({
+  created: zod.number(),
+  updated: zod.number(),
+  skipped: zod.number(),
+  errors: zod.array(
+    zod.object({
+      rowIndex: zod.number(),
+      message: zod.string(),
+    }),
+  ),
+});

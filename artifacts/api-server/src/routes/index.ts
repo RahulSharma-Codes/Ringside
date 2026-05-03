@@ -3,6 +3,7 @@ import healthRouter from "./health";
 import targetsRouter from "./targets";
 import actionsRouter from "./actions";
 import interactionsRouter from "./interactions";
+import importRouter from "./import";
 
 const router: IRouter = Router();
 
@@ -10,5 +11,6 @@ router.use(healthRouter);
 router.use("/targets", targetsRouter);
 router.use("/actions", actionsRouter);
 router.use("/interactions", interactionsRouter);
+router.use("/import", importRouter);
 
 export default router;

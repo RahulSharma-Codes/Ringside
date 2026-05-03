@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   useListTargets, getListTargetsQueryKey,
   useGetTargetFilterOptions, getGetTargetFilterOptionsQueryKey,
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Plus, ChevronRight, AlertTriangle, Calendar, Zap, User, MapPin } from "lucide-react";
+import { Search, Filter, Plus, ChevronRight, AlertTriangle, Calendar, Zap, User, MapPin, Upload } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
 
@@ -33,6 +33,7 @@ function getTierColor(tier: string) {
 }
 
 export default function Pipeline() {
+  const [, navigate] = useLocation();
   const [search, setSearch]         = useState("");
   const [stage, setStage]           = useState("all");
   const [tier, setTier]             = useState("all");
@@ -76,11 +77,21 @@ export default function Pipeline() {
           <h1 className="text-2xl font-bold font-mono tracking-tight uppercase">Pipeline</h1>
           <p className="text-sm text-muted-foreground">Active acquisition targets and evaluations</p>
         </div>
-        <Link href="/targets/new">
-          <Button size="sm" className="rounded-sm font-mono uppercase tracking-wider text-[10px] gap-2">
-            <Plus size={14} /> New Target
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-sm font-mono uppercase tracking-wider text-[10px] gap-2 border-border"
+            onClick={() => navigate("/import")}
+          >
+            <Upload size={13} /> Import
           </Button>
-        </Link>
+          <Link href="/targets/new">
+            <Button size="sm" className="rounded-sm font-mono uppercase tracking-wider text-[10px] gap-2">
+              <Plus size={14} /> New Target
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

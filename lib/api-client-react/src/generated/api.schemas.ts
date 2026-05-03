@@ -208,6 +208,96 @@ export interface FilterOptions {
   countries: string[];
 }
 
+export interface ImportRow {
+  targetCode?: string;
+  projectName?: string;
+  legalName?: string | null;
+  businessUnit?: string | null;
+  sector?: string | null;
+  subsector?: string | null;
+  geographyRegion?: string | null;
+  country?: string | null;
+  sourcingChannel?: string | null;
+  sourcingFirm?: string | null;
+  dealOwner?: string | null;
+  dealChampion?: string | null;
+  executiveSponsor?: string | null;
+  priorityTier?: string | null;
+  stage?: string | null;
+  strategicRationale?: string | null;
+  strategicFitScore?: number | null;
+  synergyScore?: number | null;
+  financialAttractivenessScore?: number | null;
+  processMaturityScore?: number | null;
+  riskPenaltyScore?: number | null;
+}
+
+export interface ImportRowClassified {
+  rowIndex: number;
+  data: ImportRow;
+  existingId?: number | null;
+  changedFields?: string[] | null;
+  newStage?: string | null;
+}
+
+export interface ImportRowSkipped {
+  rowIndex: number;
+  targetCode?: string | null;
+  reason: string;
+}
+
+export type ImportValidateRequestRowsItemData = { [key: string]: unknown };
+
+export type ImportValidateRequestRowsItem = {
+  rowIndex: number;
+  data: ImportValidateRequestRowsItemData;
+};
+
+export type ImportValidateRequestColumnMap = { [key: string]: string };
+
+export interface ImportValidateRequest {
+  rows: ImportValidateRequestRowsItem[];
+  columnMap: ImportValidateRequestColumnMap;
+}
+
+export interface ImportValidateResult {
+  toCreate: ImportRowClassified[];
+  toUpdate: ImportRowClassified[];
+  toSkip: ImportRowSkipped[];
+  warnings: string[];
+}
+
+export type ImportApplyRequestToCreateItem = {
+  rowIndex: number;
+  data: ImportRow;
+};
+
+export type ImportApplyRequestToUpdateItem = {
+  rowIndex: number;
+  existingId: number;
+  data: ImportRow;
+  changedFields: string[];
+  newStage?: string | null;
+};
+
+export interface ImportApplyRequest {
+  toCreate: ImportApplyRequestToCreateItem[];
+  toUpdate: ImportApplyRequestToUpdateItem[];
+  changedBy?: string | null;
+}
+
+export type ImportApplyResultErrorsItem = {
+  rowIndex: number;
+  message: string;
+};
+
+export interface ImportApplyResult {
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: ImportApplyResultErrorsItem[];
+}
+
 export type ListTargetsParams = {
   sector?: string;
   priorityTier?: string;

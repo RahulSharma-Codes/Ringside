@@ -1,0 +1,536 @@
+import { Router } from "express";
+import { eq } from "drizzle-orm";
+import { db } from "@workspace/db";
+import {
+  targetsTable,
+  milestonesTable,
+  stageChangeLogTable,
+} from "@workspace/db";
+
+const router = Router();
+
+// ─── Valid values ────────────────────────────────────────────────────────────
+
+const VALID_TIERS = new Set([
+  "Must-Win",
+  "Priority 1",
+  "Priority 2",
+  "Watchlist",
+  "On Hold",
+  "Dropped",
+]);
+
+const VALID_STAGES = new Set([
+  "Sourcing",
+  "Outreach",
+  "Introductory Discussion",
+  "NDA / CIM",
+  "Preliminary Due Diligence",
+  "Management Meeting",
+  "Non-Binding Offer",
+  "Confirmatory Due Diligence",
+  "Binding Offer",
+  "SPA Negotiation",
+  "Integration Planning",
+  "On Hold",
+  "Rejected",
+  "Closing",
+  "Closed",
+  "Completed",
+  "Signed",
+]);
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface ImportRow {
+  targetCode?: string;
+  projectName?: string;
+  legalName?: string;
+  businessUnit?: string;
+  sector?: string;
+  subsector?: string;
+  geographyRegion?: string;
+  country?: string;
+  sourcingChannel?: string;
+  sourcingFirm?: string;
+  dealOwner?: string;
+  dealChampion?: string;
+  executiveSponsor?: string;
+  priorityTier?: string;
+  stage?: string;
+  strategicRationale?: string;
+  strategicFitScore?: number;
+  synergyScore?: number;
+  financialAttractivenessScore?: number;
+  processMaturityScore?: number;
+  riskPenaltyScore?: number;
+}
+
+interface RawRequestRow {
+  rowIndex: number;
+  data: Record<string, unknown>;
+}
+
+interface RowClassified {
+  rowIndex: number;
+  data: ImportRow;
+  existingId?: number;
+  changedFields?: string[];
+  newStage?: string;
+}
+
+interface RowSkipped {
+  rowIndex: number;
+  targetCode?: string;
+  reason: string;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function str(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  return String(v).trim();
+}
+
+function isBlank(v: unknown): boolean {
+  return str(v) === "";
+}
+
+function toNum(v: unknown): number | undefined {
+  if (v === undefined || v === null || v === "") return undefined;
+  const n = Number(v);
+  return isNaN(n) ? undefined : Math.round(Math.max(0, Math.min(100, n)));
+}
+
+function defaultMilestoneValues(targetId: number, now: Date, stage = "Sourcing") {
+  return {
+    targetId,
+    currentStage: stage,
+    stageEnteredAt: now,
+    ndaStatus: "Not Sent",
+    dataRoomAccess: "No",
+    commercialDdStatus: "Not Started",
+    financialDdStatus: "Not Started",
+    legalDdStatus: "Not Started",
+    taxDdStatus: "Not Started",
+    techDdStatus: "Not Started",
+    updatedAt: now,
+  };
+}
+
+/** Map raw row through the column map, producing a typed ImportRow */
+function applyColumnMap(
+  rawRow: Record<string, unknown>,
+  columnMap: Record<string, string>,
+): ImportRow {
+  const mapped: Record<string, unknown> = {};
+
+  for (const [csvCol, field] of Object.entries(columnMap)) {
+    if (!field || field === "__skip__") continue;
+    const val = rawRow[csvCol];
+    if (isBlank(val)) continue;
+    mapped[field] = str(val);
+  }
+
+  // Resolve "notes" alias
+  if ("notes" in mapped && !("strategicRationale" in mapped)) {
+    mapped["strategicRationale"] = mapped["notes"];
+    delete mapped["notes"];
+  } else if ("notes" in mapped) {
+    delete mapped["notes"];
+  }
+
+  const result: ImportRow = {};
+  const s = (key: string) => (typeof mapped[key] === "string" ? (mapped[key] as string) : undefined);
+
+  result.targetCode = s("targetCode");
+  result.projectName = s("projectName");
+  result.legalName = s("legalName");
+  result.businessUnit = s("businessUnit");
+  result.sector = s("sector");
+  result.subsector = s("subsector");
+  result.geographyRegion = s("geographyRegion");
+  result.country = s("country");
+  result.sourcingChannel = s("sourcingChannel");
+  result.sourcingFirm = s("sourcingFirm");
+  result.dealOwner = s("dealOwner");
+  result.dealChampion = s("dealChampion");
+  result.executiveSponsor = s("executiveSponsor");
+  result.priorityTier = s("priorityTier");
+  result.stage = s("stage");
+  result.strategicRationale = s("strategicRationale");
+  result.strategicFitScore = toNum(mapped["strategicFitScore"]);
+  result.synergyScore = toNum(mapped["synergyScore"]);
+  result.financialAttractivenessScore = toNum(mapped["financialAttractivenessScore"]);
+  result.processMaturityScore = toNum(mapped["processMaturityScore"]);
+  result.riskPenaltyScore = toNum(mapped["riskPenaltyScore"]);
+
+  // Remove undefined keys
+  for (const key of Object.keys(result) as (keyof ImportRow)[]) {
+    if (result[key] === undefined) delete result[key];
+  }
+
+  return result;
+}
+
+// ─── POST /api/import/validate ────────────────────────────────────────────────
+
+router.post("/validate", async (req, res) => {
+  const body = req.body as {
+    rows?: unknown;
+    columnMap?: unknown;
+  };
+
+  if (!Array.isArray(body.rows) || typeof body.columnMap !== "object" || !body.columnMap) {
+    return res.status(400).json({ error: "rows (array) and columnMap (object) are required" });
+  }
+
+  const rows = body.rows as RawRequestRow[];
+  const columnMap = body.columnMap as Record<string, string>;
+  const warnings: string[] = [];
+
+  const hasBothRationaleAndNotes =
+    Object.values(columnMap).includes("strategicRationale") &&
+    Object.values(columnMap).includes("notes");
+  if (hasBothRationaleAndNotes) {
+    warnings.push(
+      "Both 'Notes' and 'Strategic Rationale' columns are mapped. 'Notes' will be ignored since 'Strategic Rationale' takes priority.",
+    );
+  }
+
+  // Fetch existing targets and milestones for match lookup
+  const existingRows = await db
+    .select({
+      id: targetsTable.id,
+      targetCode: targetsTable.targetCode,
+      projectName: targetsTable.projectName,
+      legalName: targetsTable.legalName,
+      businessUnit: targetsTable.businessUnit,
+      sector: targetsTable.sector,
+      subsector: targetsTable.subsector,
+      geographyRegion: targetsTable.geographyRegion,
+      country: targetsTable.country,
+      sourcingChannel: targetsTable.sourcingChannel,
+      sourcingFirm: targetsTable.sourcingFirm,
+      dealOwner: targetsTable.dealOwner,
+      dealChampion: targetsTable.dealChampion,
+      executiveSponsor: targetsTable.executiveSponsor,
+      priorityTier: targetsTable.priorityTier,
+      strategicRationale: targetsTable.strategicRationale,
+      strategicFitScore: targetsTable.strategicFitScore,
+      synergyScore: targetsTable.synergyScore,
+      financialAttractivenessScore: targetsTable.financialAttractivenessScore,
+      processMaturityScore: targetsTable.processMaturityScore,
+      riskPenaltyScore: targetsTable.riskPenaltyScore,
+    })
+    .from(targetsTable);
+
+  const existingMilestones = await db
+    .select({ targetId: milestonesTable.targetId, currentStage: milestonesTable.currentStage })
+    .from(milestonesTable);
+
+  const codeToExisting = new Map(existingRows.map((r) => [r.targetCode.toLowerCase(), r]));
+  const idToStage = new Map(existingMilestones.map((m) => [m.targetId, m.currentStage]));
+
+  const toCreate: RowClassified[] = [];
+  const toUpdate: RowClassified[] = [];
+  const toSkip: RowSkipped[] = [];
+
+  for (const { rowIndex, data: rawRow } of rows) {
+    if (!rawRow || typeof rawRow !== "object") {
+      toSkip.push({ rowIndex, reason: "Row data is missing or invalid." });
+      continue;
+    }
+
+    const data = applyColumnMap(rawRow as Record<string, unknown>, columnMap);
+
+    if (data.priorityTier && !VALID_TIERS.has(data.priorityTier)) {
+      toSkip.push({
+        rowIndex,
+        targetCode: data.targetCode,
+        reason: `Invalid priorityTier: "${data.priorityTier}". Valid values: ${[...VALID_TIERS].join(", ")}`,
+      });
+      continue;
+    }
+
+    if (data.stage && !VALID_STAGES.has(data.stage)) {
+      toSkip.push({
+        rowIndex,
+        targetCode: data.targetCode,
+        reason: `Invalid stage: "${data.stage}". Not a recognized pipeline stage.`,
+      });
+      continue;
+    }
+
+    const code = data.targetCode?.toLowerCase();
+
+    if (code && codeToExisting.has(code)) {
+      // UPDATE path
+      const existing = codeToExisting.get(code)!;
+      const changedFields: string[] = [];
+
+      type StringField = keyof Pick<ImportRow,
+        "projectName" | "legalName" | "businessUnit" | "sector" | "subsector" |
+        "geographyRegion" | "country" | "sourcingChannel" | "sourcingFirm" |
+        "dealOwner" | "dealChampion" | "executiveSponsor" | "priorityTier" | "strategicRationale"
+      >;
+
+      const STRING_FIELDS: StringField[] = [
+        "projectName", "legalName", "businessUnit", "sector", "subsector",
+        "geographyRegion", "country", "sourcingChannel", "sourcingFirm",
+        "dealOwner", "dealChampion", "executiveSponsor", "priorityTier", "strategicRationale",
+      ];
+
+      for (const field of STRING_FIELDS) {
+        const incoming = data[field];
+        if (incoming === undefined || isBlank(incoming)) continue;
+        const dbVal = (existing as Record<string, unknown>)[field];
+        if (String(incoming) !== String(dbVal ?? "")) changedFields.push(field);
+      }
+
+      type NumField = keyof Pick<ImportRow,
+        "strategicFitScore" | "synergyScore" | "financialAttractivenessScore" |
+        "processMaturityScore" | "riskPenaltyScore"
+      >;
+
+      const NUM_FIELDS: NumField[] = [
+        "strategicFitScore", "synergyScore", "financialAttractivenessScore",
+        "processMaturityScore", "riskPenaltyScore",
+      ];
+
+      for (const field of NUM_FIELDS) {
+        const incoming = data[field];
+        if (incoming === undefined) continue;
+        const dbVal = (existing as Record<string, unknown>)[field];
+        if (incoming !== (dbVal as number)) changedFields.push(field);
+      }
+
+      let newStage: string | undefined;
+      if (data.stage) {
+        const currentStage = idToStage.get(existing.id) ?? "Sourcing";
+        if (data.stage !== currentStage) {
+          newStage = data.stage;
+          changedFields.push("stage");
+        }
+      }
+
+      if (changedFields.length === 0) {
+        toSkip.push({
+          rowIndex,
+          targetCode: data.targetCode,
+          reason: "No changes detected — all incoming values match existing data.",
+        });
+        continue;
+      }
+
+      toUpdate.push({ rowIndex, data, existingId: existing.id, changedFields, newStage });
+    } else {
+      // CREATE path
+      if (!data.targetCode || !data.projectName) {
+        toSkip.push({
+          rowIndex,
+          targetCode: data.targetCode,
+          reason: `New target requires both "targetCode" and "projectName". Missing: ${
+            !data.targetCode ? "targetCode" : "projectName"
+          }.`,
+        });
+        continue;
+      }
+      toCreate.push({ rowIndex, data });
+    }
+  }
+
+  return res.json({ toCreate, toUpdate, toSkip, warnings });
+});
+
+// ─── POST /api/import/apply ───────────────────────────────────────────────────
+
+router.post("/apply", async (req, res) => {
+  const body = req.body as {
+    toCreate?: unknown;
+    toUpdate?: unknown;
+    changedBy?: string;
+  };
+
+  if (!Array.isArray(body.toCreate) || !Array.isArray(body.toUpdate)) {
+    return res.status(400).json({ error: "toCreate and toUpdate arrays are required" });
+  }
+
+  const toCreate = body.toCreate as Array<{ rowIndex: number; data: ImportRow }>;
+  const toUpdate = body.toUpdate as Array<{
+    rowIndex: number;
+    existingId: number;
+    data: ImportRow;
+    changedFields: string[];
+    newStage?: string;
+  }>;
+  const actor = typeof body.changedBy === "string" ? body.changedBy : "Import";
+
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
+  const errors: { rowIndex: number; message: string }[] = [];
+
+  // ── Creates ───────────────────────────────────────────────────────────────
+  for (const { rowIndex, data } of toCreate) {
+    try {
+      if (!data.targetCode || !data.projectName) {
+        errors.push({ rowIndex, message: "targetCode and projectName are required" });
+        skipped++;
+        continue;
+      }
+
+      const now = new Date();
+      const initialStage = data.stage && VALID_STAGES.has(data.stage) ? data.stage : "Sourcing";
+
+      const [target] = await db
+        .insert(targetsTable)
+        .values({
+          targetCode: data.targetCode,
+          projectName: data.projectName,
+          legalName: data.legalName ?? null,
+          businessUnit: data.businessUnit ?? null,
+          sector: data.sector ?? null,
+          subsector: data.subsector ?? null,
+          geographyRegion: data.geographyRegion ?? null,
+          country: data.country ?? null,
+          sourcingChannel: data.sourcingChannel ?? null,
+          sourcingFirm: data.sourcingFirm ?? null,
+          dealOwner: data.dealOwner ?? null,
+          dealChampion: data.dealChampion ?? null,
+          executiveSponsor: data.executiveSponsor ?? null,
+          priorityTier: data.priorityTier ?? "Watchlist",
+          strategicRationale: data.strategicRationale ?? null,
+          strategicFitScore: data.strategicFitScore ?? 50,
+          synergyScore: data.synergyScore ?? 50,
+          financialAttractivenessScore: data.financialAttractivenessScore ?? 50,
+          processMaturityScore: data.processMaturityScore ?? 50,
+          riskPenaltyScore: data.riskPenaltyScore ?? 0,
+          isActive: true,
+          isConfidential: true,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+
+      await db
+        .insert(milestonesTable)
+        .values(defaultMilestoneValues(target.id, now, initialStage));
+
+      await db.insert(stageChangeLogTable).values({
+        targetId: target.id,
+        previousStage: null,
+        newStage: initialStage,
+        changedBy: actor,
+        changeReason: "Created via CSV/Excel import",
+        changedAt: now,
+      });
+
+      created++;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      errors.push({ rowIndex, message: msg });
+      skipped++;
+    }
+  }
+
+  // ── Updates ───────────────────────────────────────────────────────────────
+  for (const { rowIndex, existingId, data, changedFields, newStage } of toUpdate) {
+    try {
+      const now = new Date();
+
+      // Build patch explicitly — only include fields that changed and are not blank
+      const patch: Partial<typeof targetsTable.$inferInsert> & { updatedAt: Date } = {
+        updatedAt: now,
+      };
+
+      if (changedFields.includes("projectName") && !isBlank(data.projectName))
+        patch.projectName = data.projectName!;
+      if (changedFields.includes("legalName") && !isBlank(data.legalName))
+        patch.legalName = data.legalName!;
+      if (changedFields.includes("businessUnit") && !isBlank(data.businessUnit))
+        patch.businessUnit = data.businessUnit!;
+      if (changedFields.includes("sector") && !isBlank(data.sector))
+        patch.sector = data.sector!;
+      if (changedFields.includes("subsector") && !isBlank(data.subsector))
+        patch.subsector = data.subsector!;
+      if (changedFields.includes("geographyRegion") && !isBlank(data.geographyRegion))
+        patch.geographyRegion = data.geographyRegion!;
+      if (changedFields.includes("country") && !isBlank(data.country))
+        patch.country = data.country!;
+      if (changedFields.includes("sourcingChannel") && !isBlank(data.sourcingChannel))
+        patch.sourcingChannel = data.sourcingChannel!;
+      if (changedFields.includes("sourcingFirm") && !isBlank(data.sourcingFirm))
+        patch.sourcingFirm = data.sourcingFirm!;
+      if (changedFields.includes("dealOwner") && !isBlank(data.dealOwner))
+        patch.dealOwner = data.dealOwner!;
+      if (changedFields.includes("dealChampion") && !isBlank(data.dealChampion))
+        patch.dealChampion = data.dealChampion!;
+      if (changedFields.includes("executiveSponsor") && !isBlank(data.executiveSponsor))
+        patch.executiveSponsor = data.executiveSponsor!;
+      if (changedFields.includes("priorityTier") && !isBlank(data.priorityTier))
+        patch.priorityTier = data.priorityTier!;
+      if (changedFields.includes("strategicRationale") && !isBlank(data.strategicRationale))
+        patch.strategicRationale = data.strategicRationale!;
+      if (changedFields.includes("strategicFitScore") && data.strategicFitScore !== undefined)
+        patch.strategicFitScore = data.strategicFitScore;
+      if (changedFields.includes("synergyScore") && data.synergyScore !== undefined)
+        patch.synergyScore = data.synergyScore;
+      if (changedFields.includes("financialAttractivenessScore") && data.financialAttractivenessScore !== undefined)
+        patch.financialAttractivenessScore = data.financialAttractivenessScore;
+      if (changedFields.includes("processMaturityScore") && data.processMaturityScore !== undefined)
+        patch.processMaturityScore = data.processMaturityScore;
+      if (changedFields.includes("riskPenaltyScore") && data.riskPenaltyScore !== undefined)
+        patch.riskPenaltyScore = data.riskPenaltyScore;
+
+      // Only update targets table if there are non-stage changes
+      const hasTargetChanges = Object.keys(patch).length > 1; // more than just updatedAt
+      if (hasTargetChanges) {
+        await db
+          .update(targetsTable)
+          .set(patch)
+          .where(eq(targetsTable.id, existingId));
+      } else if (changedFields.includes("stage")) {
+        // Stage-only change: still bump updatedAt
+        await db
+          .update(targetsTable)
+          .set({ updatedAt: now })
+          .where(eq(targetsTable.id, existingId));
+      }
+
+      // Stage change — mirrors PUT /:id/stage logic
+      if (newStage && changedFields.includes("stage") && VALID_STAGES.has(newStage)) {
+        const [milestone] = await db
+          .select({ currentStage: milestonesTable.currentStage })
+          .from(milestonesTable)
+          .where(eq(milestonesTable.targetId, existingId));
+
+        const previousStage = milestone?.currentStage ?? null;
+
+        await db
+          .update(milestonesTable)
+          .set({ currentStage: newStage, stageEnteredAt: now, updatedAt: now })
+          .where(eq(milestonesTable.targetId, existingId));
+
+        await db.insert(stageChangeLogTable).values({
+          targetId: existingId,
+          previousStage,
+          newStage,
+          changedBy: actor,
+          changeReason: "Updated via CSV/Excel import",
+          changedAt: now,
+        });
+      }
+
+      updated++;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      errors.push({ rowIndex, message: msg });
+      skipped++;
+    }
+  }
+
+  return res.json({ created, updated, skipped, errors });
+});
+
+export default router;

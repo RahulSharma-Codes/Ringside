@@ -18,6 +18,8 @@ tags:
     description: Action item operations
   - name: dashboard
     description: Dashboard and analytics
+  - name: import
+    description: CSV / Excel bulk import
 paths:
   /healthz:
     get:
@@ -457,6 +459,44 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ActionItem"
+
+  /import/validate:
+    post:
+      operationId: validateImport
+      tags: [import]
+      summary: Validate parsed CSV/Excel rows before applying
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportValidateRequest"
+      responses:
+        "200":
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportValidateResult"
+
+  /import/apply:
+    post:
+      operationId: applyImport
+      tags: [import]
+      summary: Apply a validated import (create + update targets)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportApplyRequest"
+      responses:
+        "200":
+          description: Apply result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportApplyResult"
 
 components:
   schemas:
@@ -981,3 +1021,199 @@ components:
           items:
             type: string
       required: [owners, countries]
+
+    ImportRow:
+      type: object
+      properties:
+        targetCode:
+          type: string
+        projectName:
+          type: string
+        legalName:
+          type: string
+          nullable: true
+        businessUnit:
+          type: string
+          nullable: true
+        sector:
+          type: string
+          nullable: true
+        subsector:
+          type: string
+          nullable: true
+        geographyRegion:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        sourcingChannel:
+          type: string
+          nullable: true
+        sourcingFirm:
+          type: string
+          nullable: true
+        dealOwner:
+          type: string
+          nullable: true
+        dealChampion:
+          type: string
+          nullable: true
+        executiveSponsor:
+          type: string
+          nullable: true
+        priorityTier:
+          type: string
+          nullable: true
+        stage:
+          type: string
+          nullable: true
+        strategicRationale:
+          type: string
+          nullable: true
+        strategicFitScore:
+          type: number
+          nullable: true
+        synergyScore:
+          type: number
+          nullable: true
+        financialAttractivenessScore:
+          type: number
+          nullable: true
+        processMaturityScore:
+          type: number
+          nullable: true
+        riskPenaltyScore:
+          type: number
+          nullable: true
+
+    ImportRowClassified:
+      type: object
+      properties:
+        rowIndex:
+          type: integer
+        data:
+          $ref: "#/components/schemas/ImportRow"
+        existingId:
+          type: integer
+          nullable: true
+        changedFields:
+          type: array
+          items:
+            type: string
+          nullable: true
+        newStage:
+          type: string
+          nullable: true
+      required: [rowIndex, data]
+
+    ImportRowSkipped:
+      type: object
+      properties:
+        rowIndex:
+          type: integer
+        targetCode:
+          type: string
+          nullable: true
+        reason:
+          type: string
+      required: [rowIndex, reason]
+
+    ImportValidateRequest:
+      type: object
+      properties:
+        rows:
+          type: array
+          items:
+            type: object
+            properties:
+              rowIndex:
+                type: integer
+              data:
+                type: object
+                additionalProperties: true
+            required: [rowIndex, data]
+        columnMap:
+          type: object
+          additionalProperties:
+            type: string
+      required: [rows, columnMap]
+
+    ImportValidateResult:
+      type: object
+      properties:
+        toCreate:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportRowClassified"
+        toUpdate:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportRowClassified"
+        toSkip:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportRowSkipped"
+        warnings:
+          type: array
+          items:
+            type: string
+      required: [toCreate, toUpdate, toSkip, warnings]
+
+    ImportApplyRequest:
+      type: object
+      properties:
+        toCreate:
+          type: array
+          items:
+            type: object
+            properties:
+              rowIndex:
+                type: integer
+              data:
+                $ref: "#/components/schemas/ImportRow"
+            required: [rowIndex, data]
+        toUpdate:
+          type: array
+          items:
+            type: object
+            properties:
+              rowIndex:
+                type: integer
+              existingId:
+                type: integer
+              data:
+                $ref: "#/components/schemas/ImportRow"
+              changedFields:
+                type: array
+                items:
+                  type: string
+              newStage:
+                type: string
+                nullable: true
+            required: [rowIndex, existingId, data, changedFields]
+        changedBy:
+          type: string
+          nullable: true
+      required: [toCreate, toUpdate]
+
+    ImportApplyResult:
+      type: object
+      properties:
+        created:
+          type: integer
+        updated:
+          type: integer
+        skipped:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              rowIndex:
+                type: integer
+              message:
+                type: string
+            required: [rowIndex, message]
+      required: [created, updated, skipped, errors]

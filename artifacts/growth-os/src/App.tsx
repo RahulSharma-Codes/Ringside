@@ -13,6 +13,7 @@ import Pipeline from "@/pages/pipeline";
 import NewTarget from "@/pages/new-target";
 import TargetDetail from "@/pages/target-detail";
 import Actions from "@/pages/actions";
+import ImportWizard from "@/pages/import-wizard";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -101,6 +102,9 @@ function Router() {
       </Route>
       <Route path="/actions">
         <Layout><Actions /></Layout>
+      </Route>
+      <Route path="/import">
+        <Layout><ImportWizard /></Layout>
       </Route>
       <Route path="*">
         <Layout><NotFound /></Layout>
