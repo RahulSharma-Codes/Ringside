@@ -55,7 +55,8 @@ router.get("/review", async (_req, res) => {
     db.select().from(milestonesTable),
   ]);
 
-  // Build per-target summaries
+  // Build per-target summaries — covers ALL active targets, defaulting to zeros
+  // for targets with no diligence items so Must-Win targets are never omitted.
   const itemsByTarget = new Map<number, (typeof allItems)>();
   for (const item of allItems) {
     if (!itemsByTarget.has(item.targetId)) itemsByTarget.set(item.targetId, []);
@@ -65,11 +66,11 @@ router.get("/review", async (_req, res) => {
   const milestoneByTarget = new Map<number, (typeof allMilestones)[number]>();
   for (const m of allMilestones) milestoneByTarget.set(m.targetId, m);
 
-  const targetSummaries = [];
-  for (const [targetId, items] of itemsByTarget) {
-    const target = allTargets.find((t) => t.id === targetId);
-    if (!target) continue;
-    const milestone = milestoneByTarget.get(targetId);
+  // Include every active target, defaulting to empty items for those with none.
+  const activeTargets = allTargets.filter((t) => t.isActive !== false);
+  const targetSummaries = activeTargets.map((target) => {
+    const items = itemsByTarget.get(target.id) ?? [];
+    const milestone = milestoneByTarget.get(target.id);
     const total = items.length;
     const completed = items.filter((i) => i.status === "Completed").length;
     const blocked = items.filter((i) => i.status === "Blocked").length;
@@ -77,10 +78,10 @@ router.get("/review", async (_req, res) => {
       (i) => i.status !== "Completed" && i.dueDate && new Date(i.dueDate) < today,
     ).length;
     const presentWs = new Set(items.map((i) => i.workstream!));
-    const missingWorkstreams = WORKSTREAMS.filter((w) => !presentWs.has(w));
+    const missingWorkstreams = [...WORKSTREAMS].filter((w) => !presentWs.has(w));
 
-    targetSummaries.push({
-      id: targetId,
+    return {
+      id: target.id,
       targetCode: target.targetCode,
       projectName: target.projectName,
       priorityTier: target.priorityTier,
@@ -91,9 +92,10 @@ router.get("/review", async (_req, res) => {
       blocked,
       overdue,
       missingWorkstreams,
-    });
-  }
+    };
+  });
 
+  // Must-Win targets with any incomplete diligence (including those with zero items)
   const mustWinIncomplete = targetSummaries
     .filter((s) => s.priorityTier === "Must-Win" && s.completed < s.total)
     .sort((a, b) => a.pct - b.pct);

@@ -733,6 +733,8 @@ router.post("/:id/actions", async (req, res) => {
       dueDate: d.dueDate ? d.dueDate.toISOString().split("T")[0] : null,
       priority: d.priority ?? "Medium",
       status: "Open",
+      workstream: null,
+      notes: d.notes ?? null,
       createdAt: now,
     })
     .returning();
