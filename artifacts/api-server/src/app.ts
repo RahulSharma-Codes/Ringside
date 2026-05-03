@@ -2,6 +2,8 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
+import authRouter from "./routes/auth";
+import { requireAppPassword } from "./middlewares/auth";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
@@ -29,6 +31,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/api", router);
+app.use("/api/auth", authRouter);
+app.use("/api", requireAppPassword, router);
 
 export default app;

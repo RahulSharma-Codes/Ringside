@@ -24,7 +24,6 @@ export const targetsTable = pgTable("targets", {
   financialAttractivenessScore: integer("financial_attractiveness_score").notNull().default(50),
   processMaturityScore: integer("process_maturity_score").notNull().default(50),
   riskPenaltyScore: integer("risk_penalty_score").notNull().default(0),
-  currentStage: text("current_stage").notNull().default("Sourcing"),
   isActive: boolean("is_active").notNull().default(true),
   isConfidential: boolean("is_confidential").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -34,6 +33,30 @@ export const targetsTable = pgTable("targets", {
 export const insertTargetSchema = createInsertSchema(targetsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertTarget = z.infer<typeof insertTargetSchema>;
 export type Target = typeof targetsTable.$inferSelect;
+
+export const milestonesTable = pgTable("milestones", {
+  id: serial("id").primaryKey(),
+  targetId: integer("target_id").notNull().references(() => targetsTable.id),
+  currentStage: text("current_stage").notNull().default("Sourcing"),
+  stageEnteredAt: timestamp("stage_entered_at").notNull().defaultNow(),
+  ndaStatus: text("nda_status").notNull().default("Not Sent"),
+  ndaDate: date("nda_date"),
+  cimReceivedDate: date("cim_received_date"),
+  dataRoomAccess: text("data_room_access").notNull().default("No"),
+  dataRoomAccessDate: date("data_room_access_date"),
+  commercialDdStatus: text("commercial_dd_status").notNull().default("Not Started"),
+  financialDdStatus: text("financial_dd_status").notNull().default("Not Started"),
+  legalDdStatus: text("legal_dd_status").notNull().default("Not Started"),
+  taxDdStatus: text("tax_dd_status").notNull().default("Not Started"),
+  techDdStatus: text("tech_dd_status").notNull().default("Not Started"),
+  nonBindingOfferDate: date("non_binding_offer_date"),
+  bindingOfferDate: date("binding_offer_date"),
+  signingDate: date("signing_date"),
+  closingDate: date("closing_date"),
+  dropReasonCategory: text("drop_reason_category"),
+  dropReasonDetail: text("drop_reason_detail"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
 
 export const interactionsTable = pgTable("interactions", {
   id: serial("id").primaryKey(),
@@ -54,7 +77,9 @@ export const insertInteractionSchema = createInsertSchema(interactionsTable).omi
 export type InsertInteraction = z.infer<typeof insertInteractionSchema>;
 export type Interaction = typeof interactionsTable.$inferSelect;
 
-export const actionItemsTable = pgTable("action_items", {
+// The existing Supabase table created by the Python SQLAlchemy app is named "actions".
+// Keep the TypeScript export name as actionItemsTable so the rest of the app does not need to change.
+export const actionItemsTable = pgTable("actions", {
   id: serial("id").primaryKey(),
   targetId: integer("target_id").notNull().references(() => targetsTable.id),
   interactionId: integer("interaction_id"),

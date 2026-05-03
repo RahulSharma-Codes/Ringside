@@ -6,23 +6,16 @@ const { Pool } = pg;
 
 function getDatabaseUrl(): string {
   const url = process.env.DATABASE_URL;
-  const pgHost = process.env.PGHOST;
-  const pgPort = process.env.PGPORT || "5432";
-  const pgUser = process.env.PGUSER || "postgres";
-  const pgDatabase = process.env.PGDATABASE;
-  const pgPassword = process.env.PGPASSWORD;
-
-  if (pgHost && pgDatabase && (!url || url.includes("supabase.co"))) {
-    const auth = pgPassword ? `${pgUser}:${pgPassword}` : pgUser;
-    return `postgresql://${auth}@${pgHost}:${pgPort}/${pgDatabase}`;
-  }
 
   if (!url) {
     throw new Error(
-      "DATABASE_URL must be set. Did you forget to provision a database?",
+      "DATABASE_URL must be set in Replit Secrets. Use the Supabase pooler URL.",
     );
   }
 
+  // Important: always prefer the explicit Replit Secret DATABASE_URL.
+  // Replit projects can also expose PGHOST/PGDATABASE for local Postgres;
+  // those must not override the Supabase pooler connection.
   return url;
 }
 

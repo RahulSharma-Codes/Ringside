@@ -6,6 +6,18 @@ import { UpdateActionBody } from "@workspace/api-zod";
 
 const router = Router();
 
+function toIso(value: Date | string | null | undefined): string | null {
+  if (!value) return null;
+  if (value instanceof Date) return value.toISOString();
+  return new Date(value).toISOString();
+}
+
+function toDateString(value: Date | string | null | undefined): string | null {
+  if (!value) return null;
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  return value;
+}
+
 // GET /api/actions/open
 router.get("/open", async (_req, res) => {
   const actions = await db
@@ -29,8 +41,9 @@ router.get("/open", async (_req, res) => {
   return res.json(
     actions.map((a) => ({
       ...a,
-      createdAt: a.createdAt.toISOString(),
-      completedAt: a.completedAt?.toISOString() ?? null,
+      dueDate: toDateString(a.dueDate),
+      createdAt: toIso(a.createdAt),
+      completedAt: toIso(a.completedAt),
     })),
   );
 });
@@ -51,9 +64,7 @@ router.put("/:id", async (req, res) => {
   if (d.priority !== undefined) updates.priority = d.priority;
   if (d.status !== undefined) {
     updates.status = d.status;
-    if (d.status === "Completed") {
-      updates.completedAt = new Date();
-    }
+    updates.completedAt = d.status === "Completed" ? new Date() : null;
   }
 
   const [action] = await db
@@ -66,8 +77,9 @@ router.put("/:id", async (req, res) => {
 
   return res.json({
     ...action,
-    createdAt: action.createdAt.toISOString(),
-    completedAt: action.completedAt?.toISOString() ?? null,
+    dueDate: toDateString(action.dueDate),
+    createdAt: toIso(action.createdAt),
+    completedAt: toIso(action.completedAt),
   });
 });
 
