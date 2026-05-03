@@ -332,6 +332,70 @@ export interface AiAskResponse {
   error?: string | null;
 }
 
+export interface CommandCenterAction {
+  id: number;
+  targetId: number;
+  description: string;
+  owner?: string | null;
+  dueDate?: string | null;
+  priority: string;
+  status: string;
+  createdAt?: string | null;
+  completedAt?: string | null;
+  targetName: string;
+  targetCode?: string | null;
+  priorityTier?: string | null;
+  currentStage: string;
+}
+
+export interface WeeklyReviewTargetSummary {
+  id: number;
+  targetCode: string;
+  projectName: string;
+  priorityTier: string;
+  currentStage: string;
+  openActionCount?: number;
+  lastInteractionDate?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface WeeklyReviewActionSummary {
+  id: number;
+  targetId: number;
+  description: string;
+  owner?: string | null;
+  dueDate?: string | null;
+  priority: string;
+  status: string;
+  targetName: string;
+  targetCode?: string | null;
+  priorityTier?: string | null;
+  currentStage: string;
+}
+
+export interface WeeklyReviewStageChange {
+  id: number;
+  targetId: number;
+  targetName: string;
+  targetCode?: string | null;
+  priorityTier?: string | null;
+  previousStage?: string | null;
+  newStage: string;
+  changedBy?: string | null;
+  changedAt?: string | null;
+}
+
+export interface WeeklyReviewResponse {
+  mustWin: WeeklyReviewTargetSummary[];
+  needsAttention: WeeklyReviewTargetSummary[];
+  overdueActions: WeeklyReviewActionSummary[];
+  dueThisWeek: WeeklyReviewActionSummary[];
+  recentStageChanges: WeeklyReviewStageChange[];
+  recentlyUpdated: WeeklyReviewTargetSummary[];
+  noOpenAction: WeeklyReviewTargetSummary[];
+  noRecentInteraction: WeeklyReviewTargetSummary[];
+}
+
 export type ListTargetsParams = {
   sector?: string;
   priorityTier?: string;

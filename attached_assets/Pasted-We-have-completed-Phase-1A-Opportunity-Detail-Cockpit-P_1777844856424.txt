@@ -1,0 +1,136 @@
+We have completed:
+- Phase 1A: Opportunity Detail Cockpit
+- Phase 1B: Dashboard + Pipeline Intelligence
+- Phase 2A: CSV / Excel Import Wizard
+- Phase 3A: AI Copilot read-only, built and structurally working, but OpenAI API calls are blocked until credits are added.
+
+Now implement Phase 4A: Action Command Center + Weekly Review.
+
+Important safety rules:
+- Do NOT rebuild from scratch.
+- Do NOT create a new architecture.
+- Do NOT run drizzle push.
+- Do NOT run seed.ts.
+- Do NOT modify DATABASE_URL.
+- Do NOT modify auth middleware unless absolutely required.
+- Do NOT insert Apollo/Orion/Beacon/Catalyst/Helios demo data.
+- Supabase Postgres remains the source of truth.
+- Preserve all existing Phase 1A, Phase 1B, Phase 2A, and Phase 3A functionality.
+- Do not add new database tables in this phase unless absolutely necessary.
+- Prefer using existing targets, actions, interactions, milestones, and stage_change_log tables.
+- AI must remain read-only and unchanged in this phase.
+
+Current structure:
+- React/Vite frontend: artifacts/growth-os
+- Express API backend: artifacts/api-server
+- Drizzle/Postgres DB layer: lib/db
+- Existing tables include targets, milestones, interactions, actions, stage_change_log, lookup_values, users.
+- Stage is stored through milestones/current stage logic.
+- actions table is named actions, not action_items.
+
+Phase 4A goal:
+Create a professional Action Command Center and Weekly Review page that helps an M&A / Corporate Development team run the pipeline cadence.
+
+Required features:
+
+1. Upgrade Actions Tracker page
+Create a global action operating view using existing actions data.
+
+Show action groups:
+- Overdue
+- Due this week
+- Upcoming
+- Completed recently
+- Blocked
+- No due date
+
+Each action card should show:
+- description/title
+- linked target/project name
+- target code
+- owner
+- due date
+- priority
+- status
+- stage
+- priority tier
+- quick Complete button
+- quick Reopen button when completed
+- link to target detail page
+
+Filters:
+- owner
+- status
+- priority
+- due date bucket
+- target/project
+- Must-Win only
+- overdue only
+
+Mobile requirements:
+- Card-based layout
+- No desktop-only tables
+- Works on 375px screen
+- Clear badges for Overdue, Due This Week, Blocked, Completed
+
+2. Add Weekly Review page
+Create a new page called Weekly Review.
+
+The page should summarize:
+- Must-Win opportunities
+- opportunities needing attention
+- overdue actions
+- actions due this week
+- stage changes in the last 7 days
+- recently updated opportunities
+- opportunities with no open action
+- opportunities with no interaction in 30+ days
+
+Each section should use compact cards and link back to target detail pages.
+
+3. Add navigation
+Add "Weekly Review" to the sidebar/nav.
+Keep existing Dashboard, Pipeline, Actions Tracker, Import, and AI Copilot entries.
+
+4. Backend/API
+Inspect existing actions and targets routes first.
+Extend existing routes where appropriate.
+Add new read-only endpoints only if needed, for example:
+- GET /api/actions/command-center
+- GET /api/review/weekly
+
+All data must come from Supabase.
+No mock data.
+No schema migrations.
+
+5. Quick actions
+Complete/Reopen action buttons should reuse the existing action update logic from Phase 1A.
+Do not create duplicate action update logic if existing route already supports status updates.
+
+6. Empty states
+Every section should have a helpful empty state, for example:
+- "No overdue actions"
+- "No stage changes this week"
+- "All Must-Win opportunities have open actions"
+
+7. Testing
+After implementation:
+- Run pnpm run typecheck.
+- Restart the app.
+- Confirm login works.
+- Confirm Project Test appears.
+- Confirm Dashboard loads.
+- Confirm Pipeline loads.
+- Confirm Import page opens.
+- Confirm AI Copilot page still opens and still shows billing/setup error gracefully if credits are missing.
+- Confirm Actions Tracker loads.
+- Confirm Weekly Review loads.
+- Confirm Complete/Reopen action works from the new command center.
+- Confirm no Apollo/Orion demo data appears unless present in Supabase.
+
+Report:
+- files changed
+- API routes added/modified
+- whether any packages were added
+- typecheck result
+- manual testing checklist

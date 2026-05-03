@@ -45,6 +45,27 @@ Executive dashboard with KPI tiles, needs-attention flags, pipeline stage chart,
 - Backend: `POST /api/import/validate` + `POST /api/import/apply` at `/api/import/*`
 - Safety rules: never overwrite non-blank DB values with blank; never update targetCode on existing records; partial failures isolated per-row; invalid tier/stage skipped with reason
 
+### Phase 3A — AI Copilot
+Chat interface at `/copilot` backed by `POST /api/ai/ask`. Reads a live DB snapshot (targets, actions, interactions summary) and passes it as system context to OpenAI (model configurable via `OPENAI_MODEL`, default `gpt-4o`). Graceful 429/setup-required handling when quota is exhausted.
+
+### Phase 4A — Action Command Center + Weekly Review
+
+**Action Command Center** (`/actions`):
+- Card-based mobile-first layout replacing the old desktop table
+- Groups: Overdue / Blocked / Due This Week / Upcoming / No Due Date / Recently Completed (14d)
+- Filters: owner dropdown, priority dropdown, Must-Win toggle, Overdue Only toggle, text search
+- Quick Complete / Reopen buttons reuse existing `PUT /api/actions/:id`
+- New endpoint: `GET /api/actions/command-center` — enriches each action with `targetCode`, `priorityTier`, `currentStage` (via left join on targets + milestones)
+
+**Weekly Review** (`/weekly-review`):
+- 8 collapsible sections, all rendered with empty states even when empty
+- Sections: Must-Win Opportunities, Needs Attention, Overdue Actions, Actions Due This Week, Stage Changes (last 7d), Recently Updated Targets, No Open Actions, No Interaction 30+ Days
+- New endpoint: `GET /api/review/weekly` — single batch read (4 parallel DB queries) → 8 computed arrays
+- Refresh button with timestamp
+- No-interaction guardrail: newly created targets (<30d old) are never flagged
+
+**Nav**: Weekly Review added to sidebar with CalendarCheck icon.
+
 ## Checkpoints
 
 | Label | Commit | Notes |

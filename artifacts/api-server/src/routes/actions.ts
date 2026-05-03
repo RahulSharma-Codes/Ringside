@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, and, or, gte, isNotNull } from "drizzle-orm";
 import { db } from "@workspace/db";
-import { actionItemsTable, targetsTable } from "@workspace/db";
+import { actionItemsTable, targetsTable, milestonesTable } from "@workspace/db";
 import { UpdateActionBody } from "@workspace/api-zod";
 
 const router = Router();
@@ -15,7 +15,7 @@ function toIso(value: Date | string | null | undefined): string | null {
 function toDateString(value: Date | string | null | undefined): string | null {
   if (!value) return null;
   if (value instanceof Date) return value.toISOString().slice(0, 10);
-  return value;
+  return String(value).slice(0, 10);
 }
 
 // GET /api/actions/open
@@ -44,6 +44,57 @@ router.get("/open", async (_req, res) => {
       dueDate: toDateString(a.dueDate),
       createdAt: toIso(a.createdAt),
       completedAt: toIso(a.completedAt),
+    })),
+  );
+});
+
+// GET /api/actions/command-center
+// Returns open/blocked/in-progress actions + recently completed (last 14 days).
+// "Recently completed" requires completedAt to be populated — set by PUT /:id when
+// status → Completed. Rows completed before that write path existed (completedAt IS NULL)
+// are excluded from the recently-completed bucket; this is by design, not a schema change.
+router.get("/command-center", async (_req, res) => {
+  const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+
+  const rows = await db
+    .select({
+      id: actionItemsTable.id,
+      targetId: actionItemsTable.targetId,
+      description: actionItemsTable.description,
+      owner: actionItemsTable.owner,
+      dueDate: actionItemsTable.dueDate,
+      priority: actionItemsTable.priority,
+      status: actionItemsTable.status,
+      createdAt: actionItemsTable.createdAt,
+      completedAt: actionItemsTable.completedAt,
+      targetName: targetsTable.projectName,
+      targetCode: targetsTable.targetCode,
+      priorityTier: targetsTable.priorityTier,
+      currentStage: milestonesTable.currentStage,
+    })
+    .from(actionItemsTable)
+    .leftJoin(targetsTable, eq(actionItemsTable.targetId, targetsTable.id))
+    .leftJoin(milestonesTable, eq(milestonesTable.targetId, actionItemsTable.targetId))
+    .where(
+      or(
+        inArray(actionItemsTable.status, ["Open", "In Progress", "Blocked"]),
+        and(
+          eq(actionItemsTable.status, "Completed"),
+          isNotNull(actionItemsTable.completedAt),
+          gte(actionItemsTable.completedAt, fourteenDaysAgo),
+        ),
+      ),
+    )
+    .limit(200);
+
+  return res.json(
+    rows.map((a) => ({
+      ...a,
+      dueDate: toDateString(a.dueDate),
+      createdAt: toIso(a.createdAt),
+      completedAt: toIso(a.completedAt),
+      currentStage: a.currentStage ?? "Unknown",
+      targetName: a.targetName ?? `Target #${a.targetId}`,
     })),
   );
 });

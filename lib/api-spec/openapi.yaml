@@ -462,6 +462,34 @@ paths:
                 items:
                   $ref: "#/components/schemas/ActionItem"
 
+  /actions/command-center:
+    get:
+      operationId: listCommandCenterActions
+      tags: [actions]
+      summary: List all actions for the Action Command Center (open/blocked/in-progress + recently completed 14d)
+      responses:
+        "200":
+          description: Command center actions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CommandCenterAction"
+
+  /review/weekly:
+    get:
+      operationId: getWeeklyReview
+      tags: [review]
+      summary: Weekly pipeline review — 8 sections computed server-side in one batch
+      responses:
+        "200":
+          description: Weekly review data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyReviewResponse"
+
   /import/validate:
     post:
       operationId: validateImport
@@ -1280,3 +1308,159 @@ components:
           type: string
           nullable: true
       required: []
+
+    CommandCenterAction:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        description:
+          type: string
+        owner:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          nullable: true
+        priority:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          nullable: true
+        completedAt:
+          type: string
+          nullable: true
+        targetName:
+          type: string
+        targetCode:
+          type: string
+          nullable: true
+        priorityTier:
+          type: string
+          nullable: true
+        currentStage:
+          type: string
+      required: [id, targetId, description, priority, status, targetName, currentStage]
+
+    WeeklyReviewTargetSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetCode:
+          type: string
+        projectName:
+          type: string
+        priorityTier:
+          type: string
+        currentStage:
+          type: string
+        openActionCount:
+          type: integer
+        lastInteractionDate:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+          nullable: true
+      required: [id, targetCode, projectName, priorityTier, currentStage]
+
+    WeeklyReviewActionSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        description:
+          type: string
+        owner:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          nullable: true
+        priority:
+          type: string
+        status:
+          type: string
+        targetName:
+          type: string
+        targetCode:
+          type: string
+          nullable: true
+        priorityTier:
+          type: string
+          nullable: true
+        currentStage:
+          type: string
+      required: [id, targetId, description, priority, status, targetName, currentStage]
+
+    WeeklyReviewStageChange:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        targetName:
+          type: string
+        targetCode:
+          type: string
+          nullable: true
+        priorityTier:
+          type: string
+          nullable: true
+        previousStage:
+          type: string
+          nullable: true
+        newStage:
+          type: string
+        changedBy:
+          type: string
+          nullable: true
+        changedAt:
+          type: string
+          nullable: true
+      required: [id, targetId, targetName, newStage]
+
+    WeeklyReviewResponse:
+      type: object
+      properties:
+        mustWin:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReviewTargetSummary"
+        needsAttention:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReviewTargetSummary"
+        overdueActions:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReviewActionSummary"
+        dueThisWeek:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReviewActionSummary"
+        recentStageChanges:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReviewStageChange"
+        recentlyUpdated:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReviewTargetSummary"
+        noOpenAction:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReviewTargetSummary"
+        noRecentInteraction:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReviewTargetSummary"
+      required: [mustWin, needsAttention, overdueActions, dueThisWeek, recentStageChanges, recentlyUpdated, noOpenAction, noRecentInteraction]

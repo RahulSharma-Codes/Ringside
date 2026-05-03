@@ -634,6 +634,137 @@ export const ListOpenActionsResponseItem = zod.object({
 export const ListOpenActionsResponse = zod.array(ListOpenActionsResponseItem);
 
 /**
+ * @summary List all actions for the Action Command Center (open/blocked/in-progress + recently completed 14d)
+ */
+export const ListCommandCenterActionsResponseItem = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  description: zod.string(),
+  owner: zod.string().nullish(),
+  dueDate: zod.string().nullish(),
+  priority: zod.string(),
+  status: zod.string(),
+  createdAt: zod.string().nullish(),
+  completedAt: zod.string().nullish(),
+  targetName: zod.string(),
+  targetCode: zod.string().nullish(),
+  priorityTier: zod.string().nullish(),
+  currentStage: zod.string(),
+});
+export const ListCommandCenterActionsResponse = zod.array(
+  ListCommandCenterActionsResponseItem,
+);
+
+/**
+ * @summary Weekly pipeline review — 8 sections computed server-side in one batch
+ */
+export const GetWeeklyReviewResponse = zod.object({
+  mustWin: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetCode: zod.string(),
+      projectName: zod.string(),
+      priorityTier: zod.string(),
+      currentStage: zod.string(),
+      openActionCount: zod.number().optional(),
+      lastInteractionDate: zod.string().nullish(),
+      updatedAt: zod.string().nullish(),
+    }),
+  ),
+  needsAttention: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetCode: zod.string(),
+      projectName: zod.string(),
+      priorityTier: zod.string(),
+      currentStage: zod.string(),
+      openActionCount: zod.number().optional(),
+      lastInteractionDate: zod.string().nullish(),
+      updatedAt: zod.string().nullish(),
+    }),
+  ),
+  overdueActions: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetId: zod.number(),
+      description: zod.string(),
+      owner: zod.string().nullish(),
+      dueDate: zod.string().nullish(),
+      priority: zod.string(),
+      status: zod.string(),
+      targetName: zod.string(),
+      targetCode: zod.string().nullish(),
+      priorityTier: zod.string().nullish(),
+      currentStage: zod.string(),
+    }),
+  ),
+  dueThisWeek: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetId: zod.number(),
+      description: zod.string(),
+      owner: zod.string().nullish(),
+      dueDate: zod.string().nullish(),
+      priority: zod.string(),
+      status: zod.string(),
+      targetName: zod.string(),
+      targetCode: zod.string().nullish(),
+      priorityTier: zod.string().nullish(),
+      currentStage: zod.string(),
+    }),
+  ),
+  recentStageChanges: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetId: zod.number(),
+      targetName: zod.string(),
+      targetCode: zod.string().nullish(),
+      priorityTier: zod.string().nullish(),
+      previousStage: zod.string().nullish(),
+      newStage: zod.string(),
+      changedBy: zod.string().nullish(),
+      changedAt: zod.string().nullish(),
+    }),
+  ),
+  recentlyUpdated: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetCode: zod.string(),
+      projectName: zod.string(),
+      priorityTier: zod.string(),
+      currentStage: zod.string(),
+      openActionCount: zod.number().optional(),
+      lastInteractionDate: zod.string().nullish(),
+      updatedAt: zod.string().nullish(),
+    }),
+  ),
+  noOpenAction: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetCode: zod.string(),
+      projectName: zod.string(),
+      priorityTier: zod.string(),
+      currentStage: zod.string(),
+      openActionCount: zod.number().optional(),
+      lastInteractionDate: zod.string().nullish(),
+      updatedAt: zod.string().nullish(),
+    }),
+  ),
+  noRecentInteraction: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetCode: zod.string(),
+      projectName: zod.string(),
+      priorityTier: zod.string(),
+      currentStage: zod.string(),
+      openActionCount: zod.number().optional(),
+      lastInteractionDate: zod.string().nullish(),
+      updatedAt: zod.string().nullish(),
+    }),
+  ),
+});
+
+/**
  * @summary Validate parsed CSV/Excel rows before applying
  */
 export const ValidateImportBody = zod.object({

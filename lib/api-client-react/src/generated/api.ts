@@ -20,6 +20,7 @@ import type {
   ActionItem,
   AiAskRequest,
   AiAskResponse,
+  CommandCenterAction,
   CreateActionBody,
   CreateInteractionBody,
   CreateTargetBody,
@@ -42,6 +43,7 @@ import type {
   UpdateInteractionBody,
   UpdateStageBody,
   UpdateTargetBody,
+  WeeklyReviewResponse,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -1900,6 +1902,157 @@ export function useListOpenActions<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListOpenActionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all actions for the Action Command Center (open/blocked/in-progress + recently completed 14d)
+ */
+export const getListCommandCenterActionsUrl = () => {
+  return `/api/actions/command-center`;
+};
+
+export const listCommandCenterActions = async (
+  options?: RequestInit,
+): Promise<CommandCenterAction[]> => {
+  return customFetch<CommandCenterAction[]>(getListCommandCenterActionsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListCommandCenterActionsQueryKey = () => {
+  return [`/api/actions/command-center`] as const;
+};
+
+export const getListCommandCenterActionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCommandCenterActions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listCommandCenterActions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListCommandCenterActionsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listCommandCenterActions>>
+  > = ({ signal }) => listCommandCenterActions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCommandCenterActions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCommandCenterActionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCommandCenterActions>>
+>;
+export type ListCommandCenterActionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all actions for the Action Command Center (open/blocked/in-progress + recently completed 14d)
+ */
+
+export function useListCommandCenterActions<
+  TData = Awaited<ReturnType<typeof listCommandCenterActions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listCommandCenterActions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCommandCenterActionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Weekly pipeline review — 8 sections computed server-side in one batch
+ */
+export const getGetWeeklyReviewUrl = () => {
+  return `/api/review/weekly`;
+};
+
+export const getWeeklyReview = async (
+  options?: RequestInit,
+): Promise<WeeklyReviewResponse> => {
+  return customFetch<WeeklyReviewResponse>(getGetWeeklyReviewUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetWeeklyReviewQueryKey = () => {
+  return [`/api/review/weekly`] as const;
+};
+
+export const getGetWeeklyReviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof getWeeklyReview>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getWeeklyReview>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetWeeklyReviewQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getWeeklyReview>>> = ({
+    signal,
+  }) => getWeeklyReview({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getWeeklyReview>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetWeeklyReviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getWeeklyReview>>
+>;
+export type GetWeeklyReviewQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Weekly pipeline review — 8 sections computed server-side in one batch
+ */
+
+export function useGetWeeklyReview<
+  TData = Awaited<ReturnType<typeof getWeeklyReview>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getWeeklyReview>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetWeeklyReviewQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

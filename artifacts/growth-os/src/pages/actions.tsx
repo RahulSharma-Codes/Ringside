@@ -1,205 +1,387 @@
-import React, { useState } from "react";
-import { useListOpenActions, getListOpenActionsQueryKey, useUpdateAction, useDeleteAction } from "@workspace/api-client-react";
-import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import React, { useState, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useUpdateAction, customFetch } from "@workspace/api-client-react";
+import { Link } from "wouter";
+import { format, parseISO } from "date-fns";
+import {
+  CheckCircle2, RotateCcw, AlertTriangle, Clock,
+  ChevronDown, ChevronRight, Search, SlidersHorizontal,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Clock, AlertTriangle, PlayCircle, Circle, Trash2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format, isPast, parseISO } from "date-fns";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Link } from "wouter";
+import { useToast } from "@/hooks/use-toast";
+
+interface CommandCenterAction {
+  id: number;
+  targetId: number;
+  description: string;
+  owner: string | null;
+  dueDate: string | null;
+  priority: string;
+  status: string;
+  createdAt: string | null;
+  completedAt: string | null;
+  targetName: string;
+  targetCode: string | null;
+  priorityTier: string | null;
+  currentStage: string;
+}
+
+const PRIORITY_ORDER: Record<string, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+
+function tierClass(tier: string | null) {
+  if (tier === "Must-Win") return "bg-primary/10 text-primary border-primary/30";
+  if (tier === "Priority 1") return "bg-amber-500/10 text-amber-600 border-amber-500/30";
+  return "bg-muted text-muted-foreground border-border";
+}
+
+function StatusPill({ status }: { status: string }) {
+  const cls =
+    status === "Blocked" ? "bg-destructive/10 text-destructive border-destructive/20" :
+    status === "In Progress" ? "bg-primary/10 text-primary border-primary/20" :
+    status === "Completed" ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20" :
+    "bg-muted text-muted-foreground border-border";
+  return (
+    <span className={`inline-flex px-1.5 py-0.5 rounded-sm text-[10px] font-mono border ${cls}`}>
+      {status}
+    </span>
+  );
+}
+
+type GroupKey = "overdue" | "blocked" | "this-week" | "upcoming" | "no-date" | "completed";
+
+type GroupDef = {
+  key: GroupKey;
+  label: string;
+  emptyMsg: string;
+  badgeCls: string;
+  defaultOpen: boolean;
+};
+
+const GROUPS: GroupDef[] = [
+  { key: "overdue",   label: "Overdue",           emptyMsg: "No overdue actions — pipeline looks clean.",        badgeCls: "bg-destructive text-white",             defaultOpen: true  },
+  { key: "blocked",   label: "Blocked",            emptyMsg: "No blocked actions.",                               badgeCls: "bg-orange-500 text-white",              defaultOpen: true  },
+  { key: "this-week", label: "Due This Week",       emptyMsg: "Nothing due in the next 7 days.",                  badgeCls: "bg-amber-500 text-white",               defaultOpen: true  },
+  { key: "upcoming",  label: "Upcoming",            emptyMsg: "No upcoming actions with a future due date.",       badgeCls: "bg-primary/80 text-primary-foreground", defaultOpen: true  },
+  { key: "no-date",   label: "No Due Date",         emptyMsg: "All actions have due dates assigned.",             badgeCls: "bg-muted-foreground text-white",         defaultOpen: false },
+  { key: "completed", label: "Recently Completed",  emptyMsg: "No actions completed in the last 14 days.",        badgeCls: "bg-emerald-600 text-white",             defaultOpen: false },
+];
+
+function classifyAction(a: CommandCenterAction, todayStr: string, weekEndStr: string): GroupKey {
+  if (a.status === "Completed") return "completed";
+  if (a.status === "Blocked") return "blocked";
+  if (!a.dueDate) return "no-date";
+  if (a.dueDate < todayStr) return "overdue";
+  if (a.dueDate <= weekEndStr) return "this-week";
+  return "upcoming";
+}
+
+function ActionCard({
+  action, todayStr, onComplete, onReopen, isPending,
+}: {
+  action: CommandCenterAction;
+  todayStr: string;
+  onComplete: () => void;
+  onReopen: () => void;
+  isPending: boolean;
+}) {
+  const isOverdue = action.dueDate && action.dueDate < todayStr && action.status !== "Completed";
+
+  return (
+    <Card className="border-border bg-card/60 rounded-sm">
+      <CardContent className="p-4 space-y-2.5">
+        <div className="flex items-start gap-3">
+          <p className="text-sm font-medium leading-snug flex-1">{action.description}</p>
+          {action.status !== "Completed" ? (
+            <Button
+              size="sm"
+              className="h-7 text-[10px] font-mono uppercase rounded-sm bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
+              onClick={onComplete}
+              disabled={isPending}
+            >
+              <CheckCircle2 size={11} className="mr-1" /> Done
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-[10px] font-mono uppercase rounded-sm shrink-0"
+              onClick={onReopen}
+              disabled={isPending}
+            >
+              <RotateCcw size={11} className="mr-1" /> Reopen
+            </Button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-1.5 items-center">
+          <Link href={`/targets/${action.targetId}`}>
+            <span className="text-[11px] font-mono text-primary hover:underline underline-offset-2 cursor-pointer">
+              {action.targetName}{action.targetCode ? ` · ${action.targetCode}` : ""}
+            </span>
+          </Link>
+          {action.priorityTier && (
+            <span className={`inline-flex px-1.5 py-0.5 rounded-sm text-[10px] font-mono border ${tierClass(action.priorityTier)}`}>
+              {action.priorityTier}
+            </span>
+          )}
+          <span className="text-[10px] font-mono text-muted-foreground border border-border px-1.5 py-0.5 rounded-sm">
+            {action.currentStage}
+          </span>
+          <StatusPill status={action.status} />
+          <Badge
+            variant={action.priority === "Critical" ? "destructive" : action.priority === "High" ? "outline" : "secondary"}
+            className="text-[10px] font-mono"
+          >
+            {action.priority}
+          </Badge>
+        </div>
+
+        <div className="flex flex-wrap gap-4 text-[11px] text-muted-foreground">
+          <span>Owner: <span className="text-foreground">{action.owner ?? "Unassigned"}</span></span>
+          {action.dueDate && (
+            <span className={`flex items-center gap-1 ${isOverdue ? "text-destructive font-semibold" : ""}`}>
+              <Clock size={11} />
+              {isOverdue && <AlertTriangle size={11} />}
+              {format(parseISO(action.dueDate), "MMM d, yyyy")}
+              {isOverdue && " · Overdue"}
+            </span>
+          )}
+          {action.completedAt && action.status === "Completed" && (
+            <span className="flex items-center gap-1 text-emerald-600">
+              <CheckCircle2 size={11} />
+              Completed {format(parseISO(action.completedAt), "MMM d")}
+            </span>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function GroupSection({
+  group, actions, todayStr, onComplete, onReopen, isPending,
+}: {
+  group: GroupDef;
+  actions: CommandCenterAction[];
+  todayStr: string;
+  onComplete: (id: number) => void;
+  onReopen: (id: number) => void;
+  isPending: boolean;
+}) {
+  const [open, setOpen] = useState(group.defaultOpen);
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-2 py-1.5 text-left"
+      >
+        {open
+          ? <ChevronDown size={14} className="text-muted-foreground" />
+          : <ChevronRight size={14} className="text-muted-foreground" />}
+        <span className="text-[11px] font-mono uppercase tracking-wider font-semibold">{group.label}</span>
+        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${group.badgeCls}`}>
+          {actions.length}
+        </span>
+      </button>
+
+      {open && (
+        <div className="mt-2 space-y-2">
+          {actions.length === 0 ? (
+            <p className="text-[11px] text-muted-foreground font-mono px-3 py-3 border border-dashed border-border rounded-sm">
+              {group.emptyMsg}
+            </p>
+          ) : (
+            actions.map((a) => (
+              <ActionCard
+                key={a.id}
+                action={a}
+                todayStr={todayStr}
+                onComplete={() => onComplete(a.id)}
+                onReopen={() => onReopen(a.id)}
+                isPending={isPending}
+              />
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Actions() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [ownerFilter, setOwnerFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [mustWinOnly, setMustWinOnly] = useState(false);
+  const [overdueOnly, setOverdueOnly] = useState(false);
+  const [search, setSearch] = useState("");
 
-  const { data: actions, isLoading } = useListOpenActions({
-    query: {
-      queryKey: getListOpenActionsQueryKey()
-    }
+  const { data: actions, isLoading } = useQuery({
+    queryKey: ["actions-command-center"],
+    queryFn: () => customFetch<CommandCenterAction[]>("/api/actions/command-center"),
   });
 
   const updateAction = useUpdateAction();
-  const deleteAction = useDeleteAction();
 
-  const handleStatusChange = (id: number, newStatus: string) => {
+  const handleStatus = (id: number, status: string) => {
     updateAction.mutate(
-      { id, data: { status: newStatus } },
+      { id, data: { status } },
       {
         onSuccess: () => {
-          toast({ title: "Status updated" });
-          queryClient.invalidateQueries({ queryKey: getListOpenActionsQueryKey() });
+          toast({ title: status === "Completed" ? "Action completed" : "Action reopened" });
+          queryClient.invalidateQueries({ queryKey: ["actions-command-center"] });
         },
-        onError: () => {
-          toast({ title: "Error", description: "Could not update action", variant: "destructive" });
-        }
-      }
+        onError: () => toast({ title: "Error updating action", variant: "destructive" }),
+      },
     );
   };
 
-  const handleDeleteAction = (id: number) => {
-    deleteAction.mutate(
-      { id },
-      {
-        onSuccess: () => {
-          toast({ title: "Action deleted" });
-          queryClient.invalidateQueries({ queryKey: getListOpenActionsQueryKey() });
-        },
-        onError: () => {
-          toast({ title: "Error", description: "Could not delete action", variant: "destructive" });
-        }
+  const owners = useMemo(
+    () => Array.from(new Set((actions ?? []).map((a) => a.owner).filter((o): o is string => !!o))),
+    [actions],
+  );
+
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const weekEndStr = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().slice(0, 10);
+  }, []);
+
+  const filtered = useMemo(() => {
+    if (!actions) return [];
+    return actions.filter((a) => {
+      if (ownerFilter !== "all" && a.owner !== ownerFilter) return false;
+      if (priorityFilter !== "all" && a.priority !== priorityFilter) return false;
+      if (mustWinOnly && a.priorityTier !== "Must-Win") return false;
+      if (overdueOnly) {
+        const isOver = a.dueDate && a.dueDate < todayStr && a.status !== "Completed";
+        if (!isOver) return false;
       }
-    );
-  };
+      if (search) {
+        const q = search.toLowerCase();
+        if (!a.description.toLowerCase().includes(q) && !a.targetName.toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+  }, [actions, ownerFilter, priorityFilter, mustWinOnly, overdueOnly, search, todayStr]);
 
-  const filteredActions = actions?.filter(a => priorityFilter === "all" || a.priority === priorityFilter) || [];
-
-  const getPriorityIcon = (priority: string) => {
-    switch (priority) {
-      case "Critical": return <AlertTriangle size={14} className="text-destructive" />;
-      case "High": return <AlertTriangle size={14} className="text-amber-500" />;
-      case "Medium": return <Circle size={14} className="text-primary" />;
-      default: return <Circle size={14} className="text-muted-foreground" />;
+  const grouped = useMemo(() => {
+    const map = Object.fromEntries(
+      GROUPS.map((g) => [g.key, [] as CommandCenterAction[]]),
+    ) as Record<GroupKey, CommandCenterAction[]>;
+    for (const a of filtered) map[classifyAction(a, todayStr, weekEndStr)].push(a);
+    for (const g of GROUPS) {
+      map[g.key].sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 9) - (PRIORITY_ORDER[b.priority] ?? 9));
     }
-  };
+    return map;
+  }, [filtered, todayStr, weekEndStr]);
+
+  const totalOpen = useMemo(
+    () => (actions ?? []).filter((a) => a.status !== "Completed").length,
+    [actions],
+  );
 
   return (
-    <div className="p-6 md:p-8 space-y-6 h-full flex flex-col animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0">
+    <div className="flex flex-col h-full">
+      <div className="p-4 md:p-6 border-b border-border shrink-0 space-y-3">
         <div>
-          <h1 className="text-2xl font-bold font-mono tracking-tight uppercase">Action Tracker</h1>
-          <p className="text-sm text-muted-foreground">Centralized view of all open deal activities</p>
+          <h1 className="text-xl font-bold font-mono tracking-tight uppercase">Action Command Center</h1>
+          <p className="text-sm text-muted-foreground">
+            {isLoading ? "Loading…" : `${totalOpen} open action${totalOpen !== 1 ? "s" : ""} across all deals`}
+          </p>
         </div>
-        
-        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-          <SelectTrigger className="w-[180px] rounded-sm font-mono text-[11px] uppercase border-border bg-background/50">
-            <SelectValue placeholder="Filter Priority" />
-          </SelectTrigger>
-          <SelectContent className="rounded-sm font-mono text-[11px] uppercase">
-            <SelectItem value="all">All Priorities</SelectItem>
-            <SelectItem value="Critical">Critical</SelectItem>
-            <SelectItem value="High">High</SelectItem>
-            <SelectItem value="Medium">Medium</SelectItem>
-            <SelectItem value="Low">Low</SelectItem>
-          </SelectContent>
-        </Select>
+
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="relative flex-1 min-w-[160px] max-w-xs">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search actions…"
+              className="pl-8 h-8 text-sm rounded-sm"
+            />
+          </div>
+
+          <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+            <SelectTrigger className="w-[140px] h-8 rounded-sm font-mono text-[11px]">
+              <SelectValue placeholder="Owner" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Owners</SelectItem>
+              {owners.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+            <SelectTrigger className="w-[130px] h-8 rounded-sm font-mono text-[11px]">
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Priorities</SelectItem>
+              <SelectItem value="Critical">Critical</SelectItem>
+              <SelectItem value="High">High</SelectItem>
+              <SelectItem value="Medium">Medium</SelectItem>
+              <SelectItem value="Low">Low</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <button
+            onClick={() => setMustWinOnly((v) => !v)}
+            className={`h-8 px-3 rounded-sm text-[11px] font-mono border transition-colors ${
+              mustWinOnly
+                ? "bg-primary text-primary-foreground border-primary"
+                : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/40"
+            }`}
+          >
+            Must-Win
+          </button>
+
+          <button
+            onClick={() => setOverdueOnly((v) => !v)}
+            className={`h-8 px-3 rounded-sm text-[11px] font-mono border transition-colors flex items-center gap-1.5 ${
+              overdueOnly
+                ? "bg-destructive text-white border-destructive"
+                : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/40"
+            }`}
+          >
+            <SlidersHorizontal size={12} />
+            Overdue Only
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 border border-border rounded-sm bg-card/50 overflow-hidden flex flex-col">
-        <div className="flex-1 overflow-auto">
-          <Table>
-            <TableHeader className="bg-muted/50 sticky top-0 z-10 backdrop-blur-sm">
-              <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground w-[30px]"></TableHead>
-                <TableHead className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Action</TableHead>
-                <TableHead className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Target</TableHead>
-                <TableHead className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Owner</TableHead>
-                <TableHead className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Due Date</TableHead>
-                <TableHead className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground text-right">Update Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array(5).fill(0).map((_, i) => (
-                  <TableRow key={i} className="border-border">
-                    <TableCell><Skeleton className="h-4 w-4" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-[250px]" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-[80px]" /></TableCell>
-                    <TableCell><Skeleton className="h-8 w-[120px] ml-auto" /></TableCell>
-                  </TableRow>
-                ))
-              ) : filteredActions.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-muted-foreground font-mono text-[11px] uppercase tracking-widest">
-                    No open actions found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredActions.map((action) => {
-                  const isOverdue = action.dueDate && isPast(parseISO(action.dueDate));
-                  
-                  return (
-                    <TableRow key={action.id} className="border-border hover:bg-muted/30 transition-colors group">
-                      <TableCell>
-                        <div title={action.priority}>
-                          {getPriorityIcon(action.priority)}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium text-sm">{action.description}</div>
-                        <div className="font-mono text-[10px] text-muted-foreground uppercase flex items-center gap-2 mt-1">
-                          <span className={
-                            action.status === "In Progress" ? "text-primary" :
-                            action.status === "Blocked" ? "text-destructive" : ""
-                          }>
-                            {action.status}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Link href={`/targets/${action.targetId}`} className="text-sm font-medium hover:underline hover:text-primary transition-colors">
-                          {action.targetName || `Target #${action.targetId}`}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {action.owner || "Unassigned"}
-                      </TableCell>
-                      <TableCell>
-                        {action.dueDate ? (
-                          <div className={`flex items-center gap-1.5 text-sm ${isOverdue ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
-                            <Clock size={12} />
-                            {format(parseISO(action.dueDate), 'MMM d')}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2 items-center">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => handleDeleteAction(action.id)}
-                            disabled={deleteAction.isPending}
-                          >
-                            <Trash2 size={12} />
-                          </Button>
-                          {action.status !== "In Progress" && (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="h-7 text-[10px] font-mono uppercase rounded-sm border-border"
-                              onClick={() => handleStatusChange(action.id, "In Progress")}
-                              disabled={updateAction.isPending}
-                            >
-                              <PlayCircle size={12} className="mr-1" /> Start
-                            </Button>
-                          )}
-                          <Button 
-                            size="sm" 
-                            variant="default" 
-                            className="h-7 text-[10px] font-mono uppercase rounded-sm bg-emerald-600 hover:bg-emerald-700 text-white"
-                            onClick={() => handleStatusChange(action.id, "Completed")}
-                            disabled={updateAction.isPending}
-                          >
-                            <CheckCircle2 size={12} className="mr-1" /> Done
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
+      <div className="flex-1 overflow-auto p-4 md:p-6 space-y-5">
+        {isLoading ? (
+          Array(3).fill(0).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-24 w-full rounded-sm" />
+              <Skeleton className="h-24 w-full rounded-sm" />
+            </div>
+          ))
+        ) : (
+          GROUPS.map((g) => (
+            <GroupSection
+              key={g.key}
+              group={g}
+              actions={grouped[g.key] ?? []}
+              todayStr={todayStr}
+              onComplete={(id) => handleStatus(id, "Completed")}
+              onReopen={(id) => handleStatus(id, "Open")}
+              isPending={updateAction.isPending}
+            />
+          ))
+        )}
       </div>
     </div>
   );

@@ -1,0 +1,62 @@
+Approved. Proceed with Phase 4A, but follow these guardrails:
+
+1. Preserve all existing working features:
+   - login
+   - Dashboard
+   - Pipeline
+   - Import Wizard
+   - AI Copilot graceful billing/setup state
+   - target detail cockpit
+   - interaction/action edit
+   - complete/reopen actions
+   - stage change audit log
+
+2. Do not run:
+   - drizzle push
+   - seed.ts
+   - migrations
+   - destructive database operations
+
+3. Do not change:
+   - DATABASE_URL
+   - auth middleware
+   - Supabase table mappings
+   - AI route behavior
+
+4. Remember current schema assumptions:
+   - actions table is "actions", not "action_items"
+   - stage comes from milestones/current stage logic
+   - stage history comes from stage_change_log
+   - use existing action status values: Open, In Progress, Blocked, Completed
+
+5. For completed actions:
+   - If completedAt does not exist or is unreliable, use updatedAt as fallback and report the limitation.
+   - Do not add a new column.
+
+6. For recently updated targets:
+   - If updatedAt exists, use it.
+   - If not, fall back to best available timestamp and report the limitation.
+
+7. For no recent interaction:
+   - Do not flag newly created targets immediately.
+   - Only flag targets with no interaction if created more than 30 days ago, or latest interaction is more than 30 days ago.
+
+8. For Weekly Review:
+   - Every section must render even when empty.
+   - Use useful empty states instead of hiding sections.
+
+9. For action Complete/Reopen:
+   - Reuse existing update action route/mutation.
+   - Do not create duplicate status update logic unless absolutely necessary.
+
+10. For OpenAPI/codegen:
+   - Follow existing path conventions.
+   - Avoid accidentally creating /api/api/... paths.
+   - If codegen creates conflicts, stop and report rather than refactoring the app architecture.
+
+11. Run pnpm run typecheck after implementation and report:
+   - changed files
+   - routes added/modified
+   - packages added, if any
+   - typecheck result
+   - manual smoke-test result
