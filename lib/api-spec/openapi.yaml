@@ -3,20 +3,27 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Inorganic Growth OS API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: targets
+    description: Deal target operations
+  - name: interactions
+    description: Interaction log operations
+  - name: actions
+    description: Action item operations
+  - name: dashboard
+    description: Dashboard and analytics
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +31,353 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /targets:
+    get:
+      operationId: listTargets
+      tags: [targets]
+      summary: List all deal targets
+      parameters:
+        - name: sector
+          in: query
+          schema:
+            type: string
+        - name: priorityTier
+          in: query
+          schema:
+            type: string
+        - name: stage
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of targets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Target"
+    post:
+      operationId: createTarget
+      tags: [targets]
+      summary: Create a new deal target
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTargetBody"
+      responses:
+        "201":
+          description: Target created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Target"
+
+  /targets/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Executive dashboard summary stats
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /targets/by-stage:
+    get:
+      operationId: getTargetsByStage
+      tags: [dashboard]
+      summary: Targets grouped by pipeline stage
+      responses:
+        "200":
+          description: Stage breakdown
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StageCount"
+
+  /targets/top-priority:
+    get:
+      operationId: getTopPriorityTargets
+      tags: [dashboard]
+      summary: Top priority-scored targets
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 5
+      responses:
+        "200":
+          description: Top targets by priority score
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Target"
+
+  /targets/{id}:
+    get:
+      operationId: getTarget
+      tags: [targets]
+      summary: Get a single target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Target detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TargetDetail"
+        "404":
+          description: Not found
+    put:
+      operationId: updateTarget
+      tags: [targets]
+      summary: Update a target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTargetBody"
+      responses:
+        "200":
+          description: Target updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Target"
+    delete:
+      operationId: deleteTarget
+      tags: [targets]
+      summary: Soft-delete a target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /targets/{id}/stage:
+    put:
+      operationId: updateTargetStage
+      tags: [targets]
+      summary: Update pipeline stage (with audit log)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStageBody"
+      responses:
+        "200":
+          description: Stage updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Target"
+
+  /targets/{id}/stage-history:
+    get:
+      operationId: getStageHistory
+      tags: [targets]
+      summary: Audit trail of stage changes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Stage change history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StageChange"
+
+  /targets/{id}/interactions:
+    get:
+      operationId: listInteractions
+      tags: [interactions]
+      summary: List interactions for a target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Interactions list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Interaction"
+    post:
+      operationId: createInteraction
+      tags: [interactions]
+      summary: Log an interaction for a target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInteractionBody"
+      responses:
+        "201":
+          description: Interaction created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Interaction"
+
+  /targets/{id}/actions:
+    get:
+      operationId: listActions
+      tags: [actions]
+      summary: List action items for a target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Action items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActionItem"
+    post:
+      operationId: createAction
+      tags: [actions]
+      summary: Create an action item for a target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateActionBody"
+      responses:
+        "201":
+          description: Action created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionItem"
+
+  /actions/{id}:
+    put:
+      operationId: updateAction
+      tags: [actions]
+      summary: Update an action item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateActionBody"
+      responses:
+        "200":
+          description: Action updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionItem"
+    delete:
+      operationId: deleteAction
+      tags: [actions]
+      summary: Delete an action item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /actions/open:
+    get:
+      operationId: listOpenActions
+      tags: [actions]
+      summary: List all open/overdue actions across all targets
+      responses:
+        "200":
+          description: Open actions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActionItem"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +385,449 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    Target:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetCode:
+          type: string
+        projectName:
+          type: string
+        legalName:
+          type: string
+          nullable: true
+        businessUnit:
+          type: string
+          nullable: true
+        sector:
+          type: string
+          nullable: true
+        subsector:
+          type: string
+          nullable: true
+        geographyRegion:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        sourcingChannel:
+          type: string
+          nullable: true
+        sourcingFirm:
+          type: string
+          nullable: true
+        dealOwner:
+          type: string
+          nullable: true
+        dealChampion:
+          type: string
+          nullable: true
+        executiveSponsor:
+          type: string
+          nullable: true
+        priorityTier:
+          type: string
+        strategicRationale:
+          type: string
+          nullable: true
+        strategicFitScore:
+          type: integer
+        synergyScore:
+          type: integer
+        financialAttractivenessScore:
+          type: integer
+        processMaturityScore:
+          type: integer
+        riskPenaltyScore:
+          type: integer
+        priorityScore:
+          type: integer
+        currentStage:
+          type: string
+        isActive:
+          type: boolean
+        isConfidential:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - targetCode
+        - projectName
+        - priorityTier
+        - strategicFitScore
+        - synergyScore
+        - financialAttractivenessScore
+        - processMaturityScore
+        - riskPenaltyScore
+        - priorityScore
+        - currentStage
+        - isActive
+        - isConfidential
+        - createdAt
+        - updatedAt
+
+    TargetDetail:
+      allOf:
+        - $ref: "#/components/schemas/Target"
+        - type: object
+          properties:
+            interactions:
+              type: array
+              items:
+                $ref: "#/components/schemas/Interaction"
+            actions:
+              type: array
+              items:
+                $ref: "#/components/schemas/ActionItem"
+            stageHistory:
+              type: array
+              items:
+                $ref: "#/components/schemas/StageChange"
+          required: [interactions, actions, stageHistory]
+
+    CreateTargetBody:
+      type: object
+      properties:
+        targetCode:
+          type: string
+        projectName:
+          type: string
+        legalName:
+          type: string
+          nullable: true
+        businessUnit:
+          type: string
+          nullable: true
+        sector:
+          type: string
+          nullable: true
+        subsector:
+          type: string
+          nullable: true
+        geographyRegion:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        sourcingChannel:
+          type: string
+          nullable: true
+        sourcingFirm:
+          type: string
+          nullable: true
+        dealOwner:
+          type: string
+          nullable: true
+        dealChampion:
+          type: string
+          nullable: true
+        executiveSponsor:
+          type: string
+          nullable: true
+        priorityTier:
+          type: string
+          default: Watchlist
+        strategicRationale:
+          type: string
+          nullable: true
+        strategicFitScore:
+          type: integer
+          default: 50
+        synergyScore:
+          type: integer
+          default: 50
+        financialAttractivenessScore:
+          type: integer
+          default: 50
+        processMaturityScore:
+          type: integer
+          default: 50
+        riskPenaltyScore:
+          type: integer
+          default: 0
+        isConfidential:
+          type: boolean
+          default: true
+      required: [targetCode, projectName]
+
+    UpdateTargetBody:
+      type: object
+      properties:
+        projectName:
+          type: string
+        legalName:
+          type: string
+          nullable: true
+        businessUnit:
+          type: string
+          nullable: true
+        sector:
+          type: string
+          nullable: true
+        subsector:
+          type: string
+          nullable: true
+        geographyRegion:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        sourcingChannel:
+          type: string
+          nullable: true
+        sourcingFirm:
+          type: string
+          nullable: true
+        dealOwner:
+          type: string
+          nullable: true
+        dealChampion:
+          type: string
+          nullable: true
+        executiveSponsor:
+          type: string
+          nullable: true
+        priorityTier:
+          type: string
+        strategicRationale:
+          type: string
+          nullable: true
+        strategicFitScore:
+          type: integer
+        synergyScore:
+          type: integer
+        financialAttractivenessScore:
+          type: integer
+        processMaturityScore:
+          type: integer
+        riskPenaltyScore:
+          type: integer
+        isActive:
+          type: boolean
+        isConfidential:
+          type: boolean
+
+    UpdateStageBody:
+      type: object
+      properties:
+        newStage:
+          type: string
+        changedBy:
+          type: string
+          nullable: true
+        changeReason:
+          type: string
+          nullable: true
+      required: [newStage]
+
+    StageChange:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        previousStage:
+          type: string
+          nullable: true
+        newStage:
+          type: string
+        changedBy:
+          type: string
+          nullable: true
+        changeReason:
+          type: string
+          nullable: true
+        changedAt:
+          type: string
+          format: date-time
+      required: [id, targetId, newStage, changedAt]
+
+    Interaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        interactionType:
+          type: string
+        interactionDatetime:
+          type: string
+          format: date-time
+        participantsInternal:
+          type: string
+          nullable: true
+        participantsExternal:
+          type: string
+          nullable: true
+        summary:
+          type: string
+        sentiment:
+          type: string
+          nullable: true
+        promoterWillingness:
+          type: string
+          nullable: true
+        valuationSignal:
+          type: string
+          nullable: true
+        createdBy:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, targetId, interactionType, interactionDatetime, summary, createdAt]
+
+    CreateInteractionBody:
+      type: object
+      properties:
+        interactionType:
+          type: string
+        summary:
+          type: string
+        participantsInternal:
+          type: string
+          nullable: true
+        participantsExternal:
+          type: string
+          nullable: true
+        sentiment:
+          type: string
+          nullable: true
+        promoterWillingness:
+          type: string
+          nullable: true
+        valuationSignal:
+          type: string
+          nullable: true
+        createdBy:
+          type: string
+          nullable: true
+        interactionDatetime:
+          type: string
+          format: date-time
+          nullable: true
+      required: [interactionType, summary]
+
+    ActionItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        interactionId:
+          type: integer
+          nullable: true
+        description:
+          type: string
+        owner:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+        priority:
+          type: string
+        status:
+          type: string
+        targetName:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, targetId, description, priority, status, createdAt]
+
+    CreateActionBody:
+      type: object
+      properties:
+        description:
+          type: string
+        owner:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+        priority:
+          type: string
+          default: Medium
+        interactionId:
+          type: integer
+          nullable: true
+      required: [description]
+
+    UpdateActionBody:
+      type: object
+      properties:
+        description:
+          type: string
+        owner:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+        priority:
+          type: string
+        status:
+          type: string
+
+    DashboardSummary:
+      type: object
+      properties:
+        activeTargets:
+          type: integer
+        mustWinCount:
+          type: integer
+        priority1Count:
+          type: integer
+        openActionsCount:
+          type: integer
+        overdueActionsCount:
+          type: integer
+        closedDealsCount:
+          type: integer
+        droppedDealsCount:
+          type: integer
+        avgPriorityScore:
+          type: number
+      required:
+        - activeTargets
+        - mustWinCount
+        - priority1Count
+        - openActionsCount
+        - overdueActionsCount
+        - closedDealsCount
+        - droppedDealsCount
+        - avgPriorityScore
+
+    StageCount:
+      type: object
+      properties:
+        stage:
+          type: string
+        count:
+          type: integer
+      required: [stage, count]
