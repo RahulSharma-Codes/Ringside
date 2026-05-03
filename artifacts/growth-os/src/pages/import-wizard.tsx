@@ -44,9 +44,23 @@ const FIELD_LABELS: Record<string, string> = Object.fromEntries(
   DB_FIELDS.filter((f) => f.value !== "__skip__").map((f) => [f.value, f.label])
 );
 
+// Canonical label→value map derived directly from DB_FIELDS so that
+// any header that exactly matches a template label always maps correctly.
+const CANONICAL_MAP: Record<string, string> = Object.fromEntries(
+  DB_FIELDS.filter((f) => f.value !== "__skip__").map((f) => [
+    f.label.toLowerCase().replace(/[\s_\-/]+/g, ""),
+    f.value,
+  ])
+);
+
 // Heuristic auto-map: csv column header → db field (no score fields)
+// Canonical template-label matches are checked first so re-importing the
+// downloaded template always maps every column correctly without manual edits.
 function autoMap(header: string): string {
   const h = header.toLowerCase().replace(/[\s_\-/]+/g, "");
+  // 1. Exact canonical match against DB_FIELDS labels (covers all template headers)
+  if (CANONICAL_MAP[h]) return CANONICAL_MAP[h];
+  // 2. Heuristic aliases for common third-party / custom headers
   const MAP: Record<string, string> = {
     targetcode: "targetCode", code: "targetCode",
     projectname: "projectName", project: "projectName", name: "projectName",
