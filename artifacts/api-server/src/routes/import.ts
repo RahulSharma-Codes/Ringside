@@ -40,6 +40,9 @@ const VALID_STAGES = new Set([
   "Signed",
 ]);
 
+// Terminal stages drive isActive — must match targets.ts exactly
+const TERMINAL_STAGES = new Set(["Rejected", "Closing", "Closed", "Completed", "Signed"]);
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface ImportRow {
@@ -59,11 +62,6 @@ interface ImportRow {
   priorityTier?: string;
   stage?: string;
   strategicRationale?: string;
-  strategicFitScore?: number;
-  synergyScore?: number;
-  financialAttractivenessScore?: number;
-  processMaturityScore?: number;
-  riskPenaltyScore?: number;
 }
 
 interface RawRequestRow {
@@ -96,12 +94,6 @@ function isBlank(v: unknown): boolean {
   return str(v) === "";
 }
 
-function toNum(v: unknown): number | undefined {
-  if (v === undefined || v === null || v === "") return undefined;
-  const n = Number(v);
-  return isNaN(n) ? undefined : Math.round(Math.max(0, Math.min(100, n)));
-}
-
 function defaultMilestoneValues(targetId: number, now: Date, stage = "Sourcing") {
   return {
     targetId,
@@ -118,7 +110,16 @@ function defaultMilestoneValues(targetId: number, now: Date, stage = "Sourcing")
   };
 }
 
-/** Map raw row through the column map, producing a typed ImportRow */
+// Allowed importable fields — score fields are explicitly excluded (out of scope)
+const ALLOWED_FIELDS = new Set([
+  "targetCode", "projectName", "legalName", "businessUnit", "sector",
+  "subsector", "geographyRegion", "country", "sourcingChannel", "sourcingFirm",
+  "dealOwner", "dealChampion", "executiveSponsor", "priorityTier", "stage",
+  "strategicRationale", "notes",
+]);
+
+/** Map raw row through the column map, producing a typed ImportRow.
+ *  Score fields are silently ignored — they are out of scope for import. */
 function applyColumnMap(
   rawRow: Record<string, unknown>,
   columnMap: Record<string, string>,
@@ -127,12 +128,13 @@ function applyColumnMap(
 
   for (const [csvCol, field] of Object.entries(columnMap)) {
     if (!field || field === "__skip__") continue;
+    if (!ALLOWED_FIELDS.has(field)) continue; // silently skip score/unknown fields
     const val = rawRow[csvCol];
     if (isBlank(val)) continue;
     mapped[field] = str(val);
   }
 
-  // Resolve "notes" alias
+  // Resolve "notes" alias → strategicRationale (only if strategicRationale not already mapped)
   if ("notes" in mapped && !("strategicRationale" in mapped)) {
     mapped["strategicRationale"] = mapped["notes"];
     delete mapped["notes"];
@@ -159,11 +161,6 @@ function applyColumnMap(
   result.priorityTier = s("priorityTier");
   result.stage = s("stage");
   result.strategicRationale = s("strategicRationale");
-  result.strategicFitScore = toNum(mapped["strategicFitScore"]);
-  result.synergyScore = toNum(mapped["synergyScore"]);
-  result.financialAttractivenessScore = toNum(mapped["financialAttractivenessScore"]);
-  result.processMaturityScore = toNum(mapped["processMaturityScore"]);
-  result.riskPenaltyScore = toNum(mapped["riskPenaltyScore"]);
 
   // Remove undefined keys
   for (const key of Object.keys(result) as (keyof ImportRow)[]) {
@@ -198,7 +195,7 @@ router.post("/validate", async (req, res) => {
     );
   }
 
-  // Fetch existing targets and milestones for match lookup
+  // Fetch existing targets for match lookup (only fields we compare on import)
   const existingRows = await db
     .select({
       id: targetsTable.id,
@@ -217,11 +214,6 @@ router.post("/validate", async (req, res) => {
       executiveSponsor: targetsTable.executiveSponsor,
       priorityTier: targetsTable.priorityTier,
       strategicRationale: targetsTable.strategicRationale,
-      strategicFitScore: targetsTable.strategicFitScore,
-      synergyScore: targetsTable.synergyScore,
-      financialAttractivenessScore: targetsTable.financialAttractivenessScore,
-      processMaturityScore: targetsTable.processMaturityScore,
-      riskPenaltyScore: targetsTable.riskPenaltyScore,
     })
     .from(targetsTable);
 
@@ -265,7 +257,7 @@ router.post("/validate", async (req, res) => {
     const code = data.targetCode?.toLowerCase();
 
     if (code && codeToExisting.has(code)) {
-      // UPDATE path
+      // UPDATE path — compare only importable string fields (no scores)
       const existing = codeToExisting.get(code)!;
       const changedFields: string[] = [];
 
@@ -286,23 +278,6 @@ router.post("/validate", async (req, res) => {
         if (incoming === undefined || isBlank(incoming)) continue;
         const dbVal = (existing as Record<string, unknown>)[field];
         if (String(incoming) !== String(dbVal ?? "")) changedFields.push(field);
-      }
-
-      type NumField = keyof Pick<ImportRow,
-        "strategicFitScore" | "synergyScore" | "financialAttractivenessScore" |
-        "processMaturityScore" | "riskPenaltyScore"
-      >;
-
-      const NUM_FIELDS: NumField[] = [
-        "strategicFitScore", "synergyScore", "financialAttractivenessScore",
-        "processMaturityScore", "riskPenaltyScore",
-      ];
-
-      for (const field of NUM_FIELDS) {
-        const incoming = data[field];
-        if (incoming === undefined) continue;
-        const dbVal = (existing as Record<string, unknown>)[field];
-        if (incoming !== (dbVal as number)) changedFields.push(field);
       }
 
       let newStage: string | undefined;
@@ -401,12 +376,13 @@ router.post("/apply", async (req, res) => {
           executiveSponsor: data.executiveSponsor ?? null,
           priorityTier: data.priorityTier ?? "Watchlist",
           strategicRationale: data.strategicRationale ?? null,
-          strategicFitScore: data.strategicFitScore ?? 50,
-          synergyScore: data.synergyScore ?? 50,
-          financialAttractivenessScore: data.financialAttractivenessScore ?? 50,
-          processMaturityScore: data.processMaturityScore ?? 50,
-          riskPenaltyScore: data.riskPenaltyScore ?? 0,
-          isActive: true,
+          // Scores are not importable — set to DB defaults explicitly
+          strategicFitScore: 50,
+          synergyScore: 50,
+          financialAttractivenessScore: 50,
+          processMaturityScore: 50,
+          riskPenaltyScore: 0,
+          isActive: !TERMINAL_STAGES.has(initialStage),
           isConfidential: true,
           createdAt: now,
           updatedAt: now,
@@ -439,7 +415,7 @@ router.post("/apply", async (req, res) => {
     try {
       const now = new Date();
 
-      // Build patch explicitly — only include fields that changed and are not blank
+      // Build patch for non-stage fields — never include score fields
       const patch: Partial<typeof targetsTable.$inferInsert> & { updatedAt: Date } = {
         updatedAt: now,
       };
@@ -472,45 +448,39 @@ router.post("/apply", async (req, res) => {
         patch.priorityTier = data.priorityTier!;
       if (changedFields.includes("strategicRationale") && !isBlank(data.strategicRationale))
         patch.strategicRationale = data.strategicRationale!;
-      if (changedFields.includes("strategicFitScore") && data.strategicFitScore !== undefined)
-        patch.strategicFitScore = data.strategicFitScore;
-      if (changedFields.includes("synergyScore") && data.synergyScore !== undefined)
-        patch.synergyScore = data.synergyScore;
-      if (changedFields.includes("financialAttractivenessScore") && data.financialAttractivenessScore !== undefined)
-        patch.financialAttractivenessScore = data.financialAttractivenessScore;
-      if (changedFields.includes("processMaturityScore") && data.processMaturityScore !== undefined)
-        patch.processMaturityScore = data.processMaturityScore;
-      if (changedFields.includes("riskPenaltyScore") && data.riskPenaltyScore !== undefined)
-        patch.riskPenaltyScore = data.riskPenaltyScore;
 
-      // Only update targets table if there are non-stage changes
-      const hasTargetChanges = Object.keys(patch).length > 1; // more than just updatedAt
-      if (hasTargetChanges) {
-        await db
-          .update(targetsTable)
-          .set(patch)
-          .where(eq(targetsTable.id, existingId));
-      } else if (changedFields.includes("stage")) {
-        // Stage-only change: still bump updatedAt
-        await db
-          .update(targetsTable)
-          .set({ updatedAt: now })
-          .where(eq(targetsTable.id, existingId));
+      // If stage is changing, fold isActive into the same targets update
+      if (newStage && changedFields.includes("stage") && VALID_STAGES.has(newStage)) {
+        patch.isActive = !TERMINAL_STAGES.has(newStage);
       }
 
-      // Stage change — mirrors PUT /:id/stage logic
+      // Always update targets table (at minimum bumps updatedAt + possibly isActive)
+      await db
+        .update(targetsTable)
+        .set(patch)
+        .where(eq(targetsTable.id, existingId));
+
+      // Stage change — mirrors PUT /:id/stage: milestone upsert + stage log
       if (newStage && changedFields.includes("stage") && VALID_STAGES.has(newStage)) {
-        const [milestone] = await db
+        const [existingMilestone] = await db
           .select({ currentStage: milestonesTable.currentStage })
           .from(milestonesTable)
           .where(eq(milestonesTable.targetId, existingId));
 
-        const previousStage = milestone?.currentStage ?? null;
+        const previousStage = existingMilestone?.currentStage ?? null;
 
-        await db
-          .update(milestonesTable)
-          .set({ currentStage: newStage, stageEnteredAt: now, updatedAt: now })
-          .where(eq(milestonesTable.targetId, existingId));
+        if (existingMilestone) {
+          // Update existing milestone row
+          await db
+            .update(milestonesTable)
+            .set({ currentStage: newStage, stageEnteredAt: now, updatedAt: now })
+            .where(eq(milestonesTable.targetId, existingId));
+        } else {
+          // No milestone row yet — create one (same as PUT /:id/stage else branch)
+          await db
+            .insert(milestonesTable)
+            .values(defaultMilestoneValues(existingId, now, newStage));
+        }
 
         await db.insert(stageChangeLogTable).values({
           targetId: existingId,

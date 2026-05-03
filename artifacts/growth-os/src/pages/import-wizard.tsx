@@ -18,6 +18,7 @@ import { getListTargetsQueryKey, getGetDashboardSummaryQueryKey, customFetch } f
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
+// Score fields are intentionally excluded — not importable via CSV/Excel
 const DB_FIELDS = [
   { value: "__skip__", label: "— Skip this column —" },
   { value: "targetCode", label: "Target Code" },
@@ -37,14 +38,9 @@ const DB_FIELDS = [
   { value: "stage", label: "Stage" },
   { value: "strategicRationale", label: "Strategic Rationale" },
   { value: "notes", label: "Notes → Strategic Rationale" },
-  { value: "strategicFitScore", label: "Strategic Fit Score (0-100)" },
-  { value: "synergyScore", label: "Synergy Score (0-100)" },
-  { value: "financialAttractivenessScore", label: "Financial Attractiveness Score (0-100)" },
-  { value: "processMaturityScore", label: "Process Maturity Score (0-100)" },
-  { value: "riskPenaltyScore", label: "Risk Penalty Score (0-100)" },
 ];
 
-// Heuristic auto-map: csv column header → db field
+// Heuristic auto-map: csv column header → db field (no score fields)
 function autoMap(header: string): string {
   const h = header.toLowerCase().replace(/[\s_\-/]+/g, "");
   const MAP: Record<string, string> = {
@@ -86,20 +82,6 @@ function autoMap(header: string): string {
     rationale: "strategicRationale",
     notes: "notes",
     note: "notes",
-    strategicfitscore: "strategicFitScore",
-    fitscores: "strategicFitScore",
-    strategicfit: "strategicFitScore",
-    synergyscore: "synergyScore",
-    synergy: "synergyScore",
-    financialattractivenesscore: "financialAttractivenessScore",
-    financialscore: "financialAttractivenessScore",
-    financialattractiveness: "financialAttractivenessScore",
-    processmaturityscore: "processMaturityScore",
-    processscore: "processMaturityScore",
-    processmaturity: "processMaturityScore",
-    riskpenaltyscore: "riskPenaltyScore",
-    riskscore: "riskPenaltyScore",
-    risk: "riskPenaltyScore",
   };
   return MAP[h] ?? "__skip__";
 }
@@ -253,7 +235,7 @@ export default function ImportWizard() {
     if (file) parseFile(file);
   }, [parseFile]);
 
-  // ── Validate ────────────────────────────────────────────────────────────────
+  // ── Validate (Map → Preview) ─────────────────────────────────────────────
 
   const handleValidate = useCallback(async () => {
     setIsValidating(true);
@@ -273,7 +255,7 @@ export default function ImportWizard() {
     }
   }, [rows, columnMap]);
 
-  // ── Apply ────────────────────────────────────────────────────────────────────
+  // ── Apply (Apply step → Done) ────────────────────────────────────────────
 
   const handleApply = useCallback(async () => {
     if (!validateResult) return;
@@ -293,12 +275,10 @@ export default function ImportWizard() {
       });
       setApplyResult(result);
       setStep("done");
-      // Invalidate queries to refresh pipeline + dashboard
       await queryClient.invalidateQueries({ queryKey: getListTargetsQueryKey() });
       await queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
     } catch (err) {
       setApiError("Apply failed: " + (err instanceof Error ? err.message : String(err)));
-    } finally {
       setIsApplying(false);
     }
   }, [validateResult, queryClient]);
@@ -313,6 +293,7 @@ export default function ImportWizard() {
     setValidateResult(null);
     setApplyResult(null);
     setApiError(null);
+    setIsApplying(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -377,7 +358,7 @@ export default function ImportWizard() {
                 <li>First row must be column headers</li>
                 <li>Rows with an existing <strong>Target Code</strong> will be updated</li>
                 <li>Rows with a new code (+ project name) will be created</li>
-                <li>Blank cells in the file will never overwrite existing data</li>
+                <li>Blank cells will never overwrite existing data</li>
                 <li>You will map column headers to fields in the next step</li>
               </ul>
             </div>
@@ -568,12 +549,6 @@ export default function ImportWizard() {
             </Card>
           )}
 
-          {apiError && (
-            <Alert className="border-destructive/50 bg-destructive/10 rounded-sm">
-              <AlertDescription className="text-destructive font-mono text-xs">{apiError}</AlertDescription>
-            </Alert>
-          )}
-
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="rounded-sm font-mono text-[10px] uppercase" onClick={() => setStep("map")}>
               <ChevronLeft size={12} className="mr-1" /> Back
@@ -581,22 +556,78 @@ export default function ImportWizard() {
             <Button
               size="sm"
               className="rounded-sm font-mono text-[10px] uppercase"
-              onClick={handleApply}
-              disabled={isApplying || (validateResult.toCreate.length === 0 && validateResult.toUpdate.length === 0)}
+              onClick={() => setStep("apply")}
+              disabled={validateResult.toCreate.length === 0 && validateResult.toUpdate.length === 0}
             >
-              {isApplying ? "Applying…" : `Apply ${validateResult.toCreate.length + validateResult.toUpdate.length} Changes`}
-              {!isApplying && <ChevronRight size={12} className="ml-1" />}
+              Continue to Apply
+              <ChevronRight size={12} className="ml-1" />
             </Button>
           </div>
         </div>
       )}
 
-      {/* ── Step: Apply (loading) ─────────────────────────────────────────── */}
-      {step === "apply" && (
+      {/* ── Step: Apply (confirmation) ────────────────────────────────────── */}
+      {step === "apply" && validateResult && (
         <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
-          <CardContent className="p-10 text-center space-y-4">
-            <div className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Applying import…</div>
-            <Progress className="w-full rounded-sm" value={undefined} />
+          <CardHeader className="pb-3">
+            <CardTitle className="font-mono text-sm uppercase tracking-wider">Confirm Import</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <p className="text-xs font-mono text-muted-foreground">
+              Review the summary below, then click <strong>Confirm &amp; Import</strong> to apply all changes.
+              This action cannot be undone from the wizard.
+            </p>
+
+            {/* Confirmation summary */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-sm border border-border p-4 text-center">
+                <div className="text-2xl font-bold font-mono text-green-500">{validateResult.toCreate.length}</div>
+                <div className="text-[10px] font-mono uppercase text-muted-foreground mt-1">New Targets</div>
+              </div>
+              <div className="rounded-sm border border-border p-4 text-center">
+                <div className="text-2xl font-bold font-mono text-primary">{validateResult.toUpdate.length}</div>
+                <div className="text-[10px] font-mono uppercase text-muted-foreground mt-1">Updates</div>
+              </div>
+              <div className="rounded-sm border border-border p-4 text-center">
+                <div className="text-2xl font-bold font-mono text-muted-foreground">{validateResult.toSkip.length}</div>
+                <div className="text-[10px] font-mono uppercase text-muted-foreground mt-1">Skipped</div>
+              </div>
+            </div>
+
+            {isApplying && (
+              <div className="space-y-2">
+                <p className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider">Applying import…</p>
+                <Progress className="w-full rounded-sm" value={undefined} />
+              </div>
+            )}
+
+            {apiError && (
+              <Alert className="border-destructive/50 bg-destructive/10 rounded-sm">
+                <XCircle size={14} className="text-destructive" />
+                <AlertDescription className="text-destructive font-mono text-xs">{apiError}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-sm font-mono text-[10px] uppercase"
+                onClick={() => setStep("preview")}
+                disabled={isApplying}
+              >
+                <ChevronLeft size={12} className="mr-1" /> Back
+              </Button>
+              <Button
+                size="sm"
+                className="rounded-sm font-mono text-[10px] uppercase"
+                onClick={handleApply}
+                disabled={isApplying}
+              >
+                {isApplying ? "Importing…" : `Confirm & Import ${validateResult.toCreate.length + validateResult.toUpdate.length} Changes`}
+                {!isApplying && <CheckCircle size={12} className="ml-1" />}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
