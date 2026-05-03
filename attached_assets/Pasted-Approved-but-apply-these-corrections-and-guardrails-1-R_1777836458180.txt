@@ -1,0 +1,53 @@
+Approved, but apply these corrections and guardrails:
+
+1. Runtime packages used by the frontend must go in growth-os dependencies, not devDependencies.
+   - papaparse should be a dependency.
+   - read-excel-file should be a dependency if used at runtime.
+   - @types/papaparse can be a devDependency.
+
+2. Do not assume allowed priority values are Must-Win, Priority 1, Priority 2, Watchlist.
+   Inspect the current app/database values first.
+   Prefer the current app values if they are Must-Win, High, Medium, Low.
+   Do not create new lookup values or migrations.
+
+3. Do not assume route registration is in artifacts/api-server/src/index.ts.
+   Inspect current API routing first.
+   If routes are registered in artifacts/api-server/src/routes/index.ts, register the import router there.
+   Register /import before any /:id catch-all route.
+
+4. CSV parsing is required.
+   XLSX parsing is preferred only if dependency installation is safe and typecheck passes.
+   If XLSX causes dependency or typecheck problems, ship CSV first and report XLSX as deferred.
+
+5. The browser may parse the file, but validation/apply will still send structured JSON rows to the backend.
+   That is acceptable. Do not send raw uploaded files to the backend in Phase 2A.
+
+6. For Notes:
+   If strategicRationale is not mapped and Notes exists, map Notes to strategicRationale.
+   If strategicRationale is already mapped, skip Notes and show a warning.
+
+7. For updates:
+   Only update fields explicitly mapped and non-blank.
+   Never overwrite existing non-blank DB values with blanks.
+   Do not update targetCode on existing records.
+
+8. For stage:
+   If an uploaded stage differs from the current stage, use the existing stage-change logic.
+   It must update the current milestone/stage and insert into stage_change_log.
+   Do not directly bypass the audit log.
+
+9. For import apply:
+   Handle partial failures gracefully.
+   One bad row should not crash the whole import.
+   Return row-level errors in the Results screen.
+
+10. Preserve all existing Phase 1A and Phase 1B behavior:
+   login, Project Test visibility, dashboard, pipeline filters, target detail, interactions, actions, complete/reopen, and stage audit logging.
+
+11. After implementation, run pnpm run typecheck and report:
+   - files changed
+   - routes added
+   - packages added
+   - CSV/XLSX support status
+   - any skipped fields
+   - typecheck result

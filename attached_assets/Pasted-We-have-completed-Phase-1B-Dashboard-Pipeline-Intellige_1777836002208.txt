@@ -1,0 +1,118 @@
+We have completed Phase 1B: Dashboard + Pipeline Intelligence. Login works, Supabase read/write works, Project Test appears, Phase 1A detail cockpit works, and Phase 1B dashboard/pipeline filters and Needs Attention logic work.
+
+Now implement Phase 2A: Excel / CSV Import and Update Wizard.
+
+Important safety rules:
+- Do NOT rebuild from scratch.
+- Do NOT create a new architecture.
+- Do NOT run drizzle push.
+- Do NOT run seed.ts.
+- Do NOT modify DATABASE_URL.
+- Do NOT modify auth middleware unless absolutely required.
+- Do NOT insert Apollo/Orion/Beacon/Catalyst/Helios demo data.
+- Supabase Postgres remains the source of truth.
+- Preserve all Phase 1A and Phase 1B functionality.
+- Do NOT blindly overwrite existing records.
+- Do NOT delete any targets, interactions, actions, milestones, or stage_change_log records.
+
+Current structure:
+- React/Vite frontend: artifacts/growth-os
+- Express API backend: artifacts/api-server
+- Drizzle/Postgres DB layer: lib/db
+- Existing tables include targets, milestones, interactions, actions, stage_change_log, lookup_values, users.
+- Stage is stored through milestones/current stage logic, not directly as a simple target column.
+- actions table is named actions, not action_items.
+
+Phase 2A goal:
+Build a safe Excel/CSV Import and Update Wizard so a non-technical user can upload an old M&A tracker and import or update opportunities in Supabase.
+
+Required UX:
+1. Add an Import page or Import button accessible from Pipeline.
+2. User can upload .csv and, if already supported by dependencies, .xlsx.
+3. If .xlsx support requires a new package, inspect package/dependency constraints first and report before installing. CSV support is required in Phase 2A; XLSX support is preferred if safe.
+4. Show a preview of uploaded rows.
+5. Auto-detect common columns:
+   - Target Code
+   - Project Name
+   - Legal Name
+   - Sector
+   - Subsector
+   - Country
+   - Geography / Region
+   - Owner
+   - Priority / Priority Tier
+   - Stage
+   - Strategic Rationale
+   - Notes
+6. Allow user to manually map upload columns to app fields.
+7. Validate rows before import.
+8. Detect and show:
+   - new target rows
+   - existing target updates matched by targetCode
+   - duplicate target codes inside upload
+   - missing target code
+   - missing project name
+   - invalid priority tier, if validation exists
+   - invalid stage, if validation exists
+9. Show a review screen before applying changes:
+   - rows to create
+   - rows to update
+   - rows skipped
+   - warnings
+10. User must click Apply Import before any database writes happen.
+
+Backend requirements:
+1. Add preview/validate endpoint if needed.
+2. Add apply-import endpoint if needed.
+3. For each approved new target:
+   - create target using existing target creation logic as much as possible.
+   - create or update current milestone/stage if stage is provided.
+   - write stage_change_log if stage is provided.
+4. For each approved existing target:
+   - update only mapped fields that are non-empty in the upload.
+   - do not overwrite existing fields with blanks.
+   - if uploaded stage differs from current stage, update stage and insert stage_change_log.
+5. Do not delete records.
+6. Do not add new schema unless absolutely necessary. If import history requires new tables, defer it to Phase 2B and report.
+
+Frontend requirements:
+1. Mobile-friendly wizard layout.
+2. Steps:
+   - Upload
+   - Map Columns
+   - Validate / Review
+   - Apply Import
+   - Results
+3. Results screen should show:
+   - created count
+   - updated count
+   - skipped count
+   - errors
+4. After import, provide a button to return to Pipeline.
+5. Pipeline should refresh and show imported targets.
+
+Testing:
+After implementation:
+- Run pnpm run typecheck.
+- Restart the app.
+- Confirm login still works.
+- Confirm Project Test still appears.
+- Confirm dashboard still loads.
+- Confirm pipeline still loads.
+- Test import with 2 safe rows:
+  - one new target
+  - one update to an existing target
+- Confirm new target appears in Supabase.
+- Confirm existing target update appears in Supabase.
+- Confirm no blank upload cells overwrite existing good data.
+- Confirm stage changes write stage_change_log.
+- Confirm Apollo/Orion demo data does not appear unless already in Supabase.
+
+Report:
+- files changed
+- API routes added/modified
+- whether CSV and XLSX are supported
+- whether any package was added
+- whether any fields were skipped
+- typecheck result
+- manual testing checklist
