@@ -626,6 +626,9 @@ router.post("/meeting-notes", async (req, res) => {
       raw = structured.choices[0]?.message?.content ?? null;
       req.log.info({ targetId }, "Meeting notes: strict structured output succeeded");
     } catch (structErr) {
+      // Re-throw definitive auth/billing failures (401, 429) — no point calling fallback
+      const classified = classifyAiError(structErr);
+      if (classified.cacheable) throw structErr;
       req.log.warn({ err: structErr }, "Meeting notes: strict structured output failed — falling back to json_object");
     }
 
