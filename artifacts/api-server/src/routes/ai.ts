@@ -513,10 +513,16 @@ router.get("/status", async (req, res) => {
     req.log.info("AI status probe: available");
     return res.json({ ...statusCache, model });
   } catch (err) {
-    const { status, setupRequired, billingRequired } = classifyAiError(err);
-    statusCache = { status, available: false, setupRequired, billingRequired };
-    req.log.warn({ err }, "AI status probe failed");
-    return res.json({ ...statusCache, model });
+    const classified = classifyAiError(err);
+    const { status, setupRequired, billingRequired } = classified;
+    // Only cache authoritative failures (401 = key invalid, 429/quota = billing).
+    // Unknown/transient errors are returned but NOT cached so the next request
+    // re-probes rather than permanently locking in a wrong status.
+    if (status === "key_invalid" || status === "billing") {
+      statusCache = { status, available: false, setupRequired, billingRequired };
+    }
+    req.log.warn({ err, status, cached: statusCache !== null }, "AI status probe failed");
+    return res.json({ status, available: false, setupRequired, billingRequired, model });
   }
 });
 

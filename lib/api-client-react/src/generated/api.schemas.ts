@@ -616,7 +616,7 @@ export interface MeetingSuggestionInteraction {
 export interface MeetingSuggestionAction {
   description: string;
   owner: string;
-  dueDate?: string | null;
+  dueDate: string | null;
   priority: string;
 }
 

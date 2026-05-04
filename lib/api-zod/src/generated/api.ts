@@ -1388,7 +1388,7 @@ export const ParseMeetingNotesResponse = zod.object({
         zod.object({
           description: zod.string(),
           owner: zod.string(),
-          dueDate: zod.string().nullish(),
+          dueDate: zod.string().nullable(),
           priority: zod.string(),
         }),
       ),
