@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StageChip } from "@/components/stage-chip";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -91,10 +92,6 @@ function TierPill({ tier }: { tier: string | null }) {
   return <span className={`status-chip ${cls}`}>{tier}</span>;
 }
 
-function StagePill({ stage }: { stage: string }) {
-  return <span className="status-chip text-muted-foreground border-border/60">{stage}</span>;
-}
-
 // ── Card components ────────────────────────────────────────────────────────
 
 function TargetCard({ t, accent }: { t: ReviewTarget; accent?: "destructive" | "amber" }) {
@@ -110,7 +107,7 @@ function TargetCard({ t, accent }: { t: ReviewTarget; accent?: "destructive" | "
             <div className="flex flex-wrap gap-1.5 mt-1.5 items-center">
               <span className="metadata-label">{t.targetCode}</span>
               <TierPill tier={t.priorityTier} />
-              <StagePill stage={t.currentStage} />
+              <StageChip stage={t.currentStage} size="xs" />
               {t.openActionCount !== undefined && t.openActionCount > 0 && (
                 <span className="metadata-label text-amber-500">
                   {t.openActionCount} open action{t.openActionCount !== 1 ? "s" : ""}
@@ -148,7 +145,7 @@ function ActionCard({ a }: { a: ReviewAction }) {
               {a.targetName}{a.targetCode ? ` · ${a.targetCode}` : ""}
             </span>
             <TierPill tier={a.priorityTier} />
-            <StagePill stage={a.currentStage} />
+            <StageChip stage={a.currentStage} size="xs" />
             {a.dueDate && (
               <span className={`flex items-center gap-1 text-[10px] font-mono ${isOverdue ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
                 <Clock size={10} />
@@ -174,7 +171,7 @@ function DiligenceTargetCard({ t }: { t: DiligenceHealthTarget }) {
             <div className="flex flex-wrap gap-1.5 mt-1.5 items-center">
               <span className="metadata-label">{t.targetCode}</span>
               <TierPill tier={t.priorityTier} />
-              <StagePill stage={t.currentStage} />
+              <StageChip stage={t.currentStage} size="xs" />
               <span className="metadata-label">{t.completed}/{t.total} done ({t.pct}%)</span>
               {t.blocked > 0 && (
                 <span className="text-[10px] font-mono text-destructive font-semibold">{t.blocked} blocked</span>
@@ -206,9 +203,9 @@ function StageChangeCard({ s }: { s: ReviewStageChange }) {
             <div className="flex flex-wrap gap-1.5 mt-1.5 items-center">
               {s.targetCode && <span className="metadata-label">{s.targetCode}</span>}
               <TierPill tier={s.priorityTier} />
-              <span className="metadata-label">{s.previousStage ?? "—"}</span>
+              {s.previousStage && <StageChip stage={s.previousStage} size="xs" />}
               <ArrowRight size={9} className="text-muted-foreground shrink-0" />
-              <span className="text-[10px] font-mono font-semibold text-primary">{s.newStage}</span>
+              <StageChip stage={s.newStage} size="xs" />
               {s.changedBy && <span className="metadata-label">by {s.changedBy}</span>}
               {s.changedAt && <span className="metadata-label">{format(parseISO(s.changedAt), "MMM d")}</span>}
             </div>

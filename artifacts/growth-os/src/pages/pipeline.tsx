@@ -9,9 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Plus, ChevronRight, AlertTriangle, Calendar, Zap, User, MapPin, Upload } from "lucide-react";
+import { Search, Plus, ChevronRight, AlertTriangle, Calendar, Zap, User, MapPin, Upload } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
+import { StageChip } from "@/components/stage-chip";
 
 const STAGES = [
   "Sourcing", "Outreach", "Introductory Discussion", "NDA / CIM",
@@ -247,9 +248,7 @@ export default function Pipeline() {
 
                           {/* Stage + Score row */}
                           <div className="flex flex-wrap gap-1.5 items-center">
-                            <Badge variant="outline" className="font-mono text-[10px] uppercase rounded-md border-border/60 bg-background/40 text-muted-foreground">
-                              {target.currentStage}
-                            </Badge>
+                            <StageChip stage={target.currentStage ?? ""} size="xs" />
                             <Badge variant="outline" className="font-mono text-[10px] rounded-md border-border/60 text-muted-foreground">
                               <Zap size={9} className="mr-1 text-primary/60" />{Math.round(target.priorityScore)}
                             </Badge>

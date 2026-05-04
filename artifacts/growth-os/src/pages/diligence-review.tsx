@@ -9,6 +9,7 @@ import {
   ChevronDown, ChevronRight, RefreshCw, ExternalLink,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { StageChip } from "@/components/stage-chip";
 
 const WORKSTREAM_COLORS: Record<string, string> = {
   Commercial: "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -204,7 +205,7 @@ export default function DiligenceReview() {
                         </div>
                         <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground flex-wrap">
                           <span>{t.targetCode}</span>
-                          <span>{t.currentStage}</span>
+                          <StageChip stage={t.currentStage} size="xs" />
                           {t.blocked > 0 && <span className="text-destructive font-semibold">{t.blocked} blocked</span>}
                           {t.overdue > 0 && <span className="text-amber-500 font-semibold">{t.overdue} overdue</span>}
                           {t.missingWorkstreams.length > 0 && (
@@ -313,7 +314,7 @@ export default function DiligenceReview() {
                         </div>
                         <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground flex-wrap">
                           <span>{t.targetCode}</span>
-                          <span>{t.currentStage}</span>
+                          <StageChip stage={t.currentStage} size="xs" />
                           {t.blocked > 0 && <span className="text-destructive font-semibold">{t.blocked} blocked</span>}
                           {t.overdue > 0 && <span className="text-amber-500 font-semibold">{t.overdue} overdue</span>}
                         </div>

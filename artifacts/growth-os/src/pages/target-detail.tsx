@@ -28,7 +28,7 @@ import {
   CheckCircle2, RotateCcw, Pencil, MessageSquare, ListChecks, GitBranch,
   LayoutGrid, ClipboardCheck,
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, differenceInDays } from "date-fns";
 import { DiligenceTab } from "@/pages/target-detail-diligence";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -36,6 +36,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { StageRail, PIPELINE_STAGE_ORDER, OFF_TRACK_STAGES } from "@/components/stage-rail";
+import { StageChip } from "@/components/stage-chip";
 
 const STAGES = [
   "Sourcing", "Outreach", "Introductory Discussion", "NDA / CIM",
@@ -464,11 +466,22 @@ export default function TargetDetail() {
   };
 
   const getStageBadgeClass = (stage: string) => {
-    if (stage === "Closed") return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
-    if (stage === "Dropped") return "bg-destructive/10 text-destructive border-destructive/20";
+    if (stage === "Closed" || stage === "Completed" || stage === "Signed") return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
+    if (stage === "Dropped" || stage === "Rejected") return "bg-destructive/10 text-destructive border-destructive/20";
     if (stage === "On Hold") return "bg-amber-500/10 text-amber-500 border-amber-500/20";
-    return "bg-primary/10 text-primary border-primary/20";
+    return "bg-muted/50 text-muted-foreground border-border/60";
   };
+
+  const daysInCurrentStage = (() => {
+    if (!history || history.length === 0) return undefined;
+    const latestEntry = history[0];
+    if (!latestEntry.changedAt) return undefined;
+    try {
+      return differenceInDays(new Date(), parseISO(latestEntry.changedAt));
+    } catch {
+      return undefined;
+    }
+  })();
 
   const openActions = (actions ?? []).filter((a) => a.status !== "Completed");
   const completedActions = (actions ?? []).filter((a) => a.status === "Completed");
@@ -527,6 +540,23 @@ export default function TargetDetail() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Stage Progression Rail */}
+      <div className="border-b border-border/40 bg-background/60 px-4 md:px-5 py-3 shrink-0">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/50">Pipeline Stage</span>
+            {daysInCurrentStage !== undefined && (
+              <span className="text-[9px] font-mono text-muted-foreground/40">· {daysInCurrentStage}d in current stage</span>
+            )}
+          </div>
+          <StageRail
+            mode="progression"
+            currentStage={target.currentStage ?? "Sourcing"}
+            daysInStage={daysInCurrentStage}
+          />
         </div>
       </div>
 
@@ -764,11 +794,11 @@ export default function TargetDetail() {
                         <div className="text-sm font-medium flex items-center gap-2 flex-wrap">
                           {entry.previousStage && (
                             <>
-                              <Badge variant="outline" className={`font-mono text-[10px] rounded-sm ${getStageBadgeClass(entry.previousStage)}`}>{entry.previousStage}</Badge>
+                              <StageChip stage={entry.previousStage} size="xs" />
                               <span className="text-muted-foreground text-xs">→</span>
                             </>
                           )}
-                          <Badge variant="outline" className={`font-mono text-[10px] rounded-sm ${getStageBadgeClass(entry.newStage)}`}>{entry.newStage}</Badge>
+                          <StageChip stage={entry.newStage} size="xs" />
                         </div>
                         {entry.changeReason && (
                           <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
@@ -810,28 +840,58 @@ export default function TargetDetail() {
 
       {/* Change Stage */}
       <Dialog open={stageOpen} onOpenChange={setStageOpen}>
-        <DialogContent className="sm:max-w-[425px] border-border bg-sidebar rounded-sm">
+        <DialogContent className="sm:max-w-[600px] border-border bg-sidebar rounded-sm">
           <DialogHeader>
             <DialogTitle className="font-mono uppercase tracking-tight text-lg">Change Pipeline Stage</DialogTitle>
           </DialogHeader>
-          <div className="py-4 space-y-4">
-            <div className="space-y-1">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Current Stage</div>
-              <div className="text-sm font-medium font-mono">{target.currentStage}</div>
+          <div className="py-4 space-y-5">
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2">
+                Current Stage
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/40 text-primary font-mono text-[11px] px-2.5 py-1 rounded-lg">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                  {target.currentStage}
+                </span>
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">New Stage <span className="text-destructive">*</span></label>
-              <Select value={stageVal} onValueChange={setStageVal}>
-                <SelectTrigger className="rounded-sm bg-background/50">
-                  <SelectValue placeholder="Select stage" />
-                </SelectTrigger>
-                <SelectContent className="rounded-sm">
-                  {STAGES.map((s) => (
-                    <SelectItem key={s} value={s} disabled={s === target.currentStage}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+            <div className="space-y-3">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                Select New Stage <span className="text-destructive">*</span>
+              </div>
+              <StageRail
+                mode="progression"
+                currentStage={target.currentStage ?? "Sourcing"}
+                onSelectStage={setStageVal}
+                selectedStage={stageVal}
+              />
+              {/* Off-track stage options — always available regardless of current stage */}
+              <div className="flex items-center gap-2 pt-1 border-t border-border/40">
+                <span className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-wider shrink-0">Off-track</span>
+                {OFF_TRACK_STAGES.filter((s) => s !== target.currentStage).map((s) => {
+                  const isSelected = stageVal === s;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setStageVal(s)}
+                      className={`px-2 py-1 rounded-md border font-mono text-[9px] uppercase tracking-wide transition-all duration-150 ${
+                        isSelected
+                          ? s === "On Hold"
+                            ? "bg-amber-500/20 border-amber-500 text-amber-500 font-semibold"
+                            : "bg-destructive/20 border-destructive text-destructive font-semibold"
+                          : "bg-background/50 border-border/50 text-muted-foreground/60 hover:border-border hover:text-muted-foreground"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+
             <div className="space-y-2">
               <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
                 Rationale / Notes <span className="text-destructive">*</span>
@@ -850,7 +910,7 @@ export default function TargetDetail() {
           <DialogFooter>
             <Button variant="outline" onClick={() => { setStageOpen(false); setStageVal(""); setStageReason(""); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
             <Button onClick={handleUpdateStage} disabled={!stageVal || !stageReason.trim() || updateStage.isPending} className="rounded-sm font-mono uppercase text-[10px]">
-              Confirm Move
+              {stageVal ? `Move to ${stageVal}` : "Select a Stage"}
             </Button>
           </DialogFooter>
         </DialogContent>

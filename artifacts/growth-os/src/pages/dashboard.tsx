@@ -13,10 +13,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   AlertCircle, Target, TrendingUp, AlertOctagon, CheckCircle2,
-  XCircle, ArrowRight, AlertTriangle, Clock, Zap, RefreshCw,
+  XCircle, ArrowRight, AlertTriangle, Clock, Zap, RefreshCw, GitBranch,
 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { format, parseISO, formatDistanceToNow } from "date-fns";
+import { StageRail, PIPELINE_STAGE_ORDER } from "@/components/stage-rail";
+import { StageChip } from "@/components/stage-chip";
 
 const FLAG_LABELS: Record<string, { label: string; color: string }> = {
   overdue_action:       { label: "Overdue Action",       color: "text-destructive border-destructive/30" },
@@ -32,17 +33,6 @@ function getTierColor(tier: string) {
     case "Priority 2": return "bg-primary text-primary-foreground border-0";
     default:           return "bg-muted text-muted-foreground";
   }
-}
-
-function BarChart3Icon({ size, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) {
-  const s = size ?? 24;
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width={s} height={s}
-      viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-      strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" />
-    </svg>
-  );
 }
 
 function SectionLabel({ icon, label, children }: { icon: React.ReactNode; label: string; children?: React.ReactNode }) {
@@ -78,6 +68,21 @@ export default function Dashboard() {
     { query: { queryKey: getListTargetsQueryKey({ isActive: true }) } },
   );
   const recentlyUpdated = (allTargets ?? []).slice(0, 5);
+
+  const totalActive = (stageData ?? []).reduce((sum, s) => sum + (s.count ?? 0), 0);
+  const distributionItems = (stageData ?? []).map((s) => ({
+    stage: s.stage,
+    count: s.count ?? 0,
+    hasFlagged: false,
+  }));
+
+  const attentionStages = new Set(
+    (attentionTargets ?? []).map((t) => t.currentStage).filter(Boolean)
+  );
+  const distributionWithFlags = distributionItems.map((item) => ({
+    ...item,
+    hasFlagged: attentionStages.has(item.stage),
+  }));
 
   if (loadingSummary) {
     return (
@@ -211,54 +216,29 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Chart + Top Opportunities */}
+        {/* Stage Distribution Board + Top Opportunities */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2 rounded-xl bg-card border-border/80">
+          <Card className="lg:col-span-2 rounded-xl bg-card border-border/80 overflow-hidden">
             <CardHeader className="p-4 pb-2 border-b border-border/40">
               <CardTitle className="text-[11px] font-medium text-muted-foreground uppercase font-mono tracking-wider flex items-center gap-2">
-                <BarChart3Icon size={13} />
-                Pipeline Distribution
+                <GitBranch size={13} />
+                Pipeline Stage Distribution
               </CardTitle>
+              <p className="text-[10px] text-muted-foreground/60 mt-1 font-mono leading-relaxed">
+                Stage distribution across active opportunities, highlighting where execution attention is concentrated.
+              </p>
             </CardHeader>
-            <CardContent className="h-[260px] px-2 pt-2">
+            <CardContent className="px-4 pt-4 pb-4">
               {loadingStages ? (
-                <Skeleton className="w-full h-full" />
-              ) : stageData && stageData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={stageData} margin={{ top: 10, right: 10, left: -20, bottom: 40 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border)/0.4)" />
-                    <XAxis
-                      dataKey="stage"
-                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9, fontFamily: "var(--app-font-mono)" }}
-                      tickLine={false}
-                      axisLine={false}
-                      angle={-40}
-                      textAnchor="end"
-                      interval={0}
-                    />
-                    <YAxis
-                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "var(--app-font-mono)" }}
-                      tickLine={false}
-                      axisLine={false}
-                      allowDecimals={false}
-                    />
-                    <Tooltip
-                      cursor={{ fill: "hsl(var(--muted)/0.4)" }}
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--popover))",
-                        borderColor: "hsl(var(--border))",
-                        borderRadius: "8px",
-                        fontFamily: "var(--app-font-mono)",
-                        fontSize: "12px",
-                        color: "hsl(var(--popover-foreground))",
-                      }}
-                      itemStyle={{ color: "hsl(var(--primary))" }}
-                    />
-                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <Skeleton className="w-full h-24" />
+              ) : (distributionWithFlags.some((s) => s.count > 0)) ? (
+                <StageRail
+                  mode="distribution"
+                  stages={distributionWithFlags}
+                  totalActive={totalActive}
+                />
               ) : (
-                <div className="flex h-full items-center justify-center text-xs font-mono text-muted-foreground uppercase tracking-widest">
+                <div className="flex h-24 items-center justify-center text-xs font-mono text-muted-foreground uppercase tracking-widest">
                   No active targets in pipeline
                 </div>
               )}
@@ -337,7 +317,8 @@ export default function Dashboard() {
                             <div className="metadata-label mt-0.5 flex items-center gap-2">
                               <span>{target.targetCode}</span>
                               {target.currentStage && (
-                                <><span className="w-1 h-1 bg-border rounded-full" /><span>{target.currentStage}</span></>
+                                <><span className="w-1 h-1 bg-border rounded-full" />
+                                <StageChip stage={target.currentStage} size="xs" /></>
                               )}
                             </div>
                           </div>
@@ -406,7 +387,7 @@ export default function Dashboard() {
                         <div className="metadata-label flex items-center gap-2 mt-0.5">
                           <span>{target.targetCode}</span>
                           {target.sector && <><span className="w-1 h-1 bg-border rounded-full" /><span>{target.sector}</span></>}
-                          {target.currentStage && <><span className="w-1 h-1 bg-border rounded-full" /><span>{target.currentStage}</span></>}
+                          {target.currentStage && <><span className="w-1 h-1 bg-border rounded-full" /><StageChip stage={target.currentStage} size="xs" /></>}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 ml-2">
