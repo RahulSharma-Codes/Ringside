@@ -417,7 +417,7 @@ export default function Copilot() {
                     key={t.id}
                     onClick={() => {
                       setTargetPickerOpen(false);
-                      setLocation(`/targets/${t.id}?ai=brief`);
+                      setLocation(`/targets/${t.id}?ai=opportunity-brief`);
                     }}
                     className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-muted/60 border border-transparent hover:border-border/50 transition-all duration-100 group"
                   >
