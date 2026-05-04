@@ -21,7 +21,7 @@ interface AiAskResponse {
 }
 
 interface AiStatusResponse {
-  status: "available" | "key_missing" | "key_invalid" | "billing";
+  status: "available" | "key_missing" | "key_invalid" | "billing" | "transient";
   available: boolean;
   setupRequired: boolean;
   billingRequired: boolean;
@@ -183,6 +183,8 @@ export default function Copilot() {
           ? { cls: "bg-amber-500/5 border-amber-500/20 text-amber-600", icon: <CreditCard size={12} className="shrink-0" />, label: "Billing issue — add OpenAI API credits to activate AI." }
           : s === "key_invalid"
           ? { cls: "bg-destructive/5 border-destructive/20 text-destructive", icon: <KeyRound size={12} className="shrink-0" />, label: "API key invalid — the key was rejected by OpenAI (401)." }
+          : s === "transient"
+          ? { cls: "bg-muted border-border/60 text-muted-foreground", icon: <AlertTriangle size={12} className="shrink-0" />, label: "AI status temporarily unavailable — will re-check on next request." }
           : { cls: "bg-muted border-border/60 text-muted-foreground", icon: <AlertTriangle size={12} className="shrink-0" />, label: "API key not configured — contact your administrator." };
         return (
           <div className={`shrink-0 mx-4 mt-3 px-3.5 py-2.5 rounded-xl border text-[11px] font-mono flex items-center gap-2 ${cfg.cls}`}>

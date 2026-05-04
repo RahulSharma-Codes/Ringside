@@ -29,7 +29,7 @@ if (OPENAI_API_KEY) {
 
 // ── Error classifier ─────────────────────────────────────────────────────────
 
-type AiStatusKind = "available" | "key_missing" | "key_invalid" | "billing";
+type AiStatusKind = "available" | "key_missing" | "key_invalid" | "billing" | "transient";
 
 function classifyAiError(err: unknown): {
   status: AiStatusKind;
@@ -50,9 +50,10 @@ function classifyAiError(err: unknown): {
       return { status: "billing", setupRequired: false, billingRequired: true, cacheable: true, message: "Billing or quota issue" };
     }
   }
-  // Unknown / transient error: report but do NOT cache — next request will re-probe
+  // Unknown / transient error — use a neutral "transient" status so the UI
+  // doesn't mislabel a working key as invalid. Not cached: next request re-probes.
   return {
-    status: "key_invalid",
+    status: "transient",
     setupRequired: false,
     billingRequired: false,
     cacheable: false,

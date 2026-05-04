@@ -586,6 +586,7 @@ export const AiStatusResponseStatus = {
   key_missing: "key_missing",
   key_invalid: "key_invalid",
   billing: "billing",
+  transient: "transient",
 } as const;
 
 export interface AiStatusResponse {

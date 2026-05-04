@@ -2157,7 +2157,7 @@ components:
       properties:
         status:
           type: string
-          enum: [available, key_missing, key_invalid, billing]
+          enum: [available, key_missing, key_invalid, billing, transient]
         available:
           type: boolean
         setupRequired:
