@@ -109,7 +109,7 @@ function DistributionRail({ stages, totalActive, onStageClick }: StageRailDistri
                 tabIndex={isClickable ? 0 : undefined}
                 onClick={isClickable ? () => onStageClick(stage) : undefined}
                 onKeyDown={isClickable ? (e) => (e.key === "Enter" || e.key === " ") && onStageClick(stage) : undefined}
-                className={`group/stage-card flex flex-col items-center px-3 py-2.5 rounded-xl border transition-colors min-w-[86px] ${
+                className={`group/stage-card flex flex-col items-center px-3 py-2.5 rounded-xl border transition-colors min-w-[86px]${isClickable ? " focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60" : ""} ${
                   count > 0
                     ? hasFlagged
                       ? `bg-destructive/5 border-destructive/20${isClickable ? " cursor-pointer hover:bg-destructive/10 hover:border-destructive/40 hover:shadow-sm" : ""}`
