@@ -324,8 +324,9 @@ export function AiMeetingNotesModal({
       !ALL_KNOWN_STAGES.includes(editableStageChange.newStage) ||
       !editableStageChange.reason.trim());
   const selectedActionCount = editableActions.filter((a) => a.selected).length;
+  const nothingSelected = !interactionSelected && selectedActionCount === 0 && !stageChangeSelected;
   const interactionSummaryMissing = interactionSelected && !editableInteraction.summary.trim();
-  const canApply = !stageSelectedButInvalid && !interactionSummaryMissing;
+  const canApply = !stageSelectedButInvalid && !interactionSummaryMissing && !nothingSelected;
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -515,6 +516,12 @@ export function AiMeetingNotesModal({
                   <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
                     <AlertTriangle size={13} className="shrink-0" />
                     {applyError}
+                  </div>
+                )}
+                {nothingSelected && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm text-amber-700">
+                    <AlertTriangle size={13} className="shrink-0" />
+                    Nothing selected — check at least one update (interaction, action, or stage) before applying.
                   </div>
                 )}
                 {stageSelectedButInvalid && (
