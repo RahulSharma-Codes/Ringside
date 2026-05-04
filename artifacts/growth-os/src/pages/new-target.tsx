@@ -1,19 +1,20 @@
-import React from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useCreateTarget } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { ArrowLeft, Save, Shield } from "lucide-react";
+import { ArrowLeft, Save, Shield, ChevronDown, ChevronRight } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const formSchema = z.object({
   projectName: z.string().min(2, "Project name is required"),
@@ -24,6 +25,10 @@ const formSchema = z.object({
   dealOwner: z.string().optional(),
   priorityTier: z.string().default("Watchlist"),
   strategicFitScore: z.number().min(0).max(100).default(50),
+  synergyScore: z.number().min(0).max(100).default(50),
+  financialAttractivenessScore: z.number().min(0).max(100).default(50),
+  processMaturityScore: z.number().min(0).max(100).default(50),
+  riskPenaltyScore: z.number().min(0).max(100).default(0),
   isConfidential: z.boolean().default(true),
   strategicRationale: z.string().optional(),
 });
@@ -34,6 +39,7 @@ export default function NewTarget() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const createTarget = useCreateTarget();
+  const [scoringOpen, setScoringOpen] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -42,6 +48,10 @@ export default function NewTarget() {
       targetCode: "",
       priorityTier: "Watchlist",
       strategicFitScore: 50,
+      synergyScore: 50,
+      financialAttractivenessScore: 50,
+      processMaturityScore: 50,
+      riskPenaltyScore: 0,
       isConfidential: true,
     }
   });
@@ -51,10 +61,10 @@ export default function NewTarget() {
       data: {
         ...data,
         strategicFitScore: data.strategicFitScore,
-        synergyScore: 0,
-        financialAttractivenessScore: 0,
-        processMaturityScore: 0,
-        riskPenaltyScore: 0,
+        synergyScore: data.synergyScore,
+        financialAttractivenessScore: data.financialAttractivenessScore,
+        processMaturityScore: data.processMaturityScore,
+        riskPenaltyScore: data.riskPenaltyScore,
       }
     }, {
       onSuccess: (res) => {
@@ -143,10 +153,10 @@ export default function NewTarget() {
                       <FormItem>
                         <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Strategic Rationale</FormLabel>
                         <FormControl>
-                          <Textarea 
-                            placeholder="Why are we evaluating this target? What is the core thesis?" 
-                            className="min-h-[120px] rounded-sm bg-background/50 resize-none" 
-                            {...field} 
+                          <Textarea
+                            placeholder="Why are we evaluating this target? What is the core thesis?"
+                            className="min-h-[120px] rounded-sm bg-background/50 resize-none"
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -204,6 +214,62 @@ export default function NewTarget() {
                   />
                 </CardContent>
               </Card>
+
+              {/* Scoring (optional) — collapsible, closed by default */}
+              <Collapsible open={scoringOpen} onOpenChange={setScoringOpen}>
+                <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="border-b border-border pb-4 cursor-pointer hover:bg-muted/20 transition-colors rounded-t-sm">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">
+                          Scoring <span className="text-[10px] normal-case tracking-normal font-normal text-muted-foreground/60 ml-1">(optional — can be added later)</span>
+                        </CardTitle>
+                        {scoringOpen ? <ChevronDown size={14} className="text-muted-foreground" /> : <ChevronRight size={14} className="text-muted-foreground" />}
+                      </div>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="pt-6 space-y-6">
+                      <p className="text-[11px] text-muted-foreground font-mono">
+                        Scores can be refined as the deal progresses. Default values are treated as "not assessed" for early-stage targets.
+                      </p>
+                      {[
+                        { name: "strategicFitScore" as const, label: "Strategic Fit", description: "Alignment with strategic priorities." },
+                        { name: "synergyScore" as const, label: "Synergy Potential", description: "Revenue, cost, or capability synergies." },
+                        { name: "financialAttractivenessScore" as const, label: "Financial Attractiveness", description: "Financial profile and return potential." },
+                        { name: "processMaturityScore" as const, label: "Process Maturity", description: "Operational and integration readiness." },
+                        { name: "riskPenaltyScore" as const, label: "Risk Penalty", description: "Downward adjustment for execution risk." },
+                      ].map(({ name, label, description }) => (
+                        <FormField
+                          key={name}
+                          control={form.control}
+                          name={name}
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex justify-between items-center mb-2">
+                                <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{label}</FormLabel>
+                                <span className="font-mono font-bold text-primary text-sm">{field.value}/100</span>
+                              </div>
+                              <FormControl>
+                                <Slider
+                                  min={0}
+                                  max={100}
+                                  step={1}
+                                  value={[field.value]}
+                                  onValueChange={(vals) => field.onChange(vals[0])}
+                                  className="py-2"
+                                />
+                              </FormControl>
+                              <FormDescription className="text-[10px] font-mono mt-1">{description}</FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
             </div>
 
             <div className="space-y-6">
@@ -238,36 +304,9 @@ export default function NewTarget() {
 
                   <FormField
                     control={form.control}
-                    name="strategicFitScore"
-                    render={({ field }) => (
-                      <FormItem className="pt-4 border-t border-border">
-                        <div className="flex justify-between items-center mb-4">
-                          <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Strategic Fit Score</FormLabel>
-                          <span className="font-mono font-bold text-primary">{field.value}/100</span>
-                        </div>
-                        <FormControl>
-                          <Slider
-                            min={0}
-                            max={100}
-                            step={1}
-                            defaultValue={[field.value]}
-                            onValueChange={(vals) => field.onChange(vals[0])}
-                            className="py-4"
-                          />
-                        </FormControl>
-                        <FormDescription className="text-[10px] font-mono mt-2">
-                          Initial quantitative assessment of strategic alignment.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
                     name="isConfidential"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-sm border border-border p-4 bg-background/30 pt-4 mt-6">
+                      <FormItem className="flex flex-row items-center justify-between rounded-sm border border-border p-4 bg-background/30">
                         <div className="space-y-0.5">
                           <FormLabel className="font-mono text-xs flex items-center gap-2 uppercase tracking-wider text-amber-500">
                             <Shield size={14} /> Strict Confidentiality

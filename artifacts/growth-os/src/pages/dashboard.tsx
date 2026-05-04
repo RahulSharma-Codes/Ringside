@@ -7,6 +7,7 @@ import {
   useGetTargetsNeedingAttention, getGetTargetsNeedingAttentionQueryKey,
   useListTargets, getListTargetsQueryKey,
 } from "@workspace/api-client-react";
+import { computeAvgAssessedScore } from "@/lib/score-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +71,18 @@ export default function Dashboard() {
     { query: { queryKey: getListTargetsQueryKey({ isActive: true }) } },
   );
   const recentlyUpdated = (allTargets ?? []).slice(0, 5);
+
+  const avgAssessedScore = computeAvgAssessedScore(
+    (allTargets ?? []).map((t) => ({
+      strategicFitScore: t.strategicFitScore,
+      synergyScore: t.synergyScore,
+      financialAttractivenessScore: t.financialAttractivenessScore,
+      processMaturityScore: t.processMaturityScore,
+      riskPenaltyScore: t.riskPenaltyScore,
+      currentStage: t.currentStage,
+      priorityScore: t.priorityScore,
+    }))
+  );
 
   const totalActive = (stageData ?? []).reduce((sum, s) => sum + (s.count ?? 0), 0);
   const distributionItems = (stageData ?? []).map((s) => ({
@@ -160,8 +173,16 @@ export default function Dashboard() {
               <TrendingUp size={14} className="text-emerald-500/70 shrink-0" />
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
-              <div className="metric-number">{Math.round(summary?.avgPriorityScore ?? 0)}</div>
-              <p className="metadata-label mt-1.5">out of 100</p>
+              {loadingRecent ? (
+                <div className="metric-number text-muted-foreground/30">—</div>
+              ) : avgAssessedScore !== null ? (
+                <div className="metric-number">{Math.round(avgAssessedScore)}</div>
+              ) : (
+                <div className="metric-number text-muted-foreground/50 text-lg">—</div>
+              )}
+              <p className="metadata-label mt-1.5">
+                {avgAssessedScore !== null ? "assessed deals" : "Assessment pending"}
+              </p>
             </CardContent>
           </Card>
 
