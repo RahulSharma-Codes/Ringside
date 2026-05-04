@@ -206,6 +206,20 @@ export default function Copilot() {
         </div>
       )}
 
+      {/* Setup required banner */}
+      {setupRequired && !billingRequired && (
+        <div className="shrink-0 mx-4 mt-2 px-3.5 py-3 rounded-xl border border-border/40 bg-muted/40 text-[12px] text-muted-foreground space-y-1.5">
+          <div className="flex items-center gap-2 font-semibold text-foreground/70">
+            <Sparkles size={13} className="text-muted-foreground" />
+            AI workflows are built and ready
+          </div>
+          <p className="leading-relaxed">
+            Meeting notes parsing, opportunity briefs, weekly review briefs, and pipeline Q&A are all available.
+            Add an <code className="text-[10px] bg-background border border-border/60 px-1 py-px rounded font-mono">OPENAI_API_KEY</code> secret to activate them.
+          </p>
+        </div>
+      )}
+
       {/* Message area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
         {messages.length === 0 && !isLoading && (
