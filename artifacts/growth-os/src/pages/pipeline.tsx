@@ -86,11 +86,12 @@ export default function Pipeline() {
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-lg md:text-xl font-bold font-mono tracking-tight flex items-center gap-2">
-              Acquisition Targets
+              Inorganic Growth Pipeline
               {targets && !isLoading && (
                 <span className="text-[11px] font-normal text-muted-foreground/60 font-mono">{targets.length}</span>
               )}
             </h1>
+            <p className="text-[11px] text-muted-foreground mt-0.5 hidden md:block">Track, prioritize, and progress opportunities from origination through diligence, offer, closing, and integration planning.</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Button

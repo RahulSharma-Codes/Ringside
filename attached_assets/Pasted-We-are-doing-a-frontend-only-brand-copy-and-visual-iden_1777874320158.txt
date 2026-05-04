@@ -1,0 +1,274 @@
+We are doing a frontend-only brand, copy, and visual identity update for the app.
+
+The product name is now final:
+
+Ringside
+
+Subtitle / positioning line:
+
+Inorganic Growth Command Center
+
+Important safety rules:
+- This is frontend-only.
+- Do NOT touch api-server.
+- Do NOT touch lib/db.
+- Do NOT change database schema.
+- Do NOT run drizzle push.
+- Do NOT run seed.ts.
+- Do NOT modify DATABASE_URL.
+- Do NOT modify auth middleware.
+- Do NOT change API routes.
+- Do NOT change data fetching logic.
+- Do NOT modify generated API client files.
+- Do NOT insert demo data.
+- Preserve all existing functionality from all completed phases.
+- Run pnpm run typecheck after implementation.
+
+Context:
+This app is a corporate development / M&A operating portal. It currently tracks the inorganic growth pipeline, opportunities, target details, interactions, actions, stage changes, diligence readiness, import wizard, weekly review, and AI Copilot.
+
+Goal:
+Rename and rebrand the visible product as “Ringside” and make the interface feel more distinctive, premium, and memorable.
+
+The name should feel natural in sentences like:
+- “Check Ringside before the weekly review.”
+- “Log the banker update in Ringside.”
+- “Import the tracker into Ringside.”
+- “Open Ringside and see which Must-Win assets need attention.”
+
+Brand direction:
+Ringside should feel:
+- premium
+- focused
+- executive
+- easy to use
+- close to the action
+- leadership-ready
+- grounded in deal execution
+- subtly inspired by the idea of being ringside / in the corner, without becoming cheesy or sports-themed
+
+Do NOT make the app look like a boxing app.
+Do NOT add boxing gloves, ring ropes, fighter imagery, or gimmicky sports visuals.
+The boxing inspiration should be subtle: command, focus, proximity to action, guidance, and readiness.
+
+Brand replacement:
+Replace visible uses of:
+- Inorganic Growth OS
+- Inorganic Growth Operating System
+- Growth OS
+- generic OS branding
+
+with:
+- Ringside
+
+Where a descriptive subtitle is useful, use:
+- Inorganic Growth Command Center
+
+Examples:
+Sidebar brand:
+Ringside
+Inorganic Growth Command Center
+
+Login page:
+Welcome to Ringside
+Your command center for corporate development, diligence, and inorganic growth execution.
+
+Dashboard:
+Ringside Dashboard
+A leadership-ready view of active opportunities, execution risk, and pipeline movement.
+
+Do not rename core business concepts:
+- Inorganic Growth Pipeline remains valid
+- Opportunities remains valid
+- Due Diligence remains valid
+- NDA / CIM remains valid
+- Non-Binding Offer remains valid
+- Binding Offer remains valid
+- Integration Planning remains valid
+- Weekly Review remains valid
+- Diligence Review remains valid
+
+Add short descriptions across the portal:
+Add concise page subtitles/descriptions where missing. These should improve clarity and make the app feel intentional, not verbose.
+
+Use these descriptions unless a page already has a better one:
+
+Dashboard:
+“A leadership-ready view of active opportunities, execution risk, and pipeline movement.”
+
+Pipeline:
+“Track, prioritize, and progress opportunities from origination through diligence, offer, closing, and integration planning.”
+
+Target Detail / Deal Cockpit:
+“A single deal cockpit for rationale, interactions, actions, stage movement, and diligence readiness.”
+
+Actions Command Center:
+“Manage overdue, blocked, and upcoming execution items across the full inorganic growth pipeline.”
+
+Weekly Review:
+“What moved, what is blocked, and what needs attention before the next leadership discussion.”
+
+Diligence Review:
+“Monitor diligence readiness, workstream coverage, overdue items, and blocked issues across active opportunities.”
+
+Import Wizard:
+“Safely import legacy Excel or CSV tracker data without overwriting existing records with blanks.”
+
+AI Copilot:
+“Ask read-only questions about the pipeline, actions, risks, and weekly review data.”
+
+Color scheme change:
+The current UI still feels too generic. Move away from default blue/gray SaaS styling.
+
+Create a distinctive premium dark palette for Ringside:
+
+Core palette direction:
+- App background: deep ringside charcoal / blackened plum
+- Primary surface: graphite slate
+- Elevated surface: smoked plum-slate
+- Glass shell: translucent blackened plum / graphite with backdrop blur
+- Primary accent: muted champagne / antique gold
+- Secondary accent: deep teal
+- Danger / overdue / blocked: controlled crimson
+- Warning: amber
+- Success / completed: emerald
+- Primary text: warm off-white
+- Secondary text: muted stone / blue-gray
+- Borders: low-opacity champagne/slate borders
+
+Important:
+- The palette should look premium and boardroom-ready.
+- Avoid neon colors.
+- Avoid bright purple gradients everywhere.
+- Avoid crypto-dashboard aesthetics.
+- Avoid rainbow badges.
+- Keep text highly readable.
+- Do not make every card transparent.
+- Use glass-lite effects mainly for sidebar, app shell, command bars, sticky bars, dialogs, and elevated panels.
+- Keep dense content cards mostly opaque for readability.
+
+Design system requirements:
+Inspect the frontend structure first and implement the cleanest design-system-level approach.
+
+Likely files:
+- artifacts/growth-os/src/index.css
+- artifacts/growth-os/src/components/layout.tsx
+- shared UI components if needed:
+  - card.tsx
+  - button.tsx
+  - badge.tsx
+  - input.tsx
+  - select.tsx
+  - dialog.tsx
+- page files:
+  - dashboard.tsx
+  - pipeline.tsx
+  - target-detail.tsx
+  - target-detail-diligence.tsx
+  - actions.tsx
+  - weekly-review.tsx
+  - diligence-review.tsx
+  - import-wizard.tsx
+  - copilot.tsx
+  - login/auth page if present
+
+Implementation guidance:
+1. Search the frontend for old product names and replace visible user-facing labels with Ringside.
+2. Preserve business terminology. Do not rename database fields, API routes, internal model names, or backend logic.
+3. Update page headers and empty states with the short descriptions listed above.
+4. Update global CSS tokens so the new Ringside palette applies consistently across the app.
+5. Update shared UI components only if needed to make the palette consistent.
+6. Update sidebar/logo/brand area so Ringside feels premium and memorable.
+7. Make the active nav state distinctive but restrained:
+   - subtle champagne accent
+   - not a loud full-background flood
+8. Make dashboard and pipeline visibly more distinctive:
+   - stronger page headers
+   - better metric hierarchy
+   - champagne accent used sparingly
+   - attention/overdue still controlled crimson
+9. Make cards feel premium:
+   - subtle graphite surfaces
+   - refined low-opacity borders
+   - realistic shadows
+   - better spacing
+   - readable text
+10. Keep all forms, filters, buttons, routes, and workflows working exactly as before.
+
+Suggested copy examples:
+Sidebar:
+Ringside
+Inorganic Growth Command Center
+
+Dashboard header:
+Ringside Dashboard
+A leadership-ready view of active opportunities, execution risk, and pipeline movement.
+
+Pipeline header:
+Inorganic Growth Pipeline
+Track, prioritize, and progress opportunities from origination through diligence, offer, closing, and integration planning.
+
+Target detail header:
+Deal Cockpit
+A single deal cockpit for rationale, interactions, actions, stage movement, and diligence readiness.
+
+Actions page header:
+Actions Command Center
+Manage overdue, blocked, and upcoming execution items across the full inorganic growth pipeline.
+
+Weekly Review header:
+Weekly Review
+What moved, what is blocked, and what needs attention before the next leadership discussion.
+
+Diligence Review header:
+Diligence Review
+Monitor diligence readiness, workstream coverage, overdue items, and blocked issues across active opportunities.
+
+Import page header:
+Import Tracker Data
+Safely import legacy Excel or CSV tracker data without overwriting existing records with blanks.
+
+AI page header:
+Ringside Copilot
+Ask read-only questions about the pipeline, actions, risks, and weekly review data.
+
+Accessibility and usability requirements:
+- Ensure strong contrast on all text.
+- Do not put muted text directly on very transparent glass if it becomes hard to read.
+- Do not rely on color alone for status; preserve labels and icons.
+- Keep 375px mobile width readable.
+- No horizontal overflow.
+- Keep tap targets comfortable on mobile.
+- Preserve information density.
+- Do not hide important data behind decorative effects.
+- Empty states should remain clear and useful.
+
+QA requirements:
+After implementation, run:
+pnpm run typecheck
+
+Then perform a smoke test and report results for:
+1. Login page opens and says Ringside.
+2. Dashboard opens and says Ringside Dashboard.
+3. Pipeline opens and still shows existing targets from Supabase.
+4. Target detail opens.
+5. Actions Command Center opens.
+6. Weekly Review opens.
+7. Diligence Review opens.
+8. Import Wizard opens.
+9. AI Copilot opens and still handles the no-credits / billing state gracefully.
+10. Existing buttons, filters, forms, and navigation still work.
+11. No Apollo / Orion demo records appear unless they exist in Supabase.
+12. No API, DB, auth, or backend files were modified.
+13. No generated API client files were modified.
+14. Typecheck passes.
+
+Report back:
+- changed files
+- old names replaced
+- new brand text added
+- color tokens changed
+- pages touched
+- typecheck result
+- smoke-test result
+- any visual/accessibility risks

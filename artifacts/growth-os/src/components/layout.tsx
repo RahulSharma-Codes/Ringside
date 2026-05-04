@@ -61,8 +61,8 @@ function SidebarNav({
                 <Briefcase size={16} className="text-primary" />
               </div>
               <div className="min-w-0">
-                <p className="font-bold text-[11px] tracking-widest text-sidebar-foreground/90 uppercase truncate leading-tight">Growth OS</p>
-                <p className="text-[9px] text-sidebar-foreground/35 uppercase tracking-widest font-mono leading-tight mt-0.5">Confidential · Corp Dev</p>
+                <p className="font-bold text-[11px] tracking-widest text-sidebar-foreground/90 uppercase truncate leading-tight">Ringside</p>
+                <p className="text-[9px] text-sidebar-foreground/35 uppercase tracking-widest font-mono leading-tight mt-0.5">Inorganic Growth Command Center</p>
               </div>
             </div>
             <Link href="/targets/new" onClick={onNavigate}>
@@ -232,7 +232,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="w-7 h-7 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
             <Briefcase size={13} className="text-primary" />
           </div>
-          <span className="font-bold text-[11px] tracking-widest uppercase text-foreground/90 font-mono">Growth OS</span>
+          <span className="font-bold text-[11px] tracking-widest uppercase text-foreground/90 font-mono">Ringside</span>
         </div>
         <div className="flex items-center gap-1.5">
           <Link href="/targets/new">

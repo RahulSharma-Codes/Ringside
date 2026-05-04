@@ -149,10 +149,13 @@ export default function DiligenceReview() {
       {/* Sticky header */}
       <div className="page-hero px-4 md:px-6 pt-3.5 pb-3 shrink-0">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <ClipboardCheck size={16} className="text-primary shrink-0" />
-            <h1 className="text-lg font-bold font-mono tracking-tight">Diligence Review</h1>
-            <span className="metadata-label text-muted-foreground/40 hidden sm:inline">
+          <div className="flex items-start gap-2.5">
+            <ClipboardCheck size={16} className="text-primary shrink-0 mt-0.5" />
+            <div>
+              <h1 className="text-lg font-bold font-mono tracking-tight">Diligence Review</h1>
+              <p className="text-[11px] text-muted-foreground mt-0.5 hidden md:block">Monitor diligence readiness, workstream coverage, overdue items, and blocked issues across active opportunities.</p>
+            </div>
+            <span className="metadata-label text-muted-foreground/40 hidden sm:inline mt-1">
               refreshed {format(lastRefresh, "HH:mm")}
             </span>
           </div>

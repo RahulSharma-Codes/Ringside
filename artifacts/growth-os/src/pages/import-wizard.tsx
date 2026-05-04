@@ -489,8 +489,8 @@ export default function ImportWizard() {
     <div className="p-4 md:p-8 space-y-5 animate-in fade-in duration-500 pb-20 md:pb-8 max-w-4xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold font-mono tracking-tight uppercase">Import Targets</h1>
-        <p className="text-sm text-muted-foreground">Bulk add or update deal targets via CSV or Excel</p>
+        <h1 className="text-2xl font-bold font-mono tracking-tight uppercase">Import Tracker Data</h1>
+        <p className="text-sm text-muted-foreground">Safely import legacy Excel or CSV tracker data without overwriting existing records with blanks.</p>
       </div>
 
       <StepIndicator step={step} />

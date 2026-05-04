@@ -97,8 +97,9 @@ export default function Dashboard() {
       <div className="page-hero-sticky px-4 md:px-8 pt-4 pb-4">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="metadata-label text-primary/80">Inorganic Growth OS</p>
-            <h1 className="text-xl md:text-2xl font-bold font-mono tracking-tight mt-0.5">Executive Summary</h1>
+            <p className="metadata-label text-primary/80">Ringside</p>
+            <h1 className="text-xl md:text-2xl font-bold font-mono tracking-tight mt-0.5">Ringside Dashboard</h1>
+            <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed hidden md:block">A leadership-ready view of active opportunities, execution risk, and pipeline movement.</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {(summary?.needsAttentionCount ?? 0) > 0 && (

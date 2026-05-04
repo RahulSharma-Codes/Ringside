@@ -1,0 +1,139 @@
+We need one additional premium UI improvement for Ringside.
+
+This is frontend-first and should preserve all existing backend behavior.
+
+Important safety rules:
+- Do NOT touch database schema.
+- Do NOT run drizzle push.
+- Do NOT run seed.ts.
+- Do NOT change DATABASE_URL.
+- Do NOT change auth.
+- Do NOT change stage-change business logic.
+- Do NOT break existing stage_change_log audit behavior.
+- Use existing dashboard/target/stage data.
+- Only add API changes if absolutely necessary; prefer existing data first.
+- Run pnpm run typecheck after changes.
+
+Goal:
+Make pipeline stage visualization and stage movement feel premium, executive, and distinctive.
+
+Part 1 — Dashboard Pipeline Stage Rail
+
+The current dashboard pipeline stage graph looks generic. Replace or visually upgrade it into a premium “Pipeline Stage Rail” / “Stage Distribution Board.”
+
+Design requirements:
+- Do not use a basic default-looking bar chart.
+- Use a sequence of stage cards or a connected stage rail.
+- Show stages in logical deal-flow order:
+  Origination
+  Initial Screening
+  Management Discussion
+  NDA / CIM
+  Due Diligence
+  Non-Binding Offer
+  Binding Offer
+  Signing
+  Closing
+  Integration Planning
+  On Hold
+  Rejected
+
+If current app stages differ, adapt to existing stage values.
+
+Each stage card should show:
+- stage name
+- opportunity count
+- percentage of active pipeline, if available from current data
+- Must-Win count, if available
+- Needs Attention count, if available
+- subtle visual intensity based on count
+- attention/overdue badge if that stage has flagged opportunities, if available
+
+Visual style:
+- premium dark Ringside palette
+- graphite/slate card surfaces
+- champagne accent for the progression line or active highlights
+- crimson/amber only for attention states
+- subtle shadows and borders
+- no rainbow chart colors
+- no crypto-dashboard styling
+- readable on mobile at 375px
+- horizontal scroll on mobile if needed
+- clean executive layout on desktop
+
+Add a short section description:
+“Stage distribution across active opportunities, highlighting where execution attention is concentrated.”
+
+Part 2 — Target Detail Stage Progression Rail
+
+On the target detail / deal cockpit page, add a premium stage progression rail near the cockpit header.
+
+It should show:
+- all key deal stages in sequence
+- completed prior stages
+- current stage highlighted
+- future stages muted
+- current stage label
+- days in current stage if available
+- latest stage-change date/reason if already available in page data
+
+Do not add new database fields. Use existing milestone/stage_change_log data if available. If days-in-stage is not available from current data, skip it and report.
+
+Part 3 — Change Stage Modal Upgrade
+
+The existing Change Stage modal should feel more premium and intuitive.
+
+Replace or supplement the simple dropdown with a stage selector rail / stepper:
+- show all stages as selectable pills or connected steps
+- current stage is clearly marked
+- selected new stage is highlighted with the Ringside champagne accent
+- future stages are muted
+- mobile should use horizontal scroll or compact stacked selector
+- reason/note remains required
+- submit button should clearly say “Move to [selected stage]”
+- no submit allowed until new stage and reason are provided
+
+Critical:
+The existing stage-change logic must remain intact:
+- update current stage
+- insert timestamped row into stage_change_log
+- refresh target detail and stage history
+- preserve auditability
+
+Do NOT bypass stage_change_log.
+
+Part 4 — Stage Indicator Consistency
+
+Wherever a target card shows stage:
+- Pipeline cards
+- Dashboard lists
+- Weekly Review
+- Diligence Review
+- Target Detail
+
+Make stage chips visually consistent with the new Ringside style:
+- restrained champagne/slate treatment
+- no random rainbow colors
+- current/active stage should be readable
+- attention badges remain crimson/amber where needed
+
+QA:
+After implementation:
+1. Run pnpm run typecheck.
+2. Confirm Dashboard loads.
+3. Confirm the old generic pipeline chart is replaced or visibly upgraded.
+4. Confirm Pipeline still loads existing Supabase targets.
+5. Confirm Target Detail opens.
+6. Confirm stage progression rail appears.
+7. Confirm Change Stage modal opens.
+8. Confirm reason is still required.
+9. Confirm changing stage still writes to stage_change_log.
+10. Confirm Weekly Review and Diligence Review still load.
+11. Confirm mobile width 375px has no horizontal overflow.
+
+Report:
+- changed files
+- whether any API changes were needed
+- whether stage rail uses existing data only
+- typecheck result
+- any skipped items due to missing data

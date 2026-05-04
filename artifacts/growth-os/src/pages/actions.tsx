@@ -309,13 +309,17 @@ export default function Actions() {
       {/* Sticky compact header */}
       <div className="page-hero px-4 md:px-6 pt-3.5 pb-3 shrink-0">
         <div className="flex items-center justify-between gap-3 mb-2.5">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <h1 className="text-lg font-bold font-mono tracking-tight">
-              {isLoading ? "Actions" : `${totalOpen} Open Action${totalOpen !== 1 ? "s" : ""}`}
-            </h1>
-            {overdueCount > 0 && (
-              <span className="status-chip bg-destructive/10 text-destructive border-destructive/30">{overdueCount} overdue</span>
-            )}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-lg font-bold font-mono tracking-tight">Actions Command Center</h1>
+              {!isLoading && totalOpen > 0 && (
+                <span className="text-[11px] font-mono text-muted-foreground/60">{totalOpen} open</span>
+              )}
+              {overdueCount > 0 && (
+                <span className="status-chip bg-destructive/10 text-destructive border-destructive/30">{overdueCount} overdue</span>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5 hidden md:block">Manage overdue, blocked, and upcoming execution items across the full inorganic growth pipeline.</p>
           </div>
         </div>
 

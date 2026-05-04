@@ -73,73 +73,73 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  /* ── Surface ramp (darkest → lightest) ──────────────────── */
-  /* sidebar (6%) → background (11%) → card (15%) → secondary (22%) */
+  /* ── Ringside surface ramp (darkest → lightest) ──────────── */
+  /* sidebar (5%) → background (7%) → card (12%) → secondary (18%) */
 
-  --background: 222 47% 11%;       /* page canvas — deep slate */
-  --foreground: 210 40% 98%;
-  --border: 215 18% 22%;           /* refined — slightly more subtle */
+  --background: 240 18% 7%;        /* deep ringside charcoal */
+  --foreground: 38 12% 93%;        /* warm off-white */
+  --border: 240 10% 22%;
 
-  /* Card sits visually above the page background */
-  --card: 220 43% 15%;
-  --card-foreground: 210 40% 98%;
-  --card-border: 215 18% 22%;
+  /* Card — graphite slate, elevated above page canvas */
+  --card: 240 14% 12%;
+  --card-foreground: 38 12% 93%;
+  --card-border: 240 10% 22%;
 
-  /* Sidebar recedes behind content for clear depth hierarchy */
-  --sidebar: 224 51% 7%;
-  --sidebar-foreground: 210 30% 88%;
-  --sidebar-border: 215 20% 16%;
-  --sidebar-primary: 221 83% 53%;
-  --sidebar-primary-foreground: 210 40% 98%;
-  --sidebar-accent: 215 25% 16%;
-  --sidebar-accent-foreground: 210 40% 98%;
-  --sidebar-ring: 221 83% 53%;
+  /* Sidebar — blackened plum shell, deepest layer */
+  --sidebar: 240 28% 5%;
+  --sidebar-foreground: 38 10% 84%;
+  --sidebar-border: 240 15% 14%;
+  --sidebar-primary: 42 65% 55%;   /* champagne / antique gold */
+  --sidebar-primary-foreground: 240 20% 7%;
+  --sidebar-accent: 240 14% 14%;
+  --sidebar-accent-foreground: 38 12% 93%;
+  --sidebar-ring: 42 65% 55%;
 
-  --popover: 220 43% 13%;
-  --popover-foreground: 210 40% 98%;
-  --popover-border: 215 18% 22%;
+  --popover: 240 15% 10%;
+  --popover-foreground: 38 12% 93%;
+  --popover-border: 240 10% 22%;
 
   /* ── Colour scale ────────────────────────────────────────── */
-  --primary: 221 83% 53%;          /* blue-600 */
-  --primary-foreground: 210 40% 98%;
-  --secondary: 215 22% 22%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 220 35% 18%;
-  --muted-foreground: 215 18% 58%;
-  --accent: 215 22% 22%;
-  --accent-foreground: 210 40% 98%;
+  --primary: 42 65% 55%;           /* muted champagne / antique gold */
+  --primary-foreground: 240 20% 7%;
+  --secondary: 240 10% 18%;
+  --secondary-foreground: 38 12% 93%;
+  --muted: 240 10% 15%;
+  --muted-foreground: 220 6% 54%;  /* muted stone / blue-gray */
+  --accent: 240 10% 18%;
+  --accent-foreground: 38 12% 93%;
 
-  /* Vivid red — clearly legible on dark backgrounds */
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
+  /* Controlled crimson — legible on dark backgrounds */
+  --destructive: 0 68% 52%;
+  --destructive-foreground: 38 12% 93%;
 
-  --input: 215 22% 22%;
-  --ring: 221 83% 53%;
+  --input: 240 10% 18%;
+  --ring: 42 65% 55%;
 
   /* ── Charts ──────────────────────────────────────────────── */
-  --chart-1: 221 83% 53%;
-  --chart-2: 160 84% 39%;          /* emerald-500 */
-  --chart-3: 45 93% 47%;           /* amber-500 */
-  --chart-4: 280 65% 60%;          /* purple-500 */
-  --chart-5: 0 84% 60%;            /* red-500 */
+  --chart-1: 42 65% 55%;           /* champagne / primary */
+  --chart-2: 160 60% 40%;          /* emerald */
+  --chart-3: 38 80% 50%;           /* amber */
+  --chart-4: 185 60% 38%;          /* deep teal */
+  --chart-5: 0 68% 52%;            /* controlled crimson */
 
   /* ── Typography ──────────────────────────────────────────── */
   --app-font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
-  /* ── Radius — increased for premium feel ─────────────────── */
-  --radius: 0.5rem;                /* was 0.25rem */
+  /* ── Radius ───────────────────────────────────────────────── */
+  --radius: 0.5rem;
 
-  /* ── Realistic multi-layer shadows ───────────────────────── */
-  --shadow-2xs: 0 1px 2px 0 rgba(0,0,0,.35);
-  --shadow-xs:  0 1px 3px 0 rgba(0,0,0,.4),  0 1px 2px -1px rgba(0,0,0,.3);
-  --shadow-sm:  0 2px 4px 0 rgba(0,0,0,.4),  0 1px 2px -1px rgba(0,0,0,.25);
-  --shadow:     0 4px 8px 0 rgba(0,0,0,.4),  0 2px 4px -1px rgba(0,0,0,.25);
-  --shadow-md:  0 6px 16px 0 rgba(0,0,0,.4), 0 3px 6px  -1px rgba(0,0,0,.3);
-  --shadow-lg:  0 12px 24px 0 rgba(0,0,0,.45), 0 6px 12px -2px rgba(0,0,0,.3);
-  --shadow-xl:  0 20px 40px 0 rgba(0,0,0,.5), 0 10px 20px -4px rgba(0,0,0,.3);
-  --shadow-2xl: 0 32px 64px 0 rgba(0,0,0,.55);
+  /* ── Deeper shadows for dark premium feel ────────────────── */
+  --shadow-2xs: 0 1px 2px 0 rgba(0,0,0,.45);
+  --shadow-xs:  0 1px 3px 0 rgba(0,0,0,.5),  0 1px 2px -1px rgba(0,0,0,.4);
+  --shadow-sm:  0 2px 4px 0 rgba(0,0,0,.5),  0 1px 2px -1px rgba(0,0,0,.35);
+  --shadow:     0 4px 8px 0 rgba(0,0,0,.5),  0 2px 4px -1px rgba(0,0,0,.35);
+  --shadow-md:  0 6px 16px 0 rgba(0,0,0,.5), 0 3px 6px  -1px rgba(0,0,0,.4);
+  --shadow-lg:  0 12px 24px 0 rgba(0,0,0,.55), 0 6px 12px -2px rgba(0,0,0,.4);
+  --shadow-xl:  0 20px 40px 0 rgba(0,0,0,.6), 0 10px 20px -4px rgba(0,0,0,.4);
+  --shadow-2xl: 0 32px 64px 0 rgba(0,0,0,.65);
 
   /* ── Token aliases ───────────────────────────────────────── */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
@@ -255,13 +255,13 @@
 
   .premium-card {
     background-color: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
+    border: 1px solid hsl(var(--border) / 0.8);
     border-radius: var(--radius-xl);
-    box-shadow: 0 2px 8px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
+    box-shadow: 0 2px 10px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.35);
     transition: box-shadow 150ms ease, background-color 150ms ease;
   }
   .premium-card:hover {
-    box-shadow: 0 4px 16px rgba(0,0,0,.38), 0 2px 4px rgba(0,0,0,.22);
+    box-shadow: 0 4px 20px rgba(0,0,0,.6), 0 2px 6px rgba(0,0,0,.4);
   }
 
   .command-bar {
@@ -350,20 +350,20 @@
   /* ── KPI card top-border accent lines ────────────────────────── */
   .kpi-accent-blue    { border-top: 3px solid hsl(var(--primary)); }
   .kpi-accent-red     { border-top: 3px solid hsl(var(--destructive)); }
-  .kpi-accent-amber   { border-top: 3px solid hsl(45 93% 47%); }
-  .kpi-accent-emerald { border-top: 3px solid hsl(160 84% 39%); }
+  .kpi-accent-amber   { border-top: 3px solid hsl(38 80% 50%); }
+  .kpi-accent-emerald { border-top: 3px solid hsl(160 60% 40%); }
   .kpi-accent-muted   { border-top: 3px solid hsl(var(--muted-foreground) / 0.4); }
 
   /* ── Pipeline tier border utilities ─────────────────────────── */
   .tier-must-win { border-left: 3px solid hsl(var(--destructive)); background-color: hsl(var(--destructive) / 0.04); }
-  .tier-p1       { border-left: 3px solid hsl(45 93% 47%); background-color: hsl(45 93% 47% / 0.04); }
+  .tier-p1       { border-left: 3px solid hsl(38 80% 50%); background-color: hsl(38 80% 50% / 0.04); }
   .tier-p2       { border-left: 3px solid hsl(var(--primary)); }
 
   /* ── Group severity section headers ──────────────────────────── */
   .group-header-overdue  { background-color: hsl(var(--destructive) / 0.1) !important; }
   .group-header-blocked  { background-color: hsl(30 100% 50% / 0.08) !important; }
-  .group-header-thisweek { background-color: hsl(45 93% 47% / 0.07) !important; }
-  .group-header-complete { background-color: hsl(160 84% 39% / 0.07) !important; }
+  .group-header-thisweek { background-color: hsl(38 80% 50% / 0.07) !important; }
+  .group-header-complete { background-color: hsl(160 60% 40% / 0.07) !important; }
 
   /* ── Nav section label ────────────────────────────────────────── */
   .nav-section-label {

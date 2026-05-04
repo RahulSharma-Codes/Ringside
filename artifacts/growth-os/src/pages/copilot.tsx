@@ -86,14 +86,14 @@ export default function Copilot() {
           <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
             <Bot size={14} className="text-primary" />
           </div>
-          <h1 className="font-mono uppercase text-sm tracking-tight font-bold">AI Copilot</h1>
+          <h1 className="font-mono uppercase text-sm tracking-tight font-bold">Ringside Copilot</h1>
         </div>
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="max-w-md text-center space-y-4">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-muted border border-border/60">
               <AlertTriangle size={22} className="text-muted-foreground" />
             </div>
-            <h2 className="font-semibold text-lg">AI Copilot Not Configured</h2>
+            <h2 className="font-semibold text-lg">Ringside Copilot Not Configured</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
               The AI service is not available. An{" "}
               <code className="text-xs bg-muted border border-border/60 px-1.5 py-0.5 rounded-md font-mono">OPENAI_API_KEY</code>{" "}
@@ -112,8 +112,11 @@ export default function Copilot() {
         <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
           <Bot size={14} className="text-primary" />
         </div>
-        <h1 className="font-mono uppercase text-sm tracking-tight font-bold">AI Copilot</h1>
-        <span className="text-[10px] text-muted-foreground/70 font-mono ml-2 bg-muted/60 border border-border/50 px-2 py-0.5 rounded-md">
+        <div>
+          <h1 className="font-mono uppercase text-sm tracking-tight font-bold">Ringside Copilot</h1>
+          <p className="text-[11px] text-muted-foreground hidden md:block mt-0.5">Ask read-only questions about the pipeline, actions, risks, and weekly review data.</p>
+        </div>
+        <span className="text-[10px] text-muted-foreground/70 font-mono ml-2 bg-muted/60 border border-border/50 px-2 py-0.5 rounded-md shrink-0">
           Read-Only
         </span>
       </div>

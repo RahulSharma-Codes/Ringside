@@ -61,9 +61,10 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <Card className="w-full max-w-md border-border bg-card/80 backdrop-blur rounded-sm">
-        <CardHeader className="space-y-2">
-          <CardTitle className="font-mono uppercase tracking-tight text-xl">Inorganic Growth OS</CardTitle>
-          <p className="text-sm text-muted-foreground">Confidential Corporate Development Platform</p>
+        <CardHeader className="space-y-2 pb-2">
+          <p className="text-[10px] font-mono uppercase tracking-widest text-primary/70">Inorganic Growth Command Center</p>
+          <CardTitle className="font-mono uppercase tracking-widest text-2xl leading-tight">Ringside</CardTitle>
+          <p className="text-sm text-muted-foreground leading-relaxed">Your command center for corporate development, diligence, and inorganic growth execution.</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
