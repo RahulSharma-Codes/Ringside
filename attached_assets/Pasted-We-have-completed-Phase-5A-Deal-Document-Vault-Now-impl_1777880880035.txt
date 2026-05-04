@@ -1,0 +1,206 @@
+We have completed Phase 5A: Deal Document Vault.
+
+Now implement Phase 5B: Secure Document Upload + Supabase Storage.
+
+Important safety rules:
+- Do NOT rebuild from scratch.
+- Do NOT change the app architecture.
+- Do NOT run drizzle push.
+- Do NOT run seed.ts.
+- Do NOT insert Apollo/Orion/Beacon/Catalyst/Helios demo data.
+- Do NOT modify DATABASE_URL.
+- Do NOT modify auth middleware unless absolutely required.
+- Supabase remains the source of truth.
+- Preserve all existing functionality.
+- Do not delete files or database records.
+- Do not expose Supabase service role keys to the frontend.
+- If Supabase Storage setup or schema changes are required, propose exact steps first and wait for approval before applying anything destructive.
+
+Current state:
+- App brand is Ringside.
+- Phase 5A added document metadata / document review functionality.
+- Existing structure:
+  - React/Vite frontend: artifacts/growth-os
+  - Express API backend: artifacts/api-server
+  - Drizzle/Postgres DB layer: lib/db
+- Existing Supabase/Postgres tables include targets, financial_snapshots, milestones, interactions, actions, stage_change_log, lookup_values, users, and whatever document table was added in Phase 5A.
+- The document vault currently supports metadata and/or external URLs.
+- We now want optional secure file upload support.
+
+Phase 5B goal:
+Allow users to upload, open, download, and replace deal documents securely through Ringside.
+
+Required product behavior:
+
+1. Upload file from Target Detail Documents tab
+On the Documents tab, user can:
+- Add a document record with metadata and file upload
+- Upload a file for an existing document record
+- Replace a file for an existing document record
+- Keep external URL support as an alternative
+
+Supported document examples:
+- Teaser
+- NDA
+- CIM
+- Financials
+- Management Presentation
+- Legal
+- Tax
+- HR
+- Technology
+- Operations
+- Integration
+- Offer Letter
+- Board / IC Material
+- Other
+
+2. Upload fields
+When uploading, capture:
+- title
+- document type
+- status
+- owner
+- document date
+- workstream
+- notes
+- file
+- optional external URL
+
+3. File metadata
+Store enough metadata to display:
+- file name
+- file size
+- MIME type
+- uploaded date
+- storage path
+- uploaded by if available
+- whether the document is external URL only or uploaded file
+
+If the Phase 5A document table does not already have these fields, stop and propose the smallest safe SQL ALTER TABLE first.
+Do not run drizzle push.
+
+Likely columns if missing:
+- storage_path text
+- file_name text
+- file_size bigint
+- mime_type text
+- uploaded_at timestamptz
+- external_url text, if not already present
+
+4. Supabase Storage
+Inspect current secrets and project setup.
+
+Preferred approach:
+- Use Supabase Storage with a private bucket named deal-documents.
+- Upload/download should go through backend API routes.
+- Do not expose service role key to frontend.
+- Backend should use Supabase server-side client only if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are available as Replit Secrets.
+- If these secrets are missing, do not crash. Show setup instructions and keep URL-only document tracking working.
+
+Required Replit Secrets if needed:
+- SUPABASE_URL
+- SUPABASE_SERVICE_ROLE_KEY
+
+Do not ask user to paste secrets into code or chat.
+
+5. Backend routes
+Add routes only if needed, likely:
+- POST /api/documents/:id/upload
+- GET /api/documents/:id/download-url
+- PUT /api/documents/:id/replace-file
+- GET /api/documents/:id/file-info if needed
+
+Behavior:
+- Upload route receives multipart/form-data.
+- Backend validates document exists.
+- Backend stores file under path pattern:
+  targets/{targetId}/documents/{documentId}/{safeFileName}
+- Backend updates document metadata after successful upload.
+- Download route returns a short-lived signed URL if using private Supabase Storage.
+- Replace route uploads new file and updates metadata.
+- Do not delete old files in Phase 5B unless replacement cleanup is safe and explicitly implemented.
+- Do not add hard delete.
+
+6. File limits and validation
+Add safe validation:
+- Max file size: 25MB for Phase 5B
+- Allowed file types:
+  - PDF
+  - Word documents
+  - Excel files
+  - PowerPoint files
+  - CSV
+  - images if useful
+- Reject unsafe file types with friendly error message.
+
+7. Frontend Documents tab
+Upgrade document cards:
+- Show external URL button if URL exists
+- Show uploaded file button if file exists
+- Show file name, file size, MIME type, uploaded date
+- Add Upload / Replace File button
+- Add download/open button that asks backend for signed URL
+- Show clear empty states:
+  - “No file uploaded yet”
+  - “External link only”
+  - “Upload failed — please try again”
+
+8. Document Review page
+Show file status:
+- Missing file
+- Uploaded file
+- External link only
+- Under Review
+- Missing Critical Documents
+
+Add filter or badge for documents without file/link if easy.
+
+9. Security and privacy
+- Never expose Supabase service role key in frontend.
+- Never log full secrets.
+- Do not print signed URLs in logs.
+- Do not make the bucket public unless explicitly approved.
+- Prefer private bucket + signed URLs.
+
+10. Fallback if storage cannot be configured
+If Supabase Storage cannot be safely configured:
+- Keep the Phase 5A URL/link workflow intact.
+- Add a friendly setup card explaining missing storage configuration.
+- Report exactly what secrets/setup are needed.
+- Do not break the app.
+
+Testing:
+After implementation or setup proposal:
+- Run pnpm run typecheck.
+- Confirm login works.
+- Confirm Dashboard loads.
+- Confirm Pipeline loads.
+- Confirm Target Detail opens.
+- Confirm Documents tab loads.
+- Confirm existing document metadata still appears.
+- Confirm Add Document still works.
+- Confirm external URL document still works.
+- Confirm file upload works if storage is configured.
+- Confirm uploaded file metadata appears on document card.
+- Confirm download/open file works via signed URL if storage is configured.
+- Confirm Document Review loads.
+- Confirm Diligence Review still works.
+- Confirm Actions and Weekly Review still work.
+- Confirm Import Wizard still opens.
+- Confirm AI Copilot no-credit state still works.
+- Confirm no Apollo/Orion demo data appears unless already in Supabase.
+
+Report:
+1. whether Supabase Storage was configured or setup is needed
+2. whether SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY were detected
+3. whether document table needed new columns
+4. exact SQL proposed/applied, if any
+5. bucket name used or proposed
+6. files changed
+7. API routes added/modified
+8. packages added, if any
+9. file upload status
+10. typecheck result
+11. manual smoke-test result
+12. any risks or follow-up tasks
