@@ -126,6 +126,7 @@ export function AiMeetingNotesModal({
   const [billingRequired, setBillingRequired] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
+  const [interactionSelected, setInteractionSelected] = useState(true);
   const [editableInteraction, setEditableInteraction] = useState<SuggestionInteraction>({
     interactionType: "Meeting",
     summary: "",
@@ -160,6 +161,7 @@ export function AiMeetingNotesModal({
     setSetupRequired(false);
     setBillingRequired(false);
     setAiError(null);
+    setInteractionSelected(true);
     setEditableActions([]);
     setStageChangeSelected(false);
     setRisks([]);
@@ -245,19 +247,21 @@ export function AiMeetingNotesModal({
     };
 
     try {
-      await customFetch(`/api/targets/${targetId}/interactions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          interactionType: editableInteraction.interactionType,
-          summary: editableInteraction.summary,
-          participantsInternal: editableInteraction.participantsInternal || null,
-          participantsExternal: editableInteraction.participantsExternal || null,
-          sentiment: editableInteraction.sentiment || null,
-          valuationSignal: editableInteraction.valuationSignal || null,
-        }),
-      });
-      results.interactionCreated = true;
+      if (interactionSelected) {
+        await customFetch(`/api/targets/${targetId}/interactions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            interactionType: editableInteraction.interactionType,
+            summary: editableInteraction.summary,
+            participantsInternal: editableInteraction.participantsInternal || null,
+            participantsExternal: editableInteraction.participantsExternal || null,
+            sentiment: editableInteraction.sentiment || null,
+            valuationSignal: editableInteraction.valuationSignal || null,
+          }),
+        });
+        results.interactionCreated = true;
+      }
 
       for (const action of editableActions.filter((a) => a.selected)) {
         await customFetch(`/api/targets/${targetId}/actions`, {
@@ -314,8 +318,14 @@ export function AiMeetingNotesModal({
   };
 
   const stageIsValid = editableStageChange.newStage && ALL_KNOWN_STAGES.includes(editableStageChange.newStage);
+  const stageSelectedButInvalid =
+    stageChangeSelected &&
+    (!editableStageChange.newStage ||
+      !ALL_KNOWN_STAGES.includes(editableStageChange.newStage) ||
+      !editableStageChange.reason.trim());
   const selectedActionCount = editableActions.filter((a) => a.selected).length;
-  const canApply = editableInteraction.summary.trim().length > 0;
+  const interactionSummaryMissing = interactionSelected && !editableInteraction.summary.trim();
+  const canApply = !stageSelectedButInvalid && !interactionSummaryMissing;
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -507,14 +517,33 @@ export function AiMeetingNotesModal({
                     {applyError}
                   </div>
                 )}
+                {stageSelectedButInvalid && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm text-amber-700">
+                    <AlertTriangle size={13} className="shrink-0" />
+                    Stage change selected — choose a valid stage and provide a reason before applying.
+                  </div>
+                )}
+                {interactionSummaryMissing && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm text-amber-700">
+                    <AlertTriangle size={13} className="shrink-0" />
+                    Interaction is checked — please add a summary before applying.
+                  </div>
+                )}
 
                 {/* Interaction */}
-                <div className="space-y-3 border border-border/60 rounded-xl p-4 bg-card">
-                  <div className="flex items-center gap-2">
-                    <Bot size={13} className="text-primary" />
-                    <span className="text-[11px] font-mono uppercase tracking-wider font-semibold text-muted-foreground">
-                      Interaction (will be logged)
-                    </span>
+                <div className={`space-y-3 border rounded-xl p-4 bg-card transition-colors ${interactionSelected ? "border-border/60" : "border-border/30 opacity-60"}`}>
+                  <div className="flex items-center gap-2.5">
+                    <Checkbox
+                      id="include-interaction"
+                      checked={interactionSelected}
+                      onCheckedChange={(v) => setInteractionSelected(Boolean(v))}
+                    />
+                    <label htmlFor="include-interaction" className="flex items-center gap-2 cursor-pointer flex-1">
+                      <Bot size={13} className="text-primary" />
+                      <span className="text-[11px] font-mono uppercase tracking-wider font-semibold text-muted-foreground">
+                        Log Interaction
+                      </span>
+                    </label>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">

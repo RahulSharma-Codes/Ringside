@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, ChevronRight, AlertTriangle, Calendar, Zap, User, MapPin, Upload } from "lucide-react";
+import { Search, Plus, ChevronRight, AlertTriangle, Calendar, Zap, User, MapPin, Upload, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
 import { StageChip } from "@/components/stage-chip";
@@ -109,6 +109,11 @@ export default function Pipeline() {
   );
 
   const hasActiveFilters = search || stage !== "all" || tier !== "all" || owner !== "all" || country !== "all" || attentionOnly;
+
+  const aiMode = (() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("ai") as "meeting-notes" | "opportunity-brief" | null;
+  })();
 
   function clearFilters() {
     setSearch(""); setStage("all"); setTier("all"); setOwner("all"); setCountry("all"); setAttentionOnly(false);
@@ -224,6 +229,18 @@ export default function Pipeline() {
           )}
         </div>
       </div>
+
+      {/* AI workflow banner */}
+      {aiMode && (
+        <div className="mx-4 md:mx-6 mt-3 px-3.5 py-2.5 rounded-xl border border-primary/20 bg-primary/5 text-[11px] font-mono flex items-center gap-2 text-primary">
+          <Sparkles size={12} className="shrink-0" />
+          <span>
+            {aiMode === "meeting-notes"
+              ? "Select a target below to open the AI meeting notes parser."
+              : "Select a target below to generate an AI opportunity brief."}
+          </span>
+        </div>
+      )}
 
       <div className="p-4 md:p-6 space-y-2.5">
 
