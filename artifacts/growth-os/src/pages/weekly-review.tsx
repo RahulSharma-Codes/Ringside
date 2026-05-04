@@ -6,6 +6,7 @@ import { format, parseISO } from "date-fns";
 import {
   ChevronDown, ChevronRight, RefreshCw, AlertTriangle, Clock,
   Target, ArrowRight, CalendarCheck, Zap, ShieldAlert,
+  Sparkles, Loader2, Copy, Check, Bot, X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -274,9 +275,24 @@ function Section({
 
 // ── Page ───────────────────────────────────────────────────────────────────
 
+interface BriefState {
+  open: boolean;
+  loading: boolean;
+  content: string | null;
+  setupRequired: boolean;
+  billingRequired: boolean;
+  copied: boolean;
+  error: string | null;
+}
+
 export default function WeeklyReview() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [refreshedAt, setRefreshedAt] = useState(new Date());
+
+  const [brief, setBrief] = useState<BriefState>({
+    open: false, loading: false, content: null,
+    setupRequired: false, billingRequired: false, copied: false, error: null,
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["weekly-review", refreshKey],
@@ -286,6 +302,30 @@ export default function WeeklyReview() {
   const handleRefresh = () => {
     setRefreshKey((k) => k + 1);
     setRefreshedAt(new Date());
+  };
+
+  const handleGenerateBrief = async () => {
+    setBrief((b) => ({ ...b, open: true, loading: true, content: null, setupRequired: false, billingRequired: false, error: null }));
+    try {
+      const resp = await customFetch<{
+        brief: string | null;
+        setupRequired?: boolean;
+        billingRequired?: boolean;
+        error?: string;
+      }>("/api/ai/weekly-brief", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      if (resp.setupRequired) { setBrief((b) => ({ ...b, loading: false, setupRequired: true })); return; }
+      if (resp.billingRequired) { setBrief((b) => ({ ...b, loading: false, billingRequired: true })); return; }
+      setBrief((b) => ({ ...b, loading: false, content: resp.brief ?? "No brief generated." }));
+    } catch (err) {
+      setBrief((b) => ({ ...b, loading: false, error: err instanceof Error ? err.message : "Failed to generate brief." }));
+    }
+  };
+
+  const handleCopyBrief = () => {
+    if (!brief.content) return;
+    navigator.clipboard.writeText(brief.content).catch(() => {});
+    setBrief((b) => ({ ...b, copied: true }));
+    setTimeout(() => setBrief((b) => ({ ...b, copied: false })), 2000);
   };
 
   const d = data;
@@ -305,18 +345,91 @@ export default function WeeklyReview() {
               refreshed {format(refreshedAt, "h:mm a")}
             </span>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-7 px-2.5 gap-1.5"
-            onClick={handleRefresh}
-            disabled={isLoading}
-          >
-            <RefreshCw size={11} className={isLoading ? "animate-spin" : ""} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-primary/30 text-primary hover:bg-primary/5 h-7 px-2.5 gap-1.5 hidden sm:flex"
+              onClick={handleGenerateBrief}
+              disabled={brief.loading}
+            >
+              {brief.loading
+                ? <Loader2 size={11} className="animate-spin" />
+                : <Sparkles size={11} />}
+              AI Brief
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-7 px-2.5 gap-1.5"
+              onClick={handleRefresh}
+              disabled={isLoading}
+            >
+              <RefreshCw size={11} className={isLoading ? "animate-spin" : ""} />
+              Refresh
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* AI Weekly Brief Panel */}
+      {brief.open && (
+        <div className="shrink-0 mx-4 mt-3 border border-primary/20 bg-primary/5 rounded-xl overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-primary/15">
+            <div className="w-6 h-6 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Bot size={12} className="text-primary" />
+            </div>
+            <span className="text-[11px] font-mono uppercase tracking-wider font-semibold text-primary/80 flex-1">
+              AI Weekly Review Brief
+            </span>
+            {brief.content && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-[10px] gap-1 text-muted-foreground hover:text-foreground"
+                onClick={handleCopyBrief}
+              >
+                {brief.copied ? <Check size={11} /> : <Copy size={11} />}
+                {brief.copied ? "Copied" : "Copy"}
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+              onClick={() => setBrief((b) => ({ ...b, open: false }))}
+            >
+              <X size={12} />
+            </Button>
+          </div>
+          <div className="px-4 py-4">
+            {brief.loading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                <Loader2 size={14} className="animate-spin" />
+                Generating AI brief from pipeline data…
+              </div>
+            )}
+            {!brief.loading && brief.setupRequired && (
+              <p className="text-sm text-muted-foreground">
+                AI not configured. Add an <code className="text-xs font-mono bg-muted px-1 rounded">OPENAI_API_KEY</code> to enable AI briefs.
+              </p>
+            )}
+            {!brief.loading && brief.billingRequired && (
+              <p className="text-sm text-amber-600">
+                AI workflows are ready — add OpenAI API credits to activate them.
+              </p>
+            )}
+            {!brief.loading && brief.error && (
+              <p className="text-sm text-destructive">{brief.error}</p>
+            )}
+            {!brief.loading && brief.content && !brief.setupRequired && !brief.billingRequired && (
+              <div className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/90 max-h-96 overflow-y-auto">
+                {brief.content}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 overflow-auto p-4 md:p-6 space-y-2.5">
         {isLoading ? (

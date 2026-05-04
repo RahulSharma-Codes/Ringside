@@ -692,6 +692,70 @@ paths:
               schema:
                 $ref: "#/components/schemas/AiAskResponse"
 
+  /ai/status:
+    get:
+      operationId: getAiStatus
+      tags: [ai]
+      summary: Check AI service availability, key status, and billing
+      responses:
+        "200":
+          description: AI status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiStatusResponse"
+
+  /ai/meeting-notes:
+    post:
+      operationId: parseMeetingNotes
+      tags: [ai]
+      summary: Parse raw meeting notes into structured deal suggestions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeetingNotesRequest"
+      responses:
+        "200":
+          description: Structured suggestions or error flags
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeetingNotesResponse"
+
+  /ai/opportunity-brief:
+    post:
+      operationId: generateOpportunityBrief
+      tags: [ai]
+      summary: Generate a leadership-ready AI opportunity brief for a target
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpportunityBriefRequest"
+      responses:
+        "200":
+          description: Generated brief or error flags
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BriefResponse"
+
+  /ai/weekly-brief:
+    post:
+      operationId: generateWeeklyBrief
+      tags: [ai]
+      summary: Generate an executive weekly review brief from pipeline data
+      responses:
+        "200":
+          description: Generated weekly brief or error flags
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BriefResponse"
+
   /import/apply:
     post:
       operationId: applyImport
@@ -2087,3 +2151,139 @@ components:
           items:
             $ref: "#/components/schemas/DiligenceReviewTargetSummary"
       required: [mustWinIncomplete, blockedItems, overdueItems, recentlyCompleted, targetSummaries]
+
+    AiStatusResponse:
+      type: object
+      properties:
+        available:
+          type: boolean
+        setupRequired:
+          type: boolean
+        billingRequired:
+          type: boolean
+        model:
+          type: string
+          nullable: true
+      required: [available, setupRequired, billingRequired]
+
+    MeetingNotesRequest:
+      type: object
+      properties:
+        targetId:
+          type: integer
+          nullable: true
+        noteType:
+          type: string
+        rawNotes:
+          type: string
+        date:
+          type: string
+          nullable: true
+        participants:
+          type: string
+          nullable: true
+      required: [noteType, rawNotes]
+
+    MeetingSuggestionInteraction:
+      type: object
+      properties:
+        interactionType: { type: string }
+        summary: { type: string }
+        participantsInternal: { type: string }
+        participantsExternal: { type: string }
+        sentiment: { type: string }
+        valuationSignal: { type: string }
+      required: [interactionType, summary, participantsInternal, participantsExternal, sentiment, valuationSignal]
+
+    MeetingSuggestionAction:
+      type: object
+      properties:
+        description: { type: string }
+        owner: { type: string }
+        dueDate: { type: string, nullable: true }
+        priority: { type: string }
+      required: [description, owner, priority]
+
+    MeetingSuggestionStageChange:
+      type: object
+      properties:
+        suggested: { type: boolean }
+        newStage: { type: string }
+        reason: { type: string }
+        confidence: { type: string }
+      required: [suggested, newStage, reason, confidence]
+
+    MeetingSuggestionRisk:
+      type: object
+      properties:
+        title: { type: string }
+        detail: { type: string }
+        severity: { type: string }
+      required: [title, detail, severity]
+
+    MeetingNotesSuggestions:
+      type: object
+      properties:
+        interaction:
+          $ref: "#/components/schemas/MeetingSuggestionInteraction"
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/MeetingSuggestionAction"
+        stageChange:
+          $ref: "#/components/schemas/MeetingSuggestionStageChange"
+        risks:
+          type: array
+          items:
+            $ref: "#/components/schemas/MeetingSuggestionRisk"
+        followUpQuestions:
+          type: array
+          items:
+            type: string
+      required: [interaction, actions, stageChange, risks, followUpQuestions]
+
+    MeetingNotesResponse:
+      type: object
+      properties:
+        suggestions:
+          allOf:
+            - $ref: "#/components/schemas/MeetingNotesSuggestions"
+          nullable: true
+        model:
+          type: string
+          nullable: true
+        setupRequired:
+          type: boolean
+          nullable: true
+        billingRequired:
+          type: boolean
+          nullable: true
+        error:
+          type: string
+          nullable: true
+
+    OpportunityBriefRequest:
+      type: object
+      properties:
+        targetId:
+          type: integer
+      required: [targetId]
+
+    BriefResponse:
+      type: object
+      properties:
+        brief:
+          type: string
+          nullable: true
+        model:
+          type: string
+          nullable: true
+        setupRequired:
+          type: boolean
+          nullable: true
+        billingRequired:
+          type: boolean
+          nullable: true
+        error:
+          type: string
+          nullable: true

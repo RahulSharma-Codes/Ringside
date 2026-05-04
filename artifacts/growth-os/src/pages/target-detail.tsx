@@ -26,7 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft, Target as TargetIcon, Plus, ShieldAlert, Edit, Trash2,
   CheckCircle2, RotateCcw, Pencil, MessageSquare, ListChecks, GitBranch,
-  LayoutGrid, ClipboardCheck, FolderOpen,
+  LayoutGrid, ClipboardCheck, FolderOpen, Sparkles, Loader2, Copy, Check, Bot,
 } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { DiligenceTab } from "@/pages/target-detail-diligence";
@@ -39,6 +39,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { StageRail, PIPELINE_STAGE_ORDER, OFF_TRACK_STAGES } from "@/components/stage-rail";
 import { StageChip } from "@/components/stage-chip";
+import { AiMeetingNotesModal } from "@/components/ai-meeting-notes-modal";
+import { customFetch } from "@workspace/api-client-react";
 
 const STAGES = [
   "Sourcing", "Outreach", "Introductory Discussion", "NDA / CIM",
@@ -162,6 +164,14 @@ export default function TargetDetail() {
   const [deleteActionOpen, setDeleteActionOpen] = useState(false);
   const [deleteActionId, setDeleteActionId] = useState<number | null>(null);
 
+  const [aiNotesOpen, setAiNotesOpen] = useState(false);
+  const [aiBriefOpen, setAiBriefOpen] = useState(false);
+  const [briefContent, setBriefContent] = useState<string | null>(null);
+  const [briefLoading, setBriefLoading] = useState(false);
+  const [briefSetupRequired, setBriefSetupRequired] = useState(false);
+  const [briefBillingRequired, setBriefBillingRequired] = useState(false);
+  const [briefCopied, setBriefCopied] = useState(false);
+
   const { data: target, isLoading: loadingTarget } = useGetTarget(targetId, {
     query: { enabled: !!targetId, queryKey: getGetTargetQueryKey(targetId) },
   });
@@ -226,6 +236,33 @@ export default function TargetDetail() {
   const invalidateInteractions = () => queryClient.invalidateQueries({ queryKey: getListInteractionsQueryKey(targetId) });
   const invalidateActions = () => queryClient.invalidateQueries({ queryKey: getListActionsQueryKey(targetId) });
   const invalidateHistory = () => queryClient.invalidateQueries({ queryKey: getGetStageHistoryQueryKey(targetId) });
+
+  const handleGenerateBrief = async () => {
+    setBriefLoading(true);
+    setBriefContent(null);
+    setBriefSetupRequired(false);
+    setBriefBillingRequired(false);
+    setAiBriefOpen(true);
+    try {
+      const resp = await customFetch<{
+        brief: string | null;
+        setupRequired?: boolean;
+        billingRequired?: boolean;
+        error?: string;
+      }>("/api/ai/opportunity-brief", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetId }),
+      });
+      if (resp.setupRequired) { setBriefSetupRequired(true); return; }
+      if (resp.billingRequired) { setBriefBillingRequired(true); return; }
+      setBriefContent(resp.brief ?? "No brief generated.");
+    } catch {
+      setBriefContent("Failed to generate brief. Please try again.");
+    } finally {
+      setBriefLoading(false);
+    }
+  };
 
   const handleUpdateStage = () => {
     if (!stageVal || !stageReason.trim()) return;
@@ -524,6 +561,18 @@ export default function TargetDetail() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-8 gap-1.5 hidden md:flex"
+                onClick={handleGenerateBrief}
+                disabled={briefLoading}
+              >
+                {briefLoading
+                  ? <Loader2 size={11} className="animate-spin" />
+                  : <Sparkles size={11} className="text-primary" />}
+                AI Brief
+              </Button>
               <Button size="icon" variant="outline" className="rounded-lg border-border/70 text-muted-foreground h-8 w-8" onClick={() => setEditOpen(true)}>
                 <Edit size={13} />
               </Button>
@@ -658,7 +707,15 @@ export default function TargetDetail() {
 
             {/* Interactions */}
             <TabsContent value="interactions" className="space-y-4 mt-0">
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="hidden md:flex rounded-sm font-mono text-[10px] uppercase border-primary/30 text-primary hover:bg-primary/5 gap-1"
+                  onClick={() => setAiNotesOpen(true)}
+                >
+                  <Sparkles size={11} /> Parse Notes with AI
+                </Button>
                 <Button size="sm" variant="outline" className="hidden md:flex rounded-sm font-mono text-[10px] uppercase border-border" onClick={() => setInteractionOpen(true)}>
                   <Plus size={13} className="mr-1" /> Log Interaction
                 </Button>
@@ -1258,6 +1315,100 @@ export default function TargetDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* AI Opportunity Brief Dialog */}
+      <Dialog open={aiBriefOpen} onOpenChange={(open) => { setAiBriefOpen(open); if (!open) setBriefContent(null); }}>
+        <DialogContent className="sm:max-w-[680px] border-border bg-sidebar rounded-sm max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader className="shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                <Bot size={13} className="text-primary" />
+              </div>
+              <DialogTitle className="font-mono uppercase tracking-tight text-base">AI Opportunity Brief</DialogTitle>
+              {briefContent && (
+                <span className="text-[10px] font-mono text-muted-foreground/60 bg-muted/60 border border-border/50 px-2 py-0.5 rounded-md ml-auto">
+                  {target.projectName}
+                </span>
+              )}
+            </div>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto py-2 min-h-0">
+            {briefLoading && (
+              <div className="flex flex-col items-center justify-center gap-4 py-12">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Loader2 size={18} className="text-primary animate-spin" />
+                </div>
+                <p className="text-sm text-muted-foreground">Generating AI brief…</p>
+              </div>
+            )}
+            {!briefLoading && briefSetupRequired && (
+              <div className="text-center py-10 space-y-2">
+                <p className="text-sm font-semibold">AI Not Configured</p>
+                <p className="text-sm text-muted-foreground">Add an OPENAI_API_KEY secret to enable AI briefs.</p>
+              </div>
+            )}
+            {!briefLoading && briefBillingRequired && (
+              <div className="text-center py-10 space-y-2">
+                <Sparkles size={24} className="text-amber-500 mx-auto" />
+                <p className="text-sm font-semibold text-amber-500">AI Credits Needed</p>
+                <p className="text-sm text-muted-foreground">Add OpenAI API credits to activate AI workflows.</p>
+              </div>
+            )}
+            {!briefLoading && briefContent && !briefSetupRequired && !briefBillingRequired && (
+              <div className="text-sm leading-relaxed whitespace-pre-wrap font-sans text-foreground/90">
+                {briefContent}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="shrink-0 border-t border-border/60 pt-3 mt-0">
+            {briefContent && !briefSetupRequired && !briefBillingRequired && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(briefContent ?? "").catch(() => {});
+                  setBriefCopied(true);
+                  setTimeout(() => setBriefCopied(false), 2000);
+                }}
+                className="rounded-sm font-mono text-[10px] uppercase gap-1"
+              >
+                {briefCopied ? <Check size={11} /> : <Copy size={11} />}
+                {briefCopied ? "Copied" : "Copy Brief"}
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateBrief}
+              disabled={briefLoading}
+              className="rounded-sm font-mono text-[10px] uppercase gap-1"
+            >
+              <Sparkles size={11} /> Regenerate
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setAiBriefOpen(false)}
+              className="rounded-sm font-mono text-[10px] uppercase"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Meeting Notes Modal */}
+      <AiMeetingNotesModal
+        targetId={targetId}
+        targetName={target?.projectName ?? ""}
+        isOpen={aiNotesOpen}
+        onClose={() => setAiNotesOpen(false)}
+        onApplied={() => {
+          invalidateInteractions();
+          invalidateActions();
+          invalidateHistory();
+          invalidateTarget();
+        }}
+      />
     </div>
   );
 }

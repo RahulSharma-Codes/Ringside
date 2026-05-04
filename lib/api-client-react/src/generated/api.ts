@@ -20,6 +20,8 @@ import type {
   ActionItem,
   AiAskRequest,
   AiAskResponse,
+  AiStatusResponse,
+  BriefResponse,
   CommandCenterAction,
   CreateActionBody,
   CreateDiligenceItemBody,
@@ -41,7 +43,10 @@ import type {
   ImportValidateResult,
   Interaction,
   ListTargetsParams,
+  MeetingNotesRequest,
+  MeetingNotesResponse,
   NeedsAttentionTarget,
+  OpportunityBriefRequest,
   StageChange,
   StageCount,
   Target,
@@ -2916,6 +2921,335 @@ export const useAskAi = <
   TContext
 > => {
   return useMutation(getAskAiMutationOptions(options));
+};
+
+/**
+ * @summary Check AI service availability, key status, and billing
+ */
+export const getGetAiStatusUrl = () => {
+  return `/api/ai/status`;
+};
+
+export const getAiStatus = async (
+  options?: RequestInit,
+): Promise<AiStatusResponse> => {
+  return customFetch<AiStatusResponse>(getGetAiStatusUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAiStatusQueryKey = () => {
+  return [`/api/ai/status`] as const;
+};
+
+export const getGetAiStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAiStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAiStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAiStatusQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAiStatus>>> = ({
+    signal,
+  }) => getAiStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAiStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAiStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAiStatus>>
+>;
+export type GetAiStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Check AI service availability, key status, and billing
+ */
+
+export function useGetAiStatus<
+  TData = Awaited<ReturnType<typeof getAiStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAiStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAiStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Parse raw meeting notes into structured deal suggestions
+ */
+export const getParseMeetingNotesUrl = () => {
+  return `/api/ai/meeting-notes`;
+};
+
+export const parseMeetingNotes = async (
+  meetingNotesRequest: MeetingNotesRequest,
+  options?: RequestInit,
+): Promise<MeetingNotesResponse> => {
+  return customFetch<MeetingNotesResponse>(getParseMeetingNotesUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(meetingNotesRequest),
+  });
+};
+
+export const getParseMeetingNotesMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof parseMeetingNotes>>,
+    TError,
+    { data: BodyType<MeetingNotesRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof parseMeetingNotes>>,
+  TError,
+  { data: BodyType<MeetingNotesRequest> },
+  TContext
+> => {
+  const mutationKey = ["parseMeetingNotes"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof parseMeetingNotes>>,
+    { data: BodyType<MeetingNotesRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return parseMeetingNotes(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ParseMeetingNotesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof parseMeetingNotes>>
+>;
+export type ParseMeetingNotesMutationBody = BodyType<MeetingNotesRequest>;
+export type ParseMeetingNotesMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Parse raw meeting notes into structured deal suggestions
+ */
+export const useParseMeetingNotes = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof parseMeetingNotes>>,
+    TError,
+    { data: BodyType<MeetingNotesRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof parseMeetingNotes>>,
+  TError,
+  { data: BodyType<MeetingNotesRequest> },
+  TContext
+> => {
+  return useMutation(getParseMeetingNotesMutationOptions(options));
+};
+
+/**
+ * @summary Generate a leadership-ready AI opportunity brief for a target
+ */
+export const getGenerateOpportunityBriefUrl = () => {
+  return `/api/ai/opportunity-brief`;
+};
+
+export const generateOpportunityBrief = async (
+  opportunityBriefRequest: OpportunityBriefRequest,
+  options?: RequestInit,
+): Promise<BriefResponse> => {
+  return customFetch<BriefResponse>(getGenerateOpportunityBriefUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(opportunityBriefRequest),
+  });
+};
+
+export const getGenerateOpportunityBriefMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateOpportunityBrief>>,
+    TError,
+    { data: BodyType<OpportunityBriefRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateOpportunityBrief>>,
+  TError,
+  { data: BodyType<OpportunityBriefRequest> },
+  TContext
+> => {
+  const mutationKey = ["generateOpportunityBrief"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateOpportunityBrief>>,
+    { data: BodyType<OpportunityBriefRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateOpportunityBrief(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateOpportunityBriefMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateOpportunityBrief>>
+>;
+export type GenerateOpportunityBriefMutationBody =
+  BodyType<OpportunityBriefRequest>;
+export type GenerateOpportunityBriefMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate a leadership-ready AI opportunity brief for a target
+ */
+export const useGenerateOpportunityBrief = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateOpportunityBrief>>,
+    TError,
+    { data: BodyType<OpportunityBriefRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateOpportunityBrief>>,
+  TError,
+  { data: BodyType<OpportunityBriefRequest> },
+  TContext
+> => {
+  return useMutation(getGenerateOpportunityBriefMutationOptions(options));
+};
+
+/**
+ * @summary Generate an executive weekly review brief from pipeline data
+ */
+export const getGenerateWeeklyBriefUrl = () => {
+  return `/api/ai/weekly-brief`;
+};
+
+export const generateWeeklyBrief = async (
+  options?: RequestInit,
+): Promise<BriefResponse> => {
+  return customFetch<BriefResponse>(getGenerateWeeklyBriefUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getGenerateWeeklyBriefMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateWeeklyBrief>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateWeeklyBrief>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["generateWeeklyBrief"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateWeeklyBrief>>,
+    void
+  > = () => {
+    return generateWeeklyBrief(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateWeeklyBriefMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateWeeklyBrief>>
+>;
+
+export type GenerateWeeklyBriefMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate an executive weekly review brief from pipeline data
+ */
+export const useGenerateWeeklyBrief = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateWeeklyBrief>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateWeeklyBrief>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getGenerateWeeklyBriefMutationOptions(options));
 };
 
 /**

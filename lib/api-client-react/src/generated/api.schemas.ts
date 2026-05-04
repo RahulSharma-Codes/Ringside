@@ -578,6 +578,78 @@ export interface DiligenceReviewResponse {
   targetSummaries: DiligenceReviewTargetSummary[];
 }
 
+export interface AiStatusResponse {
+  available: boolean;
+  setupRequired: boolean;
+  billingRequired: boolean;
+  model?: string | null;
+}
+
+export interface MeetingNotesRequest {
+  targetId?: number | null;
+  noteType: string;
+  rawNotes: string;
+  date?: string | null;
+  participants?: string | null;
+}
+
+export interface MeetingSuggestionInteraction {
+  interactionType: string;
+  summary: string;
+  participantsInternal: string;
+  participantsExternal: string;
+  sentiment: string;
+  valuationSignal: string;
+}
+
+export interface MeetingSuggestionAction {
+  description: string;
+  owner: string;
+  dueDate?: string | null;
+  priority: string;
+}
+
+export interface MeetingSuggestionStageChange {
+  suggested: boolean;
+  newStage: string;
+  reason: string;
+  confidence: string;
+}
+
+export interface MeetingSuggestionRisk {
+  title: string;
+  detail: string;
+  severity: string;
+}
+
+export interface MeetingNotesSuggestions {
+  interaction: MeetingSuggestionInteraction;
+  actions: MeetingSuggestionAction[];
+  stageChange: MeetingSuggestionStageChange;
+  risks: MeetingSuggestionRisk[];
+  followUpQuestions: string[];
+}
+
+export interface MeetingNotesResponse {
+  suggestions?: MeetingNotesSuggestions | null;
+  model?: string | null;
+  setupRequired?: boolean | null;
+  billingRequired?: boolean | null;
+  error?: string | null;
+}
+
+export interface OpportunityBriefRequest {
+  targetId: number;
+}
+
+export interface BriefResponse {
+  brief?: string | null;
+  model?: string | null;
+  setupRequired?: boolean | null;
+  billingRequired?: boolean | null;
+  error?: string | null;
+}
+
 export type ListTargetsParams = {
   sector?: string;
   priorityTier?: string;

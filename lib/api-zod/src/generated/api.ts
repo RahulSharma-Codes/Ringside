@@ -1352,6 +1352,94 @@ export const AskAiResponse = zod.object({
 });
 
 /**
+ * @summary Check AI service availability, key status, and billing
+ */
+export const GetAiStatusResponse = zod.object({
+  available: zod.boolean(),
+  setupRequired: zod.boolean(),
+  billingRequired: zod.boolean(),
+  model: zod.string().nullish(),
+});
+
+/**
+ * @summary Parse raw meeting notes into structured deal suggestions
+ */
+export const ParseMeetingNotesBody = zod.object({
+  targetId: zod.number().nullish(),
+  noteType: zod.string(),
+  rawNotes: zod.string(),
+  date: zod.string().nullish(),
+  participants: zod.string().nullish(),
+});
+
+export const ParseMeetingNotesResponse = zod.object({
+  suggestions: zod
+    .object({
+      interaction: zod.object({
+        interactionType: zod.string(),
+        summary: zod.string(),
+        participantsInternal: zod.string(),
+        participantsExternal: zod.string(),
+        sentiment: zod.string(),
+        valuationSignal: zod.string(),
+      }),
+      actions: zod.array(
+        zod.object({
+          description: zod.string(),
+          owner: zod.string(),
+          dueDate: zod.string().nullish(),
+          priority: zod.string(),
+        }),
+      ),
+      stageChange: zod.object({
+        suggested: zod.boolean(),
+        newStage: zod.string(),
+        reason: zod.string(),
+        confidence: zod.string(),
+      }),
+      risks: zod.array(
+        zod.object({
+          title: zod.string(),
+          detail: zod.string(),
+          severity: zod.string(),
+        }),
+      ),
+      followUpQuestions: zod.array(zod.string()),
+    })
+    .nullish(),
+  model: zod.string().nullish(),
+  setupRequired: zod.boolean().nullish(),
+  billingRequired: zod.boolean().nullish(),
+  error: zod.string().nullish(),
+});
+
+/**
+ * @summary Generate a leadership-ready AI opportunity brief for a target
+ */
+export const GenerateOpportunityBriefBody = zod.object({
+  targetId: zod.number(),
+});
+
+export const GenerateOpportunityBriefResponse = zod.object({
+  brief: zod.string().nullish(),
+  model: zod.string().nullish(),
+  setupRequired: zod.boolean().nullish(),
+  billingRequired: zod.boolean().nullish(),
+  error: zod.string().nullish(),
+});
+
+/**
+ * @summary Generate an executive weekly review brief from pipeline data
+ */
+export const GenerateWeeklyBriefResponse = zod.object({
+  brief: zod.string().nullish(),
+  model: zod.string().nullish(),
+  setupRequired: zod.boolean().nullish(),
+  billingRequired: zod.boolean().nullish(),
+  error: zod.string().nullish(),
+});
+
+/**
  * @summary Apply a validated import (create + update targets)
  */
 export const ApplyImportBody = zod.object({
