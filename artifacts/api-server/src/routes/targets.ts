@@ -7,7 +7,9 @@ import {
   interactionsTable,
   actionItemsTable,
   stageChangeLogTable,
+  dealDocumentsTable,
 } from "@workspace/db";
+import { z } from "zod";
 import {
   CreateTargetBody,
   UpdateTargetBody,
@@ -773,6 +775,68 @@ router.get("/:id/diligence", async (req, res) => {
   return res.json({
     items: items.map(formatAction),
     readiness: { total, completed, blocked, overdue, missingWorkstreams },
+  });
+});
+
+// GET /api/targets/:id/documents — list docs for a target
+router.get("/:id/documents", async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  const docs = await db
+    .select()
+    .from(dealDocumentsTable)
+    .where(eq(dealDocumentsTable.targetId, targetId))
+    .orderBy(desc(dealDocumentsTable.createdAt));
+  return res.json(
+    docs.map((d) => ({
+      ...d,
+      documentDate: d.documentDate ? String(d.documentDate).slice(0, 10) : null,
+      createdAt: d.createdAt instanceof Date ? d.createdAt.toISOString() : new Date(d.createdAt).toISOString(),
+      updatedAt: d.updatedAt instanceof Date ? d.updatedAt.toISOString() : new Date(d.updatedAt).toISOString(),
+    })),
+  );
+});
+
+const CreateDocumentBodySchema = z.object({
+  title: z.string().min(1),
+  documentType: z.string().optional(),
+  status: z.string().optional(),
+  owner: z.string().nullable().optional(),
+  documentDate: z.string().nullable().optional(),
+  url: z.string().nullable().optional(),
+  workstream: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+// POST /api/targets/:id/documents — create a document record
+router.post("/:id/documents", async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  const parsed = CreateDocumentBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.flatten() });
+  }
+  const d = parsed.data;
+  const now = new Date();
+  const [doc] = await db
+    .insert(dealDocumentsTable)
+    .values({
+      targetId,
+      title: d.title,
+      documentType: d.documentType ?? "Other",
+      status: d.status ?? "Requested",
+      owner: d.owner ?? null,
+      documentDate: d.documentDate ?? null,
+      url: d.url ?? null,
+      workstream: d.workstream ?? null,
+      notes: d.notes ?? null,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+  return res.status(201).json({
+    ...doc,
+    documentDate: doc.documentDate ? String(doc.documentDate).slice(0, 10) : null,
+    createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : new Date(doc.createdAt).toISOString(),
+    updatedAt: doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : new Date(doc.updatedAt).toISOString(),
   });
 });
 

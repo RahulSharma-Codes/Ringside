@@ -17,6 +17,7 @@ import ImportWizard from "@/pages/import-wizard";
 import Copilot from "@/pages/copilot";
 import WeeklyReview from "@/pages/weekly-review";
 import DiligenceReview from "@/pages/diligence-review";
+import DocumentReview from "@/pages/document-review";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -118,6 +119,9 @@ function Router() {
       </Route>
       <Route path="/diligence-review">
         <Layout><DiligenceReview /></Layout>
+      </Route>
+      <Route path="/document-review">
+        <Layout><DocumentReview /></Layout>
       </Route>
       <Route path="*">
         <Layout><NotFound /></Layout>

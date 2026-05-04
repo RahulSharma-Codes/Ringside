@@ -451,6 +451,80 @@ export interface CreateDiligenceItemBody {
   evidenceLinks?: EvidenceLink[] | null;
 }
 
+export interface DealDocument {
+  id: number;
+  targetId: number;
+  title: string;
+  documentType: string;
+  status: string;
+  owner?: string | null;
+  documentDate?: string | null;
+  url?: string | null;
+  workstream?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateDocumentBody {
+  title: string;
+  documentType?: string;
+  status?: string;
+  owner?: string | null;
+  documentDate?: string | null;
+  url?: string | null;
+  workstream?: string | null;
+  notes?: string | null;
+}
+
+export interface UpdateDocumentBody {
+  title?: string;
+  documentType?: string;
+  status?: string;
+  owner?: string | null;
+  documentDate?: string | null;
+  url?: string | null;
+  workstream?: string | null;
+  notes?: string | null;
+}
+
+export interface DocumentReviewItem {
+  id: number;
+  targetId: number;
+  targetCode?: string | null;
+  projectName?: string | null;
+  priorityTier?: string | null;
+  currentStage?: string | null;
+  title: string;
+  documentType: string;
+  status: string;
+  owner?: string | null;
+  documentDate?: string | null;
+  url?: string | null;
+  workstream?: string | null;
+  notes?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface DocumentReviewMustWinMissing {
+  targetId: number;
+  targetCode?: string | null;
+  projectName?: string | null;
+  priorityTier?: string | null;
+  currentStage?: string | null;
+  missingCriticalTypes: string[];
+}
+
+export interface DocumentReviewResponse {
+  missingCritical: DocumentReviewItem[];
+  requested: DocumentReviewItem[];
+  underReview: DocumentReviewItem[];
+  recentlyReceived: DocumentReviewItem[];
+  recentlyReviewed: DocumentReviewItem[];
+  mustWinMissing: DocumentReviewMustWinMissing[];
+}
+
 export interface DiligenceReviewTargetSummary {
   id: number;
   targetCode: string;

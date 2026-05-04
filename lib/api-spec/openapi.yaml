@@ -24,6 +24,8 @@ tags:
     description: AI Copilot — read-only pipeline analyst
   - name: diligence
     description: Due diligence workstream management
+  - name: documents
+    description: Deal Document Vault
 paths:
   /healthz:
     get:
@@ -533,6 +535,90 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DiligenceReviewResponse"
+
+  /targets/{id}/documents:
+    get:
+      operationId: listDocuments
+      tags: [documents]
+      summary: List all document records for a target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Document list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DealDocument"
+    post:
+      operationId: createDocument
+      tags: [documents]
+      summary: Add a document record for a target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDocumentBody"
+      responses:
+        "201":
+          description: Document created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DealDocument"
+
+  /documents/review:
+    get:
+      operationId: getDocumentReview
+      tags: [documents]
+      summary: Pipeline-wide document review — missing critical, requested, under review, recently received/reviewed
+      responses:
+        "200":
+          description: Document review data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentReviewResponse"
+
+  /documents/{id}:
+    put:
+      operationId: updateDocument
+      tags: [documents]
+      summary: Update a document record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDocumentBody"
+      responses:
+        "200":
+          description: Document updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DealDocument"
+        "404":
+          description: Not found
 
   /review/weekly:
     get:
@@ -1654,6 +1740,197 @@ components:
           items:
             $ref: "#/components/schemas/EvidenceLink"
       required: [workstream, description]
+
+    DealDocument:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        title:
+          type: string
+        documentType:
+          type: string
+        status:
+          type: string
+        owner:
+          type: string
+          nullable: true
+        documentDate:
+          type: string
+          nullable: true
+        url:
+          type: string
+          nullable: true
+        workstream:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, targetId, title, documentType, status, createdAt, updatedAt]
+
+    CreateDocumentBody:
+      type: object
+      properties:
+        title:
+          type: string
+        documentType:
+          type: string
+          default: Other
+        status:
+          type: string
+          default: Requested
+        owner:
+          type: string
+          nullable: true
+        documentDate:
+          type: string
+          format: date
+          nullable: true
+        url:
+          type: string
+          nullable: true
+        workstream:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+      required: [title]
+
+    UpdateDocumentBody:
+      type: object
+      properties:
+        title:
+          type: string
+        documentType:
+          type: string
+        status:
+          type: string
+        owner:
+          type: string
+          nullable: true
+        documentDate:
+          type: string
+          format: date
+          nullable: true
+        url:
+          type: string
+          nullable: true
+        workstream:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    DocumentReviewItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        targetCode:
+          type: string
+          nullable: true
+        projectName:
+          type: string
+          nullable: true
+        priorityTier:
+          type: string
+          nullable: true
+        currentStage:
+          type: string
+          nullable: true
+        title:
+          type: string
+        documentType:
+          type: string
+        status:
+          type: string
+        owner:
+          type: string
+          nullable: true
+        documentDate:
+          type: string
+          nullable: true
+        url:
+          type: string
+          nullable: true
+        workstream:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+          nullable: true
+      required: [id, targetId, title, documentType, status]
+
+    DocumentReviewMustWinMissing:
+      type: object
+      properties:
+        targetId:
+          type: integer
+        targetCode:
+          type: string
+          nullable: true
+        projectName:
+          type: string
+          nullable: true
+        priorityTier:
+          type: string
+          nullable: true
+        currentStage:
+          type: string
+          nullable: true
+        missingCriticalTypes:
+          type: array
+          items:
+            type: string
+      required: [targetId, missingCriticalTypes]
+
+    DocumentReviewResponse:
+      type: object
+      properties:
+        missingCritical:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentReviewItem"
+        requested:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentReviewItem"
+        underReview:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentReviewItem"
+        recentlyReceived:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentReviewItem"
+        recentlyReviewed:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentReviewItem"
+        mustWinMissing:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentReviewMustWinMissing"
+      required: [missingCritical, requested, underReview, recentlyReceived, recentlyReviewed, mustWinMissing]
 
     DiligenceReviewTargetSummary:
       type: object

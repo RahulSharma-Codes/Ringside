@@ -112,3 +112,22 @@ export const stageChangeLogTable = pgTable("stage_change_log", {
 export const insertStageChangeLogSchema = createInsertSchema(stageChangeLogTable).omit({ id: true, changedAt: true });
 export type InsertStageChangeLog = z.infer<typeof insertStageChangeLogSchema>;
 export type StageChangeLog = typeof stageChangeLogTable.$inferSelect;
+
+export const dealDocumentsTable = pgTable("deal_documents", {
+  id: serial("id").primaryKey(),
+  targetId: integer("target_id").notNull().references(() => targetsTable.id),
+  title: text("title").notNull(),
+  documentType: text("document_type").notNull().default("Other"),
+  status: text("status").notNull().default("Requested"),
+  owner: text("owner"),
+  documentDate: date("document_date"),
+  url: text("url"),
+  workstream: text("workstream"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertDealDocumentSchema = createInsertSchema(dealDocumentsTable).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertDealDocument = z.infer<typeof insertDealDocumentSchema>;
+export type DealDocument = typeof dealDocumentsTable.$inferSelect;

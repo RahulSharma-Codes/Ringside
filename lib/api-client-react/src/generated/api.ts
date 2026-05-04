@@ -23,11 +23,14 @@ import type {
   CommandCenterAction,
   CreateActionBody,
   CreateDiligenceItemBody,
+  CreateDocumentBody,
   CreateInteractionBody,
   CreateTargetBody,
   DashboardSummary,
+  DealDocument,
   DiligenceReviewResponse,
   DiligenceTabResponse,
+  DocumentReviewResponse,
   FilterOptions,
   GetTopPriorityTargetsParams,
   HealthStatus,
@@ -43,6 +46,7 @@ import type {
   Target,
   TargetDetail,
   UpdateActionBody,
+  UpdateDocumentBody,
   UpdateInteractionBody,
   UpdateStageBody,
   UpdateTargetBody,
@@ -2238,6 +2242,342 @@ export function useGetDiligenceReview<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List all document records for a target
+ */
+export const getListDocumentsUrl = (id: number) => {
+  return `/api/targets/${id}/documents`;
+};
+
+export const listDocuments = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DealDocument[]> => {
+  return customFetch<DealDocument[]>(getListDocumentsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListDocumentsQueryKey = (id: number) => {
+  return [`/api/targets/${id}/documents`] as const;
+};
+
+export const getListDocumentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDocuments>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDocuments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListDocumentsQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listDocuments>>> = ({
+    signal,
+  }) => listDocuments(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDocuments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListDocumentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDocuments>>
+>;
+export type ListDocumentsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all document records for a target
+ */
+
+export function useListDocuments<
+  TData = Awaited<ReturnType<typeof listDocuments>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDocuments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListDocumentsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a document record for a target
+ */
+export const getCreateDocumentUrl = (id: number) => {
+  return `/api/targets/${id}/documents`;
+};
+
+export const createDocument = async (
+  id: number,
+  createDocumentBody: CreateDocumentBody,
+  options?: RequestInit,
+): Promise<DealDocument> => {
+  return customFetch<DealDocument>(getCreateDocumentUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createDocumentBody),
+  });
+};
+
+export const getCreateDocumentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createDocument>>,
+    TError,
+    { id: number; data: BodyType<CreateDocumentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createDocument>>,
+  TError,
+  { id: number; data: BodyType<CreateDocumentBody> },
+  TContext
+> => {
+  const mutationKey = ["createDocument"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createDocument>>,
+    { id: number; data: BodyType<CreateDocumentBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createDocument(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateDocumentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createDocument>>
+>;
+export type CreateDocumentMutationBody = BodyType<CreateDocumentBody>;
+export type CreateDocumentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add a document record for a target
+ */
+export const useCreateDocument = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createDocument>>,
+    TError,
+    { id: number; data: BodyType<CreateDocumentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createDocument>>,
+  TError,
+  { id: number; data: BodyType<CreateDocumentBody> },
+  TContext
+> => {
+  return useMutation(getCreateDocumentMutationOptions(options));
+};
+
+/**
+ * @summary Pipeline-wide document review — missing critical, requested, under review, recently received/reviewed
+ */
+export const getGetDocumentReviewUrl = () => {
+  return `/api/documents/review`;
+};
+
+export const getDocumentReview = async (
+  options?: RequestInit,
+): Promise<DocumentReviewResponse> => {
+  return customFetch<DocumentReviewResponse>(getGetDocumentReviewUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDocumentReviewQueryKey = () => {
+  return [`/api/documents/review`] as const;
+};
+
+export const getGetDocumentReviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDocumentReview>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDocumentReview>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDocumentReviewQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDocumentReview>>
+  > = ({ signal }) => getDocumentReview({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDocumentReview>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDocumentReviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDocumentReview>>
+>;
+export type GetDocumentReviewQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Pipeline-wide document review — missing critical, requested, under review, recently received/reviewed
+ */
+
+export function useGetDocumentReview<
+  TData = Awaited<ReturnType<typeof getDocumentReview>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDocumentReview>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDocumentReviewQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update a document record
+ */
+export const getUpdateDocumentUrl = (id: number) => {
+  return `/api/documents/${id}`;
+};
+
+export const updateDocument = async (
+  id: number,
+  updateDocumentBody: UpdateDocumentBody,
+  options?: RequestInit,
+): Promise<DealDocument> => {
+  return customFetch<DealDocument>(getUpdateDocumentUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateDocumentBody),
+  });
+};
+
+export const getUpdateDocumentMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDocument>>,
+    TError,
+    { id: number; data: BodyType<UpdateDocumentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateDocument>>,
+  TError,
+  { id: number; data: BodyType<UpdateDocumentBody> },
+  TContext
+> => {
+  const mutationKey = ["updateDocument"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateDocument>>,
+    { id: number; data: BodyType<UpdateDocumentBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateDocument(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateDocumentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateDocument>>
+>;
+export type UpdateDocumentMutationBody = BodyType<UpdateDocumentBody>;
+export type UpdateDocumentMutationError = ErrorType<void>;
+
+/**
+ * @summary Update a document record
+ */
+export const useUpdateDocument = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDocument>>,
+    TError,
+    { id: number; data: BodyType<UpdateDocumentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateDocument>>,
+  TError,
+  { id: number; data: BodyType<UpdateDocumentBody> },
+  TContext
+> => {
+  return useMutation(getUpdateDocumentMutationOptions(options));
+};
 
 /**
  * @summary Weekly pipeline review — 8 sections computed server-side in one batch

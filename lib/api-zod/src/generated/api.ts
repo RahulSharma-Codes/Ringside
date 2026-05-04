@@ -868,6 +868,199 @@ export const GetDiligenceReviewResponse = zod.object({
 });
 
 /**
+ * @summary List all document records for a target
+ */
+export const ListDocumentsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListDocumentsResponseItem = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  title: zod.string(),
+  documentType: zod.string(),
+  status: zod.string(),
+  owner: zod.string().nullish(),
+  documentDate: zod.string().nullish(),
+  url: zod.string().nullish(),
+  workstream: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListDocumentsResponse = zod.array(ListDocumentsResponseItem);
+
+/**
+ * @summary Add a document record for a target
+ */
+export const CreateDocumentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const createDocumentBodyDocumentTypeDefault = `Other`;
+export const createDocumentBodyStatusDefault = `Requested`;
+
+export const CreateDocumentBody = zod.object({
+  title: zod.string(),
+  documentType: zod.string().default(createDocumentBodyDocumentTypeDefault),
+  status: zod.string().default(createDocumentBodyStatusDefault),
+  owner: zod.string().nullish(),
+  documentDate: zod.coerce.date().nullish(),
+  url: zod.string().nullish(),
+  workstream: zod.string().nullish(),
+  notes: zod.string().nullish(),
+});
+
+/**
+ * @summary Pipeline-wide document review — missing critical, requested, under review, recently received/reviewed
+ */
+export const GetDocumentReviewResponse = zod.object({
+  missingCritical: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetId: zod.number(),
+      targetCode: zod.string().nullish(),
+      projectName: zod.string().nullish(),
+      priorityTier: zod.string().nullish(),
+      currentStage: zod.string().nullish(),
+      title: zod.string(),
+      documentType: zod.string(),
+      status: zod.string(),
+      owner: zod.string().nullish(),
+      documentDate: zod.string().nullish(),
+      url: zod.string().nullish(),
+      workstream: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      createdAt: zod.string().nullish(),
+      updatedAt: zod.string().nullish(),
+    }),
+  ),
+  requested: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetId: zod.number(),
+      targetCode: zod.string().nullish(),
+      projectName: zod.string().nullish(),
+      priorityTier: zod.string().nullish(),
+      currentStage: zod.string().nullish(),
+      title: zod.string(),
+      documentType: zod.string(),
+      status: zod.string(),
+      owner: zod.string().nullish(),
+      documentDate: zod.string().nullish(),
+      url: zod.string().nullish(),
+      workstream: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      createdAt: zod.string().nullish(),
+      updatedAt: zod.string().nullish(),
+    }),
+  ),
+  underReview: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetId: zod.number(),
+      targetCode: zod.string().nullish(),
+      projectName: zod.string().nullish(),
+      priorityTier: zod.string().nullish(),
+      currentStage: zod.string().nullish(),
+      title: zod.string(),
+      documentType: zod.string(),
+      status: zod.string(),
+      owner: zod.string().nullish(),
+      documentDate: zod.string().nullish(),
+      url: zod.string().nullish(),
+      workstream: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      createdAt: zod.string().nullish(),
+      updatedAt: zod.string().nullish(),
+    }),
+  ),
+  recentlyReceived: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetId: zod.number(),
+      targetCode: zod.string().nullish(),
+      projectName: zod.string().nullish(),
+      priorityTier: zod.string().nullish(),
+      currentStage: zod.string().nullish(),
+      title: zod.string(),
+      documentType: zod.string(),
+      status: zod.string(),
+      owner: zod.string().nullish(),
+      documentDate: zod.string().nullish(),
+      url: zod.string().nullish(),
+      workstream: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      createdAt: zod.string().nullish(),
+      updatedAt: zod.string().nullish(),
+    }),
+  ),
+  recentlyReviewed: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetId: zod.number(),
+      targetCode: zod.string().nullish(),
+      projectName: zod.string().nullish(),
+      priorityTier: zod.string().nullish(),
+      currentStage: zod.string().nullish(),
+      title: zod.string(),
+      documentType: zod.string(),
+      status: zod.string(),
+      owner: zod.string().nullish(),
+      documentDate: zod.string().nullish(),
+      url: zod.string().nullish(),
+      workstream: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      createdAt: zod.string().nullish(),
+      updatedAt: zod.string().nullish(),
+    }),
+  ),
+  mustWinMissing: zod.array(
+    zod.object({
+      targetId: zod.number(),
+      targetCode: zod.string().nullish(),
+      projectName: zod.string().nullish(),
+      priorityTier: zod.string().nullish(),
+      currentStage: zod.string().nullish(),
+      missingCriticalTypes: zod.array(zod.string()),
+    }),
+  ),
+});
+
+/**
+ * @summary Update a document record
+ */
+export const UpdateDocumentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateDocumentBody = zod.object({
+  title: zod.string().optional(),
+  documentType: zod.string().optional(),
+  status: zod.string().optional(),
+  owner: zod.string().nullish(),
+  documentDate: zod.coerce.date().nullish(),
+  url: zod.string().nullish(),
+  workstream: zod.string().nullish(),
+  notes: zod.string().nullish(),
+});
+
+export const UpdateDocumentResponse = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  title: zod.string(),
+  documentType: zod.string(),
+  status: zod.string(),
+  owner: zod.string().nullish(),
+  documentDate: zod.string().nullish(),
+  url: zod.string().nullish(),
+  workstream: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
  * @summary Weekly pipeline review — 8 sections computed server-side in one batch
  */
 export const GetWeeklyReviewResponse = zod.object({

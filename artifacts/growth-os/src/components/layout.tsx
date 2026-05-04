@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import {
   Target, ListTodo, Briefcase, Plus, BarChart3, Bot, CalendarCheck,
   ClipboardCheck, Upload, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu,
+  FolderOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -18,6 +19,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/actions",          label: "Actions",           icon: ListTodo,       group: "Operating System" },
   { href: "/weekly-review",    label: "Weekly Review",     icon: CalendarCheck,  group: "Review Cadence"   },
   { href: "/diligence-review", label: "Diligence Review",  icon: ClipboardCheck, group: "Review Cadence"   },
+  { href: "/document-review",  label: "Document Review",   icon: FolderOpen,     group: "Review Cadence"   },
   { href: "/copilot",          label: "AI Copilot",        icon: Bot,            group: "Intelligence"     },
   { href: "/import",           label: "Import Targets",    icon: Upload,         group: "Data"             },
 ];
