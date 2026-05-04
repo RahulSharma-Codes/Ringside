@@ -258,6 +258,8 @@ export function AiMeetingNotesModal({
             participantsExternal: editableInteraction.participantsExternal || null,
             sentiment: editableInteraction.sentiment || null,
             valuationSignal: editableInteraction.valuationSignal || null,
+            // Preserve the note date chosen in the input step as the interaction timestamp
+            interactionDatetime: noteDate ? new Date(noteDate).toISOString() : undefined,
           }),
         });
         results.interactionCreated = true;

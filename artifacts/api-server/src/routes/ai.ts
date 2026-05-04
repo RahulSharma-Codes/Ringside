@@ -498,7 +498,10 @@ router.post("/ask", async (req, res) => {
 // GET /api/ai/status
 router.get("/status", async (req, res) => {
   if (!openai) {
+    // key_missing is a stable process-lifetime condition; cache it so statusCache
+    // reflects the correct state for any routes that inspect it.
     const result = { status: "key_missing" as AiStatusKind, available: false, setupRequired: true, billingRequired: false };
+    if (!statusCache) statusCache = result;
     return res.json({ ...result, model });
   }
 
