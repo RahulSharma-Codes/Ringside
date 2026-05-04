@@ -271,8 +271,12 @@ export default function Pipeline() {
               const lastInteraction = (target as { lastInteractionDate?: string | null }).lastInteractionDate;
               const tierCardClass = getTierCardClass(target.priorityTier);
 
+              const targetHref = aiMode
+                ? `/targets/${target.id}?ai=${aiMode}`
+                : `/targets/${target.id}`;
+
               return (
-                <Link key={target.id} href={`/targets/${target.id}`}>
+                <Link key={target.id} href={targetHref}>
                   <Card className={`bg-card border-border/70 rounded-xl hover:shadow-md transition-all duration-150 cursor-pointer group ${tierCardClass}`}>
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">

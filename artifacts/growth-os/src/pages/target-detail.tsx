@@ -164,7 +164,10 @@ export default function TargetDetail() {
   const [deleteActionOpen, setDeleteActionOpen] = useState(false);
   const [deleteActionId, setDeleteActionId] = useState<number | null>(null);
 
-  const [aiNotesOpen, setAiNotesOpen] = useState(false);
+  const [aiNotesOpen, setAiNotesOpen] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("ai") === "meeting-notes";
+  });
   const [aiBriefOpen, setAiBriefOpen] = useState(false);
   const [briefContent, setBriefContent] = useState<string | null>(null);
   const [briefLoading, setBriefLoading] = useState(false);
@@ -236,6 +239,14 @@ export default function TargetDetail() {
   const invalidateInteractions = () => queryClient.invalidateQueries({ queryKey: getListInteractionsQueryKey(targetId) });
   const invalidateActions = () => queryClient.invalidateQueries({ queryKey: getListActionsQueryKey(targetId) });
   const invalidateHistory = () => queryClient.invalidateQueries({ queryKey: getGetStageHistoryQueryKey(targetId) });
+
+  // Auto-open brief when navigated here from Copilot with ?ai=opportunity-brief
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("ai") === "opportunity-brief" && !isNaN(targetId)) {
+      handleGenerateBrief();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGenerateBrief = async () => {
     setBriefLoading(true);

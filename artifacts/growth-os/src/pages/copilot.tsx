@@ -155,47 +155,6 @@ export default function Copilot() {
     }
   };
 
-  // ── Setup required (key missing or key invalid) — full-page state ────────
-  if (setupRequired && !billingRequired) {
-    const isInvalid = aiStatus?.status === "key_invalid";
-    return (
-      <div className="flex flex-col h-full">
-        <div className="border-b border-border/60 p-4 flex items-center gap-2.5 bg-background/80 backdrop-blur-sm">
-          <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-            <Bot size={14} className="text-primary" />
-          </div>
-          <h1 className="font-mono uppercase text-sm tracking-tight font-bold">Ringside Copilot</h1>
-        </div>
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="max-w-md text-center space-y-4">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-muted border border-border/60">
-              {isInvalid
-                ? <KeyRound size={22} className="text-destructive/70" />
-                : <AlertTriangle size={22} className="text-muted-foreground" />}
-            </div>
-            <h2 className="font-semibold text-lg">
-              {isInvalid ? "API Key Invalid" : "AI Not Configured"}
-            </h2>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              {isInvalid ? (
-                <>
-                  The{" "}
-                  <code className="text-xs bg-muted border border-border/60 px-1.5 py-0.5 rounded-md font-mono">OPENAI_API_KEY</code>{" "}
-                  secret is set but was rejected by OpenAI (401). Check that the key is correct and has not been revoked.
-                </>
-              ) : (
-                <>
-                  An{" "}
-                  <code className="text-xs bg-muted border border-border/60 px-1.5 py-0.5 rounded-md font-mono">OPENAI_API_KEY</code>{" "}
-                  secret must be added to enable AI features. Contact your administrator.
-                </>
-              )}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-full max-h-screen">
@@ -261,9 +220,9 @@ export default function Copilot() {
                   <button
                     key={card.id}
                     onClick={() => handleWorkflowCard(card.action)}
-                    disabled={billingRequired}
+                    disabled={billingRequired || setupRequired}
                     className={`text-left px-4 py-3.5 rounded-xl border transition-all duration-150 space-y-1 ${
-                      billingRequired
+                      billingRequired || setupRequired
                         ? "border-border/40 bg-card/50 opacity-50 cursor-not-allowed"
                         : "border-border/60 bg-card hover:bg-muted/30 hover:border-border hover:shadow-sm"
                     }`}
@@ -295,9 +254,9 @@ export default function Copilot() {
                 <button
                   key={prompt}
                   onClick={() => handleSubmit(prompt)}
-                  disabled={billingRequired}
+                  disabled={billingRequired || setupRequired}
                   className={`text-left text-sm px-3.5 py-2.5 rounded-xl border transition-all duration-150 text-muted-foreground ${
-                    billingRequired
+                    billingRequired || setupRequired
                       ? "border-border/40 bg-card/50 opacity-50 cursor-not-allowed"
                       : "border-border/60 bg-card hover:bg-muted/30 hover:text-foreground hover:border-border"
                   }`}
@@ -368,12 +327,12 @@ export default function Copilot() {
             placeholder="Ask about your pipeline… (Enter to send)"
             className="resize-none rounded-xl min-h-[44px] max-h-32 text-sm border-border/70 bg-card focus-visible:ring-primary/30"
             rows={1}
-            disabled={isLoading || billingRequired}
+            disabled={isLoading || billingRequired || setupRequired}
           />
           <Button
             size="sm"
             onClick={() => handleSubmit(input)}
-            disabled={!input.trim() || isLoading || billingRequired}
+            disabled={!input.trim() || isLoading || billingRequired || setupRequired}
             className="rounded-xl shrink-0 h-[44px] w-[44px] p-0"
           >
             <Send size={15} />
