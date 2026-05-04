@@ -45,7 +45,11 @@ function getTierCardClass(tier: string) {
 export default function Pipeline() {
   const [, navigate] = useLocation();
   const [search, setSearch]               = useState("");
-  const [stage, setStage]                 = useState("all");
+  const [stage, setStage]                 = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const s = params.get("stage");
+    return s && s.trim().length > 0 ? s.trim() : "all";
+  });
   const [tier, setTier]                   = useState("all");
   const [owner, setOwner]                 = useState("all");
   const [country, setCountry]             = useState("all");

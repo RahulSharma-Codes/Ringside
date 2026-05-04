@@ -54,6 +54,7 @@ interface StageRailDistributionProps {
   mode: "distribution";
   stages: StageDistributionItem[];
   totalActive: number;
+  onStageClick?: (stage: string) => void;
 }
 
 interface StageRailProgressionProps {
@@ -79,7 +80,7 @@ export function StageRail(props: StageRailProps) {
 
 // ── Distribution board ─────────────────────────────────────────────────────
 
-function DistributionRail({ stages, totalActive }: StageRailDistributionProps) {
+function DistributionRail({ stages, totalActive, onStageClick }: StageRailDistributionProps) {
   const countByStage = new Map(stages.map((s) => [s.stage, s.count]));
   const flaggedByStage = new Map(stages.map((s) => [s.stage, s.hasFlagged ?? false]));
 
@@ -100,15 +101,20 @@ function DistributionRail({ stages, totalActive }: StageRailDistributionProps) {
           const barHeight = count > 0 ? Math.max(8, Math.round((count / maxCount) * 48)) : 4;
           const isLast = idx === displayStages.length - 1;
 
+          const isClickable = !!onStageClick;
           return (
             <div key={stage} className="flex items-stretch">
               <div
+                role={isClickable ? "button" : undefined}
+                tabIndex={isClickable ? 0 : undefined}
+                onClick={isClickable ? () => onStageClick(stage) : undefined}
+                onKeyDown={isClickable ? (e) => (e.key === "Enter" || e.key === " ") && onStageClick(stage) : undefined}
                 className={`flex flex-col items-center px-3 py-2.5 rounded-xl border transition-colors min-w-[86px] ${
                   count > 0
                     ? hasFlagged
-                      ? "bg-destructive/5 border-destructive/20"
-                      : "bg-card border-border/70"
-                    : "bg-muted/20 border-border/30 opacity-40"
+                      ? `bg-destructive/5 border-destructive/20${isClickable ? " cursor-pointer hover:bg-destructive/10 hover:border-destructive/40 hover:shadow-sm" : ""}`
+                      : `bg-card border-border/70${isClickable ? " cursor-pointer hover:bg-muted/30 hover:border-border hover:shadow-sm" : ""}`
+                    : `bg-muted/20 border-border/30 opacity-40${isClickable ? " cursor-pointer hover:opacity-70" : ""}`
                 }`}
               >
                 {hasFlagged && count > 0 && (

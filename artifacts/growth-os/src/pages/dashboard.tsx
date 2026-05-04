@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   useGetDashboardSummary, getGetDashboardSummaryQueryKey,
   useGetTargetsByStage, getGetTargetsByStageQueryKey,
@@ -46,6 +46,8 @@ function SectionLabel({ icon, label, children }: { icon: React.ReactNode; label:
 }
 
 export default function Dashboard() {
+  const [, navigate] = useLocation();
+
   const { data: summary, isLoading: loadingSummary } = useGetDashboardSummary({
     query: { queryKey: getGetDashboardSummaryQueryKey() },
   });
@@ -236,6 +238,7 @@ export default function Dashboard() {
                   mode="distribution"
                   stages={distributionWithFlags}
                   totalActive={totalActive}
+                  onStageClick={(stage) => navigate(`/pipeline?stage=${encodeURIComponent(stage)}`)}
                 />
               ) : (
                 <div className="flex h-24 items-center justify-center text-xs font-mono text-muted-foreground uppercase tracking-widest">
