@@ -94,34 +94,33 @@ export default function Dashboard() {
     <div className="animate-in fade-in duration-500 pb-20 md:pb-8">
 
       {/* Executive hero header */}
-      <div className="page-hero px-4 md:px-8 pt-6 md:pt-7 pb-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
+      <div className="page-hero-sticky px-4 md:px-8 pt-4 pb-4">
+        <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="metadata-label mb-1.5 text-primary/80">Inorganic Growth Operating System</p>
-            <h1 className="text-2xl md:text-3xl font-bold font-mono tracking-tight">Executive Summary</h1>
-            <p className="text-sm text-muted-foreground mt-1.5">Live M&amp;A pipeline intelligence · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</p>
+            <p className="metadata-label text-primary/80">Inorganic Growth OS</p>
+            <h1 className="text-xl md:text-2xl font-bold font-mono tracking-tight mt-0.5">Executive Summary</h1>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {(summary?.needsAttentionCount ?? 0) > 0 && (
-              <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/30 rounded-lg px-3 py-2">
-                <AlertTriangle size={13} className="text-destructive shrink-0" />
-                <span className="text-[11px] font-mono text-destructive font-semibold">
-                  {summary!.needsAttentionCount} need{summary!.needsAttentionCount !== 1 ? "" : "s"} attention
+              <div className="hidden sm:flex items-center gap-1.5 bg-destructive/10 border border-destructive/25 rounded-lg px-2.5 py-1.5">
+                <AlertTriangle size={11} className="text-destructive shrink-0" />
+                <span className="text-[10px] font-mono text-destructive font-semibold">
+                  {summary!.needsAttentionCount} flagged
                 </span>
               </div>
             )}
-            <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-2.5 py-1.5">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
               </span>
-              <span className="text-[10px] font-mono text-emerald-400/90 uppercase tracking-wider">Live</span>
+              <span className="text-[10px] font-mono text-emerald-400/90 uppercase tracking-wider hidden sm:inline">Live</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="p-4 md:p-8 space-y-8">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* Primary KPI row — 2-up on mobile, 4-up on desktop */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
@@ -170,42 +169,45 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Secondary KPI row */}
-        <div className="grid grid-cols-3 gap-3 md:gap-4">
-          <Card className={`kpi-accent-red rounded-xl bg-card border-border/80 overflow-hidden ${(summary?.needsAttentionCount ?? 0) === 0 ? "kpi-accent-muted" : ""}`}>
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4 pt-5">
-              <CardTitle className="metadata-label">Needs Attention</CardTitle>
-              <AlertTriangle size={14} className={(summary?.needsAttentionCount ?? 0) > 0 ? "text-destructive/70 shrink-0" : "text-muted-foreground/40 shrink-0"} />
-            </CardHeader>
-            <CardContent className="px-4 pb-4 pt-0">
-              <div className={`metric-number ${(summary?.needsAttentionCount ?? 0) > 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                {summary?.needsAttentionCount ?? 0}
-              </div>
-              <p className="metadata-label mt-1.5">flagged deals</p>
-            </CardContent>
-          </Card>
-
-          <Card className="kpi-accent-emerald rounded-xl bg-card border-border/80 overflow-hidden">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4 pt-5">
-              <CardTitle className="metadata-label">Closed</CardTitle>
-              <CheckCircle2 size={14} className="text-emerald-500/70 shrink-0" />
-            </CardHeader>
-            <CardContent className="px-4 pb-4 pt-0">
-              <div className="metric-number text-emerald-500">{summary?.closedDealsCount ?? 0}</div>
-              <p className="metadata-label mt-1.5">deals closed</p>
-            </CardContent>
-          </Card>
-
-          <Card className="kpi-accent-muted rounded-xl bg-card border-border/80 overflow-hidden">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4 pt-5">
-              <CardTitle className="metadata-label">Dropped</CardTitle>
-              <XCircle size={14} className="text-muted-foreground/50 shrink-0" />
-            </CardHeader>
-            <CardContent className="px-4 pb-4 pt-0">
-              <div className="metric-number text-muted-foreground">{summary?.droppedDealsCount ?? 0}</div>
-              <p className="metadata-label mt-1.5">deals dropped</p>
-            </CardContent>
-          </Card>
+        {/* Secondary KPI strip — compact 3-stat bar */}
+        <div className="grid grid-cols-3 gap-2 md:gap-3">
+          {[
+            {
+              label: "Needs Attention",
+              value: summary?.needsAttentionCount ?? 0,
+              cls: (summary?.needsAttentionCount ?? 0) > 0 ? "text-destructive" : "text-muted-foreground",
+              accent: (summary?.needsAttentionCount ?? 0) > 0 ? "kpi-accent-red" : "kpi-accent-muted",
+              icon: <AlertTriangle size={13} className={(summary?.needsAttentionCount ?? 0) > 0 ? "text-destructive/70" : "text-muted-foreground/40"} />,
+              sub: "flagged",
+            },
+            {
+              label: "Closed",
+              value: summary?.closedDealsCount ?? 0,
+              cls: "text-emerald-500",
+              accent: "kpi-accent-emerald",
+              icon: <CheckCircle2 size={13} className="text-emerald-500/70" />,
+              sub: "closed",
+            },
+            {
+              label: "Dropped",
+              value: summary?.droppedDealsCount ?? 0,
+              cls: "text-muted-foreground",
+              accent: "kpi-accent-muted",
+              icon: <XCircle size={13} className="text-muted-foreground/50" />,
+              sub: "dropped",
+            },
+          ].map((s) => (
+            <Card key={s.label} className={`${s.accent} rounded-xl bg-card border-border/70 overflow-hidden`}>
+              <CardContent className="p-3.5">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="metadata-label">{s.label}</span>
+                  {s.icon}
+                </div>
+                <div className={`font-mono font-bold text-2xl tracking-tight leading-none ${s.cls}`}>{s.value}</div>
+                <p className="metadata-label mt-1">{s.sub}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         {/* Chart + Top Opportunities */}

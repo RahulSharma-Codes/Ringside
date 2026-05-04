@@ -306,37 +306,33 @@ export default function Actions() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Sticky header */}
-      <div className="page-hero px-4 md:px-6 pt-6 pb-5 shrink-0">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="metadata-label mb-1.5 text-primary/80">Action Command Center</p>
-            <h1 className="text-xl md:text-2xl font-bold font-mono tracking-tight">
-              {isLoading ? "Loading…" : `${totalOpen} Open Action${totalOpen !== 1 ? "s" : ""}`}
+      {/* Sticky compact header */}
+      <div className="page-hero px-4 md:px-6 pt-3.5 pb-3 shrink-0">
+        <div className="flex items-center justify-between gap-3 mb-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <h1 className="text-lg font-bold font-mono tracking-tight">
+              {isLoading ? "Actions" : `${totalOpen} Open Action${totalOpen !== 1 ? "s" : ""}`}
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Across all active deals
-              {overdueCount > 0 && (
-                <span className="ml-2 text-destructive font-mono font-semibold text-xs">· {overdueCount} overdue</span>
-              )}
-            </p>
+            {overdueCount > 0 && (
+              <span className="status-chip bg-destructive/10 text-destructive border-destructive/30">{overdueCount} overdue</span>
+            )}
           </div>
         </div>
 
         {/* Filter bar */}
-        <div className="flex flex-wrap gap-2 items-center mt-4">
-          <div className="relative flex-1 min-w-[160px] max-w-xs">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+        <div className="flex flex-wrap gap-1.5 items-center">
+          <div className="relative flex-1 min-w-[130px] max-w-[200px]">
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search actions…"
-              className="pl-8 h-8 text-sm rounded-lg bg-card/60 border-border/60"
+              placeholder="Search…"
+              className="pl-7 h-7 text-xs rounded-lg bg-card/60 border-border/60"
             />
           </div>
 
           <Select value={ownerFilter} onValueChange={setOwnerFilter}>
-            <SelectTrigger className="w-[140px] h-8 rounded-lg font-mono text-[11px] border-border/60">
+            <SelectTrigger className="w-[120px] h-7 rounded-lg font-mono text-[11px] border-border/60">
               <SelectValue placeholder="Owner" />
             </SelectTrigger>
             <SelectContent>
@@ -346,7 +342,7 @@ export default function Actions() {
           </Select>
 
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-[130px] h-8 rounded-lg font-mono text-[11px] border-border/60">
+            <SelectTrigger className="w-[115px] h-7 rounded-lg font-mono text-[11px] border-border/60">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
@@ -360,10 +356,10 @@ export default function Actions() {
 
           <button
             onClick={() => setMustWinOnly((v) => !v)}
-            className={`h-8 px-3 rounded-lg text-[11px] font-mono border transition-all duration-150 ${
+            className={`h-7 px-2.5 rounded-lg text-[11px] font-mono border transition-all duration-150 ${
               mustWinOnly
-                ? "bg-primary text-primary-foreground border-primary"
-                : "border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/40"
+                ? "bg-primary/15 text-primary border-primary/40"
+                : "border-border/60 text-muted-foreground hover:text-foreground"
             }`}
           >
             Must-Win
@@ -371,7 +367,7 @@ export default function Actions() {
 
           <button
             onClick={() => setOverdueOnly((v) => !v)}
-            className={`h-8 px-3 rounded-lg text-[11px] font-mono border transition-all duration-150 flex items-center gap-1.5 ${
+            className={`h-7 px-2.5 rounded-lg text-[11px] font-mono border transition-all duration-150 flex items-center gap-1.5 ${
               overdueOnly
                 ? "bg-destructive text-white border-destructive"
                 : "border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/40"

@@ -1,117 +1,171 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Target, ListTodo, Briefcase, Plus, BarChart3, Bot, CalendarCheck, ClipboardCheck, Upload } from "lucide-react";
+import {
+  Target, ListTodo, Briefcase, Plus, BarChart3, Bot, CalendarCheck,
+  ClipboardCheck, Upload, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-const NAV_GROUPS = [
-  {
-    label: "Operating System",
-    items: [
-      { href: "/", label: "Dashboard", icon: BarChart3 },
-      { href: "/pipeline", label: "Pipeline", icon: Target },
-      { href: "/actions", label: "Actions", icon: ListTodo },
-    ],
-  },
-  {
-    label: "Review Cadence",
-    items: [
-      { href: "/weekly-review", label: "Weekly Review", icon: CalendarCheck },
-      { href: "/diligence-review", label: "Diligence Review", icon: ClipboardCheck },
-    ],
-  },
-  {
-    label: "Intelligence",
-    items: [
-      { href: "/copilot", label: "AI Copilot", icon: Bot },
-    ],
-  },
+// ─── Data ────────────────────────────────────────────────────────────────────
+
+type NavItem = { href: string; label: string; icon: React.ElementType; group: string };
+
+const NAV_ITEMS: NavItem[] = [
+  { href: "/",                 label: "Dashboard",         icon: BarChart3,      group: "Operating System" },
+  { href: "/pipeline",         label: "Pipeline",          icon: Target,         group: "Operating System" },
+  { href: "/actions",          label: "Actions",           icon: ListTodo,       group: "Operating System" },
+  { href: "/weekly-review",    label: "Weekly Review",     icon: CalendarCheck,  group: "Review Cadence"   },
+  { href: "/diligence-review", label: "Diligence Review",  icon: ClipboardCheck, group: "Review Cadence"   },
+  { href: "/copilot",          label: "AI Copilot",        icon: Bot,            group: "Intelligence"     },
+  { href: "/import",           label: "Import Targets",    icon: Upload,         group: "Data"             },
 ];
 
-export function Layout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
+const NAV_GROUPS = ["Operating System", "Review Cadence", "Intelligence", "Data"];
 
+function isActive(href: string, location: string) {
+  if (href === "/") return location === "/";
+  return location.startsWith(href);
+}
+
+// ─── Sidebar Contents (shared between desktop + mobile drawer) ──────────────
+
+function SidebarNav({
+  location,
+  collapsed,
+  openGroups,
+  toggleGroup,
+  onNavigate,
+}: {
+  location: string;
+  collapsed: boolean;
+  openGroups: Set<string>;
+  toggleGroup: (g: string) => void;
+  onNavigate?: () => void;
+}) {
   return (
-    <div className="min-h-screen bg-background flex flex-col md:flex-row font-sans">
-      <aside className="glass-shell w-full md:w-60 shrink-0 flex flex-col md:sticky md:top-0 md:h-screen">
-
-        {/* Brand mark */}
-        <div className="px-4 pt-5 pb-4 border-b border-sidebar-border/50">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary/20 border border-primary/30 shrink-0 shadow-sm">
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Brand */}
+      <div className={`border-b border-sidebar-border/50 shrink-0 ${collapsed ? "px-2 pt-4 pb-3" : "px-4 pt-5 pb-4"}`}>
+        {collapsed ? (
+          <div className="flex justify-center">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary/20 border border-primary/30">
               <Briefcase size={16} className="text-primary" />
             </div>
-            <div className="min-w-0">
-              <p className="font-bold text-[11px] tracking-widest text-sidebar-foreground/90 uppercase truncate leading-tight">
-                Growth OS
-              </p>
-              <p className="text-[9px] text-sidebar-foreground/35 uppercase tracking-widest font-mono leading-tight mt-0.5">
-                Confidential · Corp Dev
-              </p>
-            </div>
           </div>
-          <Link href="/targets/new">
-            <Button className="w-full justify-start gap-2 h-8 text-[11px] font-mono uppercase tracking-wider rounded-lg" size="sm">
-              <Plus size={13} />
-              New Opportunity
-            </Button>
-          </Link>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
-          {NAV_GROUPS.map((group) => {
-            return (
-              <div key={group.label}>
-                <p className="nav-section-label mb-1.5">{group.label}</p>
-                <div className="space-y-0.5">
-                  {group.items.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = location === item.href ||
-                      (item.href !== "/" && location.startsWith(item.href));
-                    return (
-                      <Link key={item.href} href={item.href}>
-                        <div className={`relative flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 cursor-pointer ${
-                          isActive
-                            ? "bg-primary/12 text-primary"
-                            : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-white/5"
-                        }`}>
-                          {isActive && (
-                            <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-primary rounded-r-full" />
-                          )}
-                          <Icon size={14} className="shrink-0 ml-0.5" />
-                          <span className="truncate">{item.label}</span>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-3 mb-3.5">
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary/20 border border-primary/30 shrink-0">
+                <Briefcase size={16} className="text-primary" />
               </div>
-            );
-          })}
-
-          {/* Data */}
-          <div>
-            <p className="nav-section-label mb-1.5">Data</p>
-            <div className="space-y-0.5">
-              <Link href="/import">
-                <div className={`relative flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 cursor-pointer ${
-                  location === "/import"
-                    ? "bg-primary/12 text-primary"
-                    : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-white/5"
-                }`}>
-                  {location === "/import" && (
-                    <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-primary rounded-r-full" />
-                  )}
-                  <Upload size={14} className="shrink-0 ml-0.5" />
-                  <span className="truncate">Import Targets</span>
-                </div>
-              </Link>
+              <div className="min-w-0">
+                <p className="font-bold text-[11px] tracking-widest text-sidebar-foreground/90 uppercase truncate leading-tight">Growth OS</p>
+                <p className="text-[9px] text-sidebar-foreground/35 uppercase tracking-widest font-mono leading-tight mt-0.5">Confidential · Corp Dev</p>
+              </div>
             </div>
-          </div>
-        </nav>
+            <Link href="/targets/new" onClick={onNavigate}>
+              <Button className="w-full justify-start gap-2 h-8 text-[11px] font-mono uppercase tracking-wider rounded-lg" size="sm">
+                <Plus size={13} /> New Opportunity
+              </Button>
+            </Link>
+          </>
+        )}
+      </div>
 
-        {/* Status footer */}
-        <div className="px-4 py-3 border-t border-sidebar-border/40 mt-auto">
+      {/* Nav */}
+      <nav className={`flex-1 overflow-y-auto py-3 ${collapsed ? "px-1.5" : "px-2.5"}`}>
+        {collapsed ? (
+          /* Icon-only mode — flat list with tooltips */
+          <div className="space-y-0.5">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href, location);
+              return (
+                <Tooltip key={item.href} delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <Link href={item.href} onClick={onNavigate}>
+                      <div className={`flex items-center justify-center w-9 h-9 rounded-lg mx-auto transition-all duration-150 cursor-pointer ${
+                        active
+                          ? "bg-primary/15 text-primary"
+                          : "text-sidebar-foreground/45 hover:text-sidebar-foreground hover:bg-white/6"
+                      }`}>
+                        <Icon size={15} />
+                      </div>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" sideOffset={8}>
+                    <span className="font-mono text-[11px]">{item.label}</span>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </div>
+        ) : (
+          /* Grouped accordion mode */
+          <div className="space-y-0.5">
+            {NAV_GROUPS.map((group) => {
+              const items = NAV_ITEMS.filter((i) => i.group === group);
+              const isOpen = openGroups.has(group);
+              const groupHasActive = items.some((i) => isActive(i.href, location));
+              return (
+                <div key={group} className="mb-1">
+                  <button
+                    onClick={() => toggleGroup(group)}
+                    className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md transition-colors group text-[9px] font-mono uppercase tracking-widest ${
+                      groupHasActive
+                        ? "text-primary/60 hover:text-primary/80"
+                        : "text-sidebar-foreground/28 hover:text-sidebar-foreground/50"
+                    }`}
+                  >
+                    <span>{group}</span>
+                    <ChevronDown
+                      size={10}
+                      className={`transition-transform duration-200 ease-in-out ${isOpen ? "" : "-rotate-90"}`}
+                    />
+                  </button>
+
+                  {isOpen && (
+                    <div className="space-y-0.5 py-0.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                      {items.map((item) => {
+                        const Icon = item.icon;
+                        const active = isActive(item.href, location);
+                        return (
+                          <Link key={item.href} href={item.href} onClick={onNavigate}>
+                            <div className={`relative flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all duration-150 cursor-pointer ${
+                              active
+                                ? "bg-primary/12 text-primary"
+                                : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-white/5"
+                            }`}>
+                              {active && (
+                                <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-primary rounded-r-full" />
+                              )}
+                              <Icon size={14} className="shrink-0 ml-0.5" />
+                              <span className="truncate">{item.label}</span>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </nav>
+
+      {/* Footer: live indicator + collapse toggle */}
+      <div className={`border-t border-sidebar-border/40 shrink-0 ${collapsed ? "px-2 py-2.5" : "px-4 py-2.5"}`}>
+        {collapsed ? (
+          <div className="flex justify-center">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+            </span>
+          </div>
+        ) : (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-[10px] text-sidebar-foreground/35 font-mono">
               <span className="relative flex h-1.5 w-1.5">
@@ -120,17 +174,96 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </span>
               Live
             </div>
-            <span className="text-[9px] font-mono text-sidebar-foreground/25 uppercase tracking-widest">
-              M&amp;A
-            </span>
+            <span className="text-[9px] font-mono text-sidebar-foreground/25 uppercase tracking-widest">M&amp;A</span>
           </div>
-        </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Layout ──────────────────────────────────────────────────────────────────
+
+export function Layout({ children }: { children: React.ReactNode }) {
+  const [location] = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  /* Groups default open; remember state across navigation */
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(NAV_GROUPS));
+
+  const toggleGroup = (g: string) =>
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      next.has(g) ? next.delete(g) : next.add(g);
+      return next;
+    });
+
+  const navProps = { location, openGroups, toggleGroup };
+
+  return (
+    /* Root: full-viewport, no outer scroll — prevents double scrollbar */
+    <div className="h-screen overflow-hidden bg-background flex font-sans">
+
+      {/* ── Desktop sidebar ─────────────────────────────────────── */}
+      <aside
+        className={`relative hidden md:flex flex-col glass-shell shrink-0 h-full transition-all duration-200 ease-in-out ${
+          collapsed ? "w-14" : "w-60"
+        }`}
+      >
+        <SidebarNav {...navProps} collapsed={collapsed} />
+
+        {/* Collapse toggle button — floats at right edge */}
+        <button
+          onClick={() => setCollapsed((v) => !v)}
+          className="absolute -right-3 top-20 z-10 w-6 h-6 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed
+            ? <PanelLeftOpen size={11} />
+            : <PanelLeftClose size={11} />
+          }
+        </button>
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <div className="flex-1 overflow-auto">
-          {children}
+      {/* ── Mobile: fixed topbar + Sheet drawer ─────────────────── */}
+      <div className="md:hidden fixed inset-x-0 top-0 z-50 h-12 flex items-center justify-between px-3 glass-shell border-b border-sidebar-border/70">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
+            <Briefcase size={13} className="text-primary" />
+          </div>
+          <span className="font-bold text-[11px] tracking-widest uppercase text-foreground/90 font-mono">Growth OS</span>
         </div>
+        <div className="flex items-center gap-1.5">
+          <Link href="/targets/new">
+            <Button size="sm" className="h-7 px-2.5 rounded-lg font-mono text-[10px] uppercase gap-1.5 font-semibold">
+              <Plus size={11} /> New
+            </Button>
+          </Link>
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger asChild>
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg text-sidebar-foreground/60 hover:text-foreground hover:bg-white/8 transition-colors">
+                <Menu size={17} />
+              </button>
+            </SheetTrigger>
+            <SheetContent
+              side="left"
+              className="p-0 w-[260px] glass-shell border-r border-sidebar-border/80 [&>button]:hidden"
+            >
+              <SidebarNav
+                {...navProps}
+                collapsed={false}
+                onNavigate={() => setMobileOpen(false)}
+              />
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
+
+      {/* ── Main content area ────────────────────────────────────── */}
+      {/* pt-12 on mobile to clear the fixed topbar */}
+      <main className="flex-1 min-w-0 overflow-auto pt-12 md:pt-0">
+        {children}
       </main>
     </div>
   );

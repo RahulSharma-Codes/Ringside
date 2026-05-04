@@ -295,27 +295,24 @@ export default function WeeklyReview() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Sticky header */}
-      <div className="page-hero px-4 md:px-6 pt-6 pb-5 shrink-0">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="metadata-label mb-1.5 text-primary/80">Review Cadence</p>
-            <div className="flex items-center gap-2.5">
-              <CalendarCheck size={20} className="text-primary shrink-0" />
-              <h1 className="text-xl md:text-2xl font-bold font-mono tracking-tight">Weekly Review</h1>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1 font-mono">
-              Pipeline cadence summary · refreshed {format(refreshedAt, "MMM d 'at' h:mm a")}
-            </p>
+      {/* Compact sticky header */}
+      <div className="page-hero px-4 md:px-6 pt-3.5 pb-3 shrink-0">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <CalendarCheck size={16} className="text-primary shrink-0" />
+            <h1 className="text-lg font-bold font-mono tracking-tight">Weekly Review</h1>
+            <span className="metadata-label text-muted-foreground/40 hidden sm:inline">
+              refreshed {format(refreshedAt, "h:mm a")}
+            </span>
           </div>
           <Button
             size="sm"
             variant="outline"
-            className="rounded-lg font-mono text-[11px] uppercase shrink-0 border-border/60"
+            className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-7 px-2.5 gap-1.5"
             onClick={handleRefresh}
             disabled={isLoading}
           >
-            <RefreshCw size={12} className={`mr-1.5 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw size={11} className={isLoading ? "animate-spin" : ""} />
             Refresh
           </Button>
         </div>

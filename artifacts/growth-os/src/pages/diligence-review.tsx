@@ -147,26 +147,23 @@ export default function DiligenceReview() {
   return (
     <div className="flex flex-col h-full overflow-hidden animate-in fade-in duration-500">
       {/* Sticky header */}
-      <div className="page-hero px-4 md:px-6 pt-6 pb-5 shrink-0">
-        <div className="max-w-5xl mx-auto flex items-start justify-between gap-4">
-          <div>
-            <p className="metadata-label mb-1.5 text-primary/80">Review Cadence</p>
-            <div className="flex items-center gap-2.5">
-              <ClipboardCheck size={20} className="text-primary shrink-0" />
-              <h1 className="text-xl md:text-2xl font-bold font-mono tracking-tight">Diligence Review</h1>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1 font-mono">
-              Pipeline-wide due diligence status · refreshed {format(lastRefresh, "HH:mm")}
-            </p>
+      <div className="page-hero px-4 md:px-6 pt-3.5 pb-3 shrink-0">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <ClipboardCheck size={16} className="text-primary shrink-0" />
+            <h1 className="text-lg font-bold font-mono tracking-tight">Diligence Review</h1>
+            <span className="metadata-label text-muted-foreground/40 hidden sm:inline">
+              refreshed {format(lastRefresh, "HH:mm")}
+            </span>
           </div>
           <Button
             size="sm"
             variant="outline"
-            className="rounded-lg font-mono text-[10px] uppercase gap-1.5 border-border/60 shrink-0"
+            className="rounded-lg font-mono text-[10px] uppercase gap-1.5 border-border/60 shrink-0 h-7 px-2.5"
             onClick={handleRefresh}
             disabled={isFetching}
           >
-            <RefreshCw size={12} className={isFetching ? "animate-spin" : ""} /> Refresh
+            <RefreshCw size={11} className={isFetching ? "animate-spin" : ""} /> Refresh
           </Button>
         </div>
       </div>

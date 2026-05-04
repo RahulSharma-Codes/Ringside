@@ -80,130 +80,121 @@ export default function Pipeline() {
   return (
     <div className="animate-in fade-in duration-500 pb-20 md:pb-8">
 
-      {/* Executive header */}
-      <div className="page-hero px-4 md:px-8 pt-6 md:pt-7 pb-5">
-        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
-          <div>
-            <p className="metadata-label mb-1.5 text-primary/80">Deal Pipeline</p>
-            <h1 className="text-2xl font-bold font-mono tracking-tight">Acquisition Targets</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Active opportunities and evaluations
-              {targets && (
-                <span className="ml-2 font-mono text-muted-foreground/60">· {targets.length} result{targets.length !== 1 ? "s" : ""}</span>
+      {/* Sticky header + filter bar */}
+      <div className="page-hero-sticky px-4 md:px-6 pt-4 pb-3 space-y-3">
+        {/* Title row */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-lg md:text-xl font-bold font-mono tracking-tight flex items-center gap-2">
+              Acquisition Targets
+              {targets && !isLoading && (
+                <span className="text-[11px] font-normal text-muted-foreground/60 font-mono">{targets.length}</span>
               )}
-            </p>
+            </h1>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Button
               size="sm"
               variant="outline"
-              className="rounded-lg font-mono uppercase tracking-wider text-[10px] gap-2 border-border/70"
+              className="rounded-lg font-mono uppercase tracking-wider text-[10px] gap-1.5 border-border/60 h-7 px-2.5"
               onClick={() => navigate("/import")}
             >
-              <Upload size={13} /> Import
+              <Upload size={11} /> Import
             </Button>
             <Link href="/targets/new">
-              <Button size="sm" className="rounded-lg font-mono uppercase tracking-wider text-[10px] gap-2">
-                <Plus size={14} /> New Target
+              <Button size="sm" className="rounded-lg font-mono uppercase tracking-wider text-[10px] gap-1.5 h-7 px-2.5">
+                <Plus size={12} /> New
               </Button>
             </Link>
           </div>
         </div>
-      </div>
 
-      <div className="p-4 md:p-8 space-y-5">
-        {/* Filter command bar */}
-        <div className="command-bar p-3.5 space-y-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        {/* Single-row filter bar */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[140px] max-w-[220px]">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 pointer-events-none" />
             <Input
-              placeholder="Search project, code, sector, country…"
-              className="pl-9 rounded-lg font-mono text-sm bg-background/60 border-border/60 h-9"
+              placeholder="Search…"
+              className="pl-8 rounded-lg font-mono text-xs bg-background/60 border-border/60 h-7"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <Filter className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
-            <Select value={stage} onValueChange={setStage}>
-              <SelectTrigger className="w-full sm:w-[185px] rounded-lg font-mono text-[11px] uppercase border-border/60 bg-background/60 h-8">
-                <SelectValue placeholder="Stage" />
+          <Select value={stage} onValueChange={setStage}>
+            <SelectTrigger className="w-[150px] rounded-lg font-mono text-[11px] uppercase border-border/60 bg-background/60 h-7">
+              <SelectValue placeholder="Stage" />
+            </SelectTrigger>
+            <SelectContent className="font-mono text-[11px] uppercase">
+              <SelectItem value="all">All Stages</SelectItem>
+              {STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          <Select value={tier} onValueChange={setTier}>
+            <SelectTrigger className="w-[120px] rounded-lg font-mono text-[11px] uppercase border-border/60 bg-background/60 h-7">
+              <SelectValue placeholder="Tier" />
+            </SelectTrigger>
+            <SelectContent className="font-mono text-[11px] uppercase">
+              <SelectItem value="all">All Tiers</SelectItem>
+              {TIERS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          {(filterOptions?.owners?.length ?? 0) > 0 && (
+            <Select value={owner} onValueChange={setOwner}>
+              <SelectTrigger className="w-[120px] rounded-lg font-mono text-[11px] uppercase border-border/60 bg-background/60 h-7">
+                <SelectValue placeholder="Owner" />
               </SelectTrigger>
               <SelectContent className="font-mono text-[11px] uppercase">
-                <SelectItem value="all">All Stages</SelectItem>
-                {STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                <SelectItem value="all">All Owners</SelectItem>
+                {filterOptions!.owners.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
               </SelectContent>
             </Select>
+          )}
 
-            <Select value={tier} onValueChange={setTier}>
-              <SelectTrigger className="w-full sm:w-[145px] rounded-lg font-mono text-[11px] uppercase border-border/60 bg-background/60 h-8">
-                <SelectValue placeholder="Priority Tier" />
+          {(filterOptions?.countries?.length ?? 0) > 0 && (
+            <Select value={country} onValueChange={setCountry}>
+              <SelectTrigger className="w-[120px] rounded-lg font-mono text-[11px] uppercase border-border/60 bg-background/60 h-7">
+                <SelectValue placeholder="Country" />
               </SelectTrigger>
               <SelectContent className="font-mono text-[11px] uppercase">
-                <SelectItem value="all">All Tiers</SelectItem>
-                {TIERS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                <SelectItem value="all">All Countries</SelectItem>
+                {filterOptions!.countries.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
+          )}
 
-            {(filterOptions?.owners?.length ?? 0) > 0 && (
-              <Select value={owner} onValueChange={setOwner}>
-                <SelectTrigger className="w-full sm:w-[145px] rounded-lg font-mono text-[11px] uppercase border-border/60 bg-background/60 h-8">
-                  <SelectValue placeholder="Owner" />
-                </SelectTrigger>
-                <SelectContent className="font-mono text-[11px] uppercase">
-                  <SelectItem value="all">All Owners</SelectItem>
-                  {filterOptions!.owners.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            )}
+          <button
+            onClick={() => setAttentionOnly(!attentionOnly)}
+            className={`h-7 px-2.5 rounded-lg text-[11px] font-mono border transition-all duration-150 flex items-center gap-1.5 shrink-0 ${
+              attentionOnly
+                ? "bg-destructive/15 text-destructive border-destructive/40"
+                : "border-border/60 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <AlertTriangle size={10} /> Attn
+          </button>
 
-            {(filterOptions?.countries?.length ?? 0) > 0 && (
-              <Select value={country} onValueChange={setCountry}>
-                <SelectTrigger className="w-full sm:w-[145px] rounded-lg font-mono text-[11px] uppercase border-border/60 bg-background/60 h-8">
-                  <SelectValue placeholder="Country" />
-                </SelectTrigger>
-                <SelectContent className="font-mono text-[11px] uppercase">
-                  <SelectItem value="all">All Countries</SelectItem>
-                  {filterOptions!.countries.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              size="sm"
-              variant={attentionOnly ? "default" : "outline"}
-              className={`h-7 rounded-lg font-mono text-[10px] uppercase tracking-wider gap-1.5 ${
-                attentionOnly
-                  ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0"
-                  : "border-border/60 text-muted-foreground"
-              }`}
-              onClick={() => setAttentionOnly(!attentionOnly)}
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="h-7 px-2.5 rounded-lg text-[11px] font-mono text-muted-foreground/60 hover:text-muted-foreground border border-dashed border-border/40 transition-colors"
             >
-              <AlertTriangle size={10} /> Needs Attention
-            </Button>
-
-            {hasActiveFilters && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 rounded-lg font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
-                onClick={clearFilters}
-              >
-                Clear Filters
-              </Button>
-            )}
-          </div>
+              Clear
+            </button>
+          )}
         </div>
+      </div>
+
+      <div className="p-4 md:p-6 space-y-2.5">
 
         {/* Target list */}
         {isLoading ? (
           <div className="space-y-3">
             {Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-[130px] w-full rounded-xl" />)}
           </div>
-        ) : targets?.length === 0 ? (
+        ) : (targets?.length ?? 0) === 0 ? (
           <Card className="bg-card border-border rounded-xl">
             <CardContent className="p-12 text-center">
               <p className="text-sm font-mono text-muted-foreground uppercase tracking-widest">
@@ -217,7 +208,7 @@ export default function Pipeline() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {targets?.map((target) => {
               const isNeedsAttention = (target as { needsAttention?: boolean | null }).needsAttention;
               const openCount    = (target as { openActionCount?: number | null }).openActionCount ?? 0;

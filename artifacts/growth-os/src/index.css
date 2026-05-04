@@ -290,7 +290,7 @@
 
   .metric-number {
     font-family: var(--app-font-mono);
-    font-size: 2.5rem;
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
     font-weight: 700;
     letter-spacing: -0.04em;
     line-height: 1;
@@ -328,6 +328,24 @@
     background: linear-gradient(160deg, hsl(var(--card) / 0.9) 0%, hsl(var(--background)) 100%);
     border-bottom: 1px solid hsl(var(--border) / 0.7);
   }
+
+  /* Sticky page hero — for pages where content scrolls below */
+  .page-hero-sticky {
+    background: linear-gradient(160deg, hsl(var(--card) / 0.92) 0%, hsl(var(--card) / 0.75) 100%);
+    border-bottom: 1px solid hsl(var(--border) / 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+
+  /* ── Premium thin scrollbars ─────────────────────────────────── */
+  ::-webkit-scrollbar          { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track    { background: transparent; }
+  ::-webkit-scrollbar-thumb    { background: hsl(var(--border) / 0.6); border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.4); }
+  * { scrollbar-width: thin; scrollbar-color: hsl(var(--border) / 0.5) transparent; }
 
   /* ── KPI card top-border accent lines ────────────────────────── */
   .kpi-accent-blue    { border-top: 3px solid hsl(var(--primary)); }
