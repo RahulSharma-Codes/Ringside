@@ -1,0 +1,82 @@
+Approved. Proceed with Phase 6A: AI Assist Layer.
+
+Final guardrails:
+
+1. AI must never write directly to the database.
+   The AI backend routes may only generate suggestions or briefs.
+   Writes may only happen after the user clicks Apply Selected Updates in the frontend.
+
+2. Apply Selected Updates must use existing app routes:
+   - create interaction through existing interaction route
+   - create actions through existing action route
+   - change stage through existing stage-change route
+   - stage changes must still write stage_change_log
+   Do not bypass existing audit logic.
+
+3. Keep all AI routes auth-protected.
+   Verify they are behind the existing /api auth middleware.
+   Do not expose OpenAI keys or Supabase service keys to frontend code.
+
+4. Prefer structured outputs / strict JSON schema if supported by the current OpenAI client.
+   If using response_format: { type: "json_object" }, add robust JSON parsing and fallback validation.
+   If JSON parsing fails, return a graceful error instead of crashing.
+
+5. Meeting notes suggestions must not invent facts.
+   If owner, date, participants, valuation signal, or stage change is not clearly mentioned, return empty/null rather than guessing.
+
+6. Stage suggestions must be constrained to valid app stages.
+   If AI suggests an invalid stage, the frontend should not allow applying it.
+   The user must still enter or approve a stage-change reason.
+
+7. Action suggestions must be editable before apply.
+   No suggested action should be created unless checked by the user.
+
+8. Risks and follow-up questions are copy-only in Phase 6A.
+   Do not create a risk table or save risks without explicit approval.
+
+9. AI status endpoint:
+   - Do not call it repeatedly in a loop.
+   - It may make a tiny probe call, but cache or keep usage minimal.
+   - It should distinguish missing key, invalid key, billing/quota issue, and available state.
+
+10. Billing / quota issues must be polished product states.
+    If OpenAI returns insufficient_quota, 429, or billing-related failure, show:
+    “AI workflows are built and ready. Add OpenAI API credits to activate them.”
+    Do not crash.
+
+11. Preserve all existing functionality:
+    - Dashboard
+    - Pipeline
+    - Target Detail
+    - Interactions
+    - Actions
+    - Stage rail and stage change audit
+    - Diligence
+    - Documents and file upload
+    - Weekly Review
+    - Import Wizard
+    - AI Copilot existing chat
+    - Ringside branding
+
+12. Do not run:
+    - drizzle push
+    - seed.ts
+    - migrations
+    - destructive DB operations
+
+13. Do not touch:
+    - DATABASE_URL
+    - auth middleware unless absolutely required
+    - Supabase Storage behavior
+    - document upload routes
+    - generated API files except via codegen
+
+14. After implementation, run pnpm run typecheck and report:
+    - files changed
+    - API routes added
+    - whether structured outputs or JSON mode was used
+    - whether AI writes directly anywhere
+    - how billing/key errors are handled
+    - how Apply Selected Updates writes through existing routes
+    - typecheck result
+    - smoke-test result

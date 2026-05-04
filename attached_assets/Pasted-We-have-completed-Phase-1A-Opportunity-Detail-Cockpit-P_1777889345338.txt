@@ -1,0 +1,319 @@
+We have completed:
+- Phase 1A: Opportunity Detail Cockpit
+- Phase 1B: Dashboard + Pipeline Intelligence
+- Phase 2A: CSV / Excel Import Wizard
+- Phase 3A: AI Copilot read-only
+- Phase 4A: Action Command Center + Weekly Review
+- Phase 4B: Diligence Workspace + Diligence Review
+- Ringside brand/color identity
+- Premium pipeline stage rail and stage progression UI
+- Phase 5A: Deal Document Vault
+- Phase 5B: Secure Document Upload + Supabase Storage
+
+We are postponing the Board Review Pack for now.
+
+Now implement Phase 6A: AI Assist Layer — Meeting Notes, Deal Briefs, and Suggested Updates.
+
+Important safety rules:
+- Do NOT rebuild from scratch.
+- Do NOT change the app architecture.
+- Do NOT run drizzle push.
+- Do NOT run seed.ts.
+- Do NOT insert Apollo/Orion/Beacon/Catalyst/Helios demo data.
+- Do NOT modify DATABASE_URL.
+- Do NOT modify auth middleware unless absolutely required.
+- Supabase remains the source of truth.
+- Preserve all existing functionality.
+- Do not delete data.
+- Do not make destructive database changes.
+- AI must never write directly to the database in this phase.
+- AI may only generate suggestions.
+- User must review, edit, and explicitly approve every change before any database write.
+- If schema changes are needed, propose exact SQL first and wait for approval.
+- If OpenAI billing/credits are missing, the app must show a graceful setup/credits state and keep all non-AI features working.
+
+Current product:
+The app is now called Ringside.
+Ringside is an Inorganic Growth Command Center for corporate development / M&A.
+It has pipeline, target detail cockpit, interactions, actions, stage changes, diligence, documents, weekly review, import, and AI Copilot shell.
+
+Current AI status:
+- OPENAI_API_KEY exists.
+- AI Copilot route exists.
+- API calls may fail if billing/credits are missing.
+- That is acceptable, but the AI UI should clearly show that the AI workflows are built and ready once credits are added.
+
+Phase 6A goal:
+Add practical, visible AI workflows that make Ringside feel AI-powered and boss-demo ready:
+1. AI Meeting Notes Parser
+2. AI Suggested Updates Review & Apply
+3. AI Opportunity Brief
+4. AI Weekly Review Brief
+5. AI setup/credits status panel
+
+Core principle:
+AI suggests. User approves. Existing API routes apply changes.
+
+Required AI workflows:
+
+1. AI Meeting Notes Parser
+Add an AI-assisted workflow accessible from:
+- target detail page
+- interactions tab
+- possibly AI Copilot page
+
+User can paste meeting notes, call notes, banker update, management discussion notes, or internal discussion notes.
+
+Input fields:
+- target/opportunity selector or current target context
+- note type:
+  - Call
+  - Meeting
+  - Banker Update
+  - Management Discussion
+  - Internal Discussion
+  - Email Summary
+  - Mobile Note
+  - Diligence Finding
+- raw notes text
+- optional date
+- optional participants
+
+AI should return structured suggestions:
+- proposed interaction summary
+- proposed interaction type
+- proposed participants internal
+- proposed participants external
+- sentiment: Positive / Neutral / Negative
+- valuation signal if mentioned
+- proposed action items:
+  - description/title
+  - owner if mentioned
+  - due date if mentioned
+  - priority if inferable
+- proposed stage change:
+  - current stage
+  - suggested new stage
+  - reason
+  - confidence
+- risks / red flags mentioned
+- follow-up questions
+
+Use structured output / JSON schema if possible so frontend can reliably render suggestions.
+If the current AI client uses Chat Completions, use JSON mode/schema if supported.
+If easy and safe, use the OpenAI Responses API.
+Keep the model configurable via OPENAI_MODEL and do not hardcode a new model unless already consistent with the existing AI route.
+
+2. Review & Apply screen
+After AI returns suggestions, show a review screen.
+
+User must be able to:
+- edit the proposed interaction summary before applying
+- select which action items to create
+- edit action item text, owner, due date, priority
+- choose whether to apply suggested stage change
+- edit the stage-change reason
+- ignore risks / follow-up questions or copy them
+- apply only selected changes
+
+Required:
+- No database writes happen until user clicks “Apply Selected Updates.”
+- Before applying, show a clear confirmation:
+  “Ringside will create the selected interaction, actions, and stage update. AI will not apply anything you did not select.”
+
+On apply:
+- Create interaction using existing interaction create route.
+- Create selected actions using existing action create route.
+- If user selected stage change, call existing stage-change route so stage_change_log is written.
+- Do not bypass stage_change_log.
+- After apply, refresh target detail data.
+
+3. AI Opportunity Brief
+On target detail page, add a button:
+“Generate AI Brief”
+
+It should generate a leadership-ready opportunity brief from existing data:
+- project name / target code
+- current stage and priority
+- strategic rationale
+- latest interactions
+- open / overdue actions
+- stage history summary
+- diligence readiness
+- document readiness
+- key risks
+- recommended next steps
+
+This is read-only.
+Do not save the generated brief in Phase 6A unless a safe existing persistence mechanism exists.
+Allow copy to clipboard.
+
+If AI credits are missing, show a polished state:
+“AI Briefs are ready. Add OpenAI API credits to generate live summaries.”
+
+4. AI Weekly Review Brief
+On Weekly Review page or AI Copilot page, add:
+“Generate Weekly Review Brief”
+
+It should generate:
+- executive summary
+- key movements this week
+- Must-Win opportunities needing attention
+- overdue / blocked actions
+- diligence or document gaps
+- recommended leadership discussion points
+
+This is read-only.
+Do not write to database.
+Allow copy to clipboard.
+
+If credits are missing, show a graceful setup/credits message.
+
+5. AI setup / credits status panel
+Add a polished AI status card somewhere appropriate:
+- AI Copilot page
+- maybe settings/status section
+
+It should distinguish:
+- OPENAI_API_KEY missing
+- key present but invalid
+- key present but billing/credits/quota issue
+- AI available
+
+Do not reveal the key.
+Do not log the key.
+Do not expose secrets to frontend.
+
+Backend requirements:
+Inspect existing AI route first.
+
+Add routes only as needed, likely:
+- POST /api/ai/meeting-notes
+- POST /api/ai/opportunity-brief
+- POST /api/ai/weekly-brief
+- GET /api/ai/status, if useful
+
+All AI routes:
+- require existing app auth
+- are backend-only
+- use OPENAI_API_KEY server-side
+- do not expose secrets
+- handle missing key / invalid key / quota / credits errors gracefully
+- return setupRequired or billingRequired flags when appropriate
+- never write to DB
+- use compact context builders from existing Supabase data
+- avoid sending excessive data
+- answer only from provided data
+- do not invent facts
+- do not provide legal, tax, valuation, or financial advice as fact
+
+Structured suggestion schema:
+The meeting-notes endpoint should return a predictable JSON object like:
+
+{
+  "interaction": {
+    "interactionType": "Call | Meeting | Banker Update | Management Discussion | Internal Discussion | Email Summary | Mobile Note | Diligence Finding",
+    "summary": "string",
+    "participantsInternal": "string",
+    "participantsExternal": "string",
+    "sentiment": "Positive | Neutral | Negative",
+    "valuationSignal": "string"
+  },
+  "actions": [
+    {
+      "description": "string",
+      "owner": "string",
+      "dueDate": "YYYY-MM-DD or null",
+      "priority": "Low | Medium | High | Critical"
+    }
+  ],
+  "stageChange": {
+    "suggested": true,
+    "newStage": "string",
+    "reason": "string",
+    "confidence": "Low | Medium | High"
+  },
+  "risks": [
+    {
+      "title": "string",
+      "detail": "string",
+      "severity": "Low | Medium | High"
+    }
+  ],
+  "followUpQuestions": ["string"]
+}
+
+If a field is not mentioned in notes, return empty string or null rather than inventing.
+
+Frontend requirements:
+1. Target detail page:
+- Add “AI Assist” or “Parse Notes with AI” button near Log Interaction.
+- Add “Generate AI Brief” button near target header or AI section.
+- Use Ringside design system.
+- Keep mobile-friendly.
+
+2. AI Assist modal/page:
+- Textarea for raw notes.
+- Submit button.
+- Loading state.
+- Setup/credits state.
+- Suggestion review screen.
+- Apply Selected Updates button.
+- Success state listing what was created/updated.
+
+3. Weekly Review:
+- Add “Generate AI Weekly Brief” button.
+- Show generated brief in a premium panel.
+- Copy to clipboard.
+- Handle credits/setup gracefully.
+
+4. AI Copilot page:
+- Add starter cards for:
+  - Ask about pipeline
+  - Parse meeting notes
+  - Generate opportunity brief
+  - Generate weekly review brief
+- If credits missing, show that workflows are built and will activate once credits are added.
+
+5. UX and safety:
+- Label AI suggestions clearly:
+  “AI-generated suggestion — review before applying.”
+- Never auto-apply suggestions.
+- Make edit fields easy to review.
+- User can cancel without changes.
+- Use existing Ringside palette and components.
+
+Testing:
+After implementation:
+- Run pnpm run typecheck.
+- Confirm login works.
+- Confirm Dashboard loads.
+- Confirm Pipeline loads.
+- Confirm Target Detail opens.
+- Confirm Interactions/Actions/Diligence/Documents still work.
+- Confirm Weekly Review loads.
+- Confirm AI Copilot opens.
+- Confirm AI Meeting Notes UI opens.
+- If credits missing, confirm all AI features show graceful setup/credits state.
+- If credits available, test with notes:
+  “Spoke with banker. Target is open to NDA. Need finance to review FY25 revenue by next Friday. Management call went well but valuation expectations may be high.”
+- Confirm AI returns suggestions.
+- Confirm nothing is written before Apply Selected Updates.
+- Confirm applying selected interaction creates an interaction.
+- Confirm applying selected action creates an action.
+- Confirm applying selected stage change writes to stage_change_log.
+- Confirm Generate AI Brief works or shows credits state.
+- Confirm Generate Weekly Review Brief works or shows credits state.
+- Confirm no Apollo/Orion demo data appears unless already in Supabase.
+
+Report:
+1. files changed
+2. API routes added/modified
+3. whether structured outputs / JSON schema were used
+4. whether any packages were added
+5. how AI billing/key errors are handled
+6. whether AI writes directly anywhere
+7. how Apply Selected Updates uses existing routes
+8. typecheck result
+9. manual smoke-test result
+10. any risks or follow-up tasks
