@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import {
   useListTargets, getListTargetsQueryKey,
@@ -44,16 +44,48 @@ function getTierCardClass(tier: string) {
 
 export default function Pipeline() {
   const [, navigate] = useLocation();
-  const [search, setSearch]               = useState("");
+
+  const [search, setSearch]               = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("search") ?? "";
+  });
   const [stage, setStage]                 = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const s = params.get("stage");
     return s && s.trim().length > 0 ? s.trim() : "all";
   });
-  const [tier, setTier]                   = useState("all");
-  const [owner, setOwner]                 = useState("all");
-  const [country, setCountry]             = useState("all");
-  const [attentionOnly, setAttentionOnly] = useState(false);
+  const [tier, setTier]                   = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("tier");
+    return t && t.trim().length > 0 ? t.trim() : "all";
+  });
+  const [owner, setOwner]                 = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const o = params.get("owner");
+    return o && o.trim().length > 0 ? o.trim() : "all";
+  });
+  const [country, setCountry]             = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const c = params.get("country");
+    return c && c.trim().length > 0 ? c.trim() : "all";
+  });
+  const [attentionOnly, setAttentionOnly] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("attention") === "1";
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search)              params.set("search", search);
+    if (stage !== "all")     params.set("stage", stage);
+    if (tier !== "all")      params.set("tier", tier);
+    if (owner !== "all")     params.set("owner", owner);
+    if (country !== "all")   params.set("country", country);
+    if (attentionOnly)       params.set("attention", "1");
+    const qs = params.toString();
+    const newUrl = qs ? `/pipeline?${qs}` : "/pipeline";
+    window.history.replaceState(null, "", newUrl);
+  }, [search, stage, tier, owner, country, attentionOnly]);
 
   const { data: filterOptions } = useGetTargetFilterOptions({
     query: { queryKey: getGetTargetFilterOptionsQueryKey() },
