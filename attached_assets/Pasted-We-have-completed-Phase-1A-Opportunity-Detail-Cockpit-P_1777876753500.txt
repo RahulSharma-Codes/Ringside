@@ -1,0 +1,227 @@
+We have completed:
+- Phase 1A: Opportunity Detail Cockpit
+- Phase 1B: Dashboard + Pipeline Intelligence
+- Phase 2A: CSV / Excel Import Wizard
+- Phase 3A: AI Copilot read-only, built but API calls await OpenAI credits
+- Phase 4A: Action Command Center + Weekly Review
+- Phase 4B: Diligence Workspace + Diligence Review
+- Ringside brand/color identity
+- Premium stage rail / stage progression UI
+
+Now implement Phase 5A: Deal Document Vault.
+
+Important safety rules:
+- Do NOT rebuild from scratch.
+- Do NOT change the app architecture.
+- Do NOT run drizzle push.
+- Do NOT run seed.ts.
+- Do NOT insert Apollo/Orion/Beacon/Catalyst/Helios demo data.
+- Do NOT modify DATABASE_URL.
+- Do NOT modify auth middleware unless absolutely required.
+- Supabase remains the source of truth.
+- Preserve all existing functionality.
+- Do not make destructive database changes.
+- Do not delete files or database records.
+- If schema changes or Supabase Storage setup are required, propose the exact SQL/setup first and wait for approval before applying anything.
+
+Current structure:
+- React/Vite frontend: artifacts/growth-os
+- Express API backend: artifacts/api-server
+- Drizzle/Postgres DB layer: lib/db
+- Existing tables include targets, financial_snapshots, milestones, interactions, actions, stage_change_log, lookup_values, users.
+- actions table is named actions, not action_items.
+- Stage comes from milestones/current stage logic.
+- App brand is Ringside.
+
+Phase 5A goal:
+Add a Deal Document Vault so users can track and manage documents linked to each opportunity without turning the app into a full virtual data room yet.
+
+Required UX:
+
+1. Target Detail Document Tab
+Add a Documents tab/section to the target detail page.
+
+The tab should show document cards grouped by document type:
+- Teaser
+- NDA
+- CIM
+- Financials
+- Management Presentation
+- Legal
+- Tax
+- HR
+- Technology
+- Operations
+- Integration
+- Offer Letter
+- Board / IC Material
+- Other
+
+Each document card should show:
+- document title
+- document type
+- status
+- uploaded/received date
+- owner
+- description/notes
+- link/open/download action if file URL exists
+- related diligence workstream if available
+- created/updated timestamp if available
+
+Document statuses:
+- Requested
+- Received
+- Under Review
+- Reviewed
+- Missing
+- Not Applicable
+
+2. Add Document Record
+User can add a document record from target detail.
+
+Fields:
+- title
+- document type
+- status
+- owner
+- received/uploaded date
+- external URL or file link
+- related workstream
+- notes/description
+
+Important:
+If actual file upload/storage is not safely available yet, allow users to add an external URL/link first.
+Do not block Phase 5A on file upload.
+If Supabase Storage can be safely added, propose setup steps first.
+
+3. Edit Document Record
+User can edit document metadata:
+- title
+- document type
+- status
+- owner
+- date
+- URL/link
+- workstream
+- notes
+
+4. Document Readiness Summary
+On the target Documents tab, show:
+- total documents
+- missing/requested count
+- received count
+- reviewed count
+- documents by type
+- missing critical documents
+
+Critical document types for active diligence:
+- NDA
+- CIM
+- Financials
+- Legal
+- Tax
+- Integration
+
+5. Global Document Review Page
+Add a new page called Document Review.
+
+Show sections:
+- Missing Critical Documents
+- Requested Documents
+- Documents Under Review
+- Recently Received
+- Recently Reviewed
+- Must-Win Targets Missing Documents
+- Documents by Workstream
+
+Each item should link back to target detail.
+
+6. Navigation
+Add “Document Review” to the sidebar/nav.
+
+7. Mobile-first UI
+Use the existing Ringside premium design system:
+- card-based layout
+- readable at 375px
+- no cramped tables
+- stage/status/priority chips consistent with Ringside styling
+- premium but practical
+
+Backend/API requirements:
+
+First inspect the current schema.
+
+If no document table exists, stop and propose the smallest safe schema addition before applying it.
+
+Preferred minimal table proposal:
+deal_documents or documents table with:
+- id
+- target_id
+- title
+- document_type
+- status
+- owner
+- document_date
+- url
+- workstream
+- notes
+- created_at
+- updated_at
+
+Do not apply this automatically unless explicitly approved.
+
+If a usable existing table already exists, reuse it.
+
+API routes likely needed after schema approval:
+- GET /api/targets/:id/documents
+- POST /api/targets/:id/documents
+- PUT /api/documents/:id
+- GET /api/documents/review
+
+Do not add delete in Phase 5A.
+Use edit/status changes instead.
+If delete is requested later, implement archive/soft-delete first.
+
+Frontend requirements:
+- Add Documents tab to target detail.
+- Add Add/Edit Document modal.
+- Add Document Review page.
+- Add nav item.
+- Add empty states:
+  “No documents tracked yet”
+  “No missing critical documents”
+  “No documents under review”
+- Keep UI consistent with Ringside brand and premium stage rail style.
+
+Storage requirements:
+Phase 5A can ship with URL/link tracking only.
+If implementing file upload would require Supabase Storage bucket setup, new secrets, policies, or non-trivial auth changes, do not implement file upload yet.
+Instead, report a Phase 5B plan for file upload/storage.
+
+Testing:
+After implementation or after proposal:
+- Run pnpm run typecheck.
+- Confirm login works.
+- Confirm Dashboard loads.
+- Confirm Pipeline loads.
+- Confirm Target Detail opens.
+- Confirm Documents tab appears.
+- Confirm Add Document works if schema exists/approved.
+- Confirm Edit Document works if schema exists/approved.
+- Confirm Document Review page loads.
+- Confirm Diligence Review still works.
+- Confirm Actions and Weekly Review still work.
+- Confirm Import Wizard still opens.
+- Confirm AI Copilot no-credit state still works.
+- Confirm no Apollo/Orion demo data appears unless already in Supabase.
+
+Report:
+1. whether a document table already exists
+2. whether schema changes are required
+3. exact SQL proposed, if required
+4. files changed
+5. API routes added/modified
+6. whether file upload was implemented or deferred
+7. typecheck result
+8. manual smoke-test result
+9. any risks or follow-up tasks
