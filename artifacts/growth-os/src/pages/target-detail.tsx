@@ -582,7 +582,7 @@ export default function TargetDetail() {
                 {briefLoading
                   ? <Loader2 size={11} className="animate-spin" />
                   : <Sparkles size={11} className="text-primary" />}
-                AI Brief
+                Generate AI Brief
               </Button>
               <Button size="icon" variant="outline" className="rounded-lg border-border/70 text-muted-foreground h-8 w-8" onClick={() => setEditOpen(true)}>
                 <Edit size={13} />

@@ -364,7 +364,7 @@ export default function WeeklyReview() {
               {brief.loading
                 ? <Loader2 size={11} className="animate-spin" />
                 : <Sparkles size={11} />}
-              AI Brief
+              Generate AI Weekly Brief
             </Button>
             <Button
               size="sm"

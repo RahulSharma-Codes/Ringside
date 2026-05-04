@@ -202,6 +202,25 @@ const MEETING_NOTES_JSON_SCHEMA = {
   additionalProperties: false,
 } as const;
 
+// ── Valid enum values for normalization ───────────────────────────────────────
+
+const VALID_INTERACTION_TYPES = [
+  "Call", "Meeting", "Banker Update", "Management Discussion",
+  "Internal Discussion", "Email Summary", "Mobile Note", "Diligence Finding",
+] as const;
+
+const VALID_SENTIMENTS = ["Positive", "Neutral", "Negative"] as const;
+const VALID_PRIORITIES = ["Critical", "High", "Medium", "Low"] as const;
+
+function normalizeEnum<T extends string>(
+  value: string,
+  valid: readonly T[],
+  fallback: T,
+): T {
+  const lower = value.toLowerCase().trim();
+  return valid.find((v) => v.toLowerCase() === lower) ?? fallback;
+}
+
 // ── Zod schema for meeting notes suggestions ──────────────────────────────────
 
 const SuggestionsSchema = z.object({
@@ -659,8 +678,28 @@ router.post("/meeting-notes", async (req, res) => {
       return res.json({ suggestions: null, error: "Failed to parse AI response" });
     }
 
+    // Normalize AI-suggested enum fields to known application values
+    const suggestions = validated.data;
+    if (suggestions.interaction.interactionType) {
+      suggestions.interaction.interactionType = normalizeEnum(
+        suggestions.interaction.interactionType,
+        VALID_INTERACTION_TYPES,
+        "Meeting",
+      );
+    }
+    if (suggestions.interaction.sentiment) {
+      suggestions.interaction.sentiment = normalizeEnum(
+        suggestions.interaction.sentiment,
+        VALID_SENTIMENTS,
+        "Neutral",
+      );
+    }
+    for (const action of suggestions.actions) {
+      action.priority = normalizeEnum(action.priority, VALID_PRIORITIES, "Medium");
+    }
+
     req.log.info({ targetId, noteType: body.noteType }, "Meeting notes parsed");
-    return res.json({ suggestions: validated.data, model });
+    return res.json({ suggestions, model });
   } catch (err) {
     const { setupRequired, billingRequired, message } = classifyAiError(err);
     req.log.error({ err }, "Meeting notes AI error");
