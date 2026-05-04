@@ -35,6 +35,7 @@ function classifyAiError(err: unknown): {
   status: AiStatusKind;
   setupRequired: boolean;
   billingRequired: boolean;
+  cacheable: boolean;
   message: string;
 } {
   if (err && typeof err === "object") {
@@ -43,16 +44,18 @@ function classifyAiError(err: unknown): {
     const errObj = e["error"] as Record<string, unknown> | undefined;
     const code = errObj?.["code"] ?? e["code"];
     if (httpStatus === 401) {
-      return { status: "key_invalid", setupRequired: true, billingRequired: false, message: "Invalid API key" };
+      return { status: "key_invalid", setupRequired: true, billingRequired: false, cacheable: true, message: "Invalid API key" };
     }
     if (httpStatus === 429 || code === "insufficient_quota") {
-      return { status: "billing", setupRequired: false, billingRequired: true, message: "Billing or quota issue" };
+      return { status: "billing", setupRequired: false, billingRequired: true, cacheable: true, message: "Billing or quota issue" };
     }
   }
+  // Unknown / transient error: report but do NOT cache — next request will re-probe
   return {
     status: "key_invalid",
-    setupRequired: true,
+    setupRequired: false,
     billingRequired: false,
+    cacheable: false,
     message: err instanceof Error ? err.message : "Unknown AI error",
   };
 }
@@ -513,15 +516,14 @@ router.get("/status", async (req, res) => {
     req.log.info("AI status probe: available");
     return res.json({ ...statusCache, model });
   } catch (err) {
-    const classified = classifyAiError(err);
-    const { status, setupRequired, billingRequired } = classified;
-    // Only cache authoritative failures (401 = key invalid, 429/quota = billing).
-    // Unknown/transient errors are returned but NOT cached so the next request
-    // re-probes rather than permanently locking in a wrong status.
-    if (status === "key_invalid" || status === "billing") {
+    const { status, setupRequired, billingRequired, cacheable } = classifyAiError(err);
+    // Only cache authoritative failures (401 = key_invalid, 429/quota = billing).
+    // Transient/unknown errors (cacheable: false) are returned without being cached
+    // so the next request re-probes instead of being permanently locked out.
+    if (cacheable) {
       statusCache = { status, available: false, setupRequired, billingRequired };
     }
-    req.log.warn({ err, status, cached: statusCache !== null }, "AI status probe failed");
+    req.log.warn({ err, status, cacheable }, "AI status probe failed");
     return res.json({ status, available: false, setupRequired, billingRequired, model });
   }
 });
