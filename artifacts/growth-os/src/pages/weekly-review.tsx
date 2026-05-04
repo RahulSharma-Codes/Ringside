@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
 import { Link } from "wouter";
@@ -303,6 +303,14 @@ export default function WeeklyReview() {
     setRefreshKey((k) => k + 1);
     setRefreshedAt(new Date());
   };
+
+  // Auto-trigger when Copilot navigates here with ?ai=brief
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("ai") === "brief") {
+      handleGenerateBrief();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGenerateBrief = async () => {
     setBrief((b) => ({ ...b, open: true, loading: true, content: null, setupRequired: false, billingRequired: false, error: null }));
