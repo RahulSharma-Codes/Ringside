@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle2, AlertTriangle } from "lucide-react";
+import { CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
 
 /**
  * Canonical pipeline progression order — mirrors VALID_STAGES in api-server/src/constants.ts.
@@ -109,7 +109,7 @@ function DistributionRail({ stages, totalActive, onStageClick }: StageRailDistri
                 tabIndex={isClickable ? 0 : undefined}
                 onClick={isClickable ? () => onStageClick(stage) : undefined}
                 onKeyDown={isClickable ? (e) => (e.key === "Enter" || e.key === " ") && onStageClick(stage) : undefined}
-                className={`flex flex-col items-center px-3 py-2.5 rounded-xl border transition-colors min-w-[86px] ${
+                className={`group/stage-card flex flex-col items-center px-3 py-2.5 rounded-xl border transition-colors min-w-[86px] ${
                   count > 0
                     ? hasFlagged
                       ? `bg-destructive/5 border-destructive/20${isClickable ? " cursor-pointer hover:bg-destructive/10 hover:border-destructive/40 hover:shadow-sm" : ""}`
@@ -147,6 +147,12 @@ function DistributionRail({ stages, totalActive, onStageClick }: StageRailDistri
                 <div className="text-[9px] font-mono text-muted-foreground/70 uppercase tracking-wide text-center leading-tight mt-auto">
                   {shortStageName(stage)}
                 </div>
+                {isClickable && count > 0 && (
+                  <div className="mt-1.5 opacity-0 group-hover/stage-card:opacity-100 transition-opacity flex items-center gap-0.5 text-primary/70">
+                    <span className="text-[8px] font-mono uppercase tracking-wide">View</span>
+                    <ArrowRight size={8} />
+                  </div>
+                )}
               </div>
               {!isLast && (
                 <div className="flex items-center px-0.5 shrink-0">
