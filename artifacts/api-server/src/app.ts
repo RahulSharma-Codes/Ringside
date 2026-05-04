@@ -3,6 +3,7 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import authRouter from "./routes/auth";
+import launchRouter from "./routes/launch";
 import { requireAppPassword } from "./middlewares/auth";
 import { logger } from "./lib/logger";
 
@@ -32,6 +33,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/auth", authRouter);
+app.use("/api/launch", launchRouter);
 app.use("/api", requireAppPassword, router);
 
 export default app;

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import {
   Bot, Send, AlertTriangle, Loader2, Sparkles, CheckCircle2,
   CreditCard, FileText, CalendarCheck, Zap, KeyRound, Copy, Check, X,
@@ -393,9 +393,17 @@ export default function Copilot() {
             <Send size={15} />
           </Button>
         </div>
-        <p className="text-[10px] text-muted-foreground/60 font-mono mt-2 leading-relaxed">
-          AI answers are generated from live pipeline data. Review before acting.
-        </p>
+        <div className="flex items-center justify-between mt-2">
+          <p className="text-[10px] text-muted-foreground/60 font-mono leading-relaxed">
+            AI answers are generated from live pipeline data. Review before acting.
+          </p>
+          <Link
+            href="/launch-readiness"
+            className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground transition-colors underline-offset-2 hover:underline shrink-0 ml-4"
+          >
+            Launch Readiness
+          </Link>
+        </div>
       </div>
 
       {/* Inline target picker for opportunity brief */}
