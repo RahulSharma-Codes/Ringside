@@ -30,6 +30,7 @@ import type {
   DealDocument,
   DiligenceReviewResponse,
   DiligenceTabResponse,
+  DocumentDownloadUrlResponse,
   DocumentReviewResponse,
   FilterOptions,
   GetTopPriorityTargetsParams,
@@ -2578,6 +2579,97 @@ export const useUpdateDocument = <
 > => {
   return useMutation(getUpdateDocumentMutationOptions(options));
 };
+
+/**
+ * @summary Get a short-lived signed download URL for an uploaded document file
+ */
+export const getGetDocumentDownloadUrlUrl = (id: number) => {
+  return `/api/documents/${id}/download-url`;
+};
+
+export const getDocumentDownloadUrl = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DocumentDownloadUrlResponse> => {
+  return customFetch<DocumentDownloadUrlResponse>(
+    getGetDocumentDownloadUrlUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetDocumentDownloadUrlQueryKey = (id: number) => {
+  return [`/api/documents/${id}/download-url`] as const;
+};
+
+export const getGetDocumentDownloadUrlQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDocumentDownloadUrl>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDocumentDownloadUrl>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDocumentDownloadUrlQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDocumentDownloadUrl>>
+  > = ({ signal }) => getDocumentDownloadUrl(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDocumentDownloadUrl>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDocumentDownloadUrlQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDocumentDownloadUrl>>
+>;
+export type GetDocumentDownloadUrlQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a short-lived signed download URL for an uploaded document file
+ */
+
+export function useGetDocumentDownloadUrl<
+  TData = Awaited<ReturnType<typeof getDocumentDownloadUrl>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDocumentDownloadUrl>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDocumentDownloadUrlQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Weekly pipeline review — 8 sections computed server-side in one batch

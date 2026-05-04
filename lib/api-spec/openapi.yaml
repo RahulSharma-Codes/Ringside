@@ -620,6 +620,27 @@ paths:
         "404":
           description: Not found
 
+  /documents/{id}/download-url:
+    get:
+      operationId: getDocumentDownloadUrl
+      tags: [documents]
+      summary: Get a short-lived signed download URL for an uploaded document file
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Signed URL response (storageEnabled false when secrets missing)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentDownloadUrlResponse"
+        "404":
+          description: Document not found
+
   /review/weekly:
     get:
       operationId: getWeeklyReview
@@ -1769,6 +1790,23 @@ components:
         notes:
           type: string
           nullable: true
+        storagePath:
+          type: string
+          nullable: true
+        fileName:
+          type: string
+          nullable: true
+        fileSize:
+          type: integer
+          format: int64
+          nullable: true
+        mimeType:
+          type: string
+          nullable: true
+        uploadedAt:
+          type: string
+          format: date-time
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -1832,6 +1870,22 @@ components:
           type: string
           nullable: true
 
+    DocumentDownloadUrlResponse:
+      type: object
+      properties:
+        signedUrl:
+          type: string
+          nullable: true
+        expiresAt:
+          type: string
+          nullable: true
+        storageEnabled:
+          type: boolean
+        fileName:
+          type: string
+          nullable: true
+      required: [storageEnabled]
+
     DocumentReviewItem:
       type: object
       properties:
@@ -1864,6 +1918,12 @@ components:
           type: string
           nullable: true
         url:
+          type: string
+          nullable: true
+        storagePath:
+          type: string
+          nullable: true
+        fileName:
           type: string
           nullable: true
         workstream:

@@ -7,17 +7,40 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertTriangle, FolderOpen, ChevronDown, ChevronRight, ExternalLink,
+  File, Link2,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 const STATUS_COLORS: Record<string, string> = {
-  Requested:      "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  Received:       "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  "Under Review": "bg-purple-500/10 text-purple-400 border-purple-500/20",
-  Reviewed:       "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  Missing:        "bg-rose-500/10 text-rose-400 border-rose-500/20",
+  Requested:        "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  Received:         "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  "Under Review":   "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  Reviewed:         "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  Missing:          "bg-rose-500/10 text-rose-400 border-rose-500/20",
   "Not Applicable": "bg-muted/50 text-muted-foreground border-border",
 };
+
+function fileStatusBadge(item: DocumentReviewItem) {
+  if (item.storagePath) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <File size={9} /> File
+      </span>
+    );
+  }
+  if (item.url) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded-sm bg-blue-500/10 text-blue-400 border border-blue-500/20">
+        <Link2 size={9} /> Link
+      </span>
+    );
+  }
+  return (
+    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-sm bg-muted/30 text-muted-foreground border border-border/40">
+      No File
+    </span>
+  );
+}
 
 function DocRow({ item }: { item: DocumentReviewItem }) {
   return (
@@ -37,6 +60,7 @@ function DocRow({ item }: { item: DocumentReviewItem }) {
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary hover:text-primary/80"
+              title="Open external link"
             >
               <ExternalLink size={11} />
             </a>
@@ -52,6 +76,7 @@ function DocRow({ item }: { item: DocumentReviewItem }) {
           <span className="text-[10px] font-mono text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded-sm border border-border/40">
             {item.documentType}
           </span>
+          {fileStatusBadge(item)}
           {item.projectName && (
             <span className="text-[10px] font-mono text-muted-foreground">{item.projectName}</span>
           )}
@@ -182,7 +207,11 @@ export default function DocumentReview() {
             </div>
           )}
 
-          {data.mustWinMissing.length === 0 && data.requested.length === 0 && data.underReview.length === 0 && data.recentlyReceived.length === 0 && data.recentlyReviewed.length === 0 && (
+          {data.mustWinMissing.length === 0 &&
+            data.requested.length === 0 &&
+            data.underReview.length === 0 &&
+            data.recentlyReceived.length === 0 &&
+            data.recentlyReviewed.length === 0 && (
             <div className="py-20 text-center space-y-3">
               <FolderOpen size={32} className="mx-auto text-muted-foreground/30" />
               <div className="text-muted-foreground font-mono text-[11px] uppercase tracking-widest">

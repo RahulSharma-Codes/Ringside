@@ -1,12 +1,44 @@
 import { Router } from "express";
 import { eq, desc } from "drizzle-orm";
+import multer from "multer";
 import { db } from "@workspace/db";
 import { dealDocumentsTable, targetsTable, milestonesTable } from "@workspace/db";
 import { z } from "zod";
+import {
+  storageEnabled,
+  uploadFile,
+  getSignedUrl,
+  ALLOWED_MIME_TYPES,
+  MAX_FILE_SIZE,
+} from "../lib/supabase-storage";
 
 const router = Router();
 
 const CRITICAL_DOC_TYPES = ["NDA", "CIM", "Financials", "Legal", "Tax", "Integration"];
+
+// ─── GET /api/documents/storage-config ──────────────────────────────────────
+// Returns whether Supabase Storage is configured. Registered before /:id routes.
+router.get("/storage-config", (_req, res) => {
+  return res.json({
+    storageEnabled,
+    bucket: storageEnabled ? "deal-documents" : null,
+    missingSecrets: storageEnabled
+      ? []
+      : ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"],
+  });
+});
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_MIME_TYPES.has(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`File type not allowed: ${file.mimetype}`));
+    }
+  },
+});
 
 function toIso(value: Date | string | null | undefined): string | null {
   if (!value) return null;
@@ -24,6 +56,7 @@ function formatDoc(d: typeof dealDocumentsTable.$inferSelect) {
   return {
     ...d,
     documentDate: toDateString(d.documentDate),
+    uploadedAt: d.uploadedAt ? toIso(d.uploadedAt) : null,
     createdAt: toIso(d.createdAt)!,
     updatedAt: toIso(d.updatedAt)!,
   };
@@ -40,7 +73,7 @@ const UpdateDocSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 
-// GET /api/documents/review — pipeline-wide document review
+// ─── GET /api/documents/review ──────────────────────────────────────────────
 // NOTE: this route must be registered before /:id to avoid "review" matching as an id param.
 router.get("/review", async (_req, res) => {
   const [allDocs, allTargets] = await Promise.all([
@@ -56,6 +89,8 @@ router.get("/review", async (_req, res) => {
         url: dealDocumentsTable.url,
         workstream: dealDocumentsTable.workstream,
         notes: dealDocumentsTable.notes,
+        storagePath: dealDocumentsTable.storagePath,
+        fileName: dealDocumentsTable.fileName,
         createdAt: dealDocumentsTable.createdAt,
         updatedAt: dealDocumentsTable.updatedAt,
         targetCode: targetsTable.targetCode,
@@ -91,6 +126,8 @@ router.get("/review", async (_req, res) => {
     owner: d.owner ?? null,
     documentDate: toDateString(d.documentDate),
     url: d.url ?? null,
+    storagePath: d.storagePath ?? null,
+    fileName: d.fileName ?? null,
     workstream: d.workstream ?? null,
     notes: d.notes ?? null,
     createdAt: toIso(d.createdAt),
@@ -107,14 +144,8 @@ router.get("/review", async (_req, res) => {
 
   const requested = allDocs.filter((d) => d.status === "Requested").map(fmt);
   const underReview = allDocs.filter((d) => d.status === "Under Review").map(fmt);
-  const recentlyReceived = allDocs
-    .filter((d) => d.status === "Received")
-    .slice(0, 20)
-    .map(fmt);
-  const recentlyReviewed = allDocs
-    .filter((d) => d.status === "Reviewed")
-    .slice(0, 20)
-    .map(fmt);
+  const recentlyReceived = allDocs.filter((d) => d.status === "Received").slice(0, 20).map(fmt);
+  const recentlyReviewed = allDocs.filter((d) => d.status === "Reviewed").slice(0, 20).map(fmt);
 
   const docsByTarget = new Map<number, (typeof allDocs)>();
   for (const d of allDocs) {
@@ -161,7 +192,159 @@ router.get("/review", async (_req, res) => {
   });
 });
 
-// PUT /api/documents/:id
+// ─── GET /api/documents/:id/download-url ────────────────────────────────────
+// Must be defined before /:id (PUT) so the sub-path resolves correctly.
+router.get("/:id/download-url", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+
+  const [doc] = await db
+    .select()
+    .from(dealDocumentsTable)
+    .where(eq(dealDocumentsTable.id, id))
+    .limit(1);
+
+  if (!doc) return res.status(404).json({ error: "Not found" });
+
+  if (!storageEnabled) {
+    return res.json({
+      storageEnabled: false,
+      signedUrl: null,
+      expiresAt: null,
+      fileName: doc.fileName ?? null,
+    });
+  }
+
+  if (!doc.storagePath) {
+    return res.json({
+      storageEnabled: true,
+      signedUrl: null,
+      expiresAt: null,
+      fileName: doc.fileName ?? null,
+    });
+  }
+
+  try {
+    const { signedUrl, expiresAt } = await getSignedUrl(doc.storagePath);
+    return res.json({
+      storageEnabled: true,
+      signedUrl,
+      expiresAt,
+      fileName: doc.fileName ?? null,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    return res.status(500).json({ error: msg });
+  }
+});
+
+// ─── POST /api/documents/:id/upload ─────────────────────────────────────────
+router.post("/:id/upload", upload.single("file"), async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+
+  if (!storageEnabled) {
+    return res.status(503).json({
+      error: "Storage not configured",
+      setupRequired: true,
+      missingSecrets: ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"],
+    });
+  }
+
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+  const [doc] = await db
+    .select()
+    .from(dealDocumentsTable)
+    .where(eq(dealDocumentsTable.id, id))
+    .limit(1);
+
+  if (!doc) return res.status(404).json({ error: "Document not found" });
+
+  try {
+    const { storagePath } = await uploadFile({
+      targetId: doc.targetId,
+      documentId: doc.id,
+      fileName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      buffer: req.file.buffer,
+    });
+
+    const now = new Date();
+    const [updated] = await db
+      .update(dealDocumentsTable)
+      .set({
+        storagePath,
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        uploadedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(dealDocumentsTable.id, id))
+      .returning();
+
+    return res.json(formatDoc(updated));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    return res.status(500).json({ error: msg });
+  }
+});
+
+// ─── PUT /api/documents/:id/replace-file ────────────────────────────────────
+router.put("/:id/replace-file", upload.single("file"), async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+
+  if (!storageEnabled) {
+    return res.status(503).json({
+      error: "Storage not configured",
+      setupRequired: true,
+      missingSecrets: ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"],
+    });
+  }
+
+  if (!req.file) return res.status(400).json({ error: "No file provided" });
+
+  const [doc] = await db
+    .select()
+    .from(dealDocumentsTable)
+    .where(eq(dealDocumentsTable.id, id))
+    .limit(1);
+
+  if (!doc) return res.status(404).json({ error: "Document not found" });
+
+  try {
+    const { storagePath } = await uploadFile({
+      targetId: doc.targetId,
+      documentId: doc.id,
+      fileName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      buffer: req.file.buffer,
+    });
+
+    const now = new Date();
+    const [updated] = await db
+      .update(dealDocumentsTable)
+      .set({
+        storagePath,
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        uploadedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(dealDocumentsTable.id, id))
+      .returning();
+
+    return res.json(formatDoc(updated));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    return res.status(500).json({ error: msg });
+  }
+});
+
+// ─── PUT /api/documents/:id ──────────────────────────────────────────────────
 router.put("/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const parsed = UpdateDocSchema.safeParse(req.body);

@@ -885,6 +885,11 @@ export const ListDocumentsResponseItem = zod.object({
   url: zod.string().nullish(),
   workstream: zod.string().nullish(),
   notes: zod.string().nullish(),
+  storagePath: zod.string().nullish(),
+  fileName: zod.string().nullish(),
+  fileSize: zod.number().nullish(),
+  mimeType: zod.string().nullish(),
+  uploadedAt: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -929,6 +934,8 @@ export const GetDocumentReviewResponse = zod.object({
       owner: zod.string().nullish(),
       documentDate: zod.string().nullish(),
       url: zod.string().nullish(),
+      storagePath: zod.string().nullish(),
+      fileName: zod.string().nullish(),
       workstream: zod.string().nullish(),
       notes: zod.string().nullish(),
       createdAt: zod.string().nullish(),
@@ -949,6 +956,8 @@ export const GetDocumentReviewResponse = zod.object({
       owner: zod.string().nullish(),
       documentDate: zod.string().nullish(),
       url: zod.string().nullish(),
+      storagePath: zod.string().nullish(),
+      fileName: zod.string().nullish(),
       workstream: zod.string().nullish(),
       notes: zod.string().nullish(),
       createdAt: zod.string().nullish(),
@@ -969,6 +978,8 @@ export const GetDocumentReviewResponse = zod.object({
       owner: zod.string().nullish(),
       documentDate: zod.string().nullish(),
       url: zod.string().nullish(),
+      storagePath: zod.string().nullish(),
+      fileName: zod.string().nullish(),
       workstream: zod.string().nullish(),
       notes: zod.string().nullish(),
       createdAt: zod.string().nullish(),
@@ -989,6 +1000,8 @@ export const GetDocumentReviewResponse = zod.object({
       owner: zod.string().nullish(),
       documentDate: zod.string().nullish(),
       url: zod.string().nullish(),
+      storagePath: zod.string().nullish(),
+      fileName: zod.string().nullish(),
       workstream: zod.string().nullish(),
       notes: zod.string().nullish(),
       createdAt: zod.string().nullish(),
@@ -1009,6 +1022,8 @@ export const GetDocumentReviewResponse = zod.object({
       owner: zod.string().nullish(),
       documentDate: zod.string().nullish(),
       url: zod.string().nullish(),
+      storagePath: zod.string().nullish(),
+      fileName: zod.string().nullish(),
       workstream: zod.string().nullish(),
       notes: zod.string().nullish(),
       createdAt: zod.string().nullish(),
@@ -1056,8 +1071,27 @@ export const UpdateDocumentResponse = zod.object({
   url: zod.string().nullish(),
   workstream: zod.string().nullish(),
   notes: zod.string().nullish(),
+  storagePath: zod.string().nullish(),
+  fileName: zod.string().nullish(),
+  fileSize: zod.number().nullish(),
+  mimeType: zod.string().nullish(),
+  uploadedAt: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Get a short-lived signed download URL for an uploaded document file
+ */
+export const GetDocumentDownloadUrlParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetDocumentDownloadUrlResponse = zod.object({
+  signedUrl: zod.string().nullish(),
+  expiresAt: zod.string().nullish(),
+  storageEnabled: zod.boolean(),
+  fileName: zod.string().nullish(),
 });
 
 /**

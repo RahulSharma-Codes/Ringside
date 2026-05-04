@@ -462,6 +462,11 @@ export interface DealDocument {
   url?: string | null;
   workstream?: string | null;
   notes?: string | null;
+  storagePath?: string | null;
+  fileName?: string | null;
+  fileSize?: number | null;
+  mimeType?: string | null;
+  uploadedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -488,6 +493,13 @@ export interface UpdateDocumentBody {
   notes?: string | null;
 }
 
+export interface DocumentDownloadUrlResponse {
+  signedUrl?: string | null;
+  expiresAt?: string | null;
+  storageEnabled: boolean;
+  fileName?: string | null;
+}
+
 export interface DocumentReviewItem {
   id: number;
   targetId: number;
@@ -501,6 +513,8 @@ export interface DocumentReviewItem {
   owner?: string | null;
   documentDate?: string | null;
   url?: string | null;
+  storagePath?: string | null;
+  fileName?: string | null;
   workstream?: string | null;
   notes?: string | null;
   createdAt?: string | null;

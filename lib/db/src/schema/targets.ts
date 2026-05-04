@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, boolean, timestamp, date, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, boolean, timestamp, date, jsonb, bigint } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -124,6 +124,11 @@ export const dealDocumentsTable = pgTable("deal_documents", {
   url: text("url"),
   workstream: text("workstream"),
   notes: text("notes"),
+  storagePath: text("storage_path"),
+  fileName: text("file_name"),
+  fileSize: bigint("file_size", { mode: "number" }),
+  mimeType: text("mime_type"),
+  uploadedAt: timestamp("uploaded_at", { withTimezone: true }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
