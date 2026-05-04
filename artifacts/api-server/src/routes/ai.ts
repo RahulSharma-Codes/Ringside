@@ -11,7 +11,7 @@ import {
   stageChangeLogTable,
   dealDocumentsTable,
 } from "@workspace/db";
-import { eq, and, inArray, desc, isNull, isNotNull, lt } from "drizzle-orm";
+import { eq, and, inArray, desc, isNull, isNotNull, lt, gte } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -51,7 +51,7 @@ function classifyAiError(err: unknown): {
   }
   return {
     status: "key_invalid",
-    setupRequired: false,
+    setupRequired: true,
     billingRequired: false,
     message: err instanceof Error ? err.message : "Unknown AI error",
   };
@@ -132,6 +132,71 @@ function buildContextBlock(context: Awaited<ReturnType<typeof buildAiContext>>):
 
   return lines.join("\n");
 }
+
+// ── JSON Schema for strict structured outputs (meeting notes) ─────────────────
+
+const MEETING_NOTES_JSON_SCHEMA = {
+  type: "object",
+  properties: {
+    interaction: {
+      type: "object",
+      properties: {
+        interactionType: { type: "string" },
+        summary: { type: "string" },
+        participantsInternal: { type: "string" },
+        participantsExternal: { type: "string" },
+        sentiment: { type: "string" },
+        valuationSignal: { type: "string" },
+      },
+      required: ["interactionType", "summary", "participantsInternal", "participantsExternal", "sentiment", "valuationSignal"],
+      additionalProperties: false,
+    },
+    actions: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          description: { type: "string" },
+          owner: { type: "string" },
+          dueDate: { type: ["string", "null"] },
+          priority: { type: "string" },
+        },
+        required: ["description", "owner", "dueDate", "priority"],
+        additionalProperties: false,
+      },
+    },
+    stageChange: {
+      type: "object",
+      properties: {
+        suggested: { type: "boolean" },
+        newStage: { type: "string" },
+        reason: { type: "string" },
+        confidence: { type: "string" },
+      },
+      required: ["suggested", "newStage", "reason", "confidence"],
+      additionalProperties: false,
+    },
+    risks: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          detail: { type: "string" },
+          severity: { type: "string" },
+        },
+        required: ["title", "detail", "severity"],
+        additionalProperties: false,
+      },
+    },
+    followUpQuestions: {
+      type: "array",
+      items: { type: "string" },
+    },
+  },
+  required: ["interaction", "actions", "stageChange", "risks", "followUpQuestions"],
+  additionalProperties: false,
+} as const;
 
 // ── Zod schema for meeting notes suggestions ──────────────────────────────────
 
@@ -527,17 +592,43 @@ router.post("/meeting-notes", async (req, res) => {
   const userContent = `Note Type: ${body.noteType}${noteDate}${participants}${targetContext}\n\nRAW NOTES:\n${body.rawNotes}`;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model,
-      max_completion_tokens: 2048,
-      messages: [
-        { role: "system", content: MEETING_NOTES_SYSTEM_PROMPT },
-        { role: "user", content: userContent },
-      ],
-      response_format: { type: "json_object" },
-    });
+    // Attempt strict structured outputs first; fall back to JSON-object mode
+    let raw: string | null = null;
+    try {
+      const structured = await openai.chat.completions.create({
+        model,
+        max_completion_tokens: 2048,
+        messages: [
+          { role: "system", content: MEETING_NOTES_SYSTEM_PROMPT },
+          { role: "user", content: userContent },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "MeetingNotesSuggestions",
+            schema: MEETING_NOTES_JSON_SCHEMA,
+            strict: true,
+          },
+        },
+      });
+      raw = structured.choices[0]?.message?.content ?? null;
+      req.log.info({ targetId }, "Meeting notes: strict structured output succeeded");
+    } catch (structErr) {
+      req.log.warn({ err: structErr }, "Meeting notes: strict structured output failed — falling back to json_object");
+    }
 
-    const raw = completion.choices[0]?.message?.content ?? "{}";
+    if (raw === null) {
+      const fallback = await openai.chat.completions.create({
+        model,
+        max_completion_tokens: 2048,
+        messages: [
+          { role: "system", content: MEETING_NOTES_SYSTEM_PROMPT },
+          { role: "user", content: userContent },
+        ],
+        response_format: { type: "json_object" },
+      });
+      raw = fallback.choices[0]?.message?.content ?? "{}";
+    }
 
     let parsed: unknown;
     try {
@@ -607,12 +698,46 @@ router.post("/weekly-brief", async (req, res) => {
     const context = await buildAiContext();
     const contextBlock = buildContextBlock(context);
 
+    // ── Enrichment: stage distribution ────────────────────────────────────
+    const stageCounts: Record<string, number> = {};
+    for (const t of context.targets) {
+      stageCounts[t.stage] = (stageCounts[t.stage] ?? 0) + 1;
+    }
+    const stageDistLines = Object.entries(stageCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([stage, count]) => `  ${stage}: ${count} target${count !== 1 ? "s" : ""}`);
+
+    // ── Enrichment: targets with no interaction in last 60 days ────────────
+    const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+    const recentTargetIds = new Set(
+      (await db
+        .select({ targetId: interactionsTable.targetId })
+        .from(interactionsTable)
+        .where(gte(interactionsTable.interactionDatetime, sixtyDaysAgo))
+      ).map((r) => r.targetId)
+    );
+    const noInteractionTargets = context.targets
+      .filter((t) => t.isActive && !recentTargetIds.has(t.id))
+      .map((t) => `${t.name} (${t.stage})`);
+
+    const enrichedBlock = [
+      contextBlock,
+      "",
+      "--- STAGE DISTRIBUTION ---",
+      ...(stageDistLines.length > 0 ? stageDistLines : ["No stage data."]),
+      "",
+      "--- TARGETS WITH NO INTERACTION IN LAST 60 DAYS ---",
+      noInteractionTargets.length > 0
+        ? noInteractionTargets.join("\n")
+        : "All active targets have been contacted within 60 days.",
+    ].join("\n");
+
     const completion = await openai.chat.completions.create({
       model,
       max_completion_tokens: 1024,
       messages: [
         { role: "system", content: WEEKLY_BRIEF_PROMPT },
-        { role: "user", content: contextBlock },
+        { role: "user", content: enrichedBlock },
       ],
     });
 
