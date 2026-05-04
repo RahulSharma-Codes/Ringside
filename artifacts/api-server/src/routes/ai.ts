@@ -11,7 +11,7 @@ import {
   stageChangeLogTable,
   dealDocumentsTable,
 } from "@workspace/db";
-import { eq, and, inArray, desc, isNull, isNotNull, lt, gte } from "drizzle-orm";
+import { eq, and, desc, isNull, isNotNull, gte } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -506,9 +506,9 @@ router.post("/ask", async (req, res) => {
 
     return res.json({ answer, model });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
+    const { setupRequired, billingRequired, message } = classifyAiError(err);
     req.log.error({ err }, "AI Copilot error");
-    return res.json({ answer: null, setupRequired: false, error: message });
+    return res.json({ answer: null, setupRequired, billingRequired, error: message });
   }
 });
 
