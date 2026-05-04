@@ -27,7 +27,7 @@ if (OPENAI_API_KEY) {
   logger.warn("OPENAI_API_KEY is not set — AI Copilot will return setupRequired");
 }
 
-// ── Error classifier ─────────────────────────────────────────────────────────
+// Error classifier
 
 type AiStatusKind = "available" | "key_missing" | "key_invalid" | "billing" | "transient";
 
@@ -61,7 +61,7 @@ function classifyAiError(err: unknown): {
   };
 }
 
-// ── Status cache (process-lifetime — never re-probed until server restarts) ───
+// Status cache (process-lifetime)
 
 let statusCache: {
   status: AiStatusKind;
@@ -70,7 +70,7 @@ let statusCache: {
   billingRequired: boolean;
 } | null = null;
 
-// ── Existing chat copilot system prompt ───────────────────────────────────────
+// Chat copilot system prompt
 
 const SYSTEM_PROMPT = `You are an M&A pipeline analyst assistant for a corporate development team. You have access to structured pipeline data provided below.
 
@@ -137,7 +137,7 @@ function buildContextBlock(context: Awaited<ReturnType<typeof buildAiContext>>):
   return lines.join("\n");
 }
 
-// ── JSON Schema for strict structured outputs (meeting notes) ─────────────────
+// JSON Schema for meeting notes strict structured outputs
 
 const MEETING_NOTES_JSON_SCHEMA = {
   type: "object",
@@ -202,7 +202,7 @@ const MEETING_NOTES_JSON_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-// ── Valid enum values for normalization ───────────────────────────────────────
+// Valid enum values for AI suggestion normalization
 
 const VALID_INTERACTION_TYPES = [
   "Call", "Meeting", "Banker Update", "Management Discussion",
@@ -221,7 +221,7 @@ function normalizeEnum<T extends string>(
   return valid.find((v) => v.toLowerCase() === lower) ?? fallback;
 }
 
-// ── Zod schema for meeting notes suggestions ──────────────────────────────────
+// Zod schema for meeting notes suggestions
 
 const SuggestionsSchema = z.object({
   interaction: z.object({
@@ -300,7 +300,7 @@ STRICT RULES:
 - stageChange.suggested = true only when the notes clearly imply a pipeline stage move.
 - Do not provide legal, tax, valuation, or financial advice as fact.`;
 
-// ── Opportunity brief context builder ─────────────────────────────────────────
+// Opportunity brief context builder
 
 async function buildOpportunityBriefContext(targetId: number): Promise<string> {
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -435,7 +435,7 @@ Rules:
 - Do not provide legal, tax, or financial advice as fact.
 - Keep the brief under 400 words.`;
 
-// ── Weekly brief system prompt ────────────────────────────────────────────────
+// Weekly brief system prompt
 
 const WEEKLY_BRIEF_PROMPT = `You are an M&A pipeline analyst. Write a concise executive weekly review brief from the provided pipeline snapshot.
 
@@ -453,8 +453,6 @@ Rules:
 - Flag overdue actions and stalled deals explicitly.
 - Do not provide legal, tax, or financial advice as fact.
 - Keep the brief under 500 words.`;
-
-// ── Routes ───────────────────────────────────────────────────────────────────
 
 // POST /api/ai/ask (existing)
 router.post("/ask", async (req, res) => {
@@ -517,8 +515,6 @@ router.post("/ask", async (req, res) => {
 // GET /api/ai/status
 router.get("/status", async (req, res) => {
   if (!openai) {
-    // key_missing is a stable process-lifetime condition; cache it so statusCache
-    // reflects the correct state for any routes that inspect it.
     const result = { status: "key_missing" as AiStatusKind, available: false, setupRequired: true, billingRequired: false };
     if (!statusCache) statusCache = result;
     return res.json({ ...result, model });
@@ -540,9 +536,6 @@ router.get("/status", async (req, res) => {
     return res.json({ ...statusCache, model });
   } catch (err) {
     const { status, setupRequired, billingRequired, cacheable } = classifyAiError(err);
-    // Only cache authoritative failures (401 = key_invalid, 429/quota = billing).
-    // Transient/unknown errors (cacheable: false) are returned without being cached
-    // so the next request re-probes instead of being permanently locked out.
     if (cacheable) {
       statusCache = { status, available: false, setupRequired, billingRequired };
     }
@@ -752,7 +745,6 @@ router.post("/weekly-brief", async (req, res) => {
     const context = await buildAiContext();
     const contextBlock = buildContextBlock(context);
 
-    // ── Enrichment: stage distribution ────────────────────────────────────
     const stageCounts: Record<string, number> = {};
     for (const t of context.targets) {
       stageCounts[t.stage] = (stageCounts[t.stage] ?? 0) + 1;
@@ -761,7 +753,6 @@ router.post("/weekly-brief", async (req, res) => {
       .sort((a, b) => b[1] - a[1])
       .map(([stage, count]) => `  ${stage}: ${count} target${count !== 1 ? "s" : ""}`);
 
-    // ── Enrichment: targets with no interaction in last 60 days ────────────
     const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
     const recentTargetIds = new Set(
       (await db

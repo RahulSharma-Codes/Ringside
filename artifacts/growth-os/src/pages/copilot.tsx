@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { customFetch } from "@workspace/api-client-react";
+import { useListTargets, getListTargetsQueryKey } from "@workspace/api-client-react";
 
 interface Message {
   role: "user" | "assistant";
@@ -98,6 +99,12 @@ export default function Copilot() {
   const [weeklyBriefError, setWeeklyBriefError] = useState<string | null>(null);
   const [weeklyBriefCopied, setWeeklyBriefCopied] = useState(false);
 
+  const [targetPickerOpen, setTargetPickerOpen] = useState(false);
+  const { data: targetsList } = useListTargets(
+    undefined,
+    { query: { queryKey: getListTargetsQueryKey(), enabled: targetPickerOpen } },
+  );
+
   // Fetch AI status once on mount
   useEffect(() => {
     customFetch<AiStatusResponse>("/api/ai/status")
@@ -177,7 +184,7 @@ export default function Copilot() {
     } else if (action === "meeting-notes") {
       setLocation("/pipeline?ai=meeting-notes");
     } else if (action === "opportunity-brief") {
-      setLocation("/pipeline?ai=opportunity-brief");
+      setTargetPickerOpen(true);
     } else if (action === "weekly-brief") {
       handleGenerateWeeklyBrief();
     }
@@ -386,6 +393,41 @@ export default function Copilot() {
           AI answers are generated from live pipeline data. Review before acting.
         </p>
       </div>
+
+      {/* Inline target picker for opportunity brief */}
+      <Dialog open={targetPickerOpen} onOpenChange={setTargetPickerOpen}>
+        <DialogContent className="max-w-md w-full">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Zap size={15} className="text-emerald-500" />
+              Select a deal for the opportunity brief
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-72">
+            {!targetsList || targetsList.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">No active targets found.</p>
+            ) : (
+              <div className="space-y-1 pr-1">
+                {targetsList.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      setTargetPickerOpen(false);
+                      setLocation(`/targets/${t.id}?ai=brief`);
+                    }}
+                    className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-muted/60 border border-transparent hover:border-border/50 transition-all duration-100 group"
+                  >
+                    <div className="text-sm font-medium group-hover:text-primary transition-colors">{t.projectName}</div>
+                    <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                      {t.targetCode} · {t.currentStage ?? "Unknown stage"}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
 
       {/* Inline weekly brief dialog */}
       <Dialog open={weeklyBriefOpen} onOpenChange={(open) => { setWeeklyBriefOpen(open); if (!open) { setWeeklyBriefContent(null); setWeeklyBriefError(null); } }}>
