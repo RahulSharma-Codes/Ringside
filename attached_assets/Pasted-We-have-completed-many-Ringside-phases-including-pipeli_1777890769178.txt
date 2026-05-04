@@ -1,0 +1,196 @@
+We have completed many Ringside phases, including pipeline, target detail, actions, diligence, documents, secure uploads, AI assist layer, Ringside branding, and stage rail UI.
+
+Now implement Phase 6B: Deal Journey, Progressive Scoring, User Login & Launch Readiness.
+
+Important safety rules:
+- Do NOT rebuild from scratch.
+- Do NOT change the app architecture.
+- Do NOT run drizzle push.
+- Do NOT run seed.ts.
+- Do NOT insert demo data.
+- Do NOT modify DATABASE_URL.
+- Supabase remains the source of truth.
+- Preserve all existing functionality.
+- If database schema changes are required, propose exact SQL first and wait for approval.
+- Do not expose secrets to frontend code.
+- Do not break existing APP_PASSWORD login until the new auth flow is confirmed working.
+
+Part 1 — Deal Journey / Progressive Data UX
+
+Problem:
+At teaser/origination stage, users do not know synergy score, financial attractiveness, risk penalty, diligence readiness, and other later-stage fields. Ringside should not force users to fill or interpret those fields too early.
+
+Goal:
+Make the opportunity journey stage-aware.
+
+Required behavior:
+1. Add a stage-aware target detail experience.
+2. Early-stage opportunities should show core teaser/origination fields prominently:
+   - target code
+   - project name
+   - legal name if known
+   - sector
+   - geography/country
+   - source / sourcing channel
+   - owner
+   - priority tier
+   - initial strategic rationale
+   - next action
+3. Diligence/scoring fields should be visually marked as:
+   - Not assessed yet
+   - Pending diligence
+   - Not applicable at current stage
+4. Do not show missing scores as 0 unless the database truly stores a real score of 0.
+5. If score fields are null/empty, display “Not assessed” rather than a numeric score.
+6. Add short helper text explaining that deeper scoring becomes meaningful once diligence begins.
+7. Make the New Opportunity form stage-aware:
+   - default stage should be Origination or Initial Screening
+   - do not require synergy/risk/financial score fields at creation
+   - let users add these later
+8. Add progressive sections:
+   - Teaser / Origination Snapshot
+   - Screening View
+   - Diligence Assessment
+   - Offer / Integration Readiness
+9. On the dashboard/pipeline, score summaries should handle missing scores gracefully:
+   - show “Assessment pending”
+   - do not drag averages down because scores are missing
+   - average only assessed scores where possible
+
+Part 2 — Score System Cleanup
+
+Inspect current schema and frontend score handling.
+
+Required:
+1. Identify which score fields exist.
+2. If nullable scores are supported, use null as “not assessed.”
+3. If scores are currently required/defaulted to 0, propose the smallest safe SQL change or frontend interpretation fix.
+4. Do not run migrations automatically.
+5. Add UI labels:
+   - Strategic Fit
+   - Synergy Potential
+   - Financial Attractiveness
+   - Process Maturity
+   - Risk Penalty
+6. Add confidence language:
+   - Early indication
+   - Under review
+   - Diligence-backed
+7. If easy without schema changes, add a simple display-only “Assessment Completeness” indicator based on how many scores are assessed.
+
+Part 3 — User Login & Roles Plan
+
+Goal:
+Move from single APP_PASSWORD login toward individual email/password users and roles.
+
+First inspect the current auth implementation.
+
+Preferred long-term approach:
+Use Supabase Auth email/password with a roles/profile table.
+
+Do not remove APP_PASSWORD login immediately.
+Implement in a safe staged way.
+
+Required:
+1. Propose the authentication architecture first before coding.
+2. Determine whether Supabase Auth can be integrated cleanly with the current Express API + React app.
+3. Proposed roles:
+   - Admin
+   - Deal Lead
+   - Contributor
+   - Executive Viewer
+4. Define permissions:
+   Admin:
+   - manage users
+   - edit all records
+   - import data
+   - change stages
+   - upload documents
+   Deal Lead:
+   - create/edit opportunities
+   - create interactions/actions
+   - change stages
+   - manage diligence/documents
+   Contributor:
+   - add interactions
+   - update assigned actions
+   - upload documents
+   Executive Viewer:
+   - read-only dashboard, pipeline, detail, review pages, AI summaries
+5. If schema changes are needed for profiles/roles, propose exact SQL first:
+   likely a user_profiles or app_users table with:
+   - id
+   - auth_user_id
+   - email
+   - full_name
+   - role
+   - is_active
+   - created_at
+   - updated_at
+6. Do not apply SQL automatically.
+7. Do not expose service role keys to frontend.
+8. Keep existing APP_PASSWORD as fallback until new auth is tested.
+
+Part 4 — Launch Readiness Page / Checklist
+
+Add a non-invasive internal “Launch Readiness” page or checklist if easy, or produce a markdown report if easier.
+
+It should track:
+- Supabase connected
+- document storage configured
+- AI key present
+- AI billing/credits status
+- APP_PASSWORD present
+- email login not yet enabled / enabled
+- no demo seed data visible
+- deployment readiness
+- custom domain readiness
+- backup/export readiness
+- privacy/security notes
+
+This can be frontend-only or backend-read-only.
+Do not expose secret values.
+
+Part 5 — Publish / Deployment Guidance
+
+Do not deploy automatically.
+Add a deployment checklist document or in-app admin checklist:
+
+Before going live:
+- create checkpoint
+- confirm typecheck clean
+- confirm all secrets exist in Replit deployment environment
+- confirm Supabase Storage bucket private
+- confirm service role key never exposed to frontend
+- confirm APP_PASSWORD or user auth works
+- confirm no demo data
+- confirm document upload works
+- confirm AI graceful state
+- confirm custom domain plan
+- confirm Replit Autoscale Deployment is appropriate
+
+Testing:
+After implementation:
+- Run pnpm run typecheck.
+- Confirm login still works.
+- Confirm dashboard loads.
+- Confirm pipeline loads.
+- Confirm target detail loads.
+- Confirm early-stage target does not require synergy scores.
+- Confirm missing scores show “Not assessed.”
+- Confirm dashboard averages do not treat missing scores as 0 if possible.
+- Confirm New Opportunity form still works.
+- Confirm Actions, Weekly Review, Diligence Review, Documents, Import, AI Copilot still load.
+- Confirm no Apollo/Orion demo records appear unless already in Supabase.
+
+Report:
+1. files changed
+2. whether code was changed or only proposal was produced for auth/schema
+3. score fields discovered
+4. how missing scores are handled
+5. recommended auth architecture
+6. exact SQL proposed, if any
+7. launch readiness checklist
+8. typecheck result
+9. smoke-test result
+10. risks and follow-up tasks

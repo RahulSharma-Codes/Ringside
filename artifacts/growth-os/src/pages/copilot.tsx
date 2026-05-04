@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   Bot, Send, AlertTriangle, Loader2, Sparkles, CheckCircle2,
-  CreditCard, FileText, CalendarCheck, Zap,
+  CreditCard, FileText, CalendarCheck, Zap, KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +21,7 @@ interface AiAskResponse {
 }
 
 interface AiStatusResponse {
+  status: "available" | "key_missing" | "key_invalid" | "billing";
   available: boolean;
   setupRequired: boolean;
   billingRequired: boolean;
@@ -95,8 +96,8 @@ export default function Copilot() {
       .then((s) => {
         setAiStatus(s);
         setStatusLoaded(true);
-        if (s.billingRequired) setBillingRequired(true);
-        if (s.setupRequired) setSetupRequired(true);
+        if (s.status === "billing") setBillingRequired(true);
+        if (s.status === "key_missing" || s.status === "key_invalid") setSetupRequired(true);
       })
       .catch(() => {
         setStatusLoaded(true);
@@ -154,8 +155,9 @@ export default function Copilot() {
     }
   };
 
-  // ── Setup required (key missing) — full-page state ────────────────────────
+  // ── Setup required (key missing or key invalid) — full-page state ────────
   if (setupRequired && !billingRequired) {
+    const isInvalid = aiStatus?.status === "key_invalid";
     return (
       <div className="flex flex-col h-full">
         <div className="border-b border-border/60 p-4 flex items-center gap-2.5 bg-background/80 backdrop-blur-sm">
@@ -167,13 +169,27 @@ export default function Copilot() {
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="max-w-md text-center space-y-4">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-muted border border-border/60">
-              <AlertTriangle size={22} className="text-muted-foreground" />
+              {isInvalid
+                ? <KeyRound size={22} className="text-destructive/70" />
+                : <AlertTriangle size={22} className="text-muted-foreground" />}
             </div>
-            <h2 className="font-semibold text-lg">AI Not Configured</h2>
+            <h2 className="font-semibold text-lg">
+              {isInvalid ? "API Key Invalid" : "AI Not Configured"}
+            </h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              An{" "}
-              <code className="text-xs bg-muted border border-border/60 px-1.5 py-0.5 rounded-md font-mono">OPENAI_API_KEY</code>{" "}
-              secret must be set to enable AI features. Contact your administrator.
+              {isInvalid ? (
+                <>
+                  The{" "}
+                  <code className="text-xs bg-muted border border-border/60 px-1.5 py-0.5 rounded-md font-mono">OPENAI_API_KEY</code>{" "}
+                  secret is set but was rejected by OpenAI (401). Check that the key is correct and has not been revoked.
+                </>
+              ) : (
+                <>
+                  An{" "}
+                  <code className="text-xs bg-muted border border-border/60 px-1.5 py-0.5 rounded-md font-mono">OPENAI_API_KEY</code>{" "}
+                  secret must be added to enable AI features. Contact your administrator.
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -200,28 +216,22 @@ export default function Copilot() {
       </div>
 
       {/* AI Status card */}
-      {statusLoaded && aiStatus && (
-        <div className={`shrink-0 mx-4 mt-3 px-3.5 py-2.5 rounded-xl border text-[11px] font-mono flex items-center gap-2 ${
-          aiStatus.available
-            ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-600"
-            : billingRequired
-            ? "bg-amber-500/5 border-amber-500/20 text-amber-600"
-            : "bg-muted border-border/60 text-muted-foreground"
-        }`}>
-          {aiStatus.available
-            ? <CheckCircle2 size={12} className="shrink-0" />
-            : billingRequired
-            ? <CreditCard size={12} className="shrink-0" />
-            : <AlertTriangle size={12} className="shrink-0" />}
-          <span>
-            {aiStatus.available
-              ? `AI Ready · ${aiStatus.model ?? "gpt-4o"}`
-              : billingRequired
-              ? "AI workflows are built and ready. Add OpenAI API credits to activate them."
-              : "API key missing — contact your administrator to configure AI."}
-          </span>
-        </div>
-      )}
+      {statusLoaded && aiStatus && (() => {
+        const s = aiStatus.status;
+        const cfg = s === "available"
+          ? { cls: "bg-emerald-500/5 border-emerald-500/20 text-emerald-600", icon: <CheckCircle2 size={12} className="shrink-0" />, label: `AI Ready · ${aiStatus.model ?? "gpt-4o"}` }
+          : s === "billing"
+          ? { cls: "bg-amber-500/5 border-amber-500/20 text-amber-600", icon: <CreditCard size={12} className="shrink-0" />, label: "Billing issue — add OpenAI API credits to activate AI." }
+          : s === "key_invalid"
+          ? { cls: "bg-destructive/5 border-destructive/20 text-destructive", icon: <KeyRound size={12} className="shrink-0" />, label: "API key invalid — the key was rejected by OpenAI (401)." }
+          : { cls: "bg-muted border-border/60 text-muted-foreground", icon: <AlertTriangle size={12} className="shrink-0" />, label: "API key not configured — contact your administrator." };
+        return (
+          <div className={`shrink-0 mx-4 mt-3 px-3.5 py-2.5 rounded-xl border text-[11px] font-mono flex items-center gap-2 ${cfg.cls}`}>
+            {cfg.icon}
+            <span>{cfg.label}</span>
+          </div>
+        );
+      })()}
 
       {/* Billing required banner */}
       {billingRequired && (

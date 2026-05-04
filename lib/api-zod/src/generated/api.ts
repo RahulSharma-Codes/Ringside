@@ -1355,6 +1355,7 @@ export const AskAiResponse = zod.object({
  * @summary Check AI service availability, key status, and billing
  */
 export const GetAiStatusResponse = zod.object({
+  status: zod.enum(["available", "key_missing", "key_invalid", "billing"]),
   available: zod.boolean(),
   setupRequired: zod.boolean(),
   billingRequired: zod.boolean(),

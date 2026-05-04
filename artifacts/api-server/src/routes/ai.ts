@@ -29,38 +29,42 @@ if (OPENAI_API_KEY) {
 
 // ── Error classifier ─────────────────────────────────────────────────────────
 
+type AiStatusKind = "available" | "key_missing" | "key_invalid" | "billing";
+
 function classifyAiError(err: unknown): {
+  status: AiStatusKind;
   setupRequired: boolean;
   billingRequired: boolean;
   message: string;
 } {
   if (err && typeof err === "object") {
     const e = err as Record<string, unknown>;
-    const status = typeof e["status"] === "number" ? e["status"] : null;
+    const httpStatus = typeof e["status"] === "number" ? e["status"] : null;
     const errObj = e["error"] as Record<string, unknown> | undefined;
     const code = errObj?.["code"] ?? e["code"];
-    if (status === 401) return { setupRequired: true, billingRequired: false, message: "Invalid API key" };
-    if (status === 429 || code === "insufficient_quota") {
-      return { setupRequired: false, billingRequired: true, message: "Billing or quota issue" };
+    if (httpStatus === 401) {
+      return { status: "key_invalid", setupRequired: true, billingRequired: false, message: "Invalid API key" };
+    }
+    if (httpStatus === 429 || code === "insufficient_quota") {
+      return { status: "billing", setupRequired: false, billingRequired: true, message: "Billing or quota issue" };
     }
   }
   return {
+    status: "key_invalid",
     setupRequired: false,
     billingRequired: false,
     message: err instanceof Error ? err.message : "Unknown AI error",
   };
 }
 
-// ── Status cache (process-level, avoids repeated probe calls) ─────────────────
+// ── Status cache (process-lifetime — never re-probed until server restarts) ───
 
 let statusCache: {
+  status: AiStatusKind;
   available: boolean;
   setupRequired: boolean;
   billingRequired: boolean;
-  cachedAt: number;
 } | null = null;
-
-const STATUS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 // ── Existing chat copilot system prompt ───────────────────────────────────────
 
@@ -425,11 +429,12 @@ router.post("/ask", async (req, res) => {
 // GET /api/ai/status
 router.get("/status", async (req, res) => {
   if (!openai) {
-    return res.json({ available: false, setupRequired: true, billingRequired: false, model });
+    const result = { status: "key_missing" as AiStatusKind, available: false, setupRequired: true, billingRequired: false };
+    return res.json({ ...result, model });
   }
 
-  if (statusCache && Date.now() - statusCache.cachedAt < STATUS_CACHE_TTL_MS) {
-    req.log.info("AI status returned from cache");
+  if (statusCache) {
+    req.log.info("AI status returned from process-lifetime cache");
     return res.json({ ...statusCache, model });
   }
 
@@ -439,12 +444,12 @@ router.get("/status", async (req, res) => {
       messages: [{ role: "user", content: "ping" }],
       max_completion_tokens: 1,
     });
-    statusCache = { available: true, setupRequired: false, billingRequired: false, cachedAt: Date.now() };
+    statusCache = { status: "available", available: true, setupRequired: false, billingRequired: false };
     req.log.info("AI status probe: available");
     return res.json({ ...statusCache, model });
   } catch (err) {
-    const { setupRequired, billingRequired } = classifyAiError(err);
-    statusCache = { available: false, setupRequired, billingRequired, cachedAt: Date.now() };
+    const { status, setupRequired, billingRequired } = classifyAiError(err);
+    statusCache = { status, available: false, setupRequired, billingRequired };
     req.log.warn({ err }, "AI status probe failed");
     return res.json({ ...statusCache, model });
   }
@@ -489,21 +494,28 @@ router.post("/meeting-notes", async (req, res) => {
         targetContext = `\nTarget: ${tRow.projectName} | Current Stage: ${tRow.currentStage ?? "Unknown"}`;
       }
 
-      const recentInters = await db
-        .select({
-          interactionType: interactionsTable.interactionType,
-          summary: interactionsTable.summary,
-          interactionDatetime: interactionsTable.interactionDatetime,
-        })
-        .from(interactionsTable)
-        .where(eq(interactionsTable.targetId, targetId))
-        .orderBy(desc(interactionsTable.interactionDatetime))
-        .limit(3);
+      const [recentInters, openActionRows] = await Promise.all([
+        db
+          .select({
+            interactionType: interactionsTable.interactionType,
+            summary: interactionsTable.summary,
+            interactionDatetime: interactionsTable.interactionDatetime,
+          })
+          .from(interactionsTable)
+          .where(eq(interactionsTable.targetId, targetId))
+          .orderBy(desc(interactionsTable.interactionDatetime))
+          .limit(3),
+        db
+          .select({ id: actionItemsTable.id })
+          .from(actionItemsTable)
+          .where(and(eq(actionItemsTable.targetId, targetId), isNull(actionItemsTable.completedAt))),
+      ]);
 
       if (recentInters.length > 0) {
         targetContext += "\nRecent interactions: " +
           recentInters.map((i) => `${i.interactionType}: ${i.summary.slice(0, 80)}`).join("; ");
       }
+      targetContext += `\nOpen actions: ${openActionRows.length}`;
     } catch {
       // context is optional — continue without it
     }
@@ -538,7 +550,7 @@ router.post("/meeting-notes", async (req, res) => {
     const validated = SuggestionsSchema.safeParse(parsed);
     if (!validated.success) {
       req.log.error({ issues: validated.error.issues }, "Meeting notes Zod validation failed");
-      return res.json({ suggestions: null, error: "AI response did not match expected structure" });
+      return res.json({ suggestions: null, error: "Failed to parse AI response" });
     }
 
     req.log.info({ targetId, noteType: body.noteType }, "Meeting notes parsed");

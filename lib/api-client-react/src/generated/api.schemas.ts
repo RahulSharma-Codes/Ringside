@@ -578,7 +578,18 @@ export interface DiligenceReviewResponse {
   targetSummaries: DiligenceReviewTargetSummary[];
 }
 
+export type AiStatusResponseStatus =
+  (typeof AiStatusResponseStatus)[keyof typeof AiStatusResponseStatus];
+
+export const AiStatusResponseStatus = {
+  available: "available",
+  key_missing: "key_missing",
+  key_invalid: "key_invalid",
+  billing: "billing",
+} as const;
+
 export interface AiStatusResponse {
+  status: AiStatusResponseStatus;
   available: boolean;
   setupRequired: boolean;
   billingRequired: boolean;

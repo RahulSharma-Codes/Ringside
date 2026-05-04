@@ -711,10 +711,10 @@ export default function TargetDetail() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="hidden md:flex rounded-sm font-mono text-[10px] uppercase border-primary/30 text-primary hover:bg-primary/5 gap-1"
+                  className="flex rounded-sm font-mono text-[10px] uppercase border-primary/30 text-primary hover:bg-primary/5 gap-1"
                   onClick={() => setAiNotesOpen(true)}
                 >
-                  <Sparkles size={11} /> Parse Notes with AI
+                  <Sparkles size={11} /><span className="hidden sm:inline">Parse Notes with AI</span>
                 </Button>
                 <Button size="sm" variant="outline" className="hidden md:flex rounded-sm font-mono text-[10px] uppercase border-border" onClick={() => setInteractionOpen(true)}>
                   <Plus size={13} className="mr-1" /> Log Interaction
