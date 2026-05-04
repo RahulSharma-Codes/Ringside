@@ -2,10 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   Bot, Send, AlertTriangle, Loader2, Sparkles, CheckCircle2,
-  CreditCard, FileText, CalendarCheck, Zap, KeyRound,
+  CreditCard, FileText, CalendarCheck, Zap, KeyRound, Copy, Check, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { customFetch } from "@workspace/api-client-react";
 
 interface Message {
@@ -90,6 +92,12 @@ export default function Copilot() {
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  const [weeklyBriefOpen, setWeeklyBriefOpen] = useState(false);
+  const [weeklyBriefLoading, setWeeklyBriefLoading] = useState(false);
+  const [weeklyBriefContent, setWeeklyBriefContent] = useState<string | null>(null);
+  const [weeklyBriefError, setWeeklyBriefError] = useState<string | null>(null);
+  const [weeklyBriefCopied, setWeeklyBriefCopied] = useState(false);
+
   // Fetch AI status once on mount
   useEffect(() => {
     customFetch<AiStatusResponse>("/api/ai/status")
@@ -141,17 +149,37 @@ export default function Copilot() {
     }
   };
 
+  const handleGenerateWeeklyBrief = async () => {
+    setWeeklyBriefOpen(true);
+    setWeeklyBriefLoading(true);
+    setWeeklyBriefContent(null);
+    setWeeklyBriefError(null);
+    try {
+      const resp = await customFetch<{
+        brief: string | null;
+        setupRequired?: boolean;
+        billingRequired?: boolean;
+        error?: string;
+      }>("/api/ai/weekly-brief", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      if (resp.setupRequired) { setWeeklyBriefError("AI not configured. Add an OPENAI_API_KEY secret to activate."); return; }
+      if (resp.billingRequired) { setWeeklyBriefError("Add OpenAI API credits to your account to generate briefs."); return; }
+      setWeeklyBriefContent(resp.brief ?? "No brief generated.");
+    } catch {
+      setWeeklyBriefError("Failed to generate brief. Please try again.");
+    } finally {
+      setWeeklyBriefLoading(false);
+    }
+  };
+
   const handleWorkflowCard = (action: string) => {
     if (action === "ask") {
-      // Focus the input
       document.querySelector<HTMLTextAreaElement>("textarea")?.focus();
     } else if (action === "meeting-notes") {
-      // Navigate to pipeline to pick a target first
       setLocation("/pipeline?ai=meeting-notes");
     } else if (action === "opportunity-brief") {
       setLocation("/pipeline?ai=opportunity-brief");
     } else if (action === "weekly-brief") {
-      setLocation("/weekly-review?ai=brief");
+      handleGenerateWeeklyBrief();
     }
   };
 
@@ -358,6 +386,54 @@ export default function Copilot() {
           AI answers are generated from live pipeline data. Review before acting.
         </p>
       </div>
+
+      {/* Inline weekly brief dialog */}
+      <Dialog open={weeklyBriefOpen} onOpenChange={(open) => { setWeeklyBriefOpen(open); if (!open) { setWeeklyBriefContent(null); setWeeklyBriefError(null); } }}>
+        <DialogContent className="max-w-2xl w-full">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
+              <CalendarCheck size={15} className="text-blue-500" />
+              Weekly Review Brief
+            </DialogTitle>
+          </DialogHeader>
+          {weeklyBriefLoading && (
+            <div className="flex items-center justify-center py-12 gap-3 text-muted-foreground">
+              <Loader2 size={18} className="animate-spin" />
+              <span className="text-sm">Generating brief…</span>
+            </div>
+          )}
+          {weeklyBriefError && !weeklyBriefLoading && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+              <AlertTriangle size={13} className="shrink-0" />
+              {weeklyBriefError}
+            </div>
+          )}
+          {weeklyBriefContent && !weeklyBriefLoading && (
+            <>
+              <ScrollArea className="max-h-[60vh] pr-2">
+                <div className="prose prose-sm dark:prose-invert max-w-none text-[13px] leading-relaxed whitespace-pre-wrap">
+                  {weeklyBriefContent}
+                </div>
+              </ScrollArea>
+              <div className="flex justify-end pt-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-xs"
+                  onClick={() => {
+                    navigator.clipboard.writeText(weeklyBriefContent).catch(() => {});
+                    setWeeklyBriefCopied(true);
+                    setTimeout(() => setWeeklyBriefCopied(false), 2000);
+                  }}
+                >
+                  {weeklyBriefCopied ? <Check size={12} /> : <Copy size={12} />}
+                  {weeklyBriefCopied ? "Copied" : "Copy"}
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
