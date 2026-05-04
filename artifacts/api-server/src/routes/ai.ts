@@ -674,18 +674,16 @@ router.post("/meeting-notes", async (req, res) => {
     // Normalize AI-suggested enum fields to known application values
     const suggestions = validated.data;
     if (suggestions.interaction.interactionType) {
-      suggestions.interaction.interactionType = normalizeEnum(
-        suggestions.interaction.interactionType,
-        VALID_INTERACTION_TYPES,
-        "Meeting",
+      const matched = VALID_INTERACTION_TYPES.find(
+        (v) => v.toLowerCase() === suggestions.interaction.interactionType.toLowerCase().trim(),
       );
+      suggestions.interaction.interactionType = matched ?? "";
     }
     if (suggestions.interaction.sentiment) {
-      suggestions.interaction.sentiment = normalizeEnum(
-        suggestions.interaction.sentiment,
-        VALID_SENTIMENTS,
-        "Neutral",
+      const matched = VALID_SENTIMENTS.find(
+        (v) => v.toLowerCase() === suggestions.interaction.sentiment.toLowerCase().trim(),
       );
+      suggestions.interaction.sentiment = matched ?? "";
     }
     for (const action of suggestions.actions) {
       action.priority = normalizeEnum(action.priority, VALID_PRIORITIES, "Medium");

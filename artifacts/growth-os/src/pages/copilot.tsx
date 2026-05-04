@@ -138,6 +138,10 @@ export default function Copilot() {
         setSetupRequired(true);
         return;
       }
+      if ((res as { billingRequired?: boolean }).billingRequired) {
+        setBillingRequired(true);
+        return;
+      }
       if (res.answer) {
         setMessages([...nextMessages, { role: "assistant", content: res.answer }]);
       }

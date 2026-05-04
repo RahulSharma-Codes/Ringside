@@ -357,7 +357,7 @@ export default function WeeklyReview() {
             <Button
               size="sm"
               variant="outline"
-              className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-primary/30 text-primary hover:bg-primary/5 h-7 px-2.5 gap-1.5 hidden sm:flex"
+              className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-primary/30 text-primary hover:bg-primary/5 h-7 px-2.5 gap-1.5 flex"
               onClick={handleGenerateBrief}
               disabled={brief.loading}
             >
