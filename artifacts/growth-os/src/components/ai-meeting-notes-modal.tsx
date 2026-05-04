@@ -152,6 +152,11 @@ export function AiMeetingNotesModal({
   const [copiedRisks, setCopiedRisks] = useState(false);
   const [copiedFollowUp, setCopiedFollowUp] = useState(false);
 
+  // Track applied items to prevent duplicate creation on retry after partial failure
+  const [appliedInteraction, setAppliedInteraction] = useState(false);
+  const [appliedActionUids, setAppliedActionUids] = useState<Set<string>>(new Set());
+  const [appliedStage, setAppliedStage] = useState(false);
+
   const resetAll = useCallback(() => {
     setStep("input");
     setNoteType("Meeting");
@@ -171,6 +176,9 @@ export function AiMeetingNotesModal({
     setConfirmOpen(false);
     setApplyError(null);
     setApplyResults(null);
+    setAppliedInteraction(false);
+    setAppliedActionUids(new Set());
+    setAppliedStage(false);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -247,7 +255,8 @@ export function AiMeetingNotesModal({
     };
 
     try {
-      if (interactionSelected) {
+      // Skip items already applied in a previous attempt (prevents duplicates on retry)
+      if (interactionSelected && !appliedInteraction) {
         await customFetch(`/api/targets/${targetId}/interactions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -262,10 +271,17 @@ export function AiMeetingNotesModal({
             interactionDatetime: noteDate ? new Date(noteDate).toISOString() : undefined,
           }),
         });
+        setAppliedInteraction(true);
+        results.interactionCreated = true;
+      } else if (appliedInteraction) {
         results.interactionCreated = true;
       }
 
       for (const action of editableActions.filter((a) => a.selected)) {
+        if (appliedActionUids.has(action.uid)) {
+          results.actionsCreated++;
+          continue;
+        }
         await customFetch(`/api/targets/${targetId}/actions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -276,6 +292,7 @@ export function AiMeetingNotesModal({
             priority: action.priority,
           }),
         });
+        setAppliedActionUids((prev) => new Set([...prev, action.uid]));
         results.actionsCreated++;
       }
 
@@ -285,7 +302,7 @@ export function AiMeetingNotesModal({
         ALL_KNOWN_STAGES.includes(editableStageChange.newStage) &&
         editableStageChange.reason.trim();
 
-      if (stageIsValid) {
+      if (stageIsValid && !appliedStage) {
         await customFetch(`/api/targets/${targetId}/stage`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -295,6 +312,9 @@ export function AiMeetingNotesModal({
             changedBy: "AI-assisted",
           }),
         });
+        setAppliedStage(true);
+        results.stageChanged = true;
+      } else if (appliedStage) {
         results.stageChanged = true;
       }
 

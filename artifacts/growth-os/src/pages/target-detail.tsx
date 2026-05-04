@@ -575,7 +575,7 @@ export default function TargetDetail() {
               <Button
                 size="sm"
                 variant="outline"
-                className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-8 gap-1.5 hidden md:flex"
+                className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-8 gap-1.5 flex"
                 onClick={handleGenerateBrief}
                 disabled={briefLoading}
               >
