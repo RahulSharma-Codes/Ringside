@@ -9,10 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, ChevronRight, AlertTriangle, Calendar, Zap, User, MapPin, Upload, Sparkles } from "lucide-react";
+import { Search, Plus, ChevronRight, AlertTriangle, Calendar, Zap, User, MapPin, Upload, Sparkles, LayoutList, LayoutGrid } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
 import { StageChip } from "@/components/stage-chip";
+import { PipelineKanban } from "@/pages/pipeline-kanban";
 
 const STAGES = [
   "Sourcing", "Outreach", "Introductory Discussion", "NDA / CIM",
@@ -22,6 +23,8 @@ const STAGES = [
 ];
 
 const TIERS = ["Must-Win", "Priority 1", "Priority 2", "Watchlist", "On Hold", "Dropped"];
+
+const VIEW_STORAGE_KEY = "ringside_pipeline_view";
 
 function getTierBadgeColor(tier: string) {
   switch (tier) {
@@ -42,8 +45,19 @@ function getTierCardClass(tier: string) {
   }
 }
 
+type PipelineView = "list" | "board";
+
 export default function Pipeline() {
   const [, navigate] = useLocation();
+
+  const [view, setView] = useState<PipelineView>(() => {
+    try {
+      const stored = localStorage.getItem(VIEW_STORAGE_KEY);
+      return stored === "board" ? "board" : "list";
+    } catch {
+      return "list";
+    }
+  });
 
   const [search, setSearch]               = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -86,6 +100,11 @@ export default function Pipeline() {
     const newUrl = qs ? `/pipeline?${qs}` : "/pipeline";
     window.history.replaceState(null, "", newUrl);
   }, [search, stage, tier, owner, country, attentionOnly]);
+
+  const handleViewChange = (newView: PipelineView) => {
+    setView(newView);
+    try { localStorage.setItem(VIEW_STORAGE_KEY, newView); } catch { /* ignore */ }
+  };
 
   const { data: filterOptions } = useGetTargetFilterOptions({
     query: { queryKey: getGetTargetFilterOptionsQueryKey() },
@@ -136,6 +155,32 @@ export default function Pipeline() {
             <p className="text-[11px] text-muted-foreground mt-0.5 hidden md:block">Track, prioritize, and progress opportunities from origination through diligence, offer, closing, and integration planning.</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {/* View toggle */}
+            <div className="flex items-center border border-border/60 rounded-lg overflow-hidden h-7">
+              <button
+                onClick={() => handleViewChange("list")}
+                title="List view"
+                className={`flex items-center justify-center w-7 h-7 transition-colors ${
+                  view === "list"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted/60"
+                }`}
+              >
+                <LayoutList size={12} />
+              </button>
+              <button
+                onClick={() => handleViewChange("board")}
+                title="Board view"
+                className={`flex items-center justify-center w-7 h-7 transition-colors ${
+                  view === "board"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted/60"
+                }`}
+              >
+                <LayoutGrid size={12} />
+              </button>
+            </div>
+
             <Button
               size="sm"
               variant="outline"
@@ -242,116 +287,147 @@ export default function Pipeline() {
         </div>
       )}
 
-      <div className="p-4 md:p-6 space-y-2.5">
-
-        {/* Target list */}
-        {isLoading ? (
-          <div className="space-y-3">
-            {Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-[130px] w-full rounded-xl" />)}
-          </div>
-        ) : (targets?.length ?? 0) === 0 ? (
-          <Card className="bg-card border-border rounded-xl">
-            <CardContent className="p-12 text-center">
+      {/* ── Board view ── */}
+      {view === "board" && !isLoading && (
+        <div className="px-4 md:px-6 pt-4">
+          {(targets?.length ?? 0) === 0 && hasActiveFilters ? (
+            <div className="border border-dashed border-border rounded-xl py-16 text-center">
               <p className="text-sm font-mono text-muted-foreground uppercase tracking-widest">
                 No targets match the selected filters
               </p>
-              {hasActiveFilters && (
-                <Button variant="outline" size="sm" className="mt-4 rounded-lg font-mono text-[10px] uppercase" onClick={clearFilters}>
-                  Clear Filters
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {targets?.map((target) => {
-              const isNeedsAttention = (target as { needsAttention?: boolean | null }).needsAttention;
-              const openCount    = (target as { openActionCount?: number | null }).openActionCount ?? 0;
-              const overdueCount = (target as { overdueActionCount?: number | null }).overdueActionCount ?? 0;
-              const lastInteraction = (target as { lastInteractionDate?: string | null }).lastInteractionDate;
-              const tierCardClass = getTierCardClass(target.priorityTier);
+              <Button variant="outline" size="sm" className="mt-4 rounded-lg font-mono text-[10px] uppercase" onClick={clearFilters}>
+                Clear Filters
+              </Button>
+            </div>
+          ) : (
+            <PipelineKanban targets={targets ?? []} aiMode={aiMode} />
+          )}
+        </div>
+      )}
 
-              const targetHref = aiMode
-                ? `/targets/${target.id}?ai=${aiMode}`
-                : `/targets/${target.id}`;
+      {view === "board" && isLoading && (
+        <div className="px-4 md:px-6 pt-4 flex gap-2.5 overflow-hidden">
+          {Array(6).fill(0).map((_, i) => (
+            <div key={i} className="shrink-0 w-[220px] space-y-2">
+              <Skeleton className="h-8 w-full rounded-t-lg" />
+              <Skeleton className="h-24 w-full rounded-b-lg" />
+              <Skeleton className="h-20 w-full rounded-lg" />
+            </div>
+          ))}
+        </div>
+      )}
 
-              return (
-                <Link key={target.id} href={targetHref}>
-                  <Card className={`bg-card border-border/70 rounded-xl hover:shadow-md transition-all duration-150 cursor-pointer group ${tierCardClass}`}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1 min-w-0 space-y-2">
-                          {/* Title row */}
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
-                              <div className="font-semibold text-sm leading-snug truncate group-hover:text-primary transition-colors">
-                                {target.projectName}
+      {/* ── List view ── */}
+      {view === "list" && (
+        <div className="p-4 md:p-6 space-y-2.5">
+          {isLoading ? (
+            <div className="space-y-3">
+              {Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-[130px] w-full rounded-xl" />)}
+            </div>
+          ) : (targets?.length ?? 0) === 0 ? (
+            <Card className="bg-card border-border rounded-xl">
+              <CardContent className="p-12 text-center">
+                <p className="text-sm font-mono text-muted-foreground uppercase tracking-widest">
+                  No targets match the selected filters
+                </p>
+                {hasActiveFilters && (
+                  <Button variant="outline" size="sm" className="mt-4 rounded-lg font-mono text-[10px] uppercase" onClick={clearFilters}>
+                    Clear Filters
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {targets?.map((target) => {
+                const isNeedsAttention = (target as { needsAttention?: boolean | null }).needsAttention;
+                const openCount    = (target as { openActionCount?: number | null }).openActionCount ?? 0;
+                const overdueCount = (target as { overdueActionCount?: number | null }).overdueActionCount ?? 0;
+                const lastInteraction = (target as { lastInteractionDate?: string | null }).lastInteractionDate;
+                const tierCardClass = getTierCardClass(target.priorityTier);
+
+                const targetHref = aiMode
+                  ? `/targets/${target.id}?ai=${aiMode}`
+                  : `/targets/${target.id}`;
+
+                return (
+                  <Link key={target.id} href={targetHref}>
+                    <Card className={`bg-card border-border/70 rounded-xl hover:shadow-md transition-all duration-150 cursor-pointer group ${tierCardClass}`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-1 min-w-0 space-y-2">
+                            {/* Title row */}
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-semibold text-sm leading-snug truncate group-hover:text-primary transition-colors">
+                                  {target.projectName}
+                                </div>
+                                <div className="text-[10px] font-mono text-muted-foreground/60 uppercase mt-0.5 tracking-wider">
+                                  {target.targetCode}
+                                </div>
                               </div>
-                              <div className="text-[10px] font-mono text-muted-foreground/60 uppercase mt-0.5 tracking-wider">
-                                {target.targetCode}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {isNeedsAttention && (
-                                <Badge className="font-mono text-[9px] uppercase rounded-md bg-destructive text-destructive-foreground border-0">
-                                  <AlertTriangle size={8} className="mr-1" /> Attn
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isNeedsAttention && (
+                                  <Badge className="font-mono text-[9px] uppercase rounded-md bg-destructive text-destructive-foreground border-0">
+                                    <AlertTriangle size={8} className="mr-1" /> Attn
+                                  </Badge>
+                                )}
+                                <Badge className={`font-mono text-[10px] uppercase rounded-md ${getTierBadgeColor(target.priorityTier)}`}>
+                                  {target.priorityTier}
                                 </Badge>
-                              )}
-                              <Badge className={`font-mono text-[10px] uppercase rounded-md ${getTierBadgeColor(target.priorityTier)}`}>
-                                {target.priorityTier}
+                              </div>
+                            </div>
+
+                            {/* Stage + Score row */}
+                            <div className="flex flex-wrap gap-1.5 items-center">
+                              <StageChip stage={target.currentStage ?? ""} size="xs" />
+                              <Badge variant="outline" className="font-mono text-[10px] rounded-md border-border/60 text-muted-foreground">
+                                <Zap size={9} className="mr-1 text-primary/60" />{Math.round(target.priorityScore)}
                               </Badge>
+                              {target.sector && (
+                                <span className="text-[10px] font-mono text-muted-foreground/70 uppercase">{target.sector}</span>
+                              )}
+                              {target.country && (
+                                <span className="text-[10px] font-mono text-muted-foreground/70 flex items-center gap-1">
+                                  <MapPin size={9} />{target.country}
+                                </span>
+                              )}
+                              {target.dealOwner && (
+                                <span className="text-[10px] font-mono text-muted-foreground/70 flex items-center gap-1">
+                                  <User size={9} />{target.dealOwner}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Action counts */}
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                              {openCount > 0 ? (
+                                <span className={`text-[10px] font-mono font-medium ${overdueCount > 0 ? "text-destructive" : "text-amber-500"}`}>
+                                  {openCount} open action{openCount !== 1 ? "s" : ""}{overdueCount > 0 ? ` · ${overdueCount} overdue` : ""}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-mono text-muted-foreground/50">No open actions</span>
+                              )}
+                              {lastInteraction && (
+                                <span className="text-[10px] font-mono text-muted-foreground/60 flex items-center gap-1">
+                                  <Calendar size={9} />
+                                  Last contact {format(parseISO(lastInteraction), "MMM d, yyyy")}
+                                </span>
+                              )}
                             </div>
                           </div>
 
-                          {/* Stage + Score row */}
-                          <div className="flex flex-wrap gap-1.5 items-center">
-                            <StageChip stage={target.currentStage ?? ""} size="xs" />
-                            <Badge variant="outline" className="font-mono text-[10px] rounded-md border-border/60 text-muted-foreground">
-                              <Zap size={9} className="mr-1 text-primary/60" />{Math.round(target.priorityScore)}
-                            </Badge>
-                            {target.sector && (
-                              <span className="text-[10px] font-mono text-muted-foreground/70 uppercase">{target.sector}</span>
-                            )}
-                            {target.country && (
-                              <span className="text-[10px] font-mono text-muted-foreground/70 flex items-center gap-1">
-                                <MapPin size={9} />{target.country}
-                              </span>
-                            )}
-                            {target.dealOwner && (
-                              <span className="text-[10px] font-mono text-muted-foreground/70 flex items-center gap-1">
-                                <User size={9} />{target.dealOwner}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Action counts */}
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                            {openCount > 0 ? (
-                              <span className={`text-[10px] font-mono font-medium ${overdueCount > 0 ? "text-destructive" : "text-amber-500"}`}>
-                                {openCount} open action{openCount !== 1 ? "s" : ""}{overdueCount > 0 ? ` · ${overdueCount} overdue` : ""}
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-mono text-muted-foreground/50">No open actions</span>
-                            )}
-                            {lastInteraction && (
-                              <span className="text-[10px] font-mono text-muted-foreground/60 flex items-center gap-1">
-                                <Calendar size={9} />
-                                Last contact {format(parseISO(lastInteraction), "MMM d, yyyy")}
-                              </span>
-                            )}
-                          </div>
+                          <ChevronRight size={15} className="text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 mt-1 transition-colors" />
                         </div>
-
-                        <ChevronRight size={15} className="text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 mt-1 transition-colors" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
