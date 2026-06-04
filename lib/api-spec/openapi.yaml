@@ -26,6 +26,8 @@ tags:
     description: Due diligence workstream management
   - name: documents
     description: Deal Document Vault
+  - name: ic
+    description: Investment Committee session log
 paths:
   /healthz:
     get:
@@ -567,6 +569,65 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DiligenceReviewResponse"
+
+  /targets/{id}/ic-sessions:
+    get:
+      operationId: listIcSessions
+      tags: [ic]
+      summary: List IC sessions for a target (most recent first)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: IC sessions list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IcSession"
+    post:
+      operationId: createIcSession
+      tags: [ic]
+      summary: Create an IC session record for a target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateIcSessionBody"
+      responses:
+        "201":
+          description: IC session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IcSession"
+
+  /ic-sessions/{id}:
+    delete:
+      operationId: deleteIcSession
+      tags: [ic]
+      summary: Delete an IC session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
 
   /targets/{id}/activity:
     get:
@@ -2379,6 +2440,54 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/ActivityEvent"
+
+    IcSession:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        sessionDate:
+          type: string
+          format: date
+        attendees:
+          type: string
+          nullable: true
+        outcome:
+          type: string
+          enum: [Approved, Conditional, Rejected, Deferred]
+        conditions:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, targetId, sessionDate, outcome]
+
+    CreateIcSessionBody:
+      type: object
+      properties:
+        sessionDate:
+          type: string
+          format: date
+        attendees:
+          type: string
+          nullable: true
+        outcome:
+          type: string
+          enum: [Approved, Conditional, Rejected, Deferred]
+        conditions:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+      required: [sessionDate, outcome]
 
     StageGateItem:
       type: object

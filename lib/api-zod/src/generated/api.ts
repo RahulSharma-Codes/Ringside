@@ -909,6 +909,47 @@ export const GetDiligenceReviewResponse = zod.object({
 });
 
 /**
+ * @summary List IC sessions for a target (most recent first)
+ */
+export const ListIcSessionsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListIcSessionsResponseItem = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  sessionDate: zod.coerce.date(),
+  attendees: zod.string().nullish(),
+  outcome: zod.enum(["Approved", "Conditional", "Rejected", "Deferred"]),
+  conditions: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date().nullish(),
+});
+export const ListIcSessionsResponse = zod.array(ListIcSessionsResponseItem);
+
+/**
+ * @summary Create an IC session record for a target
+ */
+export const CreateIcSessionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateIcSessionBody = zod.object({
+  sessionDate: zod.coerce.date(),
+  attendees: zod.string().nullish(),
+  outcome: zod.enum(["Approved", "Conditional", "Rejected", "Deferred"]),
+  conditions: zod.string().nullish(),
+  notes: zod.string().nullish(),
+});
+
+/**
+ * @summary Delete an IC session
+ */
+export const DeleteIcSessionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
  * @summary Unified activity feed for a target (stage changes, interactions, completed actions, diligence, documents)
  */
 export const GetActivityFeedParams = zod.object({

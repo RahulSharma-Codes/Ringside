@@ -686,6 +686,45 @@ export interface ActivityEvent {
 
 export type ActivityFeedResponse = ActivityEvent[];
 
+export type IcSessionOutcome =
+  (typeof IcSessionOutcome)[keyof typeof IcSessionOutcome];
+
+export const IcSessionOutcome = {
+  Approved: "Approved",
+  Conditional: "Conditional",
+  Rejected: "Rejected",
+  Deferred: "Deferred",
+} as const;
+
+export interface IcSession {
+  id: number;
+  targetId: number;
+  sessionDate: string;
+  attendees?: string | null;
+  outcome: IcSessionOutcome;
+  conditions?: string | null;
+  notes?: string | null;
+  createdAt?: string | null;
+}
+
+export type CreateIcSessionBodyOutcome =
+  (typeof CreateIcSessionBodyOutcome)[keyof typeof CreateIcSessionBodyOutcome];
+
+export const CreateIcSessionBodyOutcome = {
+  Approved: "Approved",
+  Conditional: "Conditional",
+  Rejected: "Rejected",
+  Deferred: "Deferred",
+} as const;
+
+export interface CreateIcSessionBody {
+  sessionDate: string;
+  attendees?: string | null;
+  outcome: CreateIcSessionBodyOutcome;
+  conditions?: string | null;
+  notes?: string | null;
+}
+
 export type StageGateItemStatus =
   (typeof StageGateItemStatus)[keyof typeof StageGateItemStatus];
 

@@ -1,0 +1,2 @@
+- [Replit Postgres vs Supabase](replit-postgres-migration.md) — Supabase pooler ENOTFOUND even from async tasks; DB layer now uses PGHOST (Replit Postgres)
+- [Startup migrations pattern](startup-migrations.md) — idempotent DDL runs at server start; psql/drizzle-kit push can't reach DB from shell

@@ -137,3 +137,18 @@ export const dealDocumentsTable = pgTable("deal_documents", {
 export const insertDealDocumentSchema = createInsertSchema(dealDocumentsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertDealDocument = z.infer<typeof insertDealDocumentSchema>;
 export type DealDocument = typeof dealDocumentsTable.$inferSelect;
+
+export const icSessionsTable = pgTable("ic_sessions", {
+  id: serial("id").primaryKey(),
+  targetId: integer("target_id").notNull().references(() => targetsTable.id),
+  sessionDate: date("session_date").notNull(),
+  attendees: text("attendees"),
+  outcome: text("outcome").notNull(),
+  conditions: text("conditions"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertIcSessionSchema = createInsertSchema(icSessionsTable).omit({ id: true, createdAt: true });
+export type InsertIcSession = z.infer<typeof insertIcSessionSchema>;
+export type IcSession = typeof icSessionsTable.$inferSelect;

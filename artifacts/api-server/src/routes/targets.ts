@@ -8,6 +8,7 @@ import {
   actionItemsTable,
   stageChangeLogTable,
   dealDocumentsTable,
+  icSessionsTable,
 } from "@workspace/db";
 import { z } from "zod";
 import {
@@ -1304,6 +1305,61 @@ router.post("/:id/diligence", async (req, res) => {
     .where(eq(targetsTable.id, targetId));
 
   return res.status(201).json(formatAction(item));
+});
+
+// ── IC Session routes ─────────────────────────────────────────────────────────
+
+const IC_OUTCOMES = ["Approved", "Conditional", "Rejected", "Deferred"] as const;
+
+const CreateIcSessionBodySchema = z.object({
+  sessionDate: z.string().min(1),
+  attendees: z.string().nullable().optional(),
+  outcome: z.enum(IC_OUTCOMES),
+  conditions: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+function formatIcSession(s: typeof icSessionsTable.$inferSelect) {
+  return {
+    ...s,
+    sessionDate: s.sessionDate ? String(s.sessionDate).slice(0, 10) : null,
+    createdAt: toIso(s.createdAt),
+  };
+}
+
+// GET /api/targets/:id/ic-sessions
+router.get("/:id/ic-sessions", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const sessions = await db
+    .select()
+    .from(icSessionsTable)
+    .where(eq(icSessionsTable.targetId, id))
+    .orderBy(desc(icSessionsTable.sessionDate), desc(icSessionsTable.createdAt));
+  return res.json(sessions.map(formatIcSession));
+});
+
+// POST /api/targets/:id/ic-sessions
+router.post("/:id/ic-sessions", async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  const parsed = CreateIcSessionBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.flatten() });
+  }
+  const d = parsed.data;
+  const now = new Date();
+  const [session] = await db
+    .insert(icSessionsTable)
+    .values({
+      targetId,
+      sessionDate: d.sessionDate,
+      attendees: d.attendees ?? null,
+      outcome: d.outcome,
+      conditions: d.conditions ?? null,
+      notes: d.notes ?? null,
+      createdAt: now,
+    })
+    .returning();
+  return res.status(201).json(formatIcSession(session));
 });
 
 export default router;

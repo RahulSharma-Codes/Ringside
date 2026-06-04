@@ -99,6 +99,28 @@ Chat interface at `/copilot` backed by `POST /api/ai/ask`. Reads a live DB snaps
 
 **Nav**: Diligence Review added to sidebar with ClipboardCheck icon.
 
+### Phase 7E — IC Log + Stage Gate UI
+
+**IC Sessions Tab** (per-target, inside Target Detail at `/targets/:id`):
+- 6th tab "IC" with Scale icon in Target Detail
+- Lists IC sessions with outcome badges (Approved green, Rejected red, Conditional amber, Deferred grey)
+- Add Session dialog: session date, attendees, outcome, conditions, notes
+- Delete session with confirmation
+- New backend routes: `GET /api/targets/:id/ic-sessions`, `POST /api/targets/:id/ic-sessions`, `DELETE /api/ic-sessions/:id`
+
+**Stage Gate Advisory** (in stage-change dialog):
+- Pre-flight `GET /api/targets/:id/stage-gate?newStage=X` called when a stage-change is initiated
+- Renders advisory banner (pass/warn/block) with checklist items inside the Confirm Stage Change dialog
+
+**Schema changes**:
+- `ic_sessions` table added: id, target_id, session_date, attendees, outcome, conditions, notes, created_at
+- OpenAPI: new `ic` tag, 3 new paths, `IcSession` and `CreateIcSessionBody` schemas
+
+**Database migration**:
+- Switched from Supabase pooler (became unreachable) to Replit Postgres (PGHOST)
+- `lib/db/src/index.ts` now prefers `PGHOST/PGUSER/PGPASSWORD/PGDATABASE` env vars over `DATABASE_URL` secret
+- `artifacts/api-server/src/index.ts` runs idempotent startup migrations (rename `action_items`→`actions`, create `milestones`, `deal_documents`, `ic_sessions` tables with IF NOT EXISTS guards)
+
 ## Checkpoints
 
 | Label | Commit | Notes |

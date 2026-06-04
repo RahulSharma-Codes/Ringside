@@ -8,6 +8,7 @@ import aiRouter from "./ai";
 import reviewRouter from "./review";
 import diligenceRouter from "./diligence";
 import documentsRouter from "./documents";
+import icSessionsRouter from "./ic-sessions";
 
 const router: IRouter = Router();
 
@@ -20,6 +21,7 @@ router.use("/ai", aiRouter);
 router.use("/review", reviewRouter);
 router.use("/diligence", diligenceRouter);
 router.use("/documents", documentsRouter);
+router.use("/ic-sessions", icSessionsRouter);
 
 export default router;
 

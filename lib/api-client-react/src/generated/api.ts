@@ -27,6 +27,7 @@ import type {
   CreateActionBody,
   CreateDiligenceItemBody,
   CreateDocumentBody,
+  CreateIcSessionBody,
   CreateInteractionBody,
   CreateTargetBody,
   DashboardSummary,
@@ -39,6 +40,7 @@ import type {
   GetStageGateParams,
   GetTopPriorityTargetsParams,
   HealthStatus,
+  IcSession,
   ImportApplyRequest,
   ImportApplyResult,
   ImportValidateRequest,
@@ -2361,6 +2363,264 @@ export function useGetDiligenceReview<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List IC sessions for a target (most recent first)
+ */
+export const getListIcSessionsUrl = (id: number) => {
+  return `/api/targets/${id}/ic-sessions`;
+};
+
+export const listIcSessions = async (
+  id: number,
+  options?: RequestInit,
+): Promise<IcSession[]> => {
+  return customFetch<IcSession[]>(getListIcSessionsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListIcSessionsQueryKey = (id: number) => {
+  return [`/api/targets/${id}/ic-sessions`] as const;
+};
+
+export const getListIcSessionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listIcSessions>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listIcSessions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListIcSessionsQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listIcSessions>>> = ({
+    signal,
+  }) => listIcSessions(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listIcSessions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListIcSessionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listIcSessions>>
+>;
+export type ListIcSessionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List IC sessions for a target (most recent first)
+ */
+
+export function useListIcSessions<
+  TData = Awaited<ReturnType<typeof listIcSessions>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listIcSessions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListIcSessionsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create an IC session record for a target
+ */
+export const getCreateIcSessionUrl = (id: number) => {
+  return `/api/targets/${id}/ic-sessions`;
+};
+
+export const createIcSession = async (
+  id: number,
+  createIcSessionBody: CreateIcSessionBody,
+  options?: RequestInit,
+): Promise<IcSession> => {
+  return customFetch<IcSession>(getCreateIcSessionUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createIcSessionBody),
+  });
+};
+
+export const getCreateIcSessionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createIcSession>>,
+    TError,
+    { id: number; data: BodyType<CreateIcSessionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createIcSession>>,
+  TError,
+  { id: number; data: BodyType<CreateIcSessionBody> },
+  TContext
+> => {
+  const mutationKey = ["createIcSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createIcSession>>,
+    { id: number; data: BodyType<CreateIcSessionBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createIcSession(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateIcSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createIcSession>>
+>;
+export type CreateIcSessionMutationBody = BodyType<CreateIcSessionBody>;
+export type CreateIcSessionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create an IC session record for a target
+ */
+export const useCreateIcSession = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createIcSession>>,
+    TError,
+    { id: number; data: BodyType<CreateIcSessionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createIcSession>>,
+  TError,
+  { id: number; data: BodyType<CreateIcSessionBody> },
+  TContext
+> => {
+  return useMutation(getCreateIcSessionMutationOptions(options));
+};
+
+/**
+ * @summary Delete an IC session
+ */
+export const getDeleteIcSessionUrl = (id: number) => {
+  return `/api/ic-sessions/${id}`;
+};
+
+export const deleteIcSession = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteIcSessionUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteIcSessionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteIcSession>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteIcSession>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteIcSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteIcSession>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteIcSession(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteIcSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteIcSession>>
+>;
+
+export type DeleteIcSessionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete an IC session
+ */
+export const useDeleteIcSession = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteIcSession>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteIcSession>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteIcSessionMutationOptions(options));
+};
 
 /**
  * @summary Unified activity feed for a target (stage changes, interactions, completed actions, diligence, documents)
