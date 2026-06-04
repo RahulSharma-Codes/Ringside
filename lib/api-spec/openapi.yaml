@@ -243,11 +243,39 @@ paths:
         "204":
           description: Deleted
 
+  /targets/{id}/stage-gate:
+    get:
+      operationId: getStageGate
+      tags: [targets]
+      summary: Advisory pre-flight gate check for a proposed stage transition
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: newStage
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Gate check result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageGateCheckResponse"
+        "400":
+          description: Missing newStage param
+        "404":
+          description: Target not found
+
   /targets/{id}/stage:
     put:
       operationId: updateTargetStage
       tags: [targets]
-      summary: Update pipeline stage (with audit log)
+      summary: Update pipeline stage (with audit log and advisory gate warnings)
       parameters:
         - name: id
           in: path
@@ -266,7 +294,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Target"
+                $ref: "#/components/schemas/StageUpdateResponse"
 
   /targets/{id}/stage-history:
     get:
@@ -2303,3 +2331,39 @@ components:
         error:
           type: string
           nullable: true
+
+    StageGateItem:
+      type: object
+      properties:
+        label:
+          type: string
+        status:
+          type: string
+          enum: [met, unmet, na]
+        detail:
+          type: string
+          nullable: true
+      required: [label, status]
+
+    StageGateCheckResponse:
+      type: object
+      properties:
+        newStage:
+          type: string
+        gateItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/StageGateItem"
+      required: [newStage, gateItems]
+
+    StageUpdateResponse:
+      allOf:
+        - $ref: "#/components/schemas/Target"
+        - type: object
+          properties:
+            gateWarnings:
+              type: array
+              items:
+                type: string
+              description: Labels of unmet gate requirements for the next pipeline stage (advisory only)
+          required: [gateWarnings]

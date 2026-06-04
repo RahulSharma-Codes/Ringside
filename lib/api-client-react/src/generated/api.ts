@@ -35,6 +35,7 @@ import type {
   DocumentDownloadUrlResponse,
   DocumentReviewResponse,
   FilterOptions,
+  GetStageGateParams,
   GetTopPriorityTargetsParams,
   HealthStatus,
   ImportApplyRequest,
@@ -49,6 +50,8 @@ import type {
   OpportunityBriefRequest,
   StageChange,
   StageCount,
+  StageGateCheckResponse,
+  StageUpdateResponse,
   Target,
   TargetDetail,
   UpdateActionBody,
@@ -985,7 +988,116 @@ export const useDeleteTarget = <
 };
 
 /**
- * @summary Update pipeline stage (with audit log)
+ * @summary Advisory pre-flight gate check for a proposed stage transition
+ */
+export const getGetStageGateUrl = (id: number, params: GetStageGateParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/targets/${id}/stage-gate?${stringifiedParams}`
+    : `/api/targets/${id}/stage-gate`;
+};
+
+export const getStageGate = async (
+  id: number,
+  params: GetStageGateParams,
+  options?: RequestInit,
+): Promise<StageGateCheckResponse> => {
+  return customFetch<StageGateCheckResponse>(getGetStageGateUrl(id, params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetStageGateQueryKey = (
+  id: number,
+  params?: GetStageGateParams,
+) => {
+  return [
+    `/api/targets/${id}/stage-gate`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetStageGateQueryOptions = <
+  TData = Awaited<ReturnType<typeof getStageGate>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  params: GetStageGateParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStageGate>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetStageGateQueryKey(id, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getStageGate>>> = ({
+    signal,
+  }) => getStageGate(id, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getStageGate>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetStageGateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getStageGate>>
+>;
+export type GetStageGateQueryError = ErrorType<void>;
+
+/**
+ * @summary Advisory pre-flight gate check for a proposed stage transition
+ */
+
+export function useGetStageGate<
+  TData = Awaited<ReturnType<typeof getStageGate>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  params: GetStageGateParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStageGate>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetStageGateQueryOptions(id, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update pipeline stage (with audit log and advisory gate warnings)
  */
 export const getUpdateTargetStageUrl = (id: number) => {
   return `/api/targets/${id}/stage`;
@@ -995,8 +1107,8 @@ export const updateTargetStage = async (
   id: number,
   updateStageBody: UpdateStageBody,
   options?: RequestInit,
-): Promise<Target> => {
-  return customFetch<Target>(getUpdateTargetStageUrl(id), {
+): Promise<StageUpdateResponse> => {
+  return customFetch<StageUpdateResponse>(getUpdateTargetStageUrl(id), {
     ...options,
     method: "PUT",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -1049,7 +1161,7 @@ export type UpdateTargetStageMutationBody = BodyType<UpdateStageBody>;
 export type UpdateTargetStageMutationError = ErrorType<unknown>;
 
 /**
- * @summary Update pipeline stage (with audit log)
+ * @summary Update pipeline stage (with audit log and advisory gate warnings)
  */
 export const useUpdateTargetStage = <
   TError = ErrorType<unknown>,

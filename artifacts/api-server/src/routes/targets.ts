@@ -28,6 +28,276 @@ type MilestoneRow = typeof milestonesTable.$inferSelect | null;
 type ActionRow = typeof actionItemsTable.$inferSelect;
 type InteractionRow = typeof interactionsTable.$inferSelect;
 type StageChangeRow = typeof stageChangeLogTable.$inferSelect;
+type DocumentRow = typeof dealDocumentsTable.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Stage Gate Enforcement
+// ---------------------------------------------------------------------------
+
+type GateStatus = "met" | "unmet" | "na";
+interface GateItem {
+  label: string;
+  status: GateStatus;
+  detail?: string;
+}
+
+type GateContext = {
+  target: TargetRow;
+  milestone: MilestoneRow;
+  interactions: InteractionRow[];
+  diligenceItems: ActionRow[];
+  documents: DocumentRow[];
+};
+
+type GateCheckFn = (ctx: GateContext) => GateItem;
+
+// Ordered pipeline stages (non-terminal only) for "next stage" lookup
+const PIPELINE_STAGE_SEQUENCE = [
+  "Sourcing",
+  "Outreach",
+  "Introductory Discussion",
+  "NDA / CIM",
+  "Preliminary Due Diligence",
+  "Management Meeting",
+  "Non-Binding Offer",
+  "Confirmatory Due Diligence",
+  "Binding Offer",
+  "SPA Negotiation",
+  "Integration Planning",
+];
+
+// Gate requirements map — keys are the stage you're trying to ENTER
+const STAGE_GATE_REQUIREMENTS: Record<string, GateCheckFn[]> = {
+  "NDA / CIM": [
+    (ctx) => {
+      const hasNda = ctx.documents.some(
+        (d) =>
+          d.documentType?.toLowerCase().includes("nda") ||
+          d.title?.toLowerCase().includes("nda"),
+      );
+      return {
+        label: "NDA initiated",
+        status: hasNda ? "met" : "unmet",
+        detail: hasNda
+          ? "NDA document found in vault"
+          : "No NDA document found — add to Document Vault",
+      };
+    },
+  ],
+
+  "Preliminary Due Diligence": [
+    (ctx) => {
+      const ndaExecuted = ctx.documents.some(
+        (d) =>
+          (d.documentType?.toLowerCase().includes("nda") ||
+            d.title?.toLowerCase().includes("nda")) &&
+          ["Received", "Executed", "Approved"].includes(d.status ?? ""),
+      );
+      return {
+        label: "NDA executed",
+        status: ndaExecuted ? "met" : "unmet",
+        detail: ndaExecuted
+          ? "NDA marked as Received/Executed"
+          : "NDA not yet executed — update status in Document Vault",
+      };
+    },
+    (ctx) => {
+      const hasCim = ctx.documents.some(
+        (d) =>
+          d.documentType?.toLowerCase().includes("cim") ||
+          d.title?.toLowerCase().includes("cim") ||
+          d.title?.toLowerCase().includes("information memorandum"),
+      );
+      return {
+        label: "CIM / Information Memorandum received",
+        status: hasCim ? "met" : "unmet",
+        detail: hasCim
+          ? "CIM found in vault"
+          : "No CIM/Information Memorandum logged",
+      };
+    },
+  ],
+
+  "Non-Binding Offer": [
+    (ctx) => {
+      const hasMgmtMeeting = ctx.interactions.some(
+        (i) =>
+          i.interactionType?.toLowerCase().includes("management") ||
+          i.interactionType?.toLowerCase().includes("meeting") ||
+          i.summary?.toLowerCase().includes("management meeting"),
+      );
+      return {
+        label: "Management meeting logged",
+        status: hasMgmtMeeting ? "met" : "unmet",
+        detail: hasMgmtMeeting
+          ? "Management meeting interaction found"
+          : "No management meeting interaction logged",
+      };
+    },
+  ],
+
+  "Confirmatory Due Diligence": [
+    (ctx) => {
+      const hasNbo = ctx.documents.some(
+        (d) =>
+          d.documentType?.toLowerCase().includes("nbo") ||
+          d.documentType?.toLowerCase().includes("non-binding") ||
+          d.documentType?.toLowerCase().includes("letter of intent") ||
+          d.documentType?.toLowerCase().includes("loi") ||
+          d.title?.toLowerCase().includes("non-binding offer") ||
+          d.title?.toLowerCase().includes("loi") ||
+          d.title?.toLowerCase().includes("letter of intent"),
+      );
+      return {
+        label: "Non-binding offer / LOI on file",
+        status: hasNbo ? "met" : "unmet",
+        detail: hasNbo
+          ? "NBO/LOI document found"
+          : "No Non-Binding Offer or LOI in Document Vault",
+      };
+    },
+  ],
+
+  "Binding Offer": [
+    (ctx) => {
+      const items = ctx.diligenceItems.filter(
+        (i) => i.workstream?.toLowerCase() === "financial",
+      );
+      if (items.length === 0) {
+        return {
+          label: "Financial diligence workstream",
+          status: "unmet",
+          detail: "No financial diligence items found — add to Diligence Workspace",
+        };
+      }
+      const completed = items.filter((i) => i.status === "Completed").length;
+      const pct = Math.round((completed / items.length) * 100);
+      return {
+        label: "Financial diligence workstream",
+        status: pct >= 50 ? "met" : "unmet",
+        detail: `${completed}/${items.length} items complete (${pct}%)`,
+      };
+    },
+    (ctx) => {
+      const items = ctx.diligenceItems.filter(
+        (i) => i.workstream?.toLowerCase() === "legal",
+      );
+      if (items.length === 0) {
+        return {
+          label: "Legal diligence workstream",
+          status: "unmet",
+          detail: "No legal diligence items found — add to Diligence Workspace",
+        };
+      }
+      const completed = items.filter((i) => i.status === "Completed").length;
+      const pct = Math.round((completed / items.length) * 100);
+      return {
+        label: "Legal diligence workstream",
+        status: pct >= 50 ? "met" : "unmet",
+        detail: `${completed}/${items.length} items complete (${pct}%)`,
+      };
+    },
+  ],
+
+  "SPA Negotiation": [
+    (ctx) => {
+      const coreWs = ["financial", "legal", "tax"];
+      const items = ctx.diligenceItems.filter((i) =>
+        coreWs.includes(i.workstream?.toLowerCase() ?? ""),
+      );
+      if (items.length === 0) {
+        return {
+          label: "Confirmatory due diligence complete",
+          status: "unmet",
+          detail: "No confirmatory DD items found (Financial/Legal/Tax)",
+        };
+      }
+      const completed = items.filter((i) => i.status === "Completed").length;
+      const pct = Math.round((completed / items.length) * 100);
+      return {
+        label: "Confirmatory due diligence complete",
+        status: pct >= 80 ? "met" : "unmet",
+        detail: `${completed}/${items.length} core DD items complete (${pct}% — need 80%)`,
+      };
+    },
+    (ctx) => {
+      const hasBindingOffer = ctx.documents.some(
+        (d) =>
+          d.documentType?.toLowerCase().includes("binding") ||
+          d.title?.toLowerCase().includes("binding offer") ||
+          d.title?.toLowerCase().includes("spa") ||
+          d.title?.toLowerCase().includes("share purchase"),
+      );
+      return {
+        label: "Binding offer / SPA draft on file",
+        status: hasBindingOffer ? "met" : "unmet",
+        detail: hasBindingOffer
+          ? "Binding offer or SPA draft found"
+          : "No binding offer or SPA draft in Document Vault",
+      };
+    },
+  ],
+
+  Closed: [
+    (ctx) => {
+      const hasBindingOffer = ctx.documents.some(
+        (d) =>
+          d.documentType?.toLowerCase().includes("binding") ||
+          d.title?.toLowerCase().includes("binding offer"),
+      );
+      return {
+        label: "Binding offer on file",
+        status: hasBindingOffer ? "met" : "unmet",
+        detail: hasBindingOffer
+          ? "Binding offer found"
+          : "No binding offer in Document Vault",
+      };
+    },
+    (ctx) => {
+      const hasSpa = ctx.documents.some(
+        (d) =>
+          d.title?.toLowerCase().includes("spa") ||
+          d.title?.toLowerCase().includes("share purchase") ||
+          d.documentType?.toLowerCase().includes("spa"),
+      );
+      return {
+        label: "SPA / transaction agreement signed",
+        status: hasSpa ? "met" : "unmet",
+        detail: hasSpa
+          ? "SPA document found"
+          : "No SPA/transaction agreement in Document Vault",
+      };
+    },
+  ],
+};
+
+function nextPipelineStage(stage: string): string | null {
+  const idx = PIPELINE_STAGE_SEQUENCE.indexOf(stage);
+  if (idx === -1 || idx >= PIPELINE_STAGE_SEQUENCE.length - 1) return null;
+  return PIPELINE_STAGE_SEQUENCE[idx + 1];
+}
+
+function evaluateGates(stage: string, ctx: GateContext): GateItem[] {
+  const checks = STAGE_GATE_REQUIREMENTS[stage];
+  if (!checks || checks.length === 0) return [];
+  return checks.map((fn) => fn(ctx));
+}
+
+async function fetchGateContext(
+  targetId: number,
+  target: TargetRow,
+  milestone: MilestoneRow,
+): Promise<GateContext> {
+  const [interactions, diligenceItems, documents] = await Promise.all([
+    db.select().from(interactionsTable).where(eq(interactionsTable.targetId, targetId)),
+    db
+      .select()
+      .from(actionItemsTable)
+      .where(and(eq(actionItemsTable.targetId, targetId), isNotNull(actionItemsTable.workstream))),
+    db.select().from(dealDocumentsTable).where(eq(dealDocumentsTable.targetId, targetId)),
+  ]);
+  return { target, milestone, interactions, diligenceItems, documents };
+}
 
 function toIso(value: Date | string | null | undefined): string | null {
   if (!value) return null;
@@ -591,6 +861,28 @@ router.delete("/:id", async (req, res) => {
   return res.status(204).send();
 });
 
+// GET /api/targets/:id/stage-gate?newStage=X  (must come before /:id/stage PUT)
+router.get("/:id/stage-gate", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const newStage = String(req.query.newStage ?? "").trim();
+  if (!newStage) {
+    return res.status(400).json({ error: "newStage query param is required" });
+  }
+
+  const [row] = await db
+    .select({ target: targetsTable, milestone: milestonesTable })
+    .from(targetsTable)
+    .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id))
+    .where(eq(targetsTable.id, id));
+
+  if (!row) return res.status(404).json({ error: "Not found" });
+
+  const ctx = await fetchGateContext(id, row.target, row.milestone);
+  const gateItems = evaluateGates(newStage, ctx);
+
+  return res.json({ newStage, gateItems });
+});
+
 // PUT /api/targets/:id/stage
 router.put("/:id/stage", async (req, res) => {
   const id = parseInt(req.params.id, 10);
@@ -647,7 +939,17 @@ router.put("/:id/stage", async (req, res) => {
     .where(eq(targetsTable.id, id))
     .returning();
 
-  return res.json(formatTarget(updatedTarget, milestone));
+  // Advisory gate warnings: evaluate gates for the next stage after newStage
+  // so the team knows what's needed for the next move.
+  const nextStage = nextPipelineStage(newStage);
+  let gateWarnings: string[] = [];
+  if (nextStage) {
+    const ctx = await fetchGateContext(id, updatedTarget, milestone);
+    const items = evaluateGates(nextStage, ctx);
+    gateWarnings = items.filter((g) => g.status === "unmet").map((g) => g.label);
+  }
+
+  return res.json({ ...formatTarget(updatedTarget, milestone), gateWarnings });
 });
 
 // GET /api/targets/:id/stage-history

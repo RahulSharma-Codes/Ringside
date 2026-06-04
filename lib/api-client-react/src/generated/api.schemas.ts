@@ -665,6 +665,31 @@ export interface BriefResponse {
   error?: string | null;
 }
 
+export type StageGateItemStatus =
+  (typeof StageGateItemStatus)[keyof typeof StageGateItemStatus];
+
+export const StageGateItemStatus = {
+  met: "met",
+  unmet: "unmet",
+  na: "na",
+} as const;
+
+export interface StageGateItem {
+  label: string;
+  status: StageGateItemStatus;
+  detail?: string | null;
+}
+
+export interface StageGateCheckResponse {
+  newStage: string;
+  gateItems: StageGateItem[];
+}
+
+export type StageUpdateResponse = Target & {
+  /** Labels of unmet gate requirements for the next pipeline stage (advisory only) */
+  gateWarnings: string[];
+};
+
 export type ListTargetsParams = {
   sector?: string;
   priorityTier?: string;
@@ -679,4 +704,8 @@ export type ListTargetsParams = {
 
 export type GetTopPriorityTargetsParams = {
   limit?: number;
+};
+
+export type GetStageGateParams = {
+  newStage: string;
 };

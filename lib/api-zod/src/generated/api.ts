@@ -412,7 +412,29 @@ export const DeleteTargetParams = zod.object({
 });
 
 /**
- * @summary Update pipeline stage (with audit log)
+ * @summary Advisory pre-flight gate check for a proposed stage transition
+ */
+export const GetStageGateParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetStageGateQueryParams = zod.object({
+  newStage: zod.coerce.string(),
+});
+
+export const GetStageGateResponse = zod.object({
+  newStage: zod.string(),
+  gateItems: zod.array(
+    zod.object({
+      label: zod.string(),
+      status: zod.enum(["met", "unmet", "na"]),
+      detail: zod.string().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Update pipeline stage (with audit log and advisory gate warnings)
  */
 export const UpdateTargetStageParams = zod.object({
   id: zod.coerce.number(),
@@ -424,40 +446,50 @@ export const UpdateTargetStageBody = zod.object({
   changeReason: zod.string().nullish(),
 });
 
-export const UpdateTargetStageResponse = zod.object({
-  id: zod.number(),
-  targetCode: zod.string(),
-  projectName: zod.string(),
-  legalName: zod.string().nullish(),
-  businessUnit: zod.string().nullish(),
-  sector: zod.string().nullish(),
-  subsector: zod.string().nullish(),
-  geographyRegion: zod.string().nullish(),
-  country: zod.string().nullish(),
-  sourcingChannel: zod.string().nullish(),
-  sourcingFirm: zod.string().nullish(),
-  dealOwner: zod.string().nullish(),
-  dealChampion: zod.string().nullish(),
-  executiveSponsor: zod.string().nullish(),
-  dealType: zod.string().nullish(),
-  priorityTier: zod.string(),
-  strategicRationale: zod.string().nullish(),
-  strategicFitScore: zod.number(),
-  synergyScore: zod.number(),
-  financialAttractivenessScore: zod.number(),
-  processMaturityScore: zod.number(),
-  riskPenaltyScore: zod.number(),
-  priorityScore: zod.number(),
-  currentStage: zod.string(),
-  isActive: zod.boolean(),
-  isConfidential: zod.boolean(),
-  createdAt: zod.coerce.date(),
-  updatedAt: zod.coerce.date(),
-  openActionCount: zod.number().nullish(),
-  overdueActionCount: zod.number().nullish(),
-  lastInteractionDate: zod.coerce.date().nullish(),
-  needsAttention: zod.boolean().nullish(),
-});
+export const UpdateTargetStageResponse = zod
+  .object({
+    id: zod.number(),
+    targetCode: zod.string(),
+    projectName: zod.string(),
+    legalName: zod.string().nullish(),
+    businessUnit: zod.string().nullish(),
+    sector: zod.string().nullish(),
+    subsector: zod.string().nullish(),
+    geographyRegion: zod.string().nullish(),
+    country: zod.string().nullish(),
+    sourcingChannel: zod.string().nullish(),
+    sourcingFirm: zod.string().nullish(),
+    dealOwner: zod.string().nullish(),
+    dealChampion: zod.string().nullish(),
+    executiveSponsor: zod.string().nullish(),
+    dealType: zod.string().nullish(),
+    priorityTier: zod.string(),
+    strategicRationale: zod.string().nullish(),
+    strategicFitScore: zod.number(),
+    synergyScore: zod.number(),
+    financialAttractivenessScore: zod.number(),
+    processMaturityScore: zod.number(),
+    riskPenaltyScore: zod.number(),
+    priorityScore: zod.number(),
+    currentStage: zod.string(),
+    isActive: zod.boolean(),
+    isConfidential: zod.boolean(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+    openActionCount: zod.number().nullish(),
+    overdueActionCount: zod.number().nullish(),
+    lastInteractionDate: zod.coerce.date().nullish(),
+    needsAttention: zod.boolean().nullish(),
+  })
+  .and(
+    zod.object({
+      gateWarnings: zod
+        .array(zod.string())
+        .describe(
+          "Labels of unmet gate requirements for the next pipeline stage (advisory only)",
+        ),
+    }),
+  );
 
 /**
  * @summary Audit trail of stage changes
