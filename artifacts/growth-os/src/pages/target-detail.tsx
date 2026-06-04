@@ -1388,6 +1388,7 @@ type OverviewTarget = {
   processMaturityScore?: number | null;
   riskPenaltyScore?: number | null;
   sourcingChannel?: string | null;
+  dealType?: string | null;
 };
 
 type OverviewAction = {
@@ -1552,6 +1553,7 @@ function OverviewSections({
                     { label: "Project Name", value: target.projectName },
                     { label: "Target Code", value: target.targetCode },
                     { label: "Legal Name", value: target.legalName },
+                    { label: "Deal Type", value: target.dealType },
                     { label: "Sector", value: [target.sector, target.subsector].filter(Boolean).join(" › ") || null },
                     { label: "Geography", value: [target.country, target.geographyRegion].filter(Boolean).join(" / ") || null },
                     { label: "Sourcing Channel", value: target.sourcingChannel },

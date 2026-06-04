@@ -24,6 +24,7 @@ export const targetsTable = pgTable("targets", {
   financialAttractivenessScore: integer("financial_attractiveness_score").notNull().default(50),
   processMaturityScore: integer("process_maturity_score").notNull().default(50),
   riskPenaltyScore: integer("risk_penalty_score").notNull().default(0),
+  dealType: text("deal_type"),
   isActive: boolean("is_active").notNull().default(true),
   isConfidential: boolean("is_confidential").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),

@@ -24,6 +24,16 @@ const STAGES = [
 
 const TIERS = ["Must-Win", "Priority 1", "Priority 2", "Watchlist", "On Hold", "Dropped"];
 
+const DEAL_TYPES = [
+  "Platform Acquisition",
+  "Bolt-On Acquisition",
+  "Joint Venture",
+  "Merger",
+  "Minority Stake",
+  "Divestiture",
+  "Other",
+];
+
 const VIEW_STORAGE_KEY = "ringside_pipeline_view";
 
 function getTierBadgeColor(tier: string) {
@@ -87,6 +97,11 @@ export default function Pipeline() {
     const params = new URLSearchParams(window.location.search);
     return params.get("attention") === "1";
   });
+  const [dealType, setDealType]           = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const dt = params.get("dealType");
+    return dt && dt.trim().length > 0 ? dt.trim() : "all";
+  });
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -96,10 +111,11 @@ export default function Pipeline() {
     if (owner !== "all")     params.set("owner", owner);
     if (country !== "all")   params.set("country", country);
     if (attentionOnly)       params.set("attention", "1");
+    if (dealType !== "all")  params.set("dealType", dealType);
     const qs = params.toString();
     const newUrl = qs ? `/pipeline?${qs}` : "/pipeline";
     window.history.replaceState(null, "", newUrl);
-  }, [search, stage, tier, owner, country, attentionOnly]);
+  }, [search, stage, tier, owner, country, attentionOnly, dealType]);
 
   const handleViewChange = (newView: PipelineView) => {
     setView(newView);
@@ -118,16 +134,17 @@ export default function Pipeline() {
       owner:          owner !== "all" ? owner : undefined,
       country:        country !== "all" ? country : undefined,
       needsAttention: attentionOnly ? true : undefined,
+      dealType:       dealType !== "all" ? dealType : undefined,
       isActive:       stage !== "Closed" && stage !== "Dropped" ? true : undefined,
     },
     {
       query: {
-        queryKey: getListTargetsQueryKey({ search, stage, priorityTier: tier, owner, country, needsAttention: attentionOnly }),
+        queryKey: getListTargetsQueryKey({ search, stage, priorityTier: tier, owner, country, needsAttention: attentionOnly, dealType }),
       },
     },
   );
 
-  const hasActiveFilters = search || stage !== "all" || tier !== "all" || owner !== "all" || country !== "all" || attentionOnly;
+  const hasActiveFilters = search || stage !== "all" || tier !== "all" || owner !== "all" || country !== "all" || attentionOnly || dealType !== "all";
 
   const aiMode = (() => {
     const params = new URLSearchParams(window.location.search);
@@ -135,7 +152,7 @@ export default function Pipeline() {
   })();
 
   function clearFilters() {
-    setSearch(""); setStage("all"); setTier("all"); setOwner("all"); setCountry("all"); setAttentionOnly(false);
+    setSearch(""); setStage("all"); setTier("all"); setOwner("all"); setCountry("all"); setAttentionOnly(false); setDealType("all");
   }
 
   return (
@@ -252,6 +269,16 @@ export default function Pipeline() {
               </SelectContent>
             </Select>
           )}
+
+          <Select value={dealType} onValueChange={setDealType}>
+            <SelectTrigger className="w-[130px] rounded-lg font-mono text-[11px] uppercase border-border/60 bg-background/60 h-7">
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent className="font-mono text-[11px]">
+              <SelectItem value="all">All Types</SelectItem>
+              {DEAL_TYPES.map((dt) => <SelectItem key={dt} value={dt}>{dt}</SelectItem>)}
+            </SelectContent>
+          </Select>
 
           <button
             onClick={() => setAttentionOnly(!attentionOnly)}

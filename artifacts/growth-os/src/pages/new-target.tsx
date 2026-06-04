@@ -16,6 +16,16 @@ import { ArrowLeft, Save, Shield, ChevronDown, ChevronRight } from "lucide-react
 import { Slider } from "@/components/ui/slider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
+const DEAL_TYPES = [
+  "Platform Acquisition",
+  "Bolt-On Acquisition",
+  "Joint Venture",
+  "Merger",
+  "Minority Stake",
+  "Divestiture",
+  "Other",
+] as const;
+
 const formSchema = z.object({
   projectName: z.string().min(2, "Project name is required"),
   targetCode: z.string().min(2, "Target code is required"),
@@ -23,6 +33,7 @@ const formSchema = z.object({
   sector: z.string().optional(),
   country: z.string().optional(),
   dealOwner: z.string().optional(),
+  dealType: z.string().optional(),
   priorityTier: z.string().default("Watchlist"),
   strategicFitScore: z.number().min(0).max(100).default(50),
   synergyScore: z.number().min(0).max(100).default(50),
@@ -208,6 +219,28 @@ export default function NewTarget() {
                         <FormControl>
                           <Input placeholder="Deal Lead Name" className="rounded-sm bg-background/50" {...field} />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="dealType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Deal Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                          <FormControl>
+                            <SelectTrigger className="rounded-sm bg-background/50">
+                              <SelectValue placeholder="Select type (optional)" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="rounded-sm">
+                            {DEAL_TYPES.map((dt) => (
+                              <SelectItem key={dt} value={dt}>{dt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}

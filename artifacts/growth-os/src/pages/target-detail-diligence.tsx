@@ -26,6 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 const WORKSTREAMS = [
   "Commercial", "Financial", "Legal", "Tax",
   "HR", "Technology", "Operations", "Integration",
+  "ESG", "Regulatory",
 ] as const;
 
 const WORKSTREAM_COLORS: Record<string, string> = {
@@ -37,6 +38,8 @@ const WORKSTREAM_COLORS: Record<string, string> = {
   Technology: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
   Operations: "bg-rose-500/10 text-rose-400 border-rose-500/20",
   Integration: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+  ESG: "bg-teal-500/10 text-teal-400 border-teal-500/20",
+  Regulatory: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
 };
 
 const ACTION_PRIORITIES = ["Critical", "High", "Medium", "Low"];

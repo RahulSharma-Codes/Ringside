@@ -24,6 +24,7 @@ export interface Target {
   dealOwner?: string | null;
   dealChampion?: string | null;
   executiveSponsor?: string | null;
+  dealType?: string | null;
   priorityTier: string;
   strategicRationale?: string | null;
   strategicFitScore: number;
@@ -110,6 +111,7 @@ export interface CreateTargetBody {
   dealOwner?: string | null;
   dealChampion?: string | null;
   executiveSponsor?: string | null;
+  dealType?: string | null;
   priorityTier?: string;
   strategicRationale?: string | null;
   strategicFitScore?: number;
@@ -133,6 +135,7 @@ export interface UpdateTargetBody {
   dealOwner?: string | null;
   dealChampion?: string | null;
   executiveSponsor?: string | null;
+  dealType?: string | null;
   priorityTier?: string;
   strategicRationale?: string | null;
   strategicFitScore?: number;
@@ -671,6 +674,7 @@ export type ListTargetsParams = {
   owner?: string;
   country?: string;
   needsAttention?: boolean;
+  dealType?: string;
 };
 
 export type GetTopPriorityTargetsParams = {

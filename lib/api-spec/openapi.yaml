@@ -78,6 +78,10 @@ paths:
           in: query
           schema:
             type: boolean
+        - name: dealType
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: List of targets
@@ -826,6 +830,9 @@ components:
         executiveSponsor:
           type: string
           nullable: true
+        dealType:
+          type: string
+          nullable: true
         priorityTier:
           type: string
         strategicRationale:
@@ -944,6 +951,9 @@ components:
         executiveSponsor:
           type: string
           nullable: true
+        dealType:
+          type: string
+          nullable: true
         priorityTier:
           type: string
           default: Watchlist
@@ -1006,6 +1016,9 @@ components:
           type: string
           nullable: true
         executiveSponsor:
+          type: string
+          nullable: true
+        dealType:
           type: string
           nullable: true
         priorityTier:

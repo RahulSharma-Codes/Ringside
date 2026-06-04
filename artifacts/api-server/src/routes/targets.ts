@@ -232,7 +232,7 @@ router.get("/", async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.flatten() });
   }
-  const { sector, priorityTier, stage, search, isActive, owner, country, needsAttention } =
+  const { sector, priorityTier, stage, search, isActive, owner, country, needsAttention, dealType } =
     parsed.data;
 
   const conditions = [];
@@ -243,6 +243,7 @@ router.get("/", async (req, res) => {
   if (stage) conditions.push(eq(milestonesTable.currentStage, stage));
   if (owner) conditions.push(eq(targetsTable.dealOwner, owner));
   if (country) conditions.push(eq(targetsTable.country, country));
+  if (dealType) conditions.push(eq(targetsTable.dealType, dealType));
   if (search) {
     conditions.push(
       or(
@@ -304,6 +305,7 @@ router.post("/", async (req, res) => {
       financialAttractivenessScore: data.financialAttractivenessScore ?? 50,
       processMaturityScore: data.processMaturityScore ?? 50,
       riskPenaltyScore: data.riskPenaltyScore ?? 0,
+      dealType: data.dealType ?? null,
       isActive: true,
       isConfidential: data.isConfidential ?? true,
       createdAt: now,
@@ -559,6 +561,7 @@ router.put("/:id", async (req, res) => {
     updates.financialAttractivenessScore = d.financialAttractivenessScore;
   if (d.processMaturityScore !== undefined) updates.processMaturityScore = d.processMaturityScore;
   if (d.riskPenaltyScore !== undefined) updates.riskPenaltyScore = d.riskPenaltyScore;
+  if (d.dealType !== undefined) updates.dealType = d.dealType;
   if (d.isActive !== undefined) updates.isActive = d.isActive;
   if (d.isConfidential !== undefined) updates.isConfidential = d.isConfidential;
 
@@ -768,7 +771,7 @@ router.get("/:id/diligence", async (req, res) => {
     (i) => i.status !== "Completed" && i.dueDate && new Date(i.dueDate) < today,
   ).length;
 
-  const WORKSTREAMS = ["Commercial", "Financial", "Legal", "Tax", "HR", "Technology", "Operations", "Integration"];
+  const WORKSTREAMS = ["Commercial", "Financial", "Legal", "Tax", "HR", "Technology", "Operations", "Integration", "ESG", "Regulatory"];
   const presentWorkstreams = new Set(items.map((i) => i.workstream!));
   const missingWorkstreams = WORKSTREAMS.filter((w) => !presentWorkstreams.has(w));
 

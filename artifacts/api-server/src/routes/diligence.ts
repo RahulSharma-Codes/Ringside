@@ -8,6 +8,7 @@ const router = Router();
 const WORKSTREAMS = [
   "Commercial", "Financial", "Legal", "Tax",
   "HR", "Technology", "Operations", "Integration",
+  "ESG", "Regulatory",
 ] as const;
 
 function toIso(value: Date | string | null | undefined): string | null {
