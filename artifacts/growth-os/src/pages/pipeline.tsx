@@ -300,7 +300,7 @@ export default function Pipeline() {
               </Button>
             </div>
           ) : (
-            <PipelineKanban targets={targets ?? []} aiMode={aiMode} />
+            <PipelineKanban targets={targets ?? []} aiMode={aiMode} stageFilter={stage} />
           )}
         </div>
       )}

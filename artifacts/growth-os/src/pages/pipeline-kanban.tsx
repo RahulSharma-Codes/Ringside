@@ -23,6 +23,8 @@ interface KanbanTarget {
 interface PipelineKanbanProps {
   targets: KanbanTarget[];
   aiMode?: string | null;
+  /** Active stage filter value — "all" or a specific stage name */
+  stageFilter?: string;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -160,7 +162,7 @@ function KanbanColumn({
         {count === 0 ? (
           <div className="flex items-center justify-center h-[80px]">
             <span className="text-[9px] font-mono text-muted-foreground/30 uppercase tracking-widest">
-              Empty
+              0 deals
             </span>
           </div>
         ) : (
@@ -176,7 +178,7 @@ function KanbanColumn({
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export function PipelineKanban({ targets, aiMode }: PipelineKanbanProps) {
+export function PipelineKanban({ targets, aiMode, stageFilter }: PipelineKanbanProps) {
   // Group targets by stage
   const byStage = new Map<string, KanbanTarget[]>();
   for (const stage of PIPELINE_STAGE_ORDER) {
@@ -191,15 +193,27 @@ export function PipelineKanban({ targets, aiMode }: PipelineKanbanProps) {
     } else if (byStage.has(stage)) {
       byStage.get(stage)!.push(t);
     } else {
-      // Unknown stage — treat as off-track
       offTrackTargets.push(t);
     }
   }
 
+  // When a specific stage is filtered, collapse to just that column (+ off-track
+  // if the filter is an off-track stage, or omit off-track for pipeline stages).
+  const isOffTrackFilter = stageFilter && OFF_TRACK_STAGES.includes(stageFilter);
+  const activeStagesToShow =
+    stageFilter && stageFilter !== "all"
+      ? isOffTrackFilter
+        ? [] // show only off-track column
+        : PIPELINE_STAGE_ORDER.filter((s) => s === stageFilter)
+      : PIPELINE_STAGE_ORDER;
+
+  const showOffTrack =
+    !stageFilter || stageFilter === "all" || isOffTrackFilter;
+
   return (
     <div className="overflow-x-auto pb-4 -mx-1 px-1">
       <div className="flex gap-2.5 min-w-max items-start">
-        {PIPELINE_STAGE_ORDER.map((stage) => (
+        {activeStagesToShow.map((stage) => (
           <KanbanColumn
             key={stage}
             stage={stage}
@@ -208,13 +222,14 @@ export function PipelineKanban({ targets, aiMode }: PipelineKanbanProps) {
           />
         ))}
 
-        {/* Off-track column — always shown */}
-        <KanbanColumn
-          stage="Off-Track"
-          targets={offTrackTargets}
-          aiMode={aiMode}
-          isOffTrack
-        />
+        {showOffTrack && (
+          <KanbanColumn
+            stage="Off-Track"
+            targets={offTrackTargets}
+            aiMode={aiMode}
+            isOffTrack
+          />
+        )}
       </div>
     </div>
   );
