@@ -18,6 +18,7 @@ import type {
 
 import type {
   ActionItem,
+  ActivityFeedResponse,
   AiAskRequest,
   AiAskResponse,
   AiStatusResponse,
@@ -2353,6 +2354,93 @@ export function useGetDiligenceReview<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetDiligenceReviewQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Unified activity feed for a target (stage changes, interactions, completed actions, diligence, documents)
+ */
+export const getGetActivityFeedUrl = (id: number) => {
+  return `/api/targets/${id}/activity`;
+};
+
+export const getActivityFeed = async (
+  id: number,
+  options?: RequestInit,
+): Promise<ActivityFeedResponse> => {
+  return customFetch<ActivityFeedResponse>(getGetActivityFeedUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetActivityFeedQueryKey = (id: number) => {
+  return [`/api/targets/${id}/activity`] as const;
+};
+
+export const getGetActivityFeedQueryOptions = <
+  TData = Awaited<ReturnType<typeof getActivityFeed>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getActivityFeed>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetActivityFeedQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getActivityFeed>>> = ({
+    signal,
+  }) => getActivityFeed(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getActivityFeed>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetActivityFeedQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getActivityFeed>>
+>;
+export type GetActivityFeedQueryError = ErrorType<void>;
+
+/**
+ * @summary Unified activity feed for a target (stage changes, interactions, completed actions, diligence, documents)
+ */
+
+export function useGetActivityFeed<
+  TData = Awaited<ReturnType<typeof getActivityFeed>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getActivityFeed>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetActivityFeedQueryOptions(id, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

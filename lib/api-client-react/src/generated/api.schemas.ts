@@ -665,6 +665,27 @@ export interface BriefResponse {
   error?: string | null;
 }
 
+export type ActivityEventType =
+  (typeof ActivityEventType)[keyof typeof ActivityEventType];
+
+export const ActivityEventType = {
+  stage_changed: "stage_changed",
+  interaction: "interaction",
+  action_created: "action_created",
+  action_completed: "action_completed",
+  diligence_completed: "diligence_completed",
+  document_uploaded: "document_uploaded",
+} as const;
+
+export interface ActivityEvent {
+  type: ActivityEventType;
+  timestamp: string;
+  title: string;
+  detail?: string | null;
+}
+
+export type ActivityFeedResponse = ActivityEvent[];
+
 export type StageGateItemStatus =
   (typeof StageGateItemStatus)[keyof typeof StageGateItemStatus];
 

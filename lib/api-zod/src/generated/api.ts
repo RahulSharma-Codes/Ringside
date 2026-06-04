@@ -909,6 +909,28 @@ export const GetDiligenceReviewResponse = zod.object({
 });
 
 /**
+ * @summary Unified activity feed for a target (stage changes, interactions, completed actions, diligence, documents)
+ */
+export const GetActivityFeedParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetActivityFeedResponseItem = zod.object({
+  type: zod.enum([
+    "stage_changed",
+    "interaction",
+    "action_created",
+    "action_completed",
+    "diligence_completed",
+    "document_uploaded",
+  ]),
+  timestamp: zod.coerce.date(),
+  title: zod.string(),
+  detail: zod.string().nullish(),
+});
+export const GetActivityFeedResponse = zod.array(GetActivityFeedResponseItem);
+
+/**
  * @summary List all document records for a target
  */
 export const ListDocumentsParams = zod.object({

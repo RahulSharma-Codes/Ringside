@@ -1083,6 +1083,133 @@ router.get("/:id/diligence", async (req, res) => {
   });
 });
 
+// GET /api/targets/:id/activity — unified activity feed (reverse-chron, max 200)
+router.get("/:id/activity", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+
+  const [stageChanges, interactions, allActions, completedDiligence, documents] =
+    await Promise.all([
+      db
+        .select()
+        .from(stageChangeLogTable)
+        .where(eq(stageChangeLogTable.targetId, id))
+        .orderBy(desc(stageChangeLogTable.changedAt)),
+      db
+        .select()
+        .from(interactionsTable)
+        .where(eq(interactionsTable.targetId, id))
+        .orderBy(desc(interactionsTable.interactionDatetime)),
+      db
+        .select()
+        .from(actionItemsTable)
+        .where(
+          and(
+            eq(actionItemsTable.targetId, id),
+            isNull(actionItemsTable.workstream),
+          ),
+        )
+        .orderBy(desc(actionItemsTable.createdAt)),
+      db
+        .select()
+        .from(actionItemsTable)
+        .where(
+          and(
+            eq(actionItemsTable.targetId, id),
+            eq(actionItemsTable.status, "Completed"),
+            isNotNull(actionItemsTable.workstream),
+          ),
+        )
+        .orderBy(desc(actionItemsTable.completedAt)),
+      db
+        .select()
+        .from(dealDocumentsTable)
+        .where(eq(dealDocumentsTable.targetId, id))
+        .orderBy(desc(dealDocumentsTable.createdAt)),
+    ]);
+
+  type ActivityEvent = {
+    type: string;
+    timestamp: string;
+    title: string;
+    detail: string | null;
+  };
+
+  const events: ActivityEvent[] = [];
+
+  for (const sc of stageChanges) {
+    const ts = toIso(sc.changedAt);
+    if (!ts) continue;
+    events.push({
+      type: "stage_changed",
+      timestamp: ts,
+      title: sc.previousStage
+        ? `Stage changed: ${sc.previousStage} → ${sc.newStage}`
+        : `Added to pipeline at ${sc.newStage}`,
+      detail: sc.changeReason ?? null,
+    });
+  }
+
+  for (const inter of interactions) {
+    const ts = toIso(inter.interactionDatetime);
+    if (!ts) continue;
+    events.push({
+      type: "interaction",
+      timestamp: ts,
+      title: `${inter.interactionType ?? "Interaction"} logged`,
+      detail: inter.summary ? inter.summary.slice(0, 120) : null,
+    });
+  }
+
+  for (const action of allActions) {
+    const createdTs = toIso(action.createdAt);
+    if (createdTs) {
+      events.push({
+        type: "action_created",
+        timestamp: createdTs,
+        title: `Action added: ${action.description}`,
+        detail: action.owner ? `Owner: ${action.owner}` : null,
+      });
+    }
+    if (action.status === "Completed") {
+      const completedTs = toIso(action.completedAt) ?? toIso(action.createdAt);
+      if (completedTs) {
+        events.push({
+          type: "action_completed",
+          timestamp: completedTs,
+          title: `Action completed: ${action.description}`,
+          detail: action.owner ? `Owner: ${action.owner}` : null,
+        });
+      }
+    }
+  }
+
+  for (const item of completedDiligence) {
+    const ts = toIso(item.completedAt) ?? toIso(item.createdAt);
+    if (!ts) continue;
+    events.push({
+      type: "diligence_completed",
+      timestamp: ts,
+      title: `Diligence item completed: ${item.description}`,
+      detail: item.workstream ? `Workstream: ${item.workstream}` : null,
+    });
+  }
+
+  for (const doc of documents) {
+    const ts = toIso(doc.uploadedAt) ?? toIso(doc.createdAt);
+    if (!ts) continue;
+    events.push({
+      type: "document_uploaded",
+      timestamp: ts,
+      title: `Document added: ${doc.title}`,
+      detail: doc.documentType !== "Other" ? doc.documentType : null,
+    });
+  }
+
+  // Sort descending by timestamp, limit to 200
+  events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  return res.json(events.slice(0, 200));
+});
+
 // GET /api/targets/:id/documents — list docs for a target
 router.get("/:id/documents", async (req, res) => {
   const targetId = parseInt(req.params.id, 10);
