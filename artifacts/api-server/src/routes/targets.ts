@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, ilike, or, desc, inArray, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, ilike, or, desc, inArray, isNull, isNotNull, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   targetsTable,
@@ -12,6 +12,10 @@ import {
   valuationsTable,
   dealEconomicsTable,
   synergiesTable,
+  dealAdvisorsTable,
+  dealSponsorsTable,
+  ndaRecordsTable,
+  regulatoryClearancesTable,
 } from "@workspace/db";
 import { z } from "zod";
 import {
@@ -1629,68 +1633,242 @@ router.put("/:id/economics", async (req, res) => {
   return res.json(formatEconomics(row));
 });
 
-// ── Synergies routes ──────────────────────────────────────────────────────────
+// ─── NDA Records ──────────────────────────────────────────────────────────────
 
-const SYNERGY_TYPES    = ["Revenue", "Cost", "Capital", "Tax"] as const;
-const CONFIDENCE_TIERS = ["Probable", "Possible", "Aspirational"] as const;
-const REALISATION_STATUSES = ["Not Started", "On Track", "Slipping", "Realised"] as const;
+const NDA_SCOPES_CONST = ["One-way", "Mutual"] as const;
+const NDA_STATUSES_CONST = ["Active", "Expired", "Extended"] as const;
 
-const CreateSynergyBodySchema = z.object({
-  type:                   z.enum(SYNERGY_TYPES),
-  description:            z.string().min(1),
-  fy1:                    z.string().nullable().optional(),
-  fy2:                    z.string().nullable().optional(),
-  fy3:                    z.string().nullable().optional(),
-  fy4:                    z.string().nullable().optional(),
-  fy5:                    z.string().nullable().optional(),
-  oneTimeCost:            z.string().nullable().optional(),
-  confidence:             z.enum(CONFIDENCE_TIERS).optional(),
-  ownerName:              z.string().nullable().optional(),
-  realisationStartMonth:  z.string().nullable().optional(),
-  realisationStatus:      z.enum(REALISATION_STATUSES).optional(),
-  isDisynergy:            z.boolean().optional(),
+const CreateNdaBodySchema = z.object({
+  counterparty: z.string().nullable().optional(),
+  effectiveDate: z.string().nullable().optional(),
+  expiryDate: z.string().nullable().optional(),
+  scope: z.enum(NDA_SCOPES_CONST).default("Mutual"),
+  termMonths: z.number().int().nullable().optional(),
+  docReference: z.string().nullable().optional(),
+  status: z.enum(NDA_STATUSES_CONST).default("Active"),
+  notes: z.string().nullable().optional(),
 });
 
-// GET /api/targets/:id/synergies
-router.get("/:id/synergies", async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+router.get("/:id/nda-records", async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  if (isNaN(targetId)) return res.status(400).json({ error: "Invalid target id" });
   const rows = await db
     .select()
-    .from(synergiesTable)
-    .where(eq(synergiesTable.targetId, id))
-    .orderBy(synergiesTable.createdAt);
+    .from(ndaRecordsTable)
+    .where(eq(ndaRecordsTable.targetId, targetId))
+    .orderBy(ndaRecordsTable.createdAt);
   return res.json(rows);
 });
 
-// POST /api/targets/:id/synergies
-router.post("/:id/synergies", async (req, res) => {
+router.post("/:id/nda-records", async (req, res) => {
   const targetId = parseInt(req.params.id, 10);
-  const parsed = CreateSynergyBodySchema.safeParse(req.body);
+  if (isNaN(targetId)) return res.status(400).json({ error: "Invalid target id" });
+  const parsed = CreateNdaBodySchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const [created] = await db
+    .insert(ndaRecordsTable)
+    .values({ targetId, ...parsed.data })
+    .returning();
+  return res.status(201).json(created);
+});
+
+// ─── Regulatory Clearances ─────────────────────────────────────────────────────
+
+const CLEARANCE_CATEGORIES_CONST = [
+  "Antitrust-CCI", "RBI", "SEBI", "IRDAI", "FEMA-FDI", "DPDP",
+  "Sanctions-PEP", "ABAC", "Other",
+] as const;
+const CLEARANCE_STATUSES_CONST = ["Not Required", "Pending", "Filed", "Cleared", "Blocked"] as const;
+
+const CreateClearanceBodySchema = z.object({
+  category: z.enum(CLEARANCE_CATEGORIES_CONST),
+  description: z.string().nullable().optional(),
+  ownerName: z.string().nullable().optional(),
+  status: z.enum(CLEARANCE_STATUSES_CONST).default("Pending"),
+  targetClearanceDate: z.string().nullable().optional(),
+  evidenceReference: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+router.get("/:id/regulatory-clearances", async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  if (isNaN(targetId)) return res.status(400).json({ error: "Invalid target id" });
+  const rows = await db
+    .select()
+    .from(regulatoryClearancesTable)
+    .where(eq(regulatoryClearancesTable.targetId, targetId))
+    .orderBy(regulatoryClearancesTable.createdAt);
+  return res.json(rows);
+});
+
+router.post("/:id/regulatory-clearances", async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  if (isNaN(targetId)) return res.status(400).json({ error: "Invalid target id" });
+  const parsed = CreateClearanceBodySchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const [created] = await db
+    .insert(regulatoryClearancesTable)
+    .values({ targetId, ...parsed.data })
+    .returning();
+  return res.status(201).json(created);
+});
+
+// ─── Counterparty structured fields ───────────────────────────────────────────
+
+const UpdateCounterpartyBodySchema = z.object({
+  cpCin: z.string().nullable().optional(),
+  cpFounders: z.string().nullable().optional(),
+  cpKeyManagement: z.string().nullable().optional(),
+  cpControllingShareholderS: z.string().nullable().optional(),
+  cpWebsite: z.string().nullable().optional(),
+  cpNotes: z.string().nullable().optional(),
+});
+
+router.get("/:id/counterparty", async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  if (isNaN(targetId)) return res.status(400).json({ error: "Invalid target id" });
+  const result = await db.execute(
+    sql`SELECT id, project_name, legal_name,
+               cp_cin, cp_founders, cp_key_management,
+               cp_controlling_shareholders, cp_website, cp_notes
+        FROM targets WHERE id = ${targetId} LIMIT 1`,
+  );
+  if (result.rows.length === 0) return res.status(404).json({ error: "Target not found" });
+  const r = result.rows[0] as Record<string, unknown>;
+  return res.json({
+    id: r.id,
+    projectName: r.project_name,
+    legalName: r.legal_name,
+    cpCin: r.cp_cin,
+    cpFounders: r.cp_founders,
+    cpKeyManagement: r.cp_key_management,
+    cpControllingShareholderS: r.cp_controlling_shareholders,
+    cpWebsite: r.cp_website,
+    cpNotes: r.cp_notes,
+  });
+});
+
+router.put("/:id/counterparty", async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  if (isNaN(targetId)) return res.status(400).json({ error: "Invalid target id" });
+  const parsed = UpdateCounterpartyBodySchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
   const d = parsed.data;
-  const now = new Date();
-  const [row] = await db
-    .insert(synergiesTable)
-    .values({
-      targetId,
-      type:                  d.type,
-      description:           d.description,
-      fy1:                   d.fy1 ?? null,
-      fy2:                   d.fy2 ?? null,
-      fy3:                   d.fy3 ?? null,
-      fy4:                   d.fy4 ?? null,
-      fy5:                   d.fy5 ?? null,
-      oneTimeCost:           d.oneTimeCost ?? null,
-      confidence:            d.confidence ?? "Possible",
-      ownerName:             d.ownerName ?? null,
-      realisationStartMonth: d.realisationStartMonth ?? null,
-      realisationStatus:     d.realisationStatus ?? "Not Started",
-      isDisynergy:           d.isDisynergy ?? false,
-      createdAt:             now,
-      updatedAt:             now,
-    })
+  await db.execute(sql`
+    UPDATE targets SET
+      cp_cin                     = COALESCE(${d.cpCin ?? null}, cp_cin),
+      cp_founders                = COALESCE(${d.cpFounders ?? null}, cp_founders),
+      cp_key_management          = COALESCE(${d.cpKeyManagement ?? null}, cp_key_management),
+      cp_controlling_shareholders = COALESCE(${d.cpControllingShareholderS ?? null}, cp_controlling_shareholders),
+      cp_website                 = COALESCE(${d.cpWebsite ?? null}, cp_website),
+      cp_notes                   = COALESCE(${d.cpNotes ?? null}, cp_notes),
+      updated_at = now()
+    WHERE id = ${targetId}
+  `);
+  // Re-fetch and return
+  const result = await db.execute(
+    sql`SELECT id, project_name, legal_name,
+               cp_cin, cp_founders, cp_key_management,
+               cp_controlling_shareholders, cp_website, cp_notes
+        FROM targets WHERE id = ${targetId} LIMIT 1`,
+  );
+  if (result.rows.length === 0) return res.status(404).json({ error: "Target not found" });
+  const r = result.rows[0] as Record<string, unknown>;
+  return res.json({
+    id: r.id,
+    projectName: r.project_name,
+    legalName: r.legal_name,
+    cpCin: r.cp_cin,
+    cpFounders: r.cp_founders,
+    cpKeyManagement: r.cp_key_management,
+    cpControllingShareholderS: r.cp_controlling_shareholders,
+    cpWebsite: r.cp_website,
+    cpNotes: r.cp_notes,
+  });
+});
+
+// ─── Advisors ─────────────────────────────────────────────────────────────────
+
+const ADVISOR_TYPES_CONST = [
+  "Buy-side Banker",
+  "Sell-side Banker",
+  "Legal Counsel",
+  "Tax Advisor",
+  "Commercial DD",
+  "ESG Advisor",
+  "Cyber DD",
+  "Integration Advisor",
+  "Other",
+] as const;
+
+const CONFLICTS_STATUSES_CONST = ["Pending", "Cleared", "Flagged"] as const;
+const ADVISOR_SIDES_CONST = ["buy-side", "sell-side"] as const;
+
+const CreateAdvisorBodySchema = z.object({
+  side: z.enum(ADVISOR_SIDES_CONST).default("buy-side"),
+  advisorType: z.enum(ADVISOR_TYPES_CONST),
+  firmName: z.string().min(1),
+  contactName: z.string().nullable().optional(),
+  contactEmail: z.string().nullable().optional(),
+  engagementDate: z.string().nullable().optional(),
+  feeStructure: z.string().nullable().optional(),
+  conflictsStatus: z.enum(CONFLICTS_STATUSES_CONST).default("Pending"),
+  notes: z.string().nullable().optional(),
+});
+
+router.get("/:id/advisors", async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  if (isNaN(targetId)) return res.status(400).json({ error: "Invalid target id" });
+  const rows = await db
+    .select()
+    .from(dealAdvisorsTable)
+    .where(eq(dealAdvisorsTable.targetId, targetId))
+    .orderBy(dealAdvisorsTable.createdAt);
+  return res.json(rows);
+});
+
+router.post("/:id/advisors", async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  if (isNaN(targetId)) return res.status(400).json({ error: "Invalid target id" });
+  const parsed = CreateAdvisorBodySchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const [created] = await db
+    .insert(dealAdvisorsTable)
+    .values({ targetId, ...parsed.data })
     .returning();
-  return res.status(201).json(row);
+  return res.status(201).json(created);
+});
+
+// ─── Sponsors ────────────────────────────────────────────────────────────────
+
+const CreateSponsorBodySchema = z.object({
+  name: z.string().min(1),
+  roleTitle: z.string().nullable().optional(),
+  email: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+router.get("/:id/sponsors", async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  if (isNaN(targetId)) return res.status(400).json({ error: "Invalid target id" });
+  const rows = await db
+    .select()
+    .from(dealSponsorsTable)
+    .where(eq(dealSponsorsTable.targetId, targetId))
+    .orderBy(dealSponsorsTable.createdAt);
+  return res.json(rows);
+});
+
+router.post("/:id/sponsors", async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  if (isNaN(targetId)) return res.status(400).json({ error: "Invalid target id" });
+  const parsed = CreateSponsorBodySchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const [created] = await db
+    .insert(dealSponsorsTable)
+    .values({ targetId, ...parsed.data })
+    .returning();
+  return res.status(201).json(created);
 });
 
 export default router;

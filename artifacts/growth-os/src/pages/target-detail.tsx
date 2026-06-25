@@ -33,7 +33,7 @@ import {
   CheckCircle2, RotateCcw, Pencil, MessageSquare, ListChecks, GitBranch,
   LayoutGrid, ClipboardCheck, FolderOpen, Sparkles, Loader2, Copy, Check, Bot,
   ChevronDown, ChevronRight, Activity as ActivityIcon, Scale, TrendingUp,
-  AlertTriangle, Download,
+  AlertTriangle, Download, Users, ShieldCheck,
 } from "lucide-react";
 import {
   formatScore, getScoreConfidence, countAssessedScores,
@@ -45,6 +45,8 @@ import { DiligenceTab } from "@/pages/target-detail-diligence";
 import { DocumentsTab } from "@/pages/target-detail-documents";
 import { ValuationTab } from "@/pages/target-detail-valuation";
 import { SynergiesTab } from "@/pages/target-detail-synergies";
+import { StakeholdersTab } from "@/pages/target-detail-stakeholders";
+import { ComplianceTab } from "@/pages/target-detail-compliance";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -716,6 +718,8 @@ export default function TargetDetail() {
                 { value: "synergies",  label: "Synergies",  icon: <Sparkles size={13} /> },
                 { value: "activity",   label: "Activity",   icon: <ActivityIcon size={13} /> },
                 { value: "ic",         label: "IC",         icon: <Scale size={13} /> },
+                { value: "stakeholders", label: "Stakeholders", icon: <Users size={13} /> },
+                { value: "compliance",   label: "Compliance",   icon: <ShieldCheck size={13} /> },
               ].map(({ value, label, icon }) => (
                 <TabsTrigger
                   key={value}
@@ -981,6 +985,16 @@ export default function TargetDetail() {
                   })}
                 </div>
               )}
+            </TabsContent>
+
+            {/* Stakeholders */}
+            <TabsContent value="stakeholders" className="mt-0">
+              <StakeholdersTab targetId={targetId} />
+            </TabsContent>
+
+            {/* Compliance */}
+            <TabsContent value="compliance" className="mt-0">
+              <ComplianceTab targetId={targetId} />
             </TabsContent>
 
             {/* Diligence */}

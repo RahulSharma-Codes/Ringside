@@ -33,7 +33,10 @@ tags:
   - name: valuation
     description: Valuation log and deal economics
   - name: synergies
-    description: Synergy hypothesis register
+  - name: advisors
+  - name: sponsors
+  - name: compliance
+    description: NDA register and regulatory clearance tracking
 paths:
   /healthz:
     get:
@@ -910,90 +913,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/DealEconomics"
 
-  /targets/{id}/synergies:
-    get:
-      operationId: listSynergies
-      tags: [synergies]
-      summary: List synergy hypotheses for a target (most recent first)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Synergies list
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Synergy"
-    post:
-      operationId: createSynergy
-      tags: [synergies]
-      summary: Add a synergy hypothesis for a target
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateSynergyBody"
-      responses:
-        "201":
-          description: Synergy created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Synergy"
-
-  /synergies/{id}:
-    put:
-      operationId: updateSynergy
-      tags: [synergies]
-      summary: Update a synergy hypothesis
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateSynergyBody"
-      responses:
-        "200":
-          description: Synergy updated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Synergy"
-        "404":
-          description: Not found
-    delete:
-      operationId: deleteSynergy
-      tags: [synergies]
-      summary: Delete a synergy hypothesis
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "204":
-          description: Deleted
-
   /targets/{id}/activity:
     get:
       operationId: getActivityFeed
@@ -1325,6 +1244,377 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ImportApplyResult"
+
+  /targets/{id}/counterparty:
+    get:
+      summary: Get counterparty structured fields for a target
+      operationId: getCounterparty
+      tags: [advisors]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Counterparty info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CounterpartyInfo"
+    put:
+      summary: Update counterparty structured fields
+      operationId: updateCounterparty
+      tags: [advisors]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCounterpartyBody"
+      responses:
+        "200":
+          description: Updated counterparty info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CounterpartyInfo"
+
+  /targets/{id}/advisors:
+    get:
+      summary: List advisors for a target
+      operationId: listAdvisors
+      tags: [advisors]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of advisors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Advisor"
+    post:
+      summary: Add an advisor to a target
+      operationId: createAdvisor
+      tags: [advisors]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAdvisorBody"
+      responses:
+        "201":
+          description: Created advisor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Advisor"
+
+  /advisors/{id}:
+    put:
+      summary: Update an advisor
+      operationId: updateAdvisor
+      tags: [advisors]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAdvisorBody"
+      responses:
+        "200":
+          description: Updated advisor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Advisor"
+    delete:
+      summary: Delete an advisor
+      operationId: deleteAdvisor
+      tags: [advisors]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /targets/{id}/sponsors:
+    get:
+      summary: List internal sponsors for a target
+      operationId: listSponsors
+      tags: [sponsors]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of sponsors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Sponsor"
+    post:
+      summary: Add an internal sponsor to a target
+      operationId: createSponsor
+      tags: [sponsors]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSponsorBody"
+      responses:
+        "201":
+          description: Created sponsor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sponsor"
+
+  /sponsors/{id}:
+    put:
+      summary: Update a sponsor
+      operationId: updateSponsor
+      tags: [sponsors]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSponsorBody"
+      responses:
+        "200":
+          description: Updated sponsor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sponsor"
+    delete:
+      summary: Delete a sponsor
+      operationId: deleteSponsor
+      tags: [sponsors]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /targets/{id}/nda-records:
+    get:
+      summary: List NDA records for a target
+      operationId: listNdaRecords
+      tags: [compliance]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: NDA records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NdaRecord"
+    post:
+      summary: Add NDA record to a target
+      operationId: createNdaRecord
+      tags: [compliance]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNdaRecordBody"
+      responses:
+        "201":
+          description: Created NDA record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NdaRecord"
+
+  /nda-records/{id}:
+    put:
+      summary: Update an NDA record
+      operationId: updateNdaRecord
+      tags: [compliance]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateNdaRecordBody"
+      responses:
+        "200":
+          description: Updated NDA record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NdaRecord"
+    delete:
+      summary: Delete an NDA record
+      operationId: deleteNdaRecord
+      tags: [compliance]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /targets/{id}/regulatory-clearances:
+    get:
+      summary: List regulatory clearances for a target
+      operationId: listRegulatoryClearances
+      tags: [compliance]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Regulatory clearances
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RegulatoryClearance"
+    post:
+      summary: Add regulatory clearance to a target
+      operationId: createRegulatoryClearance
+      tags: [compliance]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRegulatoryClearanceBody"
+      responses:
+        "201":
+          description: Created clearance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegulatoryClearance"
+
+  /regulatory-clearances/{id}:
+    put:
+      summary: Update a regulatory clearance
+      operationId: updateRegulatoryClearance
+      tags: [compliance]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRegulatoryClearanceBody"
+      responses:
+        "200":
+          description: Updated clearance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegulatoryClearance"
+    delete:
+      summary: Delete a regulatory clearance
+      operationId: deleteRegulatoryClearance
+      tags: [compliance]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
 
 components:
   schemas:
@@ -2986,83 +3276,6 @@ components:
           format: date-time
       required: [id, targetId, type, description, confidence, realisationStatus, isDisynergy]
 
-    CreateSynergyBody:
-      type: object
-      properties:
-        type:
-          type: string
-        description:
-          type: string
-        fy1:
-          type: string
-          nullable: true
-        fy2:
-          type: string
-          nullable: true
-        fy3:
-          type: string
-          nullable: true
-        fy4:
-          type: string
-          nullable: true
-        fy5:
-          type: string
-          nullable: true
-        oneTimeCost:
-          type: string
-          nullable: true
-        confidence:
-          type: string
-        ownerName:
-          type: string
-          nullable: true
-        realisationStartMonth:
-          type: string
-          nullable: true
-        realisationStatus:
-          type: string
-        isDisynergy:
-          type: boolean
-      required: [type, description]
-
-    UpdateSynergyBody:
-      type: object
-      properties:
-        type:
-          type: string
-        description:
-          type: string
-        fy1:
-          type: string
-          nullable: true
-        fy2:
-          type: string
-          nullable: true
-        fy3:
-          type: string
-          nullable: true
-        fy4:
-          type: string
-          nullable: true
-        fy5:
-          type: string
-          nullable: true
-        oneTimeCost:
-          type: string
-          nullable: true
-        confidence:
-          type: string
-        ownerName:
-          type: string
-          nullable: true
-        realisationStartMonth:
-          type: string
-          nullable: true
-        realisationStatus:
-          type: string
-        isDisynergy:
-          type: boolean
-
     Valuation:
       type: object
       properties:
@@ -3630,4 +3843,402 @@ components:
           nullable: true
         isDisynergy:
           type: boolean
+          nullable: true
+
+    CounterpartyInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+        projectName:
+          type: string
+          nullable: true
+        legalName:
+          type: string
+          nullable: true
+        cpCin:
+          type: string
+          nullable: true
+        cpFounders:
+          type: string
+          nullable: true
+        cpKeyManagement:
+          type: string
+          nullable: true
+        cpControllingShareholderS:
+          type: string
+          nullable: true
+        cpWebsite:
+          type: string
+          nullable: true
+        cpNotes:
+          type: string
+          nullable: true
+
+    UpdateCounterpartyBody:
+      type: object
+      properties:
+        cpCin:
+          type: string
+          nullable: true
+        cpFounders:
+          type: string
+          nullable: true
+        cpKeyManagement:
+          type: string
+          nullable: true
+        cpControllingShareholderS:
+          type: string
+          nullable: true
+        cpWebsite:
+          type: string
+          nullable: true
+        cpNotes:
+          type: string
+          nullable: true
+
+    Advisor:
+      type: object
+      required: [id, targetId, side, advisorType, firmName, conflictsStatus, createdAt]
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        side:
+          type: string
+          enum: [buy-side, sell-side]
+        advisorType:
+          type: string
+          enum: [Buy-side Banker, Sell-side Banker, Legal Counsel, Tax Advisor, Commercial DD, ESG Advisor, Cyber DD, Integration Advisor, Other]
+        firmName:
+          type: string
+        contactName:
+          type: string
+          nullable: true
+        contactEmail:
+          type: string
+          nullable: true
+        engagementDate:
+          type: string
+          nullable: true
+        feeStructure:
+          type: string
+          nullable: true
+        conflictsStatus:
+          type: string
+          enum: [Pending, Cleared, Flagged]
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateAdvisorBody:
+      type: object
+      required: [advisorType, firmName]
+      properties:
+        side:
+          type: string
+          enum: [buy-side, sell-side]
+          default: buy-side
+        advisorType:
+          type: string
+          enum: [Buy-side Banker, Sell-side Banker, Legal Counsel, Tax Advisor, Commercial DD, ESG Advisor, Cyber DD, Integration Advisor, Other]
+        firmName:
+          type: string
+        contactName:
+          type: string
+          nullable: true
+        contactEmail:
+          type: string
+          nullable: true
+        engagementDate:
+          type: string
+          nullable: true
+        feeStructure:
+          type: string
+          nullable: true
+        conflictsStatus:
+          type: string
+          enum: [Pending, Cleared, Flagged]
+          default: Pending
+        notes:
+          type: string
+          nullable: true
+
+    UpdateAdvisorBody:
+      type: object
+      properties:
+        side:
+          type: string
+          enum: [buy-side, sell-side]
+          nullable: true
+        advisorType:
+          type: string
+          enum: [Buy-side Banker, Sell-side Banker, Legal Counsel, Tax Advisor, Commercial DD, ESG Advisor, Cyber DD, Integration Advisor, Other]
+          nullable: true
+        firmName:
+          type: string
+          nullable: true
+        contactName:
+          type: string
+          nullable: true
+        contactEmail:
+          type: string
+          nullable: true
+        engagementDate:
+          type: string
+          nullable: true
+        feeStructure:
+          type: string
+          nullable: true
+        conflictsStatus:
+          type: string
+          enum: [Pending, Cleared, Flagged]
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    Sponsor:
+      type: object
+      required: [id, targetId, name, createdAt]
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        name:
+          type: string
+        roleTitle:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateSponsorBody:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        roleTitle:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    UpdateSponsorBody:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+        roleTitle:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    NdaRecord:
+      type: object
+      required: [id, targetId, scope, status, createdAt]
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        counterparty:
+          type: string
+          nullable: true
+        effectiveDate:
+          type: string
+          nullable: true
+        expiryDate:
+          type: string
+          nullable: true
+        scope:
+          type: string
+          enum: [One-way, Mutual]
+        termMonths:
+          type: integer
+          nullable: true
+        docReference:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [Active, Expired, Extended]
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateNdaRecordBody:
+      type: object
+      properties:
+        counterparty:
+          type: string
+          nullable: true
+        effectiveDate:
+          type: string
+          nullable: true
+        expiryDate:
+          type: string
+          nullable: true
+        scope:
+          type: string
+          enum: [One-way, Mutual]
+          default: Mutual
+        termMonths:
+          type: integer
+          nullable: true
+        docReference:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [Active, Expired, Extended]
+          default: Active
+        notes:
+          type: string
+          nullable: true
+
+    UpdateNdaRecordBody:
+      type: object
+      properties:
+        counterparty:
+          type: string
+          nullable: true
+        effectiveDate:
+          type: string
+          nullable: true
+        expiryDate:
+          type: string
+          nullable: true
+        scope:
+          type: string
+          enum: [One-way, Mutual]
+          nullable: true
+        termMonths:
+          type: integer
+          nullable: true
+        docReference:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [Active, Expired, Extended]
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    RegulatoryClearance:
+      type: object
+      required: [id, targetId, category, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        category:
+          type: string
+          enum: [Antitrust-CCI, RBI, SEBI, IRDAI, FEMA-FDI, DPDP, Sanctions-PEP, ABAC, Other]
+        description:
+          type: string
+          nullable: true
+        ownerName:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [Not Required, Pending, Filed, Cleared, Blocked]
+        targetClearanceDate:
+          type: string
+          nullable: true
+        evidenceReference:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateRegulatoryClearanceBody:
+      type: object
+      required: [category]
+      properties:
+        category:
+          type: string
+          enum: [Antitrust-CCI, RBI, SEBI, IRDAI, FEMA-FDI, DPDP, Sanctions-PEP, ABAC, Other]
+        description:
+          type: string
+          nullable: true
+        ownerName:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [Not Required, Pending, Filed, Cleared, Blocked]
+          default: Pending
+        targetClearanceDate:
+          type: string
+          nullable: true
+        evidenceReference:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    UpdateRegulatoryClearanceBody:
+      type: object
+      properties:
+        category:
+          type: string
+          enum: [Antitrust-CCI, RBI, SEBI, IRDAI, FEMA-FDI, DPDP, Sanctions-PEP, ABAC, Other]
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        ownerName:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [Not Required, Pending, Filed, Cleared, Blocked]
+          nullable: true
+        targetClearanceDate:
+          type: string
+          nullable: true
+        evidenceReference:
+          type: string
+          nullable: true
+        notes:
+          type: string
           nullable: true

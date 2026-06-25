@@ -121,6 +121,50 @@ Chat interface at `/copilot` backed by `POST /api/ai/ask`. Reads a live DB snaps
 - `lib/db/src/index.ts` now prefers `PGHOST/PGUSER/PGPASSWORD/PGDATABASE` env vars over `DATABASE_URL` secret
 - `artifacts/api-server/src/index.ts` runs idempotent startup migrations (rename `action_items`→`actions`, create `milestones`, `deal_documents`, `ic_sessions` tables with IF NOT EXISTS guards)
 
+### Phase 9A — Stakeholders Tab (Counterparty & Advisor Management)
+
+**Stakeholders Tab** (per-target, inside Target Detail at `/targets/:id`):
+- 7th tab "Stakeholders" with Users icon in Target Detail
+- **Counterparty section**: structured record — legal entity name, CIN/reg no., founders, key management, controlling shareholders, website, notes; editable via Edit dialog
+- **Internal Sponsors section**: list of internal champions — name, role/title, email, notes; Add/Edit/Delete
+- **External Advisors (Buy-side)**: advisor type, firm name, contact, engagement date, fee structure, conflicts-check status (Pending/Cleared/Flagged); Add/Edit/Delete
+- **Counterparty Advisors (Sell-side)**: same structure; tracked for negotiation visibility
+- Flagged advisor warning banner shown at top of tab when any advisor has conflicts_status = "Flagged"
+- Component extracted to `target-detail-stakeholders.tsx`
+
+**Backend routes**:
+- `GET/PUT /api/targets/:id/counterparty` — structured counterparty fields
+- `GET/POST /api/targets/:id/advisors` — list and create advisors (buy-side and sell-side)
+- `PUT/DELETE /api/advisors/:id` — update/delete advisor
+- `GET/POST /api/targets/:id/sponsors` — list and create internal sponsors
+- `PUT/DELETE /api/sponsors/:id` — update/delete sponsor
+
+**Schema changes**:
+- `deal_advisors` table: id, target_id, side, advisor_type, firm_name, contact_name, contact_email, engagement_date, fee_structure, conflicts_status, notes, created_at
+- `deal_sponsors` table: id, target_id, name, role_title, email, notes, created_at
+- Counterparty columns added to `targets` via ALTER TABLE: cp_cin, cp_founders, cp_key_management, cp_controlling_shareholders, cp_website, cp_notes
+- OpenAPI: new `advisors` and `sponsors` tags; 7 new paths; 8 new schemas
+
+### Phase 8F — NDA Register + Regulatory Clearance Map
+
+**Compliance Tab** (per-target, inside Target Detail at `/targets/:id`):
+- 8th tab "Compliance" with ShieldCheck icon in Target Detail
+- **NDA Register section**: table of NDA records per deal — counterparty, effective date, expiry date, scope (One-way / Mutual), confidentiality term (months), document reference/link, status (Active / Expired / Extended); Add/Edit/Delete NDA record; NDAs expiring within 30 days shown with amber badge; expired NDAs shown in red
+- **Regulatory Clearance Map section**: structured list of clearance items; each item has: category (Antitrust-CCI / RBI / SEBI / IRDAI / FEMA-FDI / DPDP / Sanctions-PEP / ABAC / Other), description, owner name, status (Not Required / Pending / Filed / Cleared / Blocked), target clearance date, evidence document link, notes; Add/Edit/Delete item; overdue items (past target date, not cleared) flagged red
+- Global alert banner shown at top of tab if any NDA is expiring/expired or any clearance is overdue/blocked
+- Component extracted to `target-detail-compliance.tsx`
+
+**Backend routes**:
+- `GET/POST /api/targets/:id/nda-records` — list and create NDA records
+- `PUT/DELETE /api/nda-records/:id` — update/delete NDA record
+- `GET/POST /api/targets/:id/regulatory-clearances` — list and create clearance items
+- `PUT/DELETE /api/regulatory-clearances/:id` — update/delete clearance item
+
+**Schema changes**:
+- `nda_records` table: id, target_id, counterparty, effective_date, expiry_date, scope, term_months, doc_reference, status, notes, created_at
+- `regulatory_clearances` table: id, target_id, category, description, owner_name, status, target_clearance_date, evidence_reference, notes, created_at, updated_at
+- OpenAPI: new `compliance` tag; 6 new paths; 6 new schemas (NdaRecord, CreateNdaRecordBody, UpdateNdaRecordBody, RegulatoryClearance, CreateRegulatoryClearanceBody, UpdateRegulatoryClearanceBody)
+
 ## Checkpoints
 
 | Label | Commit | Notes |

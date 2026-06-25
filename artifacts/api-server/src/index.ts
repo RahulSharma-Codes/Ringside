@@ -249,11 +249,90 @@ async function applyMigrations(): Promise<void> {
   `);
 
   // Indexes
+  // Create deal_sponsors table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS deal_sponsors (
+      id         serial PRIMARY KEY,
+      target_id  integer NOT NULL REFERENCES targets(id),
+      name       text NOT NULL,
+      role_title text,
+      email      text,
+      notes      text,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )
+  `);
+
+  // Create deal_advisors table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS deal_advisors (
+      id               serial PRIMARY KEY,
+      target_id        integer NOT NULL REFERENCES targets(id),
+      side             text NOT NULL DEFAULT 'buy-side',
+      advisor_type     text NOT NULL,
+      firm_name        text NOT NULL,
+      contact_name     text,
+      contact_email    text,
+      engagement_date  text,
+      fee_structure    text,
+      conflicts_status text NOT NULL DEFAULT 'Pending',
+      notes            text,
+      created_at       timestamptz NOT NULL DEFAULT now()
+    )
+  `);
+
+  // Add structured counterparty columns to targets
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS cp_cin text`);
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS cp_founders text`);
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS cp_key_management text`);
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS cp_controlling_shareholders text`);
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS cp_website text`);
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS cp_notes text`);
+
+  // Indexes
   await db.execute(sql`CREATE INDEX IF NOT EXISTS ic_sessions_target_id_idx ON ic_sessions(target_id)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS deal_documents_target_id_idx ON deal_documents(target_id)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS valuations_target_id_idx ON valuations(target_id)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS synergies_target_id_idx ON synergies(target_id)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS ai_phase_runs_target_phase_idx ON ai_phase_runs(target_id, phase)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS deal_sponsors_target_id_idx ON deal_sponsors(target_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS deal_advisors_target_id_idx ON deal_advisors(target_id)`);
+
+  // Create nda_records table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS nda_records (
+      id            serial PRIMARY KEY,
+      target_id     integer NOT NULL REFERENCES targets(id),
+      counterparty  text,
+      effective_date text,
+      expiry_date   text,
+      scope         text NOT NULL DEFAULT 'Mutual',
+      term_months   integer,
+      doc_reference text,
+      status        text NOT NULL DEFAULT 'Active',
+      notes         text,
+      created_at    timestamptz NOT NULL DEFAULT now()
+    )
+  `);
+
+  // Create regulatory_clearances table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS regulatory_clearances (
+      id                    serial PRIMARY KEY,
+      target_id             integer NOT NULL REFERENCES targets(id),
+      category              text NOT NULL,
+      description           text,
+      owner_name            text,
+      status                text NOT NULL DEFAULT 'Pending',
+      target_clearance_date text,
+      evidence_reference    text,
+      notes                 text,
+      created_at            timestamptz NOT NULL DEFAULT now(),
+      updated_at            timestamptz NOT NULL DEFAULT now()
+    )
+  `);
+
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS nda_records_target_id_idx ON nda_records(target_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS reg_clearances_target_id_idx ON regulatory_clearances(target_id)`);
 }
 
 app.listen(port, (err) => {

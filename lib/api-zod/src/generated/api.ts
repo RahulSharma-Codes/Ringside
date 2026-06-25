@@ -1102,19 +1102,21 @@ export const CreateSynergyParams = zod.object({
 });
 
 export const CreateSynergyBody = zod.object({
-  type: zod.string(),
+  type: zod.enum(["Revenue", "Cost", "Capital", "Tax"]),
   description: zod.string(),
-  fy1: zod.string().nullish(),
-  fy2: zod.string().nullish(),
-  fy3: zod.string().nullish(),
-  fy4: zod.string().nullish(),
-  fy5: zod.string().nullish(),
-  oneTimeCost: zod.string().nullish(),
-  confidence: zod.string().optional(),
+  fy1: zod.number().nullish(),
+  fy2: zod.number().nullish(),
+  fy3: zod.number().nullish(),
+  fy4: zod.number().nullish(),
+  fy5: zod.number().nullish(),
+  oneTimeCost: zod.number().nullish(),
+  confidence: zod.enum(["Probable", "Possible", "Aspirational"]),
   ownerName: zod.string().nullish(),
   realisationStartMonth: zod.string().nullish(),
-  realisationStatus: zod.string().optional(),
-  isDisynergy: zod.boolean().optional(),
+  realisationStatus: zod
+    .enum(["Not Started", "On Track", "Slipping", "Realised"])
+    .nullish(),
+  isDisynergy: zod.boolean().nullish(),
 });
 
 /**
@@ -1125,19 +1127,21 @@ export const UpdateSynergyParams = zod.object({
 });
 
 export const UpdateSynergyBody = zod.object({
-  type: zod.string().optional(),
-  description: zod.string().optional(),
-  fy1: zod.string().nullish(),
-  fy2: zod.string().nullish(),
-  fy3: zod.string().nullish(),
-  fy4: zod.string().nullish(),
-  fy5: zod.string().nullish(),
-  oneTimeCost: zod.string().nullish(),
-  confidence: zod.string().optional(),
+  type: zod.enum(["Revenue", "Cost", "Capital", "Tax"]).nullish(),
+  description: zod.string().nullish(),
+  fy1: zod.number().nullish(),
+  fy2: zod.number().nullish(),
+  fy3: zod.number().nullish(),
+  fy4: zod.number().nullish(),
+  fy5: zod.number().nullish(),
+  oneTimeCost: zod.number().nullish(),
+  confidence: zod.enum(["Probable", "Possible", "Aspirational"]).nullish(),
   ownerName: zod.string().nullish(),
   realisationStartMonth: zod.string().nullish(),
-  realisationStatus: zod.string().optional(),
-  isDisynergy: zod.boolean().optional(),
+  realisationStatus: zod
+    .enum(["Not Started", "On Track", "Slipping", "Realised"])
+    .nullish(),
+  isDisynergy: zod.boolean().nullish(),
 });
 
 export const UpdateSynergyResponse = zod.object({
@@ -1288,121 +1292,6 @@ export const UpsertDealEconomicsResponse = zod.object({
   moicDownside: zod.string().nullish(),
   paybackYears: zod.string().nullish(),
   updatedAt: zod.coerce.date().nullish(),
-});
-
-/**
- * @summary List synergy hypotheses for a target (most recent first)
- */
-export const ListSynergiesParams = zod.object({
-  id: zod.coerce.number(),
-});
-
-export const ListSynergiesResponseItem = zod.object({
-  id: zod.number(),
-  targetId: zod.number(),
-  type: zod.enum(["Revenue", "Cost", "Capital", "Tax"]),
-  description: zod.string(),
-  fy1: zod.number().nullish(),
-  fy2: zod.number().nullish(),
-  fy3: zod.number().nullish(),
-  fy4: zod.number().nullish(),
-  fy5: zod.number().nullish(),
-  oneTimeCost: zod.number().nullish(),
-  confidence: zod.enum(["Probable", "Possible", "Aspirational"]),
-  ownerName: zod.string().nullish(),
-  realisationStartMonth: zod.string().nullish(),
-  realisationStatus: zod.enum([
-    "Not Started",
-    "On Track",
-    "Slipping",
-    "Realised",
-  ]),
-  isDisynergy: zod.boolean(),
-  createdAt: zod.coerce.date().nullish(),
-  updatedAt: zod.coerce.date().nullish(),
-});
-export const ListSynergiesResponse = zod.array(ListSynergiesResponseItem);
-
-/**
- * @summary Add a synergy hypothesis for a target
- */
-export const CreateSynergyParams = zod.object({
-  id: zod.coerce.number(),
-});
-
-export const CreateSynergyBody = zod.object({
-  type: zod.enum(["Revenue", "Cost", "Capital", "Tax"]),
-  description: zod.string(),
-  fy1: zod.number().nullish(),
-  fy2: zod.number().nullish(),
-  fy3: zod.number().nullish(),
-  fy4: zod.number().nullish(),
-  fy5: zod.number().nullish(),
-  oneTimeCost: zod.number().nullish(),
-  confidence: zod.enum(["Probable", "Possible", "Aspirational"]),
-  ownerName: zod.string().nullish(),
-  realisationStartMonth: zod.string().nullish(),
-  realisationStatus: zod
-    .enum(["Not Started", "On Track", "Slipping", "Realised"])
-    .nullish(),
-  isDisynergy: zod.boolean().nullish(),
-});
-
-/**
- * @summary Update a synergy hypothesis
- */
-export const UpdateSynergyParams = zod.object({
-  id: zod.coerce.number(),
-});
-
-export const UpdateSynergyBody = zod.object({
-  type: zod.enum(["Revenue", "Cost", "Capital", "Tax"]).nullish(),
-  description: zod.string().nullish(),
-  fy1: zod.number().nullish(),
-  fy2: zod.number().nullish(),
-  fy3: zod.number().nullish(),
-  fy4: zod.number().nullish(),
-  fy5: zod.number().nullish(),
-  oneTimeCost: zod.number().nullish(),
-  confidence: zod.enum(["Probable", "Possible", "Aspirational"]).nullish(),
-  ownerName: zod.string().nullish(),
-  realisationStartMonth: zod.string().nullish(),
-  realisationStatus: zod
-    .enum(["Not Started", "On Track", "Slipping", "Realised"])
-    .nullish(),
-  isDisynergy: zod.boolean().nullish(),
-});
-
-export const UpdateSynergyResponse = zod.object({
-  id: zod.number(),
-  targetId: zod.number(),
-  type: zod.enum(["Revenue", "Cost", "Capital", "Tax"]),
-  description: zod.string(),
-  fy1: zod.number().nullish(),
-  fy2: zod.number().nullish(),
-  fy3: zod.number().nullish(),
-  fy4: zod.number().nullish(),
-  fy5: zod.number().nullish(),
-  oneTimeCost: zod.number().nullish(),
-  confidence: zod.enum(["Probable", "Possible", "Aspirational"]),
-  ownerName: zod.string().nullish(),
-  realisationStartMonth: zod.string().nullish(),
-  realisationStatus: zod.enum([
-    "Not Started",
-    "On Track",
-    "Slipping",
-    "Realised",
-  ]),
-  isDisynergy: zod.boolean(),
-  createdAt: zod.coerce.date().nullish(),
-  updatedAt: zod.coerce.date().nullish(),
-});
-
-/**
- * @summary Delete a synergy hypothesis
- */
-export const DeleteSynergyParams = zod.object({
-  id: zod.coerce.number(),
 });
 
 /**
@@ -2192,4 +2081,459 @@ export const ApplyImportResponse = zod.object({
       message: zod.string(),
     }),
   ),
+});
+
+/**
+ * @summary Get counterparty structured fields for a target
+ */
+export const GetCounterpartyParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetCounterpartyResponse = zod.object({
+  id: zod.number().optional(),
+  projectName: zod.string().nullish(),
+  legalName: zod.string().nullish(),
+  cpCin: zod.string().nullish(),
+  cpFounders: zod.string().nullish(),
+  cpKeyManagement: zod.string().nullish(),
+  cpControllingShareholderS: zod.string().nullish(),
+  cpWebsite: zod.string().nullish(),
+  cpNotes: zod.string().nullish(),
+});
+
+/**
+ * @summary Update counterparty structured fields
+ */
+export const UpdateCounterpartyParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateCounterpartyBody = zod.object({
+  cpCin: zod.string().nullish(),
+  cpFounders: zod.string().nullish(),
+  cpKeyManagement: zod.string().nullish(),
+  cpControllingShareholderS: zod.string().nullish(),
+  cpWebsite: zod.string().nullish(),
+  cpNotes: zod.string().nullish(),
+});
+
+export const UpdateCounterpartyResponse = zod.object({
+  id: zod.number().optional(),
+  projectName: zod.string().nullish(),
+  legalName: zod.string().nullish(),
+  cpCin: zod.string().nullish(),
+  cpFounders: zod.string().nullish(),
+  cpKeyManagement: zod.string().nullish(),
+  cpControllingShareholderS: zod.string().nullish(),
+  cpWebsite: zod.string().nullish(),
+  cpNotes: zod.string().nullish(),
+});
+
+/**
+ * @summary List advisors for a target
+ */
+export const ListAdvisorsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListAdvisorsResponseItem = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  side: zod.enum(["buy-side", "sell-side"]),
+  advisorType: zod.enum([
+    "Buy-side Banker",
+    "Sell-side Banker",
+    "Legal Counsel",
+    "Tax Advisor",
+    "Commercial DD",
+    "ESG Advisor",
+    "Cyber DD",
+    "Integration Advisor",
+    "Other",
+  ]),
+  firmName: zod.string(),
+  contactName: zod.string().nullish(),
+  contactEmail: zod.string().nullish(),
+  engagementDate: zod.string().nullish(),
+  feeStructure: zod.string().nullish(),
+  conflictsStatus: zod.enum(["Pending", "Cleared", "Flagged"]),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const ListAdvisorsResponse = zod.array(ListAdvisorsResponseItem);
+
+/**
+ * @summary Add an advisor to a target
+ */
+export const CreateAdvisorParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const createAdvisorBodySideDefault = `buy-side`;
+export const createAdvisorBodyConflictsStatusDefault = `Pending`;
+
+export const CreateAdvisorBody = zod.object({
+  side: zod
+    .enum(["buy-side", "sell-side"])
+    .default(createAdvisorBodySideDefault),
+  advisorType: zod.enum([
+    "Buy-side Banker",
+    "Sell-side Banker",
+    "Legal Counsel",
+    "Tax Advisor",
+    "Commercial DD",
+    "ESG Advisor",
+    "Cyber DD",
+    "Integration Advisor",
+    "Other",
+  ]),
+  firmName: zod.string(),
+  contactName: zod.string().nullish(),
+  contactEmail: zod.string().nullish(),
+  engagementDate: zod.string().nullish(),
+  feeStructure: zod.string().nullish(),
+  conflictsStatus: zod
+    .enum(["Pending", "Cleared", "Flagged"])
+    .default(createAdvisorBodyConflictsStatusDefault),
+  notes: zod.string().nullish(),
+});
+
+/**
+ * @summary Update an advisor
+ */
+export const UpdateAdvisorParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAdvisorBody = zod.object({
+  side: zod.enum(["buy-side", "sell-side"]).nullish(),
+  advisorType: zod
+    .enum([
+      "Buy-side Banker",
+      "Sell-side Banker",
+      "Legal Counsel",
+      "Tax Advisor",
+      "Commercial DD",
+      "ESG Advisor",
+      "Cyber DD",
+      "Integration Advisor",
+      "Other",
+    ])
+    .nullish(),
+  firmName: zod.string().nullish(),
+  contactName: zod.string().nullish(),
+  contactEmail: zod.string().nullish(),
+  engagementDate: zod.string().nullish(),
+  feeStructure: zod.string().nullish(),
+  conflictsStatus: zod.enum(["Pending", "Cleared", "Flagged"]).nullish(),
+  notes: zod.string().nullish(),
+});
+
+export const UpdateAdvisorResponse = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  side: zod.enum(["buy-side", "sell-side"]),
+  advisorType: zod.enum([
+    "Buy-side Banker",
+    "Sell-side Banker",
+    "Legal Counsel",
+    "Tax Advisor",
+    "Commercial DD",
+    "ESG Advisor",
+    "Cyber DD",
+    "Integration Advisor",
+    "Other",
+  ]),
+  firmName: zod.string(),
+  contactName: zod.string().nullish(),
+  contactEmail: zod.string().nullish(),
+  engagementDate: zod.string().nullish(),
+  feeStructure: zod.string().nullish(),
+  conflictsStatus: zod.enum(["Pending", "Cleared", "Flagged"]),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete an advisor
+ */
+export const DeleteAdvisorParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List internal sponsors for a target
+ */
+export const ListSponsorsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListSponsorsResponseItem = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  name: zod.string(),
+  roleTitle: zod.string().nullish(),
+  email: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const ListSponsorsResponse = zod.array(ListSponsorsResponseItem);
+
+/**
+ * @summary Add an internal sponsor to a target
+ */
+export const CreateSponsorParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateSponsorBody = zod.object({
+  name: zod.string(),
+  roleTitle: zod.string().nullish(),
+  email: zod.string().nullish(),
+  notes: zod.string().nullish(),
+});
+
+/**
+ * @summary Update a sponsor
+ */
+export const UpdateSponsorParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateSponsorBody = zod.object({
+  name: zod.string().nullish(),
+  roleTitle: zod.string().nullish(),
+  email: zod.string().nullish(),
+  notes: zod.string().nullish(),
+});
+
+export const UpdateSponsorResponse = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  name: zod.string(),
+  roleTitle: zod.string().nullish(),
+  email: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete a sponsor
+ */
+export const DeleteSponsorParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List NDA records for a target
+ */
+export const ListNdaRecordsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListNdaRecordsResponseItem = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  counterparty: zod.string().nullish(),
+  effectiveDate: zod.string().nullish(),
+  expiryDate: zod.string().nullish(),
+  scope: zod.enum(["One-way", "Mutual"]),
+  termMonths: zod.number().nullish(),
+  docReference: zod.string().nullish(),
+  status: zod.enum(["Active", "Expired", "Extended"]),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const ListNdaRecordsResponse = zod.array(ListNdaRecordsResponseItem);
+
+/**
+ * @summary Add NDA record to a target
+ */
+export const CreateNdaRecordParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const createNdaRecordBodyScopeDefault = `Mutual`;
+export const createNdaRecordBodyStatusDefault = `Active`;
+
+export const CreateNdaRecordBody = zod.object({
+  counterparty: zod.string().nullish(),
+  effectiveDate: zod.string().nullish(),
+  expiryDate: zod.string().nullish(),
+  scope: zod
+    .enum(["One-way", "Mutual"])
+    .default(createNdaRecordBodyScopeDefault),
+  termMonths: zod.number().nullish(),
+  docReference: zod.string().nullish(),
+  status: zod
+    .enum(["Active", "Expired", "Extended"])
+    .default(createNdaRecordBodyStatusDefault),
+  notes: zod.string().nullish(),
+});
+
+/**
+ * @summary Update an NDA record
+ */
+export const UpdateNdaRecordParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateNdaRecordBody = zod.object({
+  counterparty: zod.string().nullish(),
+  effectiveDate: zod.string().nullish(),
+  expiryDate: zod.string().nullish(),
+  scope: zod.enum(["One-way", "Mutual"]).nullish(),
+  termMonths: zod.number().nullish(),
+  docReference: zod.string().nullish(),
+  status: zod.enum(["Active", "Expired", "Extended"]).nullish(),
+  notes: zod.string().nullish(),
+});
+
+export const UpdateNdaRecordResponse = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  counterparty: zod.string().nullish(),
+  effectiveDate: zod.string().nullish(),
+  expiryDate: zod.string().nullish(),
+  scope: zod.enum(["One-way", "Mutual"]),
+  termMonths: zod.number().nullish(),
+  docReference: zod.string().nullish(),
+  status: zod.enum(["Active", "Expired", "Extended"]),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete an NDA record
+ */
+export const DeleteNdaRecordParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List regulatory clearances for a target
+ */
+export const ListRegulatoryClearancesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListRegulatoryClearancesResponseItem = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  category: zod.enum([
+    "Antitrust-CCI",
+    "RBI",
+    "SEBI",
+    "IRDAI",
+    "FEMA-FDI",
+    "DPDP",
+    "Sanctions-PEP",
+    "ABAC",
+    "Other",
+  ]),
+  description: zod.string().nullish(),
+  ownerName: zod.string().nullish(),
+  status: zod.enum(["Not Required", "Pending", "Filed", "Cleared", "Blocked"]),
+  targetClearanceDate: zod.string().nullish(),
+  evidenceReference: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListRegulatoryClearancesResponse = zod.array(
+  ListRegulatoryClearancesResponseItem,
+);
+
+/**
+ * @summary Add regulatory clearance to a target
+ */
+export const CreateRegulatoryClearanceParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const createRegulatoryClearanceBodyStatusDefault = `Pending`;
+
+export const CreateRegulatoryClearanceBody = zod.object({
+  category: zod.enum([
+    "Antitrust-CCI",
+    "RBI",
+    "SEBI",
+    "IRDAI",
+    "FEMA-FDI",
+    "DPDP",
+    "Sanctions-PEP",
+    "ABAC",
+    "Other",
+  ]),
+  description: zod.string().nullish(),
+  ownerName: zod.string().nullish(),
+  status: zod
+    .enum(["Not Required", "Pending", "Filed", "Cleared", "Blocked"])
+    .default(createRegulatoryClearanceBodyStatusDefault),
+  targetClearanceDate: zod.string().nullish(),
+  evidenceReference: zod.string().nullish(),
+  notes: zod.string().nullish(),
+});
+
+/**
+ * @summary Update a regulatory clearance
+ */
+export const UpdateRegulatoryClearanceParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateRegulatoryClearanceBody = zod.object({
+  category: zod
+    .enum([
+      "Antitrust-CCI",
+      "RBI",
+      "SEBI",
+      "IRDAI",
+      "FEMA-FDI",
+      "DPDP",
+      "Sanctions-PEP",
+      "ABAC",
+      "Other",
+    ])
+    .nullish(),
+  description: zod.string().nullish(),
+  ownerName: zod.string().nullish(),
+  status: zod
+    .enum(["Not Required", "Pending", "Filed", "Cleared", "Blocked"])
+    .nullish(),
+  targetClearanceDate: zod.string().nullish(),
+  evidenceReference: zod.string().nullish(),
+  notes: zod.string().nullish(),
+});
+
+export const UpdateRegulatoryClearanceResponse = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  category: zod.enum([
+    "Antitrust-CCI",
+    "RBI",
+    "SEBI",
+    "IRDAI",
+    "FEMA-FDI",
+    "DPDP",
+    "Sanctions-PEP",
+    "ABAC",
+    "Other",
+  ]),
+  description: zod.string().nullish(),
+  ownerName: zod.string().nullish(),
+  status: zod.enum(["Not Required", "Pending", "Filed", "Cleared", "Blocked"]),
+  targetClearanceDate: zod.string().nullish(),
+  evidenceReference: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete a regulatory clearance
+ */
+export const DeleteRegulatoryClearanceParams = zod.object({
+  id: zod.coerce.number(),
 });

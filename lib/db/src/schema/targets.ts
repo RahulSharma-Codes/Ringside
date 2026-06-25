@@ -231,3 +231,60 @@ export const aiPhaseRunsTable = pgTable("ai_phase_runs", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 export type AiPhaseRun = typeof aiPhaseRunsTable.$inferSelect;
+
+export const dealSponsorsTable = pgTable("deal_sponsors", {
+  id: serial("id").primaryKey(),
+  targetId: integer("target_id").notNull().references(() => targetsTable.id),
+  name: text("name").notNull(),
+  roleTitle: text("role_title"),
+  email: text("email"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+export type DealSponsor = typeof dealSponsorsTable.$inferSelect;
+
+export const dealAdvisorsTable = pgTable("deal_advisors", {
+  id: serial("id").primaryKey(),
+  targetId: integer("target_id").notNull().references(() => targetsTable.id),
+  side: text("side").notNull().default("buy-side"),
+  advisorType: text("advisor_type").notNull(),
+  firmName: text("firm_name").notNull(),
+  contactName: text("contact_name"),
+  contactEmail: text("contact_email"),
+  engagementDate: text("engagement_date"),
+  feeStructure: text("fee_structure"),
+  conflictsStatus: text("conflicts_status").notNull().default("Pending"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+export type DealAdvisor = typeof dealAdvisorsTable.$inferSelect;
+
+export const ndaRecordsTable = pgTable("nda_records", {
+  id: serial("id").primaryKey(),
+  targetId: integer("target_id").notNull().references(() => targetsTable.id),
+  counterparty: text("counterparty"),
+  effectiveDate: text("effective_date"),
+  expiryDate: text("expiry_date"),
+  scope: text("scope").notNull().default("Mutual"),
+  termMonths: integer("term_months"),
+  docReference: text("doc_reference"),
+  status: text("status").notNull().default("Active"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+export type NdaRecord = typeof ndaRecordsTable.$inferSelect;
+
+export const regulatoryClearancesTable = pgTable("regulatory_clearances", {
+  id: serial("id").primaryKey(),
+  targetId: integer("target_id").notNull().references(() => targetsTable.id),
+  category: text("category").notNull(),
+  description: text("description"),
+  ownerName: text("owner_name"),
+  status: text("status").notNull().default("Pending"),
+  targetClearanceDate: text("target_clearance_date"),
+  evidenceReference: text("evidence_reference"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+export type RegulatoryClearance = typeof regulatoryClearancesTable.$inferSelect;

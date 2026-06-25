@@ -13,6 +13,10 @@ import analyticsRouter from "./analytics";
 import valuationsRouter from "./valuations";
 import synergiesRouter from "./synergies";
 import exportRouter from "./export";
+import advisorsRouter from "./advisors";
+import sponsorsRouter from "./sponsors";
+import ndaRecordsRouter from "./nda-records";
+import regulatoryClearancesRouter from "./regulatory-clearances";
 
 const router: IRouter = Router();
 
@@ -30,6 +34,10 @@ router.use("/ic-sessions", icSessionsRouter);
 router.use("/analytics", analyticsRouter);
 router.use("/valuations", valuationsRouter);
 router.use("/synergies", synergiesRouter);
+router.use("/advisors", advisorsRouter);
+router.use("/sponsors", sponsorsRouter);
+router.use("/nda-records", ndaRecordsRouter);
+router.use("/regulatory-clearances", regulatoryClearancesRouter);
 
 export default router;
 

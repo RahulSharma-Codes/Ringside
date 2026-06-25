@@ -750,38 +750,6 @@ export interface SynergyEntry {
   updatedAt?: string;
 }
 
-export interface CreateSynergyBody {
-  type: string;
-  description: string;
-  fy1?: string | null;
-  fy2?: string | null;
-  fy3?: string | null;
-  fy4?: string | null;
-  fy5?: string | null;
-  oneTimeCost?: string | null;
-  confidence?: string;
-  ownerName?: string | null;
-  realisationStartMonth?: string | null;
-  realisationStatus?: string;
-  isDisynergy?: boolean;
-}
-
-export interface UpdateSynergyBody {
-  type?: string;
-  description?: string;
-  fy1?: string | null;
-  fy2?: string | null;
-  fy3?: string | null;
-  fy4?: string | null;
-  fy5?: string | null;
-  oneTimeCost?: string | null;
-  confidence?: string;
-  ownerName?: string | null;
-  realisationStartMonth?: string | null;
-  realisationStatus?: string;
-  isDisynergy?: boolean;
-}
-
 export interface Valuation {
   id: number;
   targetId: number;
@@ -1116,7 +1084,391 @@ export interface UpdateSynergyBody {
   realisationStartMonth?: string | null;
   realisationStatus?: UpdateSynergyBodyRealisationStatus;
   isDisynergy?: boolean | null;
->>>>>>> 76b5e00 (feat: Synergies Register — per-deal synergy hypothesis tracking (Task #62))
+}
+
+export interface CounterpartyInfo {
+  id?: number;
+  projectName?: string | null;
+  legalName?: string | null;
+  cpCin?: string | null;
+  cpFounders?: string | null;
+  cpKeyManagement?: string | null;
+  cpControllingShareholderS?: string | null;
+  cpWebsite?: string | null;
+  cpNotes?: string | null;
+}
+
+export interface UpdateCounterpartyBody {
+  cpCin?: string | null;
+  cpFounders?: string | null;
+  cpKeyManagement?: string | null;
+  cpControllingShareholderS?: string | null;
+  cpWebsite?: string | null;
+  cpNotes?: string | null;
+}
+
+export type AdvisorSide = (typeof AdvisorSide)[keyof typeof AdvisorSide];
+
+export const AdvisorSide = {
+  "buy-side": "buy-side",
+  "sell-side": "sell-side",
+} as const;
+
+export type AdvisorAdvisorType =
+  (typeof AdvisorAdvisorType)[keyof typeof AdvisorAdvisorType];
+
+export const AdvisorAdvisorType = {
+  "Buy-side_Banker": "Buy-side Banker",
+  "Sell-side_Banker": "Sell-side Banker",
+  Legal_Counsel: "Legal Counsel",
+  Tax_Advisor: "Tax Advisor",
+  Commercial_DD: "Commercial DD",
+  ESG_Advisor: "ESG Advisor",
+  Cyber_DD: "Cyber DD",
+  Integration_Advisor: "Integration Advisor",
+  Other: "Other",
+} as const;
+
+export type AdvisorConflictsStatus =
+  (typeof AdvisorConflictsStatus)[keyof typeof AdvisorConflictsStatus];
+
+export const AdvisorConflictsStatus = {
+  Pending: "Pending",
+  Cleared: "Cleared",
+  Flagged: "Flagged",
+} as const;
+
+export interface Advisor {
+  id: number;
+  targetId: number;
+  side: AdvisorSide;
+  advisorType: AdvisorAdvisorType;
+  firmName: string;
+  contactName?: string | null;
+  contactEmail?: string | null;
+  engagementDate?: string | null;
+  feeStructure?: string | null;
+  conflictsStatus: AdvisorConflictsStatus;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export type CreateAdvisorBodySide =
+  (typeof CreateAdvisorBodySide)[keyof typeof CreateAdvisorBodySide];
+
+export const CreateAdvisorBodySide = {
+  "buy-side": "buy-side",
+  "sell-side": "sell-side",
+} as const;
+
+export type CreateAdvisorBodyAdvisorType =
+  (typeof CreateAdvisorBodyAdvisorType)[keyof typeof CreateAdvisorBodyAdvisorType];
+
+export const CreateAdvisorBodyAdvisorType = {
+  "Buy-side_Banker": "Buy-side Banker",
+  "Sell-side_Banker": "Sell-side Banker",
+  Legal_Counsel: "Legal Counsel",
+  Tax_Advisor: "Tax Advisor",
+  Commercial_DD: "Commercial DD",
+  ESG_Advisor: "ESG Advisor",
+  Cyber_DD: "Cyber DD",
+  Integration_Advisor: "Integration Advisor",
+  Other: "Other",
+} as const;
+
+export type CreateAdvisorBodyConflictsStatus =
+  (typeof CreateAdvisorBodyConflictsStatus)[keyof typeof CreateAdvisorBodyConflictsStatus];
+
+export const CreateAdvisorBodyConflictsStatus = {
+  Pending: "Pending",
+  Cleared: "Cleared",
+  Flagged: "Flagged",
+} as const;
+
+export interface CreateAdvisorBody {
+  side?: CreateAdvisorBodySide;
+  advisorType: CreateAdvisorBodyAdvisorType;
+  firmName: string;
+  contactName?: string | null;
+  contactEmail?: string | null;
+  engagementDate?: string | null;
+  feeStructure?: string | null;
+  conflictsStatus?: CreateAdvisorBodyConflictsStatus;
+  notes?: string | null;
+}
+
+export type UpdateAdvisorBodySide =
+  | (typeof UpdateAdvisorBodySide)[keyof typeof UpdateAdvisorBodySide]
+  | null;
+
+export const UpdateAdvisorBodySide = {
+  "buy-side": "buy-side",
+  "sell-side": "sell-side",
+} as const;
+
+export type UpdateAdvisorBodyAdvisorType =
+  | (typeof UpdateAdvisorBodyAdvisorType)[keyof typeof UpdateAdvisorBodyAdvisorType]
+  | null;
+
+export const UpdateAdvisorBodyAdvisorType = {
+  "Buy-side_Banker": "Buy-side Banker",
+  "Sell-side_Banker": "Sell-side Banker",
+  Legal_Counsel: "Legal Counsel",
+  Tax_Advisor: "Tax Advisor",
+  Commercial_DD: "Commercial DD",
+  ESG_Advisor: "ESG Advisor",
+  Cyber_DD: "Cyber DD",
+  Integration_Advisor: "Integration Advisor",
+  Other: "Other",
+} as const;
+
+export type UpdateAdvisorBodyConflictsStatus =
+  | (typeof UpdateAdvisorBodyConflictsStatus)[keyof typeof UpdateAdvisorBodyConflictsStatus]
+  | null;
+
+export const UpdateAdvisorBodyConflictsStatus = {
+  Pending: "Pending",
+  Cleared: "Cleared",
+  Flagged: "Flagged",
+} as const;
+
+export interface UpdateAdvisorBody {
+  side?: UpdateAdvisorBodySide;
+  advisorType?: UpdateAdvisorBodyAdvisorType;
+  firmName?: string | null;
+  contactName?: string | null;
+  contactEmail?: string | null;
+  engagementDate?: string | null;
+  feeStructure?: string | null;
+  conflictsStatus?: UpdateAdvisorBodyConflictsStatus;
+  notes?: string | null;
+}
+
+export interface Sponsor {
+  id: number;
+  targetId: number;
+  name: string;
+  roleTitle?: string | null;
+  email?: string | null;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface CreateSponsorBody {
+  name: string;
+  roleTitle?: string | null;
+  email?: string | null;
+  notes?: string | null;
+}
+
+export interface UpdateSponsorBody {
+  name?: string | null;
+  roleTitle?: string | null;
+  email?: string | null;
+  notes?: string | null;
+}
+
+export type NdaRecordScope =
+  (typeof NdaRecordScope)[keyof typeof NdaRecordScope];
+
+export const NdaRecordScope = {
+  "One-way": "One-way",
+  Mutual: "Mutual",
+} as const;
+
+export type NdaRecordStatus =
+  (typeof NdaRecordStatus)[keyof typeof NdaRecordStatus];
+
+export const NdaRecordStatus = {
+  Active: "Active",
+  Expired: "Expired",
+  Extended: "Extended",
+} as const;
+
+export interface NdaRecord {
+  id: number;
+  targetId: number;
+  counterparty?: string | null;
+  effectiveDate?: string | null;
+  expiryDate?: string | null;
+  scope: NdaRecordScope;
+  termMonths?: number | null;
+  docReference?: string | null;
+  status: NdaRecordStatus;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export type CreateNdaRecordBodyScope =
+  (typeof CreateNdaRecordBodyScope)[keyof typeof CreateNdaRecordBodyScope];
+
+export const CreateNdaRecordBodyScope = {
+  "One-way": "One-way",
+  Mutual: "Mutual",
+} as const;
+
+export type CreateNdaRecordBodyStatus =
+  (typeof CreateNdaRecordBodyStatus)[keyof typeof CreateNdaRecordBodyStatus];
+
+export const CreateNdaRecordBodyStatus = {
+  Active: "Active",
+  Expired: "Expired",
+  Extended: "Extended",
+} as const;
+
+export interface CreateNdaRecordBody {
+  counterparty?: string | null;
+  effectiveDate?: string | null;
+  expiryDate?: string | null;
+  scope?: CreateNdaRecordBodyScope;
+  termMonths?: number | null;
+  docReference?: string | null;
+  status?: CreateNdaRecordBodyStatus;
+  notes?: string | null;
+}
+
+export type UpdateNdaRecordBodyScope =
+  | (typeof UpdateNdaRecordBodyScope)[keyof typeof UpdateNdaRecordBodyScope]
+  | null;
+
+export const UpdateNdaRecordBodyScope = {
+  "One-way": "One-way",
+  Mutual: "Mutual",
+} as const;
+
+export type UpdateNdaRecordBodyStatus =
+  | (typeof UpdateNdaRecordBodyStatus)[keyof typeof UpdateNdaRecordBodyStatus]
+  | null;
+
+export const UpdateNdaRecordBodyStatus = {
+  Active: "Active",
+  Expired: "Expired",
+  Extended: "Extended",
+} as const;
+
+export interface UpdateNdaRecordBody {
+  counterparty?: string | null;
+  effectiveDate?: string | null;
+  expiryDate?: string | null;
+  scope?: UpdateNdaRecordBodyScope;
+  termMonths?: number | null;
+  docReference?: string | null;
+  status?: UpdateNdaRecordBodyStatus;
+  notes?: string | null;
+}
+
+export type RegulatoryClearanceCategory =
+  (typeof RegulatoryClearanceCategory)[keyof typeof RegulatoryClearanceCategory];
+
+export const RegulatoryClearanceCategory = {
+  "Antitrust-CCI": "Antitrust-CCI",
+  RBI: "RBI",
+  SEBI: "SEBI",
+  IRDAI: "IRDAI",
+  "FEMA-FDI": "FEMA-FDI",
+  DPDP: "DPDP",
+  "Sanctions-PEP": "Sanctions-PEP",
+  ABAC: "ABAC",
+  Other: "Other",
+} as const;
+
+export type RegulatoryClearanceStatus =
+  (typeof RegulatoryClearanceStatus)[keyof typeof RegulatoryClearanceStatus];
+
+export const RegulatoryClearanceStatus = {
+  Not_Required: "Not Required",
+  Pending: "Pending",
+  Filed: "Filed",
+  Cleared: "Cleared",
+  Blocked: "Blocked",
+} as const;
+
+export interface RegulatoryClearance {
+  id: number;
+  targetId: number;
+  category: RegulatoryClearanceCategory;
+  description?: string | null;
+  ownerName?: string | null;
+  status: RegulatoryClearanceStatus;
+  targetClearanceDate?: string | null;
+  evidenceReference?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateRegulatoryClearanceBodyCategory =
+  (typeof CreateRegulatoryClearanceBodyCategory)[keyof typeof CreateRegulatoryClearanceBodyCategory];
+
+export const CreateRegulatoryClearanceBodyCategory = {
+  "Antitrust-CCI": "Antitrust-CCI",
+  RBI: "RBI",
+  SEBI: "SEBI",
+  IRDAI: "IRDAI",
+  "FEMA-FDI": "FEMA-FDI",
+  DPDP: "DPDP",
+  "Sanctions-PEP": "Sanctions-PEP",
+  ABAC: "ABAC",
+  Other: "Other",
+} as const;
+
+export type CreateRegulatoryClearanceBodyStatus =
+  (typeof CreateRegulatoryClearanceBodyStatus)[keyof typeof CreateRegulatoryClearanceBodyStatus];
+
+export const CreateRegulatoryClearanceBodyStatus = {
+  Not_Required: "Not Required",
+  Pending: "Pending",
+  Filed: "Filed",
+  Cleared: "Cleared",
+  Blocked: "Blocked",
+} as const;
+
+export interface CreateRegulatoryClearanceBody {
+  category: CreateRegulatoryClearanceBodyCategory;
+  description?: string | null;
+  ownerName?: string | null;
+  status?: CreateRegulatoryClearanceBodyStatus;
+  targetClearanceDate?: string | null;
+  evidenceReference?: string | null;
+  notes?: string | null;
+}
+
+export type UpdateRegulatoryClearanceBodyCategory =
+  | (typeof UpdateRegulatoryClearanceBodyCategory)[keyof typeof UpdateRegulatoryClearanceBodyCategory]
+  | null;
+
+export const UpdateRegulatoryClearanceBodyCategory = {
+  "Antitrust-CCI": "Antitrust-CCI",
+  RBI: "RBI",
+  SEBI: "SEBI",
+  IRDAI: "IRDAI",
+  "FEMA-FDI": "FEMA-FDI",
+  DPDP: "DPDP",
+  "Sanctions-PEP": "Sanctions-PEP",
+  ABAC: "ABAC",
+  Other: "Other",
+} as const;
+
+export type UpdateRegulatoryClearanceBodyStatus =
+  | (typeof UpdateRegulatoryClearanceBodyStatus)[keyof typeof UpdateRegulatoryClearanceBodyStatus]
+  | null;
+
+export const UpdateRegulatoryClearanceBodyStatus = {
+  Not_Required: "Not Required",
+  Pending: "Pending",
+  Filed: "Filed",
+  Cleared: "Cleared",
+  Blocked: "Blocked",
+} as const;
+
+export interface UpdateRegulatoryClearanceBody {
+  category?: UpdateRegulatoryClearanceBodyCategory;
+  description?: string | null;
+  ownerName?: string | null;
+  status?: UpdateRegulatoryClearanceBodyStatus;
+  targetClearanceDate?: string | null;
+  evidenceReference?: string | null;
+  notes?: string | null;
 }
 
 export type ListTargetsParams = {

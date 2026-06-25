@@ -19,16 +19,22 @@ import type {
 import type {
   ActionItem,
   ActivityFeedResponse,
+  Advisor,
   AiAskRequest,
   AiAskResponse,
   AiStatusResponse,
   BriefResponse,
   CommandCenterAction,
+  CounterpartyInfo,
   CreateActionBody,
+  CreateAdvisorBody,
   CreateDiligenceItemBody,
   CreateDocumentBody,
   CreateIcSessionBody,
   CreateInteractionBody,
+  CreateNdaRecordBody,
+  CreateRegulatoryClearanceBody,
+  CreateSponsorBody,
   CreateSynergyBody,
   CreateTargetBody,
   CreateValuationBody,
@@ -58,20 +64,28 @@ import type {
   ListTargetsParams,
   MeetingNotesRequest,
   MeetingNotesResponse,
+  NdaRecord,
   NeedsAttentionTarget,
   OpportunityBriefRequest,
   OriginationChannelItem,
+  RegulatoryClearance,
+  Sponsor,
   StageChange,
   StageCount,
   StageGateCheckResponse,
   StageUpdateResponse,
-  Synergy,
+  SynergyEntry,
   Target,
   TargetDetail,
   TimeInStageResponse,
   UpdateActionBody,
+  UpdateAdvisorBody,
+  UpdateCounterpartyBody,
   UpdateDocumentBody,
   UpdateInteractionBody,
+  UpdateNdaRecordBody,
+  UpdateRegulatoryClearanceBody,
+  UpdateSponsorBody,
   UpdateStageBody,
   UpdateSynergyBody,
   UpdateTargetBody,
@@ -3820,351 +3834,6 @@ export const useUpsertDealEconomics = <
 };
 
 /**
- * @summary List synergy hypotheses for a target (most recent first)
- */
-export const getListSynergiesUrl = (id: number) => {
-  return `/api/targets/${id}/synergies`;
-};
-
-export const listSynergies = async (
-  id: number,
-  options?: RequestInit,
-): Promise<Synergy[]> => {
-  return customFetch<Synergy[]>(getListSynergiesUrl(id), {
-    ...options,
-    method: "GET",
-  });
-};
-
-export const getListSynergiesQueryKey = (id: number) => {
-  return [`/api/targets/${id}/synergies`] as const;
-};
-
-export const getListSynergiesQueryOptions = <
-  TData = Awaited<ReturnType<typeof listSynergies>>,
-  TError = ErrorType<unknown>,
->(
-  id: number,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof listSynergies>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getListSynergiesQueryKey(id);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listSynergies>>> = ({
-    signal,
-  }) => listSynergies(id, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!id,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof listSynergies>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type ListSynergiesQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listSynergies>>
->;
-export type ListSynergiesQueryError = ErrorType<unknown>;
-
-/**
- * @summary List synergy hypotheses for a target (most recent first)
- */
-
-export function useListSynergies<
-  TData = Awaited<ReturnType<typeof listSynergies>>,
-  TError = ErrorType<unknown>,
->(
-  id: number,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof listSynergies>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListSynergiesQueryOptions(id, options);
-
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-/**
- * @summary Add a synergy hypothesis for a target
- */
-export const getCreateSynergyUrl = (id: number) => {
-  return `/api/targets/${id}/synergies`;
-};
-
-export const createSynergy = async (
-  id: number,
-  createSynergyBody: CreateSynergyBody,
-  options?: RequestInit,
-): Promise<Synergy> => {
-  return customFetch<Synergy>(getCreateSynergyUrl(id), {
-    ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(createSynergyBody),
-  });
-};
-
-export const getCreateSynergyMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createSynergy>>,
-    TError,
-    { id: number; data: BodyType<CreateSynergyBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createSynergy>>,
-  TError,
-  { id: number; data: BodyType<CreateSynergyBody> },
-  TContext
-> => {
-  const mutationKey = ["createSynergy"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createSynergy>>,
-    { id: number; data: BodyType<CreateSynergyBody> }
-  > = (props) => {
-    const { id, data } = props ?? {};
-
-    return createSynergy(id, data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type CreateSynergyMutationResult = NonNullable<
-  Awaited<ReturnType<typeof createSynergy>>
->;
-export type CreateSynergyMutationBody = BodyType<CreateSynergyBody>;
-export type CreateSynergyMutationError = ErrorType<unknown>;
-
-/**
- * @summary Add a synergy hypothesis for a target
- */
-export const useCreateSynergy = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createSynergy>>,
-    TError,
-    { id: number; data: BodyType<CreateSynergyBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof createSynergy>>,
-  TError,
-  { id: number; data: BodyType<CreateSynergyBody> },
-  TContext
-> => {
-  return useMutation(getCreateSynergyMutationOptions(options));
-};
-
-/**
- * @summary Update a synergy hypothesis
- */
-export const getUpdateSynergyUrl = (id: number) => {
-  return `/api/synergies/${id}`;
-};
-
-export const updateSynergy = async (
-  id: number,
-  updateSynergyBody: UpdateSynergyBody,
-  options?: RequestInit,
-): Promise<Synergy> => {
-  return customFetch<Synergy>(getUpdateSynergyUrl(id), {
-    ...options,
-    method: "PUT",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(updateSynergyBody),
-  });
-};
-
-export const getUpdateSynergyMutationOptions = <
-  TError = ErrorType<void>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateSynergy>>,
-    TError,
-    { id: number; data: BodyType<UpdateSynergyBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateSynergy>>,
-  TError,
-  { id: number; data: BodyType<UpdateSynergyBody> },
-  TContext
-> => {
-  const mutationKey = ["updateSynergy"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateSynergy>>,
-    { id: number; data: BodyType<UpdateSynergyBody> }
-  > = (props) => {
-    const { id, data } = props ?? {};
-
-    return updateSynergy(id, data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type UpdateSynergyMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateSynergy>>
->;
-export type UpdateSynergyMutationBody = BodyType<UpdateSynergyBody>;
-export type UpdateSynergyMutationError = ErrorType<void>;
-
-/**
- * @summary Update a synergy hypothesis
- */
-export const useUpdateSynergy = <
-  TError = ErrorType<void>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateSynergy>>,
-    TError,
-    { id: number; data: BodyType<UpdateSynergyBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof updateSynergy>>,
-  TError,
-  { id: number; data: BodyType<UpdateSynergyBody> },
-  TContext
-> => {
-  return useMutation(getUpdateSynergyMutationOptions(options));
-};
-
-/**
- * @summary Delete a synergy hypothesis
- */
-export const getDeleteSynergyUrl = (id: number) => {
-  return `/api/synergies/${id}`;
-};
-
-export const deleteSynergy = async (
-  id: number,
-  options?: RequestInit,
-): Promise<void> => {
-  return customFetch<void>(getDeleteSynergyUrl(id), {
-    ...options,
-    method: "DELETE",
-  });
-};
-
-export const getDeleteSynergyMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deleteSynergy>>,
-    TError,
-    { id: number },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof deleteSynergy>>,
-  TError,
-  { id: number },
-  TContext
-> => {
-  const mutationKey = ["deleteSynergy"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof deleteSynergy>>,
-    { id: number }
-  > = (props) => {
-    const { id } = props ?? {};
-
-    return deleteSynergy(id, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type DeleteSynergyMutationResult = NonNullable<
-  Awaited<ReturnType<typeof deleteSynergy>>
->;
-
-export type DeleteSynergyMutationError = ErrorType<unknown>;
-
-/**
- * @summary Delete a synergy hypothesis
- */
-export const useDeleteSynergy = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deleteSynergy>>,
-    TError,
-    { id: number },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof deleteSynergy>>,
-  TError,
-  { id: number },
-  TContext
-> => {
-  return useMutation(getDeleteSynergyMutationOptions(options));
-};
-
-/**
  * @summary Unified activity feed for a target (stage changes, interactions, completed actions, diligence, documents)
  */
 export const getGetActivityFeedUrl = (id: number) => {
@@ -5689,4 +5358,1565 @@ export const useApplyImport = <
   TContext
 > => {
   return useMutation(getApplyImportMutationOptions(options));
+};
+
+/**
+ * @summary Get counterparty structured fields for a target
+ */
+export const getGetCounterpartyUrl = (id: number) => {
+  return `/api/targets/${id}/counterparty`;
+};
+
+export const getCounterparty = async (
+  id: number,
+  options?: RequestInit,
+): Promise<CounterpartyInfo> => {
+  return customFetch<CounterpartyInfo>(getGetCounterpartyUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCounterpartyQueryKey = (id: number) => {
+  return [`/api/targets/${id}/counterparty`] as const;
+};
+
+export const getGetCounterpartyQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCounterparty>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCounterparty>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCounterpartyQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCounterparty>>> = ({
+    signal,
+  }) => getCounterparty(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCounterparty>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCounterpartyQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCounterparty>>
+>;
+export type GetCounterpartyQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get counterparty structured fields for a target
+ */
+
+export function useGetCounterparty<
+  TData = Awaited<ReturnType<typeof getCounterparty>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCounterparty>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCounterpartyQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update counterparty structured fields
+ */
+export const getUpdateCounterpartyUrl = (id: number) => {
+  return `/api/targets/${id}/counterparty`;
+};
+
+export const updateCounterparty = async (
+  id: number,
+  updateCounterpartyBody: UpdateCounterpartyBody,
+  options?: RequestInit,
+): Promise<CounterpartyInfo> => {
+  return customFetch<CounterpartyInfo>(getUpdateCounterpartyUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateCounterpartyBody),
+  });
+};
+
+export const getUpdateCounterpartyMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCounterparty>>,
+    TError,
+    { id: number; data: BodyType<UpdateCounterpartyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCounterparty>>,
+  TError,
+  { id: number; data: BodyType<UpdateCounterpartyBody> },
+  TContext
+> => {
+  const mutationKey = ["updateCounterparty"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCounterparty>>,
+    { id: number; data: BodyType<UpdateCounterpartyBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateCounterparty(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCounterpartyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCounterparty>>
+>;
+export type UpdateCounterpartyMutationBody = BodyType<UpdateCounterpartyBody>;
+export type UpdateCounterpartyMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update counterparty structured fields
+ */
+export const useUpdateCounterparty = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCounterparty>>,
+    TError,
+    { id: number; data: BodyType<UpdateCounterpartyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCounterparty>>,
+  TError,
+  { id: number; data: BodyType<UpdateCounterpartyBody> },
+  TContext
+> => {
+  return useMutation(getUpdateCounterpartyMutationOptions(options));
+};
+
+/**
+ * @summary List advisors for a target
+ */
+export const getListAdvisorsUrl = (id: number) => {
+  return `/api/targets/${id}/advisors`;
+};
+
+export const listAdvisors = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Advisor[]> => {
+  return customFetch<Advisor[]>(getListAdvisorsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAdvisorsQueryKey = (id: number) => {
+  return [`/api/targets/${id}/advisors`] as const;
+};
+
+export const getListAdvisorsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdvisors>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAdvisors>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAdvisorsQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdvisors>>> = ({
+    signal,
+  }) => listAdvisors(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdvisors>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdvisorsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdvisors>>
+>;
+export type ListAdvisorsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List advisors for a target
+ */
+
+export function useListAdvisors<
+  TData = Awaited<ReturnType<typeof listAdvisors>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAdvisors>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdvisorsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add an advisor to a target
+ */
+export const getCreateAdvisorUrl = (id: number) => {
+  return `/api/targets/${id}/advisors`;
+};
+
+export const createAdvisor = async (
+  id: number,
+  createAdvisorBody: CreateAdvisorBody,
+  options?: RequestInit,
+): Promise<Advisor> => {
+  return customFetch<Advisor>(getCreateAdvisorUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createAdvisorBody),
+  });
+};
+
+export const getCreateAdvisorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdvisor>>,
+    TError,
+    { id: number; data: BodyType<CreateAdvisorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createAdvisor>>,
+  TError,
+  { id: number; data: BodyType<CreateAdvisorBody> },
+  TContext
+> => {
+  const mutationKey = ["createAdvisor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createAdvisor>>,
+    { id: number; data: BodyType<CreateAdvisorBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createAdvisor(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateAdvisorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createAdvisor>>
+>;
+export type CreateAdvisorMutationBody = BodyType<CreateAdvisorBody>;
+export type CreateAdvisorMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add an advisor to a target
+ */
+export const useCreateAdvisor = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdvisor>>,
+    TError,
+    { id: number; data: BodyType<CreateAdvisorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createAdvisor>>,
+  TError,
+  { id: number; data: BodyType<CreateAdvisorBody> },
+  TContext
+> => {
+  return useMutation(getCreateAdvisorMutationOptions(options));
+};
+
+/**
+ * @summary Update an advisor
+ */
+export const getUpdateAdvisorUrl = (id: number) => {
+  return `/api/advisors/${id}`;
+};
+
+export const updateAdvisor = async (
+  id: number,
+  updateAdvisorBody: UpdateAdvisorBody,
+  options?: RequestInit,
+): Promise<Advisor> => {
+  return customFetch<Advisor>(getUpdateAdvisorUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateAdvisorBody),
+  });
+};
+
+export const getUpdateAdvisorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdvisor>>,
+    TError,
+    { id: number; data: BodyType<UpdateAdvisorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAdvisor>>,
+  TError,
+  { id: number; data: BodyType<UpdateAdvisorBody> },
+  TContext
+> => {
+  const mutationKey = ["updateAdvisor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAdvisor>>,
+    { id: number; data: BodyType<UpdateAdvisorBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateAdvisor(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAdvisorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAdvisor>>
+>;
+export type UpdateAdvisorMutationBody = BodyType<UpdateAdvisorBody>;
+export type UpdateAdvisorMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update an advisor
+ */
+export const useUpdateAdvisor = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdvisor>>,
+    TError,
+    { id: number; data: BodyType<UpdateAdvisorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAdvisor>>,
+  TError,
+  { id: number; data: BodyType<UpdateAdvisorBody> },
+  TContext
+> => {
+  return useMutation(getUpdateAdvisorMutationOptions(options));
+};
+
+/**
+ * @summary Delete an advisor
+ */
+export const getDeleteAdvisorUrl = (id: number) => {
+  return `/api/advisors/${id}`;
+};
+
+export const deleteAdvisor = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteAdvisorUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteAdvisorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAdvisor>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteAdvisor>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteAdvisor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteAdvisor>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteAdvisor(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteAdvisorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteAdvisor>>
+>;
+
+export type DeleteAdvisorMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete an advisor
+ */
+export const useDeleteAdvisor = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAdvisor>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteAdvisor>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteAdvisorMutationOptions(options));
+};
+
+/**
+ * @summary List internal sponsors for a target
+ */
+export const getListSponsorsUrl = (id: number) => {
+  return `/api/targets/${id}/sponsors`;
+};
+
+export const listSponsors = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Sponsor[]> => {
+  return customFetch<Sponsor[]>(getListSponsorsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSponsorsQueryKey = (id: number) => {
+  return [`/api/targets/${id}/sponsors`] as const;
+};
+
+export const getListSponsorsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSponsors>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSponsors>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListSponsorsQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listSponsors>>> = ({
+    signal,
+  }) => listSponsors(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSponsors>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSponsorsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSponsors>>
+>;
+export type ListSponsorsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List internal sponsors for a target
+ */
+
+export function useListSponsors<
+  TData = Awaited<ReturnType<typeof listSponsors>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSponsors>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSponsorsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add an internal sponsor to a target
+ */
+export const getCreateSponsorUrl = (id: number) => {
+  return `/api/targets/${id}/sponsors`;
+};
+
+export const createSponsor = async (
+  id: number,
+  createSponsorBody: CreateSponsorBody,
+  options?: RequestInit,
+): Promise<Sponsor> => {
+  return customFetch<Sponsor>(getCreateSponsorUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createSponsorBody),
+  });
+};
+
+export const getCreateSponsorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSponsor>>,
+    TError,
+    { id: number; data: BodyType<CreateSponsorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createSponsor>>,
+  TError,
+  { id: number; data: BodyType<CreateSponsorBody> },
+  TContext
+> => {
+  const mutationKey = ["createSponsor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createSponsor>>,
+    { id: number; data: BodyType<CreateSponsorBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createSponsor(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateSponsorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createSponsor>>
+>;
+export type CreateSponsorMutationBody = BodyType<CreateSponsorBody>;
+export type CreateSponsorMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add an internal sponsor to a target
+ */
+export const useCreateSponsor = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSponsor>>,
+    TError,
+    { id: number; data: BodyType<CreateSponsorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createSponsor>>,
+  TError,
+  { id: number; data: BodyType<CreateSponsorBody> },
+  TContext
+> => {
+  return useMutation(getCreateSponsorMutationOptions(options));
+};
+
+/**
+ * @summary Update a sponsor
+ */
+export const getUpdateSponsorUrl = (id: number) => {
+  return `/api/sponsors/${id}`;
+};
+
+export const updateSponsor = async (
+  id: number,
+  updateSponsorBody: UpdateSponsorBody,
+  options?: RequestInit,
+): Promise<Sponsor> => {
+  return customFetch<Sponsor>(getUpdateSponsorUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateSponsorBody),
+  });
+};
+
+export const getUpdateSponsorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSponsor>>,
+    TError,
+    { id: number; data: BodyType<UpdateSponsorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateSponsor>>,
+  TError,
+  { id: number; data: BodyType<UpdateSponsorBody> },
+  TContext
+> => {
+  const mutationKey = ["updateSponsor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateSponsor>>,
+    { id: number; data: BodyType<UpdateSponsorBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateSponsor(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateSponsorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateSponsor>>
+>;
+export type UpdateSponsorMutationBody = BodyType<UpdateSponsorBody>;
+export type UpdateSponsorMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a sponsor
+ */
+export const useUpdateSponsor = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSponsor>>,
+    TError,
+    { id: number; data: BodyType<UpdateSponsorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateSponsor>>,
+  TError,
+  { id: number; data: BodyType<UpdateSponsorBody> },
+  TContext
+> => {
+  return useMutation(getUpdateSponsorMutationOptions(options));
+};
+
+/**
+ * @summary Delete a sponsor
+ */
+export const getDeleteSponsorUrl = (id: number) => {
+  return `/api/sponsors/${id}`;
+};
+
+export const deleteSponsor = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteSponsorUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteSponsorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSponsor>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteSponsor>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteSponsor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteSponsor>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteSponsor(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteSponsorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteSponsor>>
+>;
+
+export type DeleteSponsorMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a sponsor
+ */
+export const useDeleteSponsor = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSponsor>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteSponsor>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteSponsorMutationOptions(options));
+};
+
+/**
+ * @summary List NDA records for a target
+ */
+export const getListNdaRecordsUrl = (id: number) => {
+  return `/api/targets/${id}/nda-records`;
+};
+
+export const listNdaRecords = async (
+  id: number,
+  options?: RequestInit,
+): Promise<NdaRecord[]> => {
+  return customFetch<NdaRecord[]>(getListNdaRecordsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListNdaRecordsQueryKey = (id: number) => {
+  return [`/api/targets/${id}/nda-records`] as const;
+};
+
+export const getListNdaRecordsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listNdaRecords>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listNdaRecords>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListNdaRecordsQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listNdaRecords>>> = ({
+    signal,
+  }) => listNdaRecords(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listNdaRecords>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListNdaRecordsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listNdaRecords>>
+>;
+export type ListNdaRecordsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List NDA records for a target
+ */
+
+export function useListNdaRecords<
+  TData = Awaited<ReturnType<typeof listNdaRecords>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listNdaRecords>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListNdaRecordsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add NDA record to a target
+ */
+export const getCreateNdaRecordUrl = (id: number) => {
+  return `/api/targets/${id}/nda-records`;
+};
+
+export const createNdaRecord = async (
+  id: number,
+  createNdaRecordBody: CreateNdaRecordBody,
+  options?: RequestInit,
+): Promise<NdaRecord> => {
+  return customFetch<NdaRecord>(getCreateNdaRecordUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createNdaRecordBody),
+  });
+};
+
+export const getCreateNdaRecordMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createNdaRecord>>,
+    TError,
+    { id: number; data: BodyType<CreateNdaRecordBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createNdaRecord>>,
+  TError,
+  { id: number; data: BodyType<CreateNdaRecordBody> },
+  TContext
+> => {
+  const mutationKey = ["createNdaRecord"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createNdaRecord>>,
+    { id: number; data: BodyType<CreateNdaRecordBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createNdaRecord(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateNdaRecordMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createNdaRecord>>
+>;
+export type CreateNdaRecordMutationBody = BodyType<CreateNdaRecordBody>;
+export type CreateNdaRecordMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add NDA record to a target
+ */
+export const useCreateNdaRecord = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createNdaRecord>>,
+    TError,
+    { id: number; data: BodyType<CreateNdaRecordBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createNdaRecord>>,
+  TError,
+  { id: number; data: BodyType<CreateNdaRecordBody> },
+  TContext
+> => {
+  return useMutation(getCreateNdaRecordMutationOptions(options));
+};
+
+/**
+ * @summary Update an NDA record
+ */
+export const getUpdateNdaRecordUrl = (id: number) => {
+  return `/api/nda-records/${id}`;
+};
+
+export const updateNdaRecord = async (
+  id: number,
+  updateNdaRecordBody: UpdateNdaRecordBody,
+  options?: RequestInit,
+): Promise<NdaRecord> => {
+  return customFetch<NdaRecord>(getUpdateNdaRecordUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateNdaRecordBody),
+  });
+};
+
+export const getUpdateNdaRecordMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateNdaRecord>>,
+    TError,
+    { id: number; data: BodyType<UpdateNdaRecordBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateNdaRecord>>,
+  TError,
+  { id: number; data: BodyType<UpdateNdaRecordBody> },
+  TContext
+> => {
+  const mutationKey = ["updateNdaRecord"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateNdaRecord>>,
+    { id: number; data: BodyType<UpdateNdaRecordBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateNdaRecord(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateNdaRecordMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateNdaRecord>>
+>;
+export type UpdateNdaRecordMutationBody = BodyType<UpdateNdaRecordBody>;
+export type UpdateNdaRecordMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update an NDA record
+ */
+export const useUpdateNdaRecord = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateNdaRecord>>,
+    TError,
+    { id: number; data: BodyType<UpdateNdaRecordBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateNdaRecord>>,
+  TError,
+  { id: number; data: BodyType<UpdateNdaRecordBody> },
+  TContext
+> => {
+  return useMutation(getUpdateNdaRecordMutationOptions(options));
+};
+
+/**
+ * @summary Delete an NDA record
+ */
+export const getDeleteNdaRecordUrl = (id: number) => {
+  return `/api/nda-records/${id}`;
+};
+
+export const deleteNdaRecord = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteNdaRecordUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteNdaRecordMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteNdaRecord>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteNdaRecord>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteNdaRecord"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteNdaRecord>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteNdaRecord(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteNdaRecordMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteNdaRecord>>
+>;
+
+export type DeleteNdaRecordMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete an NDA record
+ */
+export const useDeleteNdaRecord = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteNdaRecord>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteNdaRecord>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteNdaRecordMutationOptions(options));
+};
+
+/**
+ * @summary List regulatory clearances for a target
+ */
+export const getListRegulatoryClearancesUrl = (id: number) => {
+  return `/api/targets/${id}/regulatory-clearances`;
+};
+
+export const listRegulatoryClearances = async (
+  id: number,
+  options?: RequestInit,
+): Promise<RegulatoryClearance[]> => {
+  return customFetch<RegulatoryClearance[]>(
+    getListRegulatoryClearancesUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListRegulatoryClearancesQueryKey = (id: number) => {
+  return [`/api/targets/${id}/regulatory-clearances`] as const;
+};
+
+export const getListRegulatoryClearancesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRegulatoryClearances>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listRegulatoryClearances>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListRegulatoryClearancesQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listRegulatoryClearances>>
+  > = ({ signal }) =>
+    listRegulatoryClearances(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listRegulatoryClearances>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListRegulatoryClearancesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listRegulatoryClearances>>
+>;
+export type ListRegulatoryClearancesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List regulatory clearances for a target
+ */
+
+export function useListRegulatoryClearances<
+  TData = Awaited<ReturnType<typeof listRegulatoryClearances>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listRegulatoryClearances>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListRegulatoryClearancesQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add regulatory clearance to a target
+ */
+export const getCreateRegulatoryClearanceUrl = (id: number) => {
+  return `/api/targets/${id}/regulatory-clearances`;
+};
+
+export const createRegulatoryClearance = async (
+  id: number,
+  createRegulatoryClearanceBody: CreateRegulatoryClearanceBody,
+  options?: RequestInit,
+): Promise<RegulatoryClearance> => {
+  return customFetch<RegulatoryClearance>(getCreateRegulatoryClearanceUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createRegulatoryClearanceBody),
+  });
+};
+
+export const getCreateRegulatoryClearanceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRegulatoryClearance>>,
+    TError,
+    { id: number; data: BodyType<CreateRegulatoryClearanceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createRegulatoryClearance>>,
+  TError,
+  { id: number; data: BodyType<CreateRegulatoryClearanceBody> },
+  TContext
+> => {
+  const mutationKey = ["createRegulatoryClearance"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createRegulatoryClearance>>,
+    { id: number; data: BodyType<CreateRegulatoryClearanceBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createRegulatoryClearance(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateRegulatoryClearanceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createRegulatoryClearance>>
+>;
+export type CreateRegulatoryClearanceMutationBody =
+  BodyType<CreateRegulatoryClearanceBody>;
+export type CreateRegulatoryClearanceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add regulatory clearance to a target
+ */
+export const useCreateRegulatoryClearance = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRegulatoryClearance>>,
+    TError,
+    { id: number; data: BodyType<CreateRegulatoryClearanceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createRegulatoryClearance>>,
+  TError,
+  { id: number; data: BodyType<CreateRegulatoryClearanceBody> },
+  TContext
+> => {
+  return useMutation(getCreateRegulatoryClearanceMutationOptions(options));
+};
+
+/**
+ * @summary Update a regulatory clearance
+ */
+export const getUpdateRegulatoryClearanceUrl = (id: number) => {
+  return `/api/regulatory-clearances/${id}`;
+};
+
+export const updateRegulatoryClearance = async (
+  id: number,
+  updateRegulatoryClearanceBody: UpdateRegulatoryClearanceBody,
+  options?: RequestInit,
+): Promise<RegulatoryClearance> => {
+  return customFetch<RegulatoryClearance>(getUpdateRegulatoryClearanceUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateRegulatoryClearanceBody),
+  });
+};
+
+export const getUpdateRegulatoryClearanceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateRegulatoryClearance>>,
+    TError,
+    { id: number; data: BodyType<UpdateRegulatoryClearanceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateRegulatoryClearance>>,
+  TError,
+  { id: number; data: BodyType<UpdateRegulatoryClearanceBody> },
+  TContext
+> => {
+  const mutationKey = ["updateRegulatoryClearance"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateRegulatoryClearance>>,
+    { id: number; data: BodyType<UpdateRegulatoryClearanceBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateRegulatoryClearance(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateRegulatoryClearanceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateRegulatoryClearance>>
+>;
+export type UpdateRegulatoryClearanceMutationBody =
+  BodyType<UpdateRegulatoryClearanceBody>;
+export type UpdateRegulatoryClearanceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a regulatory clearance
+ */
+export const useUpdateRegulatoryClearance = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateRegulatoryClearance>>,
+    TError,
+    { id: number; data: BodyType<UpdateRegulatoryClearanceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateRegulatoryClearance>>,
+  TError,
+  { id: number; data: BodyType<UpdateRegulatoryClearanceBody> },
+  TContext
+> => {
+  return useMutation(getUpdateRegulatoryClearanceMutationOptions(options));
+};
+
+/**
+ * @summary Delete a regulatory clearance
+ */
+export const getDeleteRegulatoryClearanceUrl = (id: number) => {
+  return `/api/regulatory-clearances/${id}`;
+};
+
+export const deleteRegulatoryClearance = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteRegulatoryClearanceUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteRegulatoryClearanceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteRegulatoryClearance>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteRegulatoryClearance>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteRegulatoryClearance"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteRegulatoryClearance>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteRegulatoryClearance(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteRegulatoryClearanceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteRegulatoryClearance>>
+>;
+
+export type DeleteRegulatoryClearanceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a regulatory clearance
+ */
+export const useDeleteRegulatoryClearance = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteRegulatoryClearance>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteRegulatoryClearance>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteRegulatoryClearanceMutationOptions(options));
 };
