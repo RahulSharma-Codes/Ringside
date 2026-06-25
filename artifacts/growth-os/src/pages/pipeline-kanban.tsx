@@ -237,6 +237,15 @@ interface StageChangePending {
   newStage: string;
 }
 
+interface VerdictData {
+  closeReasonCode?: string;
+  phase1VerdictAccuracy?: string;
+  phase1VerdictNote?: string;
+  closeMissTheme?: string;
+}
+
+const CLOSURE_VERDICT_STAGES = new Set(["Closed", "Dropped"]);
+
 function KanbanStageChangeDialog({
   pending,
   onConfirm,
@@ -244,20 +253,46 @@ function KanbanStageChangeDialog({
   isSaving,
 }: {
   pending: StageChangePending | null;
-  onConfirm: (reason: string) => void;
+  onConfirm: (reason: string, verdict: VerdictData) => void;
   onCancel: () => void;
   isSaving: boolean;
 }) {
   const [reason, setReason] = useState("");
   const [customReason, setCustomReason] = useState("");
+  const [closeReasonCode, setCloseReasonCode] = useState("");
+  const [phase1VerdictAccuracy, setPhase1VerdictAccuracy] = useState("");
+  const [phase1VerdictNote, setPhase1VerdictNote] = useState("");
+  const [closeMissTheme, setCloseMissTheme] = useState("");
 
   const effectiveReason = reason === "Other" ? customReason : reason;
+  const isClosureStage = CLOSURE_VERDICT_STAGES.has(pending?.newStage ?? "");
+
+  const verdictIncomplete =
+    (isClosureStage && !phase1VerdictAccuracy) ||
+    (pending?.newStage === "Dropped" && !closeReasonCode) ||
+    (["Partially-correct", "Wrong"].includes(phase1VerdictAccuracy) && !phase1VerdictNote.trim());
+
+  const handleConfirm = () => {
+    if (!effectiveReason.trim() || verdictIncomplete) return;
+    onConfirm(effectiveReason, {
+      ...(closeReasonCode && { closeReasonCode }),
+      ...(phase1VerdictAccuracy && { phase1VerdictAccuracy }),
+      ...(phase1VerdictNote.trim() && { phase1VerdictNote: phase1VerdictNote.trim() }),
+      ...(closeMissTheme && { closeMissTheme }),
+    });
+  };
+
+  const handleCancel = () => {
+    setReason(""); setCustomReason("");
+    setCloseReasonCode(""); setPhase1VerdictAccuracy(""); setPhase1VerdictNote(""); setCloseMissTheme("");
+    onCancel();
+  };
 
   if (!pending) return null;
 
   return (
-    <Dialog open={!!pending} onOpenChange={v => !v && onCancel()}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={!!pending} onOpenChange={v => !v && handleCancel()}>
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Move to {pending.newStage}?</DialogTitle>
         </DialogHeader>
@@ -291,14 +326,86 @@ function KanbanStageChangeDialog({
               />
             </div>
           )}
+
+          {/* Verdict section for Closed / Dropped */}
+          {isClosureStage && (
+            <div className="space-y-3 border border-amber-500/30 bg-amber-500/5 rounded-md p-3">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-amber-600 font-semibold flex items-center gap-1.5">
+                <AlertTriangle size={11} />
+                Deal Close Verdict
+              </div>
+
+              {pending.newStage === "Dropped" && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Close Reason Code <span className="text-destructive">*</span></Label>
+                  <Select value={closeReasonCode} onValueChange={setCloseReasonCode}>
+                    <SelectTrigger><SelectValue placeholder="Select reason…" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Price mismatch">Price mismatch</SelectItem>
+                      <SelectItem value="Owner unwilling to sell">Owner unwilling to sell</SelectItem>
+                      <SelectItem value="Competitive process lost">Competitive process lost</SelectItem>
+                      <SelectItem value="Strategy change">Strategy change</SelectItem>
+                      <SelectItem value="Regulatory block">Regulatory block</SelectItem>
+                      <SelectItem value="Due diligence finding">Due diligence finding</SelectItem>
+                      <SelectItem value="Target approach failed">Target approach failed</SelectItem>
+                      <SelectItem value="Process abandoned">Process abandoned</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Phase 1 AI Screen Accuracy <span className="text-destructive">*</span></Label>
+                <Select value={phase1VerdictAccuracy} onValueChange={setPhase1VerdictAccuracy}>
+                  <SelectTrigger><SelectValue placeholder="Was the Phase 1 AI screen correct?" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Correct">Correct</SelectItem>
+                    <SelectItem value="Partially-correct">Partially-correct</SelectItem>
+                    <SelectItem value="Wrong">Wrong</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {["Partially-correct", "Wrong"].includes(phase1VerdictAccuracy) && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Accuracy Note <span className="text-destructive">*</span></Label>
+                  <Textarea
+                    value={phase1VerdictNote}
+                    onChange={e => setPhase1VerdictNote(e.target.value)}
+                    placeholder="What did the AI get wrong or miss?"
+                    rows={2}
+                  />
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Miss Theme <span className="text-muted-foreground/60">(optional)</span></Label>
+                <Select value={closeMissTheme} onValueChange={setCloseMissTheme}>
+                  <SelectTrigger><SelectValue placeholder="Tag a miss theme…" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Strategy mismatch">Strategy mismatch</SelectItem>
+                    <SelectItem value="Valuation gap">Valuation gap</SelectItem>
+                    <SelectItem value="Competitive loss">Competitive loss</SelectItem>
+                    <SelectItem value="Regulatory block">Regulatory block</SelectItem>
+                    <SelectItem value="Management resistance">Management resistance</SelectItem>
+                    <SelectItem value="Due diligence finding">Due diligence finding</SelectItem>
+                    <SelectItem value="Timing">Timing</SelectItem>
+                    <SelectItem value="AI false positive">AI false positive</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel} disabled={isSaving}>
+          <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
             Cancel
           </Button>
           <Button
-            onClick={() => effectiveReason && onConfirm(effectiveReason)}
-            disabled={!effectiveReason.trim() || isSaving}
+            onClick={handleConfirm}
+            disabled={!effectiveReason.trim() || verdictIncomplete || isSaving}
           >
             {isSaving ? "Moving…" : `Move to ${pending.newStage}`}
           </Button>
@@ -374,13 +481,13 @@ export function PipelineKanban({
     setPending({ target: card, newStage });
   }
 
-  async function handleConfirmStageChange(reason: string) {
+  async function handleConfirmStageChange(reason: string, verdict: VerdictData) {
     if (!pending) return;
     setIsSaving(true);
     try {
       await changeStage.mutateAsync({
         id: pending.target.id,
-        data: { newStage: pending.newStage, changeReason: reason },
+        data: { newStage: pending.newStage, changeReason: reason, ...verdict },
       });
       toast({
         title: "Stage updated",
