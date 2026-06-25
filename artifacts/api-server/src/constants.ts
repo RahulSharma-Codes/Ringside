@@ -31,7 +31,8 @@ export const VALID_STAGES = new Set([
 ]);
 
 // Terminal stages drive targets.isActive — must stay in sync with business rules
-export const TERMINAL_STAGES = new Set(["Rejected", "Closing", "Closed", "Completed", "Signed"]);
+// "Dropped" is included: a dropped deal is closed/inactive and must not appear in active pipeline queries
+export const TERMINAL_STAGES = new Set(["Rejected", "Closing", "Closed", "Completed", "Signed", "Dropped"]);
 
 // Ordered pipeline stage list — mirrors PIPELINE_STAGE_ORDER in stage-rail.tsx
 export const PIPELINE_STAGE_ORDER = [
