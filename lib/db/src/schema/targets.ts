@@ -152,3 +152,46 @@ export const icSessionsTable = pgTable("ic_sessions", {
 export const insertIcSessionSchema = createInsertSchema(icSessionsTable).omit({ id: true, createdAt: true });
 export type InsertIcSession = z.infer<typeof insertIcSessionSchema>;
 export type IcSession = typeof icSessionsTable.$inferSelect;
+
+export const valuationsTable = pgTable("valuations", {
+  id: serial("id").primaryKey(),
+  targetId: integer("target_id").notNull().references(() => targetsTable.id),
+  version: integer("version").notNull().default(1),
+  stageAtRecord: text("stage_at_record"),
+  methodology: text("methodology").notNull(),
+  valueLow: text("value_low"),
+  valuePoint: text("value_point"),
+  valueHigh: text("value_high"),
+  currency: text("currency").notNull().default("USD"),
+  notes: text("notes"),
+  recordedBy: text("recorded_by"),
+  recordedAt: timestamp("recorded_at").notNull().defaultNow(),
+});
+
+export const insertValuationSchema = createInsertSchema(valuationsTable).omit({ id: true, recordedAt: true });
+export type InsertValuation = z.infer<typeof insertValuationSchema>;
+export type Valuation = typeof valuationsTable.$inferSelect;
+
+export const dealEconomicsTable = pgTable("deal_economics", {
+  id: serial("id").primaryKey(),
+  targetId: integer("target_id").notNull().unique().references(() => targetsTable.id),
+  cashPct: text("cash_pct"),
+  equityPct: text("equity_pct"),
+  earnoutPct: text("earnout_pct"),
+  deferredPct: text("deferred_pct"),
+  escrowPct: text("escrow_pct"),
+  totalEv: text("total_ev"),
+  totalEquityValue: text("total_equity_value"),
+  irrBase: text("irr_base"),
+  irrUpside: text("irr_upside"),
+  irrDownside: text("irr_downside"),
+  moicBase: text("moic_base"),
+  moicUpside: text("moic_upside"),
+  moicDownside: text("moic_downside"),
+  paybackYears: text("payback_years"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertDealEconomicsSchema = createInsertSchema(dealEconomicsTable).omit({ id: true, updatedAt: true });
+export type InsertDealEconomics = z.infer<typeof insertDealEconomicsSchema>;
+export type DealEconomics = typeof dealEconomicsTable.$inferSelect;

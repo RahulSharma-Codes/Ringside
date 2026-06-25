@@ -10,6 +10,7 @@ import diligenceRouter from "./diligence";
 import documentsRouter from "./documents";
 import icSessionsRouter from "./ic-sessions";
 import analyticsRouter from "./analytics";
+import valuationsRouter from "./valuations";
 
 const router: IRouter = Router();
 
@@ -24,6 +25,7 @@ router.use("/diligence", diligenceRouter);
 router.use("/documents", documentsRouter);
 router.use("/ic-sessions", icSessionsRouter);
 router.use("/analytics", analyticsRouter);
+router.use("/valuations", valuationsRouter);
 
 export default router;
 

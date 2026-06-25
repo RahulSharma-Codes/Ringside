@@ -1065,6 +1065,127 @@ export const GetAnalyticsOriginationResponse = zod.array(
 );
 
 /**
+ * @summary List valuation entries for a target (most recent first)
+ */
+export const ListValuationsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListValuationsResponseItem = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  version: zod.number(),
+  stageAtRecord: zod.string().nullish(),
+  methodology: zod.string(),
+  valueLow: zod.string().nullish(),
+  valuePoint: zod.string().nullish(),
+  valueHigh: zod.string().nullish(),
+  currency: zod.string(),
+  notes: zod.string().nullish(),
+  recordedBy: zod.string().nullish(),
+  recordedAt: zod.coerce.date().nullish(),
+});
+export const ListValuationsResponse = zod.array(ListValuationsResponseItem);
+
+/**
+ * @summary Add a valuation entry for a target
+ */
+export const CreateValuationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const createValuationBodyCurrencyDefault = `USD`;
+
+export const CreateValuationBody = zod.object({
+  methodology: zod.string(),
+  valueLow: zod.string().nullish(),
+  valuePoint: zod.string().nullish(),
+  valueHigh: zod.string().nullish(),
+  currency: zod.string().default(createValuationBodyCurrencyDefault),
+  stageAtRecord: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  recordedBy: zod.string().nullish(),
+});
+
+/**
+ * @summary Delete a valuation entry
+ */
+export const DeleteValuationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Get consideration structure and returns for a target
+ */
+export const GetDealEconomicsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetDealEconomicsResponse = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  cashPct: zod.string().nullish(),
+  equityPct: zod.string().nullish(),
+  earnoutPct: zod.string().nullish(),
+  deferredPct: zod.string().nullish(),
+  escrowPct: zod.string().nullish(),
+  totalEv: zod.string().nullish(),
+  totalEquityValue: zod.string().nullish(),
+  irrBase: zod.string().nullish(),
+  irrUpside: zod.string().nullish(),
+  irrDownside: zod.string().nullish(),
+  moicBase: zod.string().nullish(),
+  moicUpside: zod.string().nullish(),
+  moicDownside: zod.string().nullish(),
+  paybackYears: zod.string().nullish(),
+  updatedAt: zod.coerce.date().nullish(),
+});
+
+/**
+ * @summary Create or update consideration structure and returns for a target
+ */
+export const UpsertDealEconomicsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpsertDealEconomicsBody = zod.object({
+  cashPct: zod.string().nullish(),
+  equityPct: zod.string().nullish(),
+  earnoutPct: zod.string().nullish(),
+  deferredPct: zod.string().nullish(),
+  escrowPct: zod.string().nullish(),
+  totalEv: zod.string().nullish(),
+  totalEquityValue: zod.string().nullish(),
+  irrBase: zod.string().nullish(),
+  irrUpside: zod.string().nullish(),
+  irrDownside: zod.string().nullish(),
+  moicBase: zod.string().nullish(),
+  moicUpside: zod.string().nullish(),
+  moicDownside: zod.string().nullish(),
+  paybackYears: zod.string().nullish(),
+});
+
+export const UpsertDealEconomicsResponse = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  cashPct: zod.string().nullish(),
+  equityPct: zod.string().nullish(),
+  earnoutPct: zod.string().nullish(),
+  deferredPct: zod.string().nullish(),
+  escrowPct: zod.string().nullish(),
+  totalEv: zod.string().nullish(),
+  totalEquityValue: zod.string().nullish(),
+  irrBase: zod.string().nullish(),
+  irrUpside: zod.string().nullish(),
+  irrDownside: zod.string().nullish(),
+  moicBase: zod.string().nullish(),
+  moicUpside: zod.string().nullish(),
+  moicDownside: zod.string().nullish(),
+  paybackYears: zod.string().nullish(),
+  updatedAt: zod.coerce.date().nullish(),
+});
+
+/**
  * @summary Unified activity feed for a target (stage changes, interactions, completed actions, diligence, documents)
  */
 export const GetActivityFeedParams = zod.object({

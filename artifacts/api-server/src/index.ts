@@ -153,9 +153,51 @@ async function applyMigrations(): Promise<void> {
     )
   `);
 
+  // Create valuations table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS valuations (
+      id           serial PRIMARY KEY,
+      target_id    integer NOT NULL REFERENCES targets(id),
+      version      integer NOT NULL DEFAULT 1,
+      stage_at_record text,
+      methodology  text NOT NULL,
+      value_low    text,
+      value_point  text,
+      value_high   text,
+      currency     text NOT NULL DEFAULT 'USD',
+      notes        text,
+      recorded_by  text,
+      recorded_at  timestamp NOT NULL DEFAULT now()
+    )
+  `);
+
+  // Create deal_economics table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS deal_economics (
+      id                serial PRIMARY KEY,
+      target_id         integer NOT NULL UNIQUE REFERENCES targets(id),
+      cash_pct          text,
+      equity_pct        text,
+      earnout_pct       text,
+      deferred_pct      text,
+      escrow_pct        text,
+      total_ev          text,
+      total_equity_value text,
+      irr_base          text,
+      irr_upside        text,
+      irr_downside      text,
+      moic_base         text,
+      moic_upside       text,
+      moic_downside     text,
+      payback_years     text,
+      updated_at        timestamp NOT NULL DEFAULT now()
+    )
+  `);
+
   // Indexes
   await db.execute(sql`CREATE INDEX IF NOT EXISTS ic_sessions_target_id_idx ON ic_sessions(target_id)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS deal_documents_target_id_idx ON deal_documents(target_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS valuations_target_id_idx ON valuations(target_id)`);
 }
 
 app.listen(port, (err) => {

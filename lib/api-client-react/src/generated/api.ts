@@ -30,8 +30,10 @@ import type {
   CreateIcSessionBody,
   CreateInteractionBody,
   CreateTargetBody,
+  CreateValuationBody,
   DashboardSummary,
   DealDocument,
+  DealEconomics,
   DiligenceReviewResponse,
   DiligenceTabResponse,
   DocumentDownloadUrlResponse,
@@ -69,6 +71,8 @@ import type {
   UpdateInteractionBody,
   UpdateStageBody,
   UpdateTargetBody,
+  UpsertEconomicsBody,
+  Valuation,
   WeeklyReviewResponse,
   WinLossResponse,
 } from "./api.schemas";
@@ -3032,6 +3036,438 @@ export function useGetAnalyticsOrigination<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List valuation entries for a target (most recent first)
+ */
+export const getListValuationsUrl = (id: number) => {
+  return `/api/targets/${id}/valuations`;
+};
+
+export const listValuations = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Valuation[]> => {
+  return customFetch<Valuation[]>(getListValuationsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListValuationsQueryKey = (id: number) => {
+  return [`/api/targets/${id}/valuations`] as const;
+};
+
+export const getListValuationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listValuations>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listValuations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListValuationsQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listValuations>>> = ({
+    signal,
+  }) => listValuations(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listValuations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListValuationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listValuations>>
+>;
+export type ListValuationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List valuation entries for a target (most recent first)
+ */
+
+export function useListValuations<
+  TData = Awaited<ReturnType<typeof listValuations>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listValuations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListValuationsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a valuation entry for a target
+ */
+export const getCreateValuationUrl = (id: number) => {
+  return `/api/targets/${id}/valuations`;
+};
+
+export const createValuation = async (
+  id: number,
+  createValuationBody: CreateValuationBody,
+  options?: RequestInit,
+): Promise<Valuation> => {
+  return customFetch<Valuation>(getCreateValuationUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createValuationBody),
+  });
+};
+
+export const getCreateValuationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createValuation>>,
+    TError,
+    { id: number; data: BodyType<CreateValuationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createValuation>>,
+  TError,
+  { id: number; data: BodyType<CreateValuationBody> },
+  TContext
+> => {
+  const mutationKey = ["createValuation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createValuation>>,
+    { id: number; data: BodyType<CreateValuationBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createValuation(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateValuationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createValuation>>
+>;
+export type CreateValuationMutationBody = BodyType<CreateValuationBody>;
+export type CreateValuationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add a valuation entry for a target
+ */
+export const useCreateValuation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createValuation>>,
+    TError,
+    { id: number; data: BodyType<CreateValuationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createValuation>>,
+  TError,
+  { id: number; data: BodyType<CreateValuationBody> },
+  TContext
+> => {
+  return useMutation(getCreateValuationMutationOptions(options));
+};
+
+/**
+ * @summary Delete a valuation entry
+ */
+export const getDeleteValuationUrl = (id: number) => {
+  return `/api/valuations/${id}`;
+};
+
+export const deleteValuation = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteValuationUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteValuationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteValuation>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteValuation>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteValuation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteValuation>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteValuation(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteValuationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteValuation>>
+>;
+
+export type DeleteValuationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a valuation entry
+ */
+export const useDeleteValuation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteValuation>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteValuation>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteValuationMutationOptions(options));
+};
+
+/**
+ * @summary Get consideration structure and returns for a target
+ */
+export const getGetDealEconomicsUrl = (id: number) => {
+  return `/api/targets/${id}/economics`;
+};
+
+export const getDealEconomics = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DealEconomics> => {
+  return customFetch<DealEconomics>(getGetDealEconomicsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDealEconomicsQueryKey = (id: number) => {
+  return [`/api/targets/${id}/economics`] as const;
+};
+
+export const getGetDealEconomicsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDealEconomics>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDealEconomics>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDealEconomicsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDealEconomics>>
+  > = ({ signal }) => getDealEconomics(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDealEconomics>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDealEconomicsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDealEconomics>>
+>;
+export type GetDealEconomicsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get consideration structure and returns for a target
+ */
+
+export function useGetDealEconomics<
+  TData = Awaited<ReturnType<typeof getDealEconomics>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDealEconomics>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDealEconomicsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create or update consideration structure and returns for a target
+ */
+export const getUpsertDealEconomicsUrl = (id: number) => {
+  return `/api/targets/${id}/economics`;
+};
+
+export const upsertDealEconomics = async (
+  id: number,
+  upsertEconomicsBody: UpsertEconomicsBody,
+  options?: RequestInit,
+): Promise<DealEconomics> => {
+  return customFetch<DealEconomics>(getUpsertDealEconomicsUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(upsertEconomicsBody),
+  });
+};
+
+export const getUpsertDealEconomicsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertDealEconomics>>,
+    TError,
+    { id: number; data: BodyType<UpsertEconomicsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof upsertDealEconomics>>,
+  TError,
+  { id: number; data: BodyType<UpsertEconomicsBody> },
+  TContext
+> => {
+  const mutationKey = ["upsertDealEconomics"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof upsertDealEconomics>>,
+    { id: number; data: BodyType<UpsertEconomicsBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return upsertDealEconomics(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpsertDealEconomicsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof upsertDealEconomics>>
+>;
+export type UpsertDealEconomicsMutationBody = BodyType<UpsertEconomicsBody>;
+export type UpsertDealEconomicsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create or update consideration structure and returns for a target
+ */
+export const useUpsertDealEconomics = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertDealEconomics>>,
+    TError,
+    { id: number; data: BodyType<UpsertEconomicsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof upsertDealEconomics>>,
+  TError,
+  { id: number; data: BodyType<UpsertEconomicsBody> },
+  TContext
+> => {
+  return useMutation(getUpsertDealEconomicsMutationOptions(options));
+};
 
 /**
  * @summary Unified activity feed for a target (stage changes, interactions, completed actions, diligence, documents)

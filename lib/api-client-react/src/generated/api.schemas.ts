@@ -727,6 +727,69 @@ export interface CreateIcSessionBody {
   notes?: string | null;
 }
 
+export interface Valuation {
+  id: number;
+  targetId: number;
+  version: number;
+  stageAtRecord?: string | null;
+  methodology: string;
+  valueLow?: string | null;
+  valuePoint?: string | null;
+  valueHigh?: string | null;
+  currency: string;
+  notes?: string | null;
+  recordedBy?: string | null;
+  recordedAt?: string | null;
+}
+
+export interface CreateValuationBody {
+  methodology: string;
+  valueLow?: string | null;
+  valuePoint?: string | null;
+  valueHigh?: string | null;
+  currency?: string;
+  stageAtRecord?: string | null;
+  notes?: string | null;
+  recordedBy?: string | null;
+}
+
+export interface DealEconomics {
+  id: number;
+  targetId: number;
+  cashPct?: string | null;
+  equityPct?: string | null;
+  earnoutPct?: string | null;
+  deferredPct?: string | null;
+  escrowPct?: string | null;
+  totalEv?: string | null;
+  totalEquityValue?: string | null;
+  irrBase?: string | null;
+  irrUpside?: string | null;
+  irrDownside?: string | null;
+  moicBase?: string | null;
+  moicUpside?: string | null;
+  moicDownside?: string | null;
+  paybackYears?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface UpsertEconomicsBody {
+  cashPct?: string | null;
+  equityPct?: string | null;
+  earnoutPct?: string | null;
+  deferredPct?: string | null;
+  escrowPct?: string | null;
+  totalEv?: string | null;
+  totalEquityValue?: string | null;
+  irrBase?: string | null;
+  irrUpside?: string | null;
+  irrDownside?: string | null;
+  moicBase?: string | null;
+  moicUpside?: string | null;
+  moicDownside?: string | null;
+  paybackYears?: string | null;
+}
+
 export type StageGateItemStatus =
   (typeof StageGateItemStatus)[keyof typeof StageGateItemStatus];
 

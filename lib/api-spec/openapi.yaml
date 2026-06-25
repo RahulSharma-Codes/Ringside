@@ -30,6 +30,8 @@ tags:
     description: Investment Committee session log
   - name: analytics
     description: Pipeline analytics — funnel, time-in-stage, win/loss, origination
+  - name: valuation
+    description: Valuation log and deal economics
 paths:
   /healthz:
     get:
@@ -722,6 +724,107 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/OriginationChannelItem"
+
+  /targets/{id}/valuations:
+    get:
+      operationId: listValuations
+      tags: [valuation]
+      summary: List valuation entries for a target (most recent first)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Valuation list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Valuation"
+    post:
+      operationId: createValuation
+      tags: [valuation]
+      summary: Add a valuation entry for a target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateValuationBody"
+      responses:
+        "201":
+          description: Valuation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Valuation"
+
+  /valuations/{id}:
+    delete:
+      operationId: deleteValuation
+      tags: [valuation]
+      summary: Delete a valuation entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /targets/{id}/economics:
+    get:
+      operationId: getDealEconomics
+      tags: [valuation]
+      summary: Get consideration structure and returns for a target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deal economics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DealEconomics"
+    put:
+      operationId: upsertDealEconomics
+      tags: [valuation]
+      summary: Create or update consideration structure and returns for a target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertEconomicsBody"
+      responses:
+        "200":
+          description: Deal economics saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DealEconomics"
 
   /targets/{id}/activity:
     get:
@@ -2590,6 +2693,172 @@ components:
           type: string
           nullable: true
       required: [sessionDate, outcome]
+
+    Valuation:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        version:
+          type: integer
+        stageAtRecord:
+          type: string
+          nullable: true
+        methodology:
+          type: string
+        valueLow:
+          type: string
+          nullable: true
+        valuePoint:
+          type: string
+          nullable: true
+        valueHigh:
+          type: string
+          nullable: true
+        currency:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        recordedBy:
+          type: string
+          nullable: true
+        recordedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, targetId, version, methodology, currency]
+
+    CreateValuationBody:
+      type: object
+      properties:
+        methodology:
+          type: string
+        valueLow:
+          type: string
+          nullable: true
+        valuePoint:
+          type: string
+          nullable: true
+        valueHigh:
+          type: string
+          nullable: true
+        currency:
+          type: string
+          default: USD
+        stageAtRecord:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        recordedBy:
+          type: string
+          nullable: true
+      required: [methodology]
+
+    DealEconomics:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        cashPct:
+          type: string
+          nullable: true
+        equityPct:
+          type: string
+          nullable: true
+        earnoutPct:
+          type: string
+          nullable: true
+        deferredPct:
+          type: string
+          nullable: true
+        escrowPct:
+          type: string
+          nullable: true
+        totalEv:
+          type: string
+          nullable: true
+        totalEquityValue:
+          type: string
+          nullable: true
+        irrBase:
+          type: string
+          nullable: true
+        irrUpside:
+          type: string
+          nullable: true
+        irrDownside:
+          type: string
+          nullable: true
+        moicBase:
+          type: string
+          nullable: true
+        moicUpside:
+          type: string
+          nullable: true
+        moicDownside:
+          type: string
+          nullable: true
+        paybackYears:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, targetId]
+
+    UpsertEconomicsBody:
+      type: object
+      properties:
+        cashPct:
+          type: string
+          nullable: true
+        equityPct:
+          type: string
+          nullable: true
+        earnoutPct:
+          type: string
+          nullable: true
+        deferredPct:
+          type: string
+          nullable: true
+        escrowPct:
+          type: string
+          nullable: true
+        totalEv:
+          type: string
+          nullable: true
+        totalEquityValue:
+          type: string
+          nullable: true
+        irrBase:
+          type: string
+          nullable: true
+        irrUpside:
+          type: string
+          nullable: true
+        irrDownside:
+          type: string
+          nullable: true
+        moicBase:
+          type: string
+          nullable: true
+        moicUpside:
+          type: string
+          nullable: true
+        moicDownside:
+          type: string
+          nullable: true
+        paybackYears:
+          type: string
+          nullable: true
 
     StageGateItem:
       type: object

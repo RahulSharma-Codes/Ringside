@@ -32,7 +32,7 @@ import {
   ArrowLeft, Target as TargetIcon, Plus, ShieldAlert, Edit, Trash2,
   CheckCircle2, RotateCcw, Pencil, MessageSquare, ListChecks, GitBranch,
   LayoutGrid, ClipboardCheck, FolderOpen, Sparkles, Loader2, Copy, Check, Bot,
-  ChevronDown, ChevronRight, Activity as ActivityIcon, Scale,
+  ChevronDown, ChevronRight, Activity as ActivityIcon, Scale, TrendingUp,
   AlertTriangle,
 } from "lucide-react";
 import {
@@ -43,6 +43,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { format, parseISO, differenceInDays, formatDistanceToNow } from "date-fns";
 import { DiligenceTab } from "@/pages/target-detail-diligence";
 import { DocumentsTab } from "@/pages/target-detail-documents";
+import { ValuationTab } from "@/pages/target-detail-valuation";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -710,6 +711,7 @@ export default function TargetDetail() {
                 { value: "history", label: "Timeline", icon: <GitBranch size={13} /> },
                 { value: "diligence",  label: "Diligence",  icon: <ClipboardCheck size={13} /> },
                 { value: "documents",  label: "Documents",  icon: <FolderOpen size={13} /> },
+                { value: "valuation",  label: "Valuation",  icon: <TrendingUp size={13} /> },
                 { value: "activity",   label: "Activity",   icon: <ActivityIcon size={13} /> },
                 { value: "ic",         label: "IC",         icon: <Scale size={13} /> },
               ].map(({ value, label, icon }) => (
@@ -977,6 +979,11 @@ export default function TargetDetail() {
             {/* Documents */}
             <TabsContent value="documents" className="space-y-4 mt-0">
               <DocumentsTab targetId={targetId} />
+            </TabsContent>
+
+            {/* Valuation */}
+            <TabsContent value="valuation" className="mt-0">
+              <ValuationTab targetId={targetId} currentStage={target.currentStage ?? undefined} />
             </TabsContent>
 
             {/* Activity Feed */}

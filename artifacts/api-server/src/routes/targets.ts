@@ -9,6 +9,8 @@ import {
   stageChangeLogTable,
   dealDocumentsTable,
   icSessionsTable,
+  valuationsTable,
+  dealEconomicsTable,
 } from "@workspace/db";
 import { z } from "zod";
 import {
@@ -1370,6 +1372,186 @@ router.post("/:id/ic-sessions", async (req, res) => {
     })
     .returning();
   return res.status(201).json(formatIcSession(session));
+});
+
+// ── Valuation routes ──────────────────────────────────────────────────────────
+
+const VALUATION_METHODOLOGIES = ["DCF", "Trading Comps", "Transaction Comps", "LBO", "Asset", "Other"] as const;
+
+const CreateValuationBodySchema = z.object({
+  methodology: z.string().min(1),
+  valueLow: z.string().nullable().optional(),
+  valuePoint: z.string().nullable().optional(),
+  valueHigh: z.string().nullable().optional(),
+  currency: z.string().optional(),
+  stageAtRecord: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  recordedBy: z.string().nullable().optional(),
+});
+
+function formatValuation(v: typeof valuationsTable.$inferSelect) {
+  return {
+    ...v,
+    recordedAt: toIso(v.recordedAt),
+  };
+}
+
+// GET /api/targets/:id/valuations
+router.get("/:id/valuations", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const rows = await db
+    .select()
+    .from(valuationsTable)
+    .where(eq(valuationsTable.targetId, id))
+    .orderBy(desc(valuationsTable.recordedAt));
+  return res.json(rows.map(formatValuation));
+});
+
+// POST /api/targets/:id/valuations
+router.post("/:id/valuations", async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  const parsed = CreateValuationBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.flatten() });
+  }
+  const d = parsed.data;
+
+  // Compute next version for this target
+  const existing = await db
+    .select({ version: valuationsTable.version })
+    .from(valuationsTable)
+    .where(eq(valuationsTable.targetId, targetId))
+    .orderBy(desc(valuationsTable.version))
+    .limit(1);
+  const nextVersion = existing.length > 0 ? (existing[0]!.version + 1) : 1;
+
+  const now = new Date();
+  const [row] = await db
+    .insert(valuationsTable)
+    .values({
+      targetId,
+      version: nextVersion,
+      methodology: d.methodology,
+      valueLow: d.valueLow ?? null,
+      valuePoint: d.valuePoint ?? null,
+      valueHigh: d.valueHigh ?? null,
+      currency: d.currency ?? "USD",
+      stageAtRecord: d.stageAtRecord ?? null,
+      notes: d.notes ?? null,
+      recordedBy: d.recordedBy ?? null,
+      recordedAt: now,
+    })
+    .returning();
+  return res.status(201).json(formatValuation(row));
+});
+
+// ── Deal Economics routes ─────────────────────────────────────────────────────
+
+const UpsertEconomicsBodySchema = z.object({
+  cashPct: z.string().nullable().optional(),
+  equityPct: z.string().nullable().optional(),
+  earnoutPct: z.string().nullable().optional(),
+  deferredPct: z.string().nullable().optional(),
+  escrowPct: z.string().nullable().optional(),
+  totalEv: z.string().nullable().optional(),
+  totalEquityValue: z.string().nullable().optional(),
+  irrBase: z.string().nullable().optional(),
+  irrUpside: z.string().nullable().optional(),
+  irrDownside: z.string().nullable().optional(),
+  moicBase: z.string().nullable().optional(),
+  moicUpside: z.string().nullable().optional(),
+  moicDownside: z.string().nullable().optional(),
+  paybackYears: z.string().nullable().optional(),
+});
+
+function formatEconomics(e: typeof dealEconomicsTable.$inferSelect) {
+  return {
+    ...e,
+    updatedAt: toIso(e.updatedAt),
+  };
+}
+
+// GET /api/targets/:id/economics
+router.get("/:id/economics", async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  const [row] = await db
+    .select()
+    .from(dealEconomicsTable)
+    .where(eq(dealEconomicsTable.targetId, targetId))
+    .limit(1);
+  if (!row) {
+    return res.json({ id: 0, targetId, updatedAt: null });
+  }
+  return res.json(formatEconomics(row));
+});
+
+// PUT /api/targets/:id/economics
+router.put("/:id/economics", async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  const parsed = UpsertEconomicsBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.flatten() });
+  }
+  const d = parsed.data;
+  const now = new Date();
+
+  const existing = await db
+    .select({ id: dealEconomicsTable.id })
+    .from(dealEconomicsTable)
+    .where(eq(dealEconomicsTable.targetId, targetId))
+    .limit(1);
+
+  let row: typeof dealEconomicsTable.$inferSelect;
+
+  if (existing.length > 0) {
+    const [updated] = await db
+      .update(dealEconomicsTable)
+      .set({
+        cashPct: d.cashPct ?? null,
+        equityPct: d.equityPct ?? null,
+        earnoutPct: d.earnoutPct ?? null,
+        deferredPct: d.deferredPct ?? null,
+        escrowPct: d.escrowPct ?? null,
+        totalEv: d.totalEv ?? null,
+        totalEquityValue: d.totalEquityValue ?? null,
+        irrBase: d.irrBase ?? null,
+        irrUpside: d.irrUpside ?? null,
+        irrDownside: d.irrDownside ?? null,
+        moicBase: d.moicBase ?? null,
+        moicUpside: d.moicUpside ?? null,
+        moicDownside: d.moicDownside ?? null,
+        paybackYears: d.paybackYears ?? null,
+        updatedAt: now,
+      })
+      .where(eq(dealEconomicsTable.targetId, targetId))
+      .returning();
+    row = updated;
+  } else {
+    const [inserted] = await db
+      .insert(dealEconomicsTable)
+      .values({
+        targetId,
+        cashPct: d.cashPct ?? null,
+        equityPct: d.equityPct ?? null,
+        earnoutPct: d.earnoutPct ?? null,
+        deferredPct: d.deferredPct ?? null,
+        escrowPct: d.escrowPct ?? null,
+        totalEv: d.totalEv ?? null,
+        totalEquityValue: d.totalEquityValue ?? null,
+        irrBase: d.irrBase ?? null,
+        irrUpside: d.irrUpside ?? null,
+        irrDownside: d.irrDownside ?? null,
+        moicBase: d.moicBase ?? null,
+        moicUpside: d.moicUpside ?? null,
+        moicDownside: d.moicDownside ?? null,
+        paybackYears: d.paybackYears ?? null,
+        updatedAt: now,
+      })
+      .returning();
+    row = inserted;
+  }
+
+  return res.json(formatEconomics(row));
 });
 
 export default router;
