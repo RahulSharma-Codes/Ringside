@@ -9,6 +9,7 @@ import reviewRouter from "./review";
 import diligenceRouter from "./diligence";
 import documentsRouter from "./documents";
 import icSessionsRouter from "./ic-sessions";
+import analyticsRouter from "./analytics";
 
 const router: IRouter = Router();
 
@@ -22,6 +23,7 @@ router.use("/review", reviewRouter);
 router.use("/diligence", diligenceRouter);
 router.use("/documents", documentsRouter);
 router.use("/ic-sessions", icSessionsRouter);
+router.use("/analytics", analyticsRouter);
 
 export default router;
 

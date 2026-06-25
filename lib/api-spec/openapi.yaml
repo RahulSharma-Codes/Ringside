@@ -28,6 +28,8 @@ tags:
     description: Deal Document Vault
   - name: ic
     description: Investment Committee session log
+  - name: analytics
+    description: Pipeline analytics — funnel, time-in-stage, win/loss, origination
 paths:
   /healthz:
     get:
@@ -628,6 +630,64 @@ paths:
       responses:
         "204":
           description: Deleted
+
+  /analytics/funnel:
+    get:
+      operationId: getAnalyticsFunnel
+      tags: [analytics]
+      summary: Pipeline funnel — deals entered vs currently active at each stage
+      responses:
+        "200":
+          description: Funnel data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FunnelStageItem"
+
+  /analytics/time-in-stage:
+    get:
+      operationId: getAnalyticsTimeInStage
+      tags: [analytics]
+      summary: Average and median dwell time (days) per pipeline stage
+      responses:
+        "200":
+          description: Time-in-stage data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TimeInStageItem"
+
+  /analytics/win-loss:
+    get:
+      operationId: getAnalyticsWinLoss
+      tags: [analytics]
+      summary: Win/loss breakdown — outcomes, drop reasons, by deal type
+      responses:
+        "200":
+          description: Win/loss analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WinLossResponse"
+
+  /analytics/origination:
+    get:
+      operationId: getAnalyticsOrigination
+      tags: [analytics]
+      summary: Deal origination by sourcing channel — volume and win rate
+      responses:
+        "200":
+          description: Origination channel data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OriginationChannelItem"
 
   /targets/{id}/activity:
     get:
@@ -2524,3 +2584,92 @@ components:
                 type: string
               description: Labels of unmet gate requirements for the next pipeline stage (advisory only)
           required: [gateWarnings]
+
+    FunnelStageItem:
+      type: object
+      properties:
+        stage:
+          type: string
+        entered:
+          type: integer
+          description: Distinct targets that ever reached this stage
+        current:
+          type: integer
+          description: Active targets currently at this stage
+      required: [stage, entered, current]
+
+    TimeInStageItem:
+      type: object
+      properties:
+        stage:
+          type: string
+        avgDays:
+          type: number
+        medianDays:
+          type: number
+        count:
+          type: integer
+          description: Number of stage exits used for calculation
+      required: [stage, avgDays, medianDays, count]
+
+    WinLossDropReason:
+      type: object
+      properties:
+        category:
+          type: string
+        count:
+          type: integer
+      required: [category, count]
+
+    WinLossDealType:
+      type: object
+      properties:
+        type:
+          type: string
+        won:
+          type: integer
+        dropped:
+          type: integer
+        inProgress:
+          type: integer
+      required: [type, won, dropped, inProgress]
+
+    WinLossResponse:
+      type: object
+      properties:
+        totalEvaluated:
+          type: integer
+        won:
+          type: integer
+        dropped:
+          type: integer
+        inProgress:
+          type: integer
+        byDropReason:
+          type: array
+          items:
+            $ref: "#/components/schemas/WinLossDropReason"
+        byDealType:
+          type: array
+          items:
+            $ref: "#/components/schemas/WinLossDealType"
+      required: [totalEvaluated, won, dropped, inProgress, byDropReason, byDealType]
+
+    OriginationChannelItem:
+      type: object
+      properties:
+        channel:
+          type: string
+        total:
+          type: integer
+        won:
+          type: integer
+        dropped:
+          type: integer
+        inProgress:
+          type: integer
+        winRate:
+          type: number
+          nullable: true
+          description: Win rate as percentage (null when no concluded deals)
+      required: [channel, total, won, dropped, inProgress]

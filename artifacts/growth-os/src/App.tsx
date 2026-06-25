@@ -19,6 +19,7 @@ import WeeklyReview from "@/pages/weekly-review";
 import DiligenceReview from "@/pages/diligence-review";
 import DocumentReview from "@/pages/document-review";
 import LaunchReadiness from "@/pages/launch-readiness";
+import Analytics from "@/pages/analytics";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -126,6 +127,9 @@ function Router() {
       </Route>
       <Route path="/launch-readiness">
         <Layout><LaunchReadiness /></Layout>
+      </Route>
+      <Route path="/analytics">
+        <Layout><Analytics /></Layout>
       </Route>
       <Route path="*">
         <Layout><NotFound /></Layout>

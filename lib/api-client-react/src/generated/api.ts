@@ -37,6 +37,7 @@ import type {
   DocumentDownloadUrlResponse,
   DocumentReviewResponse,
   FilterOptions,
+  FunnelStageItem,
   GetStageGateParams,
   GetTopPriorityTargetsParams,
   HealthStatus,
@@ -51,18 +52,21 @@ import type {
   MeetingNotesResponse,
   NeedsAttentionTarget,
   OpportunityBriefRequest,
+  OriginationChannelItem,
   StageChange,
   StageCount,
   StageGateCheckResponse,
   StageUpdateResponse,
   Target,
   TargetDetail,
+  TimeInStageItem,
   UpdateActionBody,
   UpdateDocumentBody,
   UpdateInteractionBody,
   UpdateStageBody,
   UpdateTargetBody,
   WeeklyReviewResponse,
+  WinLossResponse,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -2621,6 +2625,311 @@ export const useDeleteIcSession = <
 > => {
   return useMutation(getDeleteIcSessionMutationOptions(options));
 };
+
+/**
+ * @summary Pipeline funnel — deals entered vs currently active at each stage
+ */
+export const getGetAnalyticsFunnelUrl = () => {
+  return `/api/analytics/funnel`;
+};
+
+export const getAnalyticsFunnel = async (
+  options?: RequestInit,
+): Promise<FunnelStageItem[]> => {
+  return customFetch<FunnelStageItem[]>(getGetAnalyticsFunnelUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAnalyticsFunnelQueryKey = () => {
+  return [`/api/analytics/funnel`] as const;
+};
+
+export const getGetAnalyticsFunnelQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAnalyticsFunnel>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAnalyticsFunnel>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAnalyticsFunnelQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAnalyticsFunnel>>
+  > = ({ signal }) => getAnalyticsFunnel({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAnalyticsFunnel>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAnalyticsFunnelQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAnalyticsFunnel>>
+>;
+export type GetAnalyticsFunnelQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Pipeline funnel — deals entered vs currently active at each stage
+ */
+
+export function useGetAnalyticsFunnel<
+  TData = Awaited<ReturnType<typeof getAnalyticsFunnel>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAnalyticsFunnel>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAnalyticsFunnelQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Average and median dwell time (days) per pipeline stage
+ */
+export const getGetAnalyticsTimeInStageUrl = () => {
+  return `/api/analytics/time-in-stage`;
+};
+
+export const getAnalyticsTimeInStage = async (
+  options?: RequestInit,
+): Promise<TimeInStageItem[]> => {
+  return customFetch<TimeInStageItem[]>(getGetAnalyticsTimeInStageUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAnalyticsTimeInStageQueryKey = () => {
+  return [`/api/analytics/time-in-stage`] as const;
+};
+
+export const getGetAnalyticsTimeInStageQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAnalyticsTimeInStage>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAnalyticsTimeInStage>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAnalyticsTimeInStageQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAnalyticsTimeInStage>>
+  > = ({ signal }) => getAnalyticsTimeInStage({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAnalyticsTimeInStage>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAnalyticsTimeInStageQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAnalyticsTimeInStage>>
+>;
+export type GetAnalyticsTimeInStageQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Average and median dwell time (days) per pipeline stage
+ */
+
+export function useGetAnalyticsTimeInStage<
+  TData = Awaited<ReturnType<typeof getAnalyticsTimeInStage>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAnalyticsTimeInStage>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAnalyticsTimeInStageQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Win/loss breakdown — outcomes, drop reasons, by deal type
+ */
+export const getGetAnalyticsWinLossUrl = () => {
+  return `/api/analytics/win-loss`;
+};
+
+export const getAnalyticsWinLoss = async (
+  options?: RequestInit,
+): Promise<WinLossResponse> => {
+  return customFetch<WinLossResponse>(getGetAnalyticsWinLossUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAnalyticsWinLossQueryKey = () => {
+  return [`/api/analytics/win-loss`] as const;
+};
+
+export const getGetAnalyticsWinLossQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAnalyticsWinLoss>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAnalyticsWinLoss>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAnalyticsWinLossQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAnalyticsWinLoss>>
+  > = ({ signal }) => getAnalyticsWinLoss({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAnalyticsWinLoss>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAnalyticsWinLossQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAnalyticsWinLoss>>
+>;
+export type GetAnalyticsWinLossQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Win/loss breakdown — outcomes, drop reasons, by deal type
+ */
+
+export function useGetAnalyticsWinLoss<
+  TData = Awaited<ReturnType<typeof getAnalyticsWinLoss>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAnalyticsWinLoss>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAnalyticsWinLossQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Deal origination by sourcing channel — volume and win rate
+ */
+export const getGetAnalyticsOriginationUrl = () => {
+  return `/api/analytics/origination`;
+};
+
+export const getAnalyticsOrigination = async (
+  options?: RequestInit,
+): Promise<OriginationChannelItem[]> => {
+  return customFetch<OriginationChannelItem[]>(
+    getGetAnalyticsOriginationUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetAnalyticsOriginationQueryKey = () => {
+  return [`/api/analytics/origination`] as const;
+};
+
+export const getGetAnalyticsOriginationQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAnalyticsOrigination>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAnalyticsOrigination>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAnalyticsOriginationQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAnalyticsOrigination>>
+  > = ({ signal }) => getAnalyticsOrigination({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAnalyticsOrigination>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAnalyticsOriginationQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAnalyticsOrigination>>
+>;
+export type GetAnalyticsOriginationQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Deal origination by sourcing channel — volume and win rate
+ */
+
+export function useGetAnalyticsOrigination<
+  TData = Awaited<ReturnType<typeof getAnalyticsOrigination>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAnalyticsOrigination>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAnalyticsOriginationQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Unified activity feed for a target (stage changes, interactions, completed actions, diligence, documents)

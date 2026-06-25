@@ -950,6 +950,75 @@ export const DeleteIcSessionParams = zod.object({
 });
 
 /**
+ * @summary Pipeline funnel — deals entered vs currently active at each stage
+ */
+export const GetAnalyticsFunnelResponseItem = zod.object({
+  stage: zod.string(),
+  entered: zod
+    .number()
+    .describe("Distinct targets that ever reached this stage"),
+  current: zod.number().describe("Active targets currently at this stage"),
+});
+export const GetAnalyticsFunnelResponse = zod.array(
+  GetAnalyticsFunnelResponseItem,
+);
+
+/**
+ * @summary Average and median dwell time (days) per pipeline stage
+ */
+export const GetAnalyticsTimeInStageResponseItem = zod.object({
+  stage: zod.string(),
+  avgDays: zod.number(),
+  medianDays: zod.number(),
+  count: zod.number().describe("Number of stage exits used for calculation"),
+});
+export const GetAnalyticsTimeInStageResponse = zod.array(
+  GetAnalyticsTimeInStageResponseItem,
+);
+
+/**
+ * @summary Win/loss breakdown — outcomes, drop reasons, by deal type
+ */
+export const GetAnalyticsWinLossResponse = zod.object({
+  totalEvaluated: zod.number(),
+  won: zod.number(),
+  dropped: zod.number(),
+  inProgress: zod.number(),
+  byDropReason: zod.array(
+    zod.object({
+      category: zod.string(),
+      count: zod.number(),
+    }),
+  ),
+  byDealType: zod.array(
+    zod.object({
+      type: zod.string(),
+      won: zod.number(),
+      dropped: zod.number(),
+      inProgress: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Deal origination by sourcing channel — volume and win rate
+ */
+export const GetAnalyticsOriginationResponseItem = zod.object({
+  channel: zod.string(),
+  total: zod.number(),
+  won: zod.number(),
+  dropped: zod.number(),
+  inProgress: zod.number(),
+  winRate: zod
+    .number()
+    .nullish()
+    .describe("Win rate as percentage (null when no concluded deals)"),
+});
+export const GetAnalyticsOriginationResponse = zod.array(
+  GetAnalyticsOriginationResponseItem,
+);
+
+/**
  * @summary Unified activity feed for a target (stage changes, interactions, completed actions, diligence, documents)
  */
 export const GetActivityFeedParams = zod.object({

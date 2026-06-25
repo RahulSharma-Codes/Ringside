@@ -750,6 +750,53 @@ export type StageUpdateResponse = Target & {
   gateWarnings: string[];
 };
 
+export interface FunnelStageItem {
+  stage: string;
+  /** Distinct targets that ever reached this stage */
+  entered: number;
+  /** Active targets currently at this stage */
+  current: number;
+}
+
+export interface TimeInStageItem {
+  stage: string;
+  avgDays: number;
+  medianDays: number;
+  /** Number of stage exits used for calculation */
+  count: number;
+}
+
+export interface WinLossDropReason {
+  category: string;
+  count: number;
+}
+
+export interface WinLossDealType {
+  type: string;
+  won: number;
+  dropped: number;
+  inProgress: number;
+}
+
+export interface WinLossResponse {
+  totalEvaluated: number;
+  won: number;
+  dropped: number;
+  inProgress: number;
+  byDropReason: WinLossDropReason[];
+  byDealType: WinLossDealType[];
+}
+
+export interface OriginationChannelItem {
+  channel: string;
+  total: number;
+  won: number;
+  dropped: number;
+  inProgress: number;
+  /** Win rate as percentage (null when no concluded deals) */
+  winRate?: number | null;
+}
+
 export type ListTargetsParams = {
   sector?: string;
   priorityTier?: string;
