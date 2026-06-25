@@ -713,7 +713,7 @@ export default function TargetDetail() {
                 { value: "diligence",  label: "Diligence",  icon: <ClipboardCheck size={13} /> },
                 { value: "documents",  label: "Documents",  icon: <FolderOpen size={13} /> },
                 { value: "valuation",  label: "Valuation",  icon: <TrendingUp size={13} /> },
-                { value: "synergies",  label: "Synergies",  icon: <TrendingUp size={13} /> },
+                { value: "synergies",  label: "Synergies",  icon: <Sparkles size={13} /> },
                 { value: "activity",   label: "Activity",   icon: <ActivityIcon size={13} /> },
                 { value: "ic",         label: "IC",         icon: <Scale size={13} /> },
               ].map(({ value, label, icon }) => (
@@ -1000,7 +1000,7 @@ export default function TargetDetail() {
 
             {/* Synergies */}
             <TabsContent value="synergies" className="mt-0">
-              <SynergiesTab targetId={targetId} currentStage={target.currentStage ?? undefined} />
+              <SynergiesTab targetId={targetId} currentStage={target.currentStage ?? "Sourcing"} />
             </TabsContent>
 
             {/* Activity Feed */}

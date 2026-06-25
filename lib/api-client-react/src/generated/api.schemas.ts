@@ -976,6 +976,149 @@ export interface DdSynthesisResponse {
   error?: string | null;
 }
 
+export type SynergyType = (typeof SynergyType)[keyof typeof SynergyType];
+
+export const SynergyType = {
+  Revenue: "Revenue",
+  Cost: "Cost",
+  Capital: "Capital",
+  Tax: "Tax",
+} as const;
+
+export type SynergyConfidence =
+  (typeof SynergyConfidence)[keyof typeof SynergyConfidence];
+
+export const SynergyConfidence = {
+  Probable: "Probable",
+  Possible: "Possible",
+  Aspirational: "Aspirational",
+} as const;
+
+export type SynergyRealisationStatus =
+  (typeof SynergyRealisationStatus)[keyof typeof SynergyRealisationStatus];
+
+export const SynergyRealisationStatus = {
+  Not_Started: "Not Started",
+  On_Track: "On Track",
+  Slipping: "Slipping",
+  Realised: "Realised",
+} as const;
+
+export interface Synergy {
+  id: number;
+  targetId: number;
+  type: SynergyType;
+  description: string;
+  fy1?: number | null;
+  fy2?: number | null;
+  fy3?: number | null;
+  fy4?: number | null;
+  fy5?: number | null;
+  oneTimeCost?: number | null;
+  confidence: SynergyConfidence;
+  ownerName?: string | null;
+  realisationStartMonth?: string | null;
+  realisationStatus: SynergyRealisationStatus;
+  isDisynergy: boolean;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export type CreateSynergyBodyType =
+  (typeof CreateSynergyBodyType)[keyof typeof CreateSynergyBodyType];
+
+export const CreateSynergyBodyType = {
+  Revenue: "Revenue",
+  Cost: "Cost",
+  Capital: "Capital",
+  Tax: "Tax",
+} as const;
+
+export type CreateSynergyBodyConfidence =
+  (typeof CreateSynergyBodyConfidence)[keyof typeof CreateSynergyBodyConfidence];
+
+export const CreateSynergyBodyConfidence = {
+  Probable: "Probable",
+  Possible: "Possible",
+  Aspirational: "Aspirational",
+} as const;
+
+export type CreateSynergyBodyRealisationStatus =
+  | (typeof CreateSynergyBodyRealisationStatus)[keyof typeof CreateSynergyBodyRealisationStatus]
+  | null;
+
+export const CreateSynergyBodyRealisationStatus = {
+  Not_Started: "Not Started",
+  On_Track: "On Track",
+  Slipping: "Slipping",
+  Realised: "Realised",
+} as const;
+
+export interface CreateSynergyBody {
+  type: CreateSynergyBodyType;
+  description: string;
+  fy1?: number | null;
+  fy2?: number | null;
+  fy3?: number | null;
+  fy4?: number | null;
+  fy5?: number | null;
+  oneTimeCost?: number | null;
+  confidence: CreateSynergyBodyConfidence;
+  ownerName?: string | null;
+  realisationStartMonth?: string | null;
+  realisationStatus?: CreateSynergyBodyRealisationStatus;
+  isDisynergy?: boolean | null;
+}
+
+export type UpdateSynergyBodyType =
+  | (typeof UpdateSynergyBodyType)[keyof typeof UpdateSynergyBodyType]
+  | null;
+
+export const UpdateSynergyBodyType = {
+  Revenue: "Revenue",
+  Cost: "Cost",
+  Capital: "Capital",
+  Tax: "Tax",
+} as const;
+
+export type UpdateSynergyBodyConfidence =
+  | (typeof UpdateSynergyBodyConfidence)[keyof typeof UpdateSynergyBodyConfidence]
+  | null;
+
+export const UpdateSynergyBodyConfidence = {
+  Probable: "Probable",
+  Possible: "Possible",
+  Aspirational: "Aspirational",
+} as const;
+
+export type UpdateSynergyBodyRealisationStatus =
+  | (typeof UpdateSynergyBodyRealisationStatus)[keyof typeof UpdateSynergyBodyRealisationStatus]
+  | null;
+
+export const UpdateSynergyBodyRealisationStatus = {
+  Not_Started: "Not Started",
+  On_Track: "On Track",
+  Slipping: "Slipping",
+  Realised: "Realised",
+} as const;
+
+export interface UpdateSynergyBody {
+  type?: UpdateSynergyBodyType;
+  description?: string | null;
+  fy1?: number | null;
+  fy2?: number | null;
+  fy3?: number | null;
+  fy4?: number | null;
+  fy5?: number | null;
+  oneTimeCost?: number | null;
+  confidence?: UpdateSynergyBodyConfidence;
+  ownerName?: string | null;
+  realisationStartMonth?: string | null;
+  realisationStatus?: UpdateSynergyBodyRealisationStatus;
+  isDisynergy?: boolean | null;
+>>>>>>> 76b5e00 (feat: Synergies Register — per-deal synergy hypothesis tracking (Task #62))
+}
+
 export type ListTargetsParams = {
   sector?: string;
   priorityTier?: string;

@@ -65,7 +65,7 @@ import type {
   StageCount,
   StageGateCheckResponse,
   StageUpdateResponse,
-  SynergyEntry,
+  Synergy,
   Target,
   TargetDetail,
   TimeInStageResponse,
@@ -3817,6 +3817,351 @@ export const useUpsertDealEconomics = <
   TContext
 > => {
   return useMutation(getUpsertDealEconomicsMutationOptions(options));
+};
+
+/**
+ * @summary List synergy hypotheses for a target (most recent first)
+ */
+export const getListSynergiesUrl = (id: number) => {
+  return `/api/targets/${id}/synergies`;
+};
+
+export const listSynergies = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Synergy[]> => {
+  return customFetch<Synergy[]>(getListSynergiesUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSynergiesQueryKey = (id: number) => {
+  return [`/api/targets/${id}/synergies`] as const;
+};
+
+export const getListSynergiesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSynergies>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSynergies>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListSynergiesQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listSynergies>>> = ({
+    signal,
+  }) => listSynergies(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSynergies>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSynergiesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSynergies>>
+>;
+export type ListSynergiesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List synergy hypotheses for a target (most recent first)
+ */
+
+export function useListSynergies<
+  TData = Awaited<ReturnType<typeof listSynergies>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSynergies>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSynergiesQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a synergy hypothesis for a target
+ */
+export const getCreateSynergyUrl = (id: number) => {
+  return `/api/targets/${id}/synergies`;
+};
+
+export const createSynergy = async (
+  id: number,
+  createSynergyBody: CreateSynergyBody,
+  options?: RequestInit,
+): Promise<Synergy> => {
+  return customFetch<Synergy>(getCreateSynergyUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createSynergyBody),
+  });
+};
+
+export const getCreateSynergyMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSynergy>>,
+    TError,
+    { id: number; data: BodyType<CreateSynergyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createSynergy>>,
+  TError,
+  { id: number; data: BodyType<CreateSynergyBody> },
+  TContext
+> => {
+  const mutationKey = ["createSynergy"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createSynergy>>,
+    { id: number; data: BodyType<CreateSynergyBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createSynergy(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateSynergyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createSynergy>>
+>;
+export type CreateSynergyMutationBody = BodyType<CreateSynergyBody>;
+export type CreateSynergyMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add a synergy hypothesis for a target
+ */
+export const useCreateSynergy = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSynergy>>,
+    TError,
+    { id: number; data: BodyType<CreateSynergyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createSynergy>>,
+  TError,
+  { id: number; data: BodyType<CreateSynergyBody> },
+  TContext
+> => {
+  return useMutation(getCreateSynergyMutationOptions(options));
+};
+
+/**
+ * @summary Update a synergy hypothesis
+ */
+export const getUpdateSynergyUrl = (id: number) => {
+  return `/api/synergies/${id}`;
+};
+
+export const updateSynergy = async (
+  id: number,
+  updateSynergyBody: UpdateSynergyBody,
+  options?: RequestInit,
+): Promise<Synergy> => {
+  return customFetch<Synergy>(getUpdateSynergyUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateSynergyBody),
+  });
+};
+
+export const getUpdateSynergyMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSynergy>>,
+    TError,
+    { id: number; data: BodyType<UpdateSynergyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateSynergy>>,
+  TError,
+  { id: number; data: BodyType<UpdateSynergyBody> },
+  TContext
+> => {
+  const mutationKey = ["updateSynergy"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateSynergy>>,
+    { id: number; data: BodyType<UpdateSynergyBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateSynergy(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateSynergyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateSynergy>>
+>;
+export type UpdateSynergyMutationBody = BodyType<UpdateSynergyBody>;
+export type UpdateSynergyMutationError = ErrorType<void>;
+
+/**
+ * @summary Update a synergy hypothesis
+ */
+export const useUpdateSynergy = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSynergy>>,
+    TError,
+    { id: number; data: BodyType<UpdateSynergyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateSynergy>>,
+  TError,
+  { id: number; data: BodyType<UpdateSynergyBody> },
+  TContext
+> => {
+  return useMutation(getUpdateSynergyMutationOptions(options));
+};
+
+/**
+ * @summary Delete a synergy hypothesis
+ */
+export const getDeleteSynergyUrl = (id: number) => {
+  return `/api/synergies/${id}`;
+};
+
+export const deleteSynergy = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteSynergyUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteSynergyMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSynergy>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteSynergy>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteSynergy"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteSynergy>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteSynergy(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteSynergyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteSynergy>>
+>;
+
+export type DeleteSynergyMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a synergy hypothesis
+ */
+export const useDeleteSynergy = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSynergy>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteSynergy>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteSynergyMutationOptions(options));
 };
 
 /**

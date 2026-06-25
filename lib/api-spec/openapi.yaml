@@ -910,6 +910,90 @@ paths:
               schema:
                 $ref: "#/components/schemas/DealEconomics"
 
+  /targets/{id}/synergies:
+    get:
+      operationId: listSynergies
+      tags: [synergies]
+      summary: List synergy hypotheses for a target (most recent first)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Synergies list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Synergy"
+    post:
+      operationId: createSynergy
+      tags: [synergies]
+      summary: Add a synergy hypothesis for a target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSynergyBody"
+      responses:
+        "201":
+          description: Synergy created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Synergy"
+
+  /synergies/{id}:
+    put:
+      operationId: updateSynergy
+      tags: [synergies]
+      summary: Update a synergy hypothesis
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSynergyBody"
+      responses:
+        "200":
+          description: Synergy updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Synergy"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteSynergy
+      tags: [synergies]
+      summary: Delete a synergy hypothesis
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
   /targets/{id}/activity:
     get:
       operationId: getActivityFeed
@@ -3403,3 +3487,147 @@ components:
           type: string
           nullable: true
       required: [result]
+
+    Synergy:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        type:
+          type: string
+          enum: [Revenue, Cost, Capital, Tax]
+        description:
+          type: string
+        fy1:
+          type: number
+          nullable: true
+        fy2:
+          type: number
+          nullable: true
+        fy3:
+          type: number
+          nullable: true
+        fy4:
+          type: number
+          nullable: true
+        fy5:
+          type: number
+          nullable: true
+        oneTimeCost:
+          type: number
+          nullable: true
+        confidence:
+          type: string
+          enum: [Probable, Possible, Aspirational]
+        ownerName:
+          type: string
+          nullable: true
+        realisationStartMonth:
+          type: string
+          nullable: true
+        realisationStatus:
+          type: string
+          enum: [Not Started, On Track, Slipping, Realised]
+        isDisynergy:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, targetId, type, description, confidence, realisationStatus, isDisynergy]
+
+    CreateSynergyBody:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [Revenue, Cost, Capital, Tax]
+        description:
+          type: string
+        fy1:
+          type: number
+          nullable: true
+        fy2:
+          type: number
+          nullable: true
+        fy3:
+          type: number
+          nullable: true
+        fy4:
+          type: number
+          nullable: true
+        fy5:
+          type: number
+          nullable: true
+        oneTimeCost:
+          type: number
+          nullable: true
+        confidence:
+          type: string
+          enum: [Probable, Possible, Aspirational]
+        ownerName:
+          type: string
+          nullable: true
+        realisationStartMonth:
+          type: string
+          nullable: true
+        realisationStatus:
+          type: string
+          enum: [Not Started, On Track, Slipping, Realised]
+          nullable: true
+        isDisynergy:
+          type: boolean
+          nullable: true
+      required: [type, description, confidence]
+
+    UpdateSynergyBody:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [Revenue, Cost, Capital, Tax]
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        fy1:
+          type: number
+          nullable: true
+        fy2:
+          type: number
+          nullable: true
+        fy3:
+          type: number
+          nullable: true
+        fy4:
+          type: number
+          nullable: true
+        fy5:
+          type: number
+          nullable: true
+        oneTimeCost:
+          type: number
+          nullable: true
+        confidence:
+          type: string
+          enum: [Probable, Possible, Aspirational]
+          nullable: true
+        ownerName:
+          type: string
+          nullable: true
+        realisationStartMonth:
+          type: string
+          nullable: true
+        realisationStatus:
+          type: string
+          enum: [Not Started, On Track, Slipping, Realised]
+          nullable: true
+        isDisynergy:
+          type: boolean
+          nullable: true

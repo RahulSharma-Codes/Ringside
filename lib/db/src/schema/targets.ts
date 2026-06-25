@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, boolean, timestamp, date, jsonb, bigint } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, boolean, timestamp, date, jsonb, bigint, doublePrecision } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -201,12 +201,12 @@ export const synergiesTable = pgTable("synergies", {
   targetId: integer("target_id").notNull().references(() => targetsTable.id),
   type: text("type").notNull(),
   description: text("description").notNull(),
-  fy1: text("fy1"),
-  fy2: text("fy2"),
-  fy3: text("fy3"),
-  fy4: text("fy4"),
-  fy5: text("fy5"),
-  oneTimeCost: text("one_time_cost"),
+  fy1: doublePrecision("fy1"),
+  fy2: doublePrecision("fy2"),
+  fy3: doublePrecision("fy3"),
+  fy4: doublePrecision("fy4"),
+  fy5: doublePrecision("fy5"),
+  oneTimeCost: doublePrecision("one_time_cost"),
   confidence: text("confidence").notNull().default("Possible"),
   ownerName: text("owner_name"),
   realisationStartMonth: text("realisation_start_month"),

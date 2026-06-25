@@ -194,19 +194,19 @@ async function applyMigrations(): Promise<void> {
     )
   `);
 
-  // Create synergies table
+  // Create synergies table (numeric columns for financial integrity)
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS synergies (
       id                      serial PRIMARY KEY,
       target_id               integer NOT NULL REFERENCES targets(id),
       type                    text NOT NULL,
       description             text NOT NULL,
-      fy1                     text,
-      fy2                     text,
-      fy3                     text,
-      fy4                     text,
-      fy5                     text,
-      one_time_cost           text,
+      fy1                     double precision,
+      fy2                     double precision,
+      fy3                     double precision,
+      fy4                     double precision,
+      fy5                     double precision,
+      one_time_cost           double precision,
       confidence              text NOT NULL DEFAULT 'Possible',
       owner_name              text,
       realisation_start_month text,
@@ -215,6 +215,24 @@ async function applyMigrations(): Promise<void> {
       created_at              timestamp NOT NULL DEFAULT now(),
       updated_at              timestamp NOT NULL DEFAULT now()
     )
+  `);
+  // Idempotent migration: upgrade fy1-5 and one_time_cost from text to double precision
+  // if the table was created before the numeric schema was introduced.
+  await db.execute(sql`
+    DO $$ BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'synergies' AND column_name = 'fy1' AND data_type = 'text'
+      ) THEN
+        ALTER TABLE synergies
+          ALTER COLUMN fy1           TYPE double precision USING fy1::double precision,
+          ALTER COLUMN fy2           TYPE double precision USING fy2::double precision,
+          ALTER COLUMN fy3           TYPE double precision USING fy3::double precision,
+          ALTER COLUMN fy4           TYPE double precision USING fy4::double precision,
+          ALTER COLUMN fy5           TYPE double precision USING fy5::double precision,
+          ALTER COLUMN one_time_cost TYPE double precision USING one_time_cost::double precision;
+      END IF;
+    END $$
   `);
 
   await db.execute(sql`

@@ -1291,6 +1291,121 @@ export const UpsertDealEconomicsResponse = zod.object({
 });
 
 /**
+ * @summary List synergy hypotheses for a target (most recent first)
+ */
+export const ListSynergiesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListSynergiesResponseItem = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  type: zod.enum(["Revenue", "Cost", "Capital", "Tax"]),
+  description: zod.string(),
+  fy1: zod.number().nullish(),
+  fy2: zod.number().nullish(),
+  fy3: zod.number().nullish(),
+  fy4: zod.number().nullish(),
+  fy5: zod.number().nullish(),
+  oneTimeCost: zod.number().nullish(),
+  confidence: zod.enum(["Probable", "Possible", "Aspirational"]),
+  ownerName: zod.string().nullish(),
+  realisationStartMonth: zod.string().nullish(),
+  realisationStatus: zod.enum([
+    "Not Started",
+    "On Track",
+    "Slipping",
+    "Realised",
+  ]),
+  isDisynergy: zod.boolean(),
+  createdAt: zod.coerce.date().nullish(),
+  updatedAt: zod.coerce.date().nullish(),
+});
+export const ListSynergiesResponse = zod.array(ListSynergiesResponseItem);
+
+/**
+ * @summary Add a synergy hypothesis for a target
+ */
+export const CreateSynergyParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateSynergyBody = zod.object({
+  type: zod.enum(["Revenue", "Cost", "Capital", "Tax"]),
+  description: zod.string(),
+  fy1: zod.number().nullish(),
+  fy2: zod.number().nullish(),
+  fy3: zod.number().nullish(),
+  fy4: zod.number().nullish(),
+  fy5: zod.number().nullish(),
+  oneTimeCost: zod.number().nullish(),
+  confidence: zod.enum(["Probable", "Possible", "Aspirational"]),
+  ownerName: zod.string().nullish(),
+  realisationStartMonth: zod.string().nullish(),
+  realisationStatus: zod
+    .enum(["Not Started", "On Track", "Slipping", "Realised"])
+    .nullish(),
+  isDisynergy: zod.boolean().nullish(),
+});
+
+/**
+ * @summary Update a synergy hypothesis
+ */
+export const UpdateSynergyParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateSynergyBody = zod.object({
+  type: zod.enum(["Revenue", "Cost", "Capital", "Tax"]).nullish(),
+  description: zod.string().nullish(),
+  fy1: zod.number().nullish(),
+  fy2: zod.number().nullish(),
+  fy3: zod.number().nullish(),
+  fy4: zod.number().nullish(),
+  fy5: zod.number().nullish(),
+  oneTimeCost: zod.number().nullish(),
+  confidence: zod.enum(["Probable", "Possible", "Aspirational"]).nullish(),
+  ownerName: zod.string().nullish(),
+  realisationStartMonth: zod.string().nullish(),
+  realisationStatus: zod
+    .enum(["Not Started", "On Track", "Slipping", "Realised"])
+    .nullish(),
+  isDisynergy: zod.boolean().nullish(),
+});
+
+export const UpdateSynergyResponse = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  type: zod.enum(["Revenue", "Cost", "Capital", "Tax"]),
+  description: zod.string(),
+  fy1: zod.number().nullish(),
+  fy2: zod.number().nullish(),
+  fy3: zod.number().nullish(),
+  fy4: zod.number().nullish(),
+  fy5: zod.number().nullish(),
+  oneTimeCost: zod.number().nullish(),
+  confidence: zod.enum(["Probable", "Possible", "Aspirational"]),
+  ownerName: zod.string().nullish(),
+  realisationStartMonth: zod.string().nullish(),
+  realisationStatus: zod.enum([
+    "Not Started",
+    "On Track",
+    "Slipping",
+    "Realised",
+  ]),
+  isDisynergy: zod.boolean(),
+  createdAt: zod.coerce.date().nullish(),
+  updatedAt: zod.coerce.date().nullish(),
+});
+
+/**
+ * @summary Delete a synergy hypothesis
+ */
+export const DeleteSynergyParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
  * @summary Unified activity feed for a target (stage changes, interactions, completed actions, diligence, documents)
  */
 export const GetActivityFeedParams = zod.object({

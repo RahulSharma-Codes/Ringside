@@ -1446,6 +1446,80 @@ router.post("/:id/valuations", async (req, res) => {
   return res.status(201).json(formatValuation(row));
 });
 
+// ── Synergies routes ──────────────────────────────────────────────────────────
+
+const SYNERGY_TYPES = ["Revenue", "Cost", "Capital", "Tax"] as const;
+const SYNERGY_CONFIDENCES = ["Probable", "Possible", "Aspirational"] as const;
+const SYNERGY_STATUSES = ["Not Started", "On Track", "Slipping", "Realised"] as const;
+
+const CreateSynergyBodySchema = z.object({
+  type: z.enum(SYNERGY_TYPES),
+  description: z.string().min(1),
+  fy1: z.number().nullable().optional(),
+  fy2: z.number().nullable().optional(),
+  fy3: z.number().nullable().optional(),
+  fy4: z.number().nullable().optional(),
+  fy5: z.number().nullable().optional(),
+  oneTimeCost: z.number().nullable().optional(),
+  confidence: z.enum(SYNERGY_CONFIDENCES),
+  ownerName: z.string().nullable().optional(),
+  realisationStartMonth: z.string().nullable().optional(),
+  realisationStatus: z.enum(SYNERGY_STATUSES).optional(),
+  isDisynergy: z.boolean().optional(),
+});
+
+function formatSynergy(s: typeof synergiesTable.$inferSelect) {
+  return {
+    ...s,
+    createdAt: toIso(s.createdAt),
+    updatedAt: toIso(s.updatedAt),
+  };
+}
+
+// GET /api/targets/:id/synergies
+router.get("/:id/synergies", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const rows = await db
+    .select()
+    .from(synergiesTable)
+    .where(eq(synergiesTable.targetId, id))
+    .orderBy(desc(synergiesTable.createdAt));
+  return res.json(rows.map(formatSynergy));
+});
+
+// POST /api/targets/:id/synergies
+router.post("/:id/synergies", async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  const parsed = CreateSynergyBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.flatten() });
+  }
+  const d = parsed.data;
+  const now = new Date();
+  const [row] = await db
+    .insert(synergiesTable)
+    .values({
+      targetId,
+      type: d.type,
+      description: d.description,
+      fy1: d.fy1 ?? null,
+      fy2: d.fy2 ?? null,
+      fy3: d.fy3 ?? null,
+      fy4: d.fy4 ?? null,
+      fy5: d.fy5 ?? null,
+      oneTimeCost: d.oneTimeCost ?? null,
+      confidence: d.confidence,
+      ownerName: d.ownerName ?? null,
+      realisationStartMonth: d.realisationStartMonth ?? null,
+      realisationStatus: d.realisationStatus ?? "Not Started",
+      isDisynergy: d.isDisynergy ?? false,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+  return res.status(201).json(formatSynergy(row));
+});
+
 // ── Deal Economics routes ─────────────────────────────────────────────────────
 
 const UpsertEconomicsBodySchema = z.object({
