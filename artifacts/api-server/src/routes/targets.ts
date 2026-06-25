@@ -969,6 +969,23 @@ router.put("/:id/stage", async (req, res) => {
   const previousStage = currentStage(row.milestone);
   const newStage = parsed.data.newStage;
 
+  // Server-side verdict enforcement for closure transitions
+  const CLOSURE_VERDICT_STAGES = new Set(["Closed", "Dropped"]);
+  if (CLOSURE_VERDICT_STAGES.has(newStage)) {
+    if (newStage === "Dropped" && !parsed.data.closeReasonCode?.trim()) {
+      return res.status(400).json({ error: "closeReasonCode is required when dropping a deal" });
+    }
+    const accuracy = parsed.data.phase1VerdictAccuracy;
+    if (
+      (accuracy === "Partially-correct" || accuracy === "Wrong") &&
+      !parsed.data.phase1VerdictNote?.trim()
+    ) {
+      return res.status(400).json({
+        error: "phase1VerdictNote is required when phase1VerdictAccuracy is Partially-correct or Wrong",
+      });
+    }
+  }
+
   if (previousStage !== newStage) {
     await db.insert(stageChangeLogTable).values({
       targetId: id,
@@ -1040,6 +1057,10 @@ router.put("/:id/stage", async (req, res) => {
       newStage,
       changeReason: parsed.data.changeReason ?? null,
       gateWarnings,
+      ...(verdictUpdate.closeReasonCode != null && { closeReasonCode: verdictUpdate.closeReasonCode }),
+      ...(verdictUpdate.phase1VerdictAccuracy != null && { phase1VerdictAccuracy: verdictUpdate.phase1VerdictAccuracy }),
+      ...(verdictUpdate.phase1VerdictNote != null && { phase1VerdictNote: verdictUpdate.phase1VerdictNote }),
+      ...(verdictUpdate.closeMissTheme != null && { closeMissTheme: verdictUpdate.closeMissTheme }),
     },
   );
 

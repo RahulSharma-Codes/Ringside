@@ -62,6 +62,19 @@ router.get("/summary", async (_req, res) => {
     .map(([theme, count]) => ({ theme, count }))
     .sort((a, b) => b.count - a.count);
 
+  // Win/Loss by sector (Closed = win, Dropped/Rejected = loss)
+  const winLossMap = new Map<string, { wins: number; losses: number }>();
+  for (const deal of closedDeals) {
+    const sector = deal.sector ?? "Unknown";
+    if (!winLossMap.has(sector)) winLossMap.set(sector, { wins: 0, losses: 0 });
+    const entry = winLossMap.get(sector)!;
+    if (deal.currentStage === "Closed") entry.wins++;
+    else entry.losses++;
+  }
+  const winLossBySector = Array.from(winLossMap.entries())
+    .map(([sector, counts]) => ({ sector, ...counts, total: counts.wins + counts.losses }))
+    .sort((a, b) => b.total - a.total);
+
   // Recent closures — last 10
   const recentClosures = [...closedDeals]
     .sort((a, b) => {
@@ -83,7 +96,7 @@ router.get("/summary", async (_req, res) => {
       updatedAt: t.updatedAt ? new Date(t.updatedAt).toISOString() : null,
     }));
 
-  return res.json({ accuracyBySector, missThemes, recentClosures });
+  return res.json({ accuracyBySector, missThemes, winLossBySector, recentClosures });
 });
 
 export default router;

@@ -43,9 +43,17 @@ interface ClosureSummary {
   updatedAt: string | null;
 }
 
+interface WinLossSector {
+  sector: string;
+  wins: number;
+  losses: number;
+  total: number;
+}
+
 interface DoctrineSummary {
   accuracyBySector: SectorAccuracy[];
   missThemes: MissTheme[];
+  winLossBySector: WinLossSector[];
   recentClosures: ClosureSummary[];
 }
 
@@ -176,7 +184,60 @@ export default function Doctrine() {
           </CardContent>
         </Card>
 
-        {/* Panel 2 — Most Common Miss Categories */}
+        {/* Panel 2 — Win / Loss by Sector */}
+        <Card className="border-border/60 bg-card rounded-xl">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="font-mono uppercase tracking-tight text-sm">
+                Win / Loss by Sector
+              </CardTitle>
+              <Link href="/analytics">
+                <span className="text-[10px] font-mono text-primary/70 hover:text-primary flex items-center gap-1 cursor-pointer transition-colors">
+                  Sector analytics <ArrowRight size={10} />
+                </span>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            {isLoading ? (
+              <Skeleton className="h-40 w-full rounded-lg" />
+            ) : (data?.winLossBySector ?? []).length === 0 ? (
+              <p className="text-[11px] text-muted-foreground font-mono py-4 text-center">
+                No closed deals yet.
+              </p>
+            ) : (
+              <div className="space-y-2.5">
+                {(data?.winLossBySector ?? []).map((s) => {
+                  const winPct = s.total > 0 ? Math.round((s.wins / s.total) * 100) : 0;
+                  return (
+                    <div key={s.sector} className="space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <Link href="/analytics">
+                          <span className="text-[11px] font-mono text-muted-foreground hover:text-primary cursor-pointer transition-colors truncate max-w-[160px]">
+                            {s.sector}
+                          </span>
+                        </Link>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] font-mono text-emerald-600">{s.wins}W</span>
+                          <span className="text-[10px] font-mono text-destructive/70">{s.losses}L</span>
+                          <Badge variant="secondary" className="text-[10px] font-mono">{winPct}%</Badge>
+                        </div>
+                      </div>
+                      <div className="flex h-1.5 w-full rounded-full overflow-hidden bg-destructive/20">
+                        <div
+                          className="h-full bg-emerald-500/70 transition-all"
+                          style={{ width: `${winPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Panel 3 — Most Common Miss Categories */}
         <Card className="border-border/60 bg-card rounded-xl">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="font-mono uppercase tracking-tight text-sm">
