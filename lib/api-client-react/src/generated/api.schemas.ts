@@ -1669,9 +1669,17 @@ export interface ClosureSummary {
   updatedAt?: string | null;
 }
 
+export interface WinLossSector {
+  sector: string;
+  wins: number;
+  losses: number;
+  total: number;
+}
+
 export interface DoctrineSummary {
   accuracyBySector: SectorAccuracy[];
   missThemes: MissTheme[];
+  winLossBySector: WinLossSector[];
   recentClosures: ClosureSummary[];
 }
 

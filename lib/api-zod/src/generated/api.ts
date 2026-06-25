@@ -2893,6 +2893,14 @@ export const GetDoctrineSummaryResponse = zod.object({
       count: zod.number(),
     }),
   ),
+  winLossBySector: zod.array(
+    zod.object({
+      sector: zod.string(),
+      wins: zod.number(),
+      losses: zod.number(),
+      total: zod.number(),
+    }),
+  ),
   recentClosures: zod.array(
     zod.object({
       id: zod.number(),

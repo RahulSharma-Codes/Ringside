@@ -324,6 +324,7 @@ export default function TargetDetail() {
   };
 
   const verdictIncomplete =
+    (isClosureStage && !phase1VerdictAccuracy) ||
     (stageVal === "Dropped" && !closeReasonCode) ||
     (["Partially-correct", "Wrong"].includes(phase1VerdictAccuracy) && !phase1VerdictNote.trim());
 
@@ -1174,7 +1175,7 @@ export default function TargetDetail() {
 
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                    Phase 1 AI Screen Accuracy <span className="text-muted-foreground/50">(optional)</span>
+                    Phase 1 AI Screen Accuracy <span className="text-destructive">*</span>
                   </label>
                   <Select value={phase1VerdictAccuracy} onValueChange={setPhase1VerdictAccuracy}>
                     <SelectTrigger className="rounded-sm bg-background/50 text-sm h-9">

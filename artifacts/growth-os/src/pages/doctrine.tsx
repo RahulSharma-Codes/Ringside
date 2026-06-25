@@ -193,7 +193,7 @@ export default function Doctrine() {
               </CardTitle>
               <Link href="/analytics">
                 <span className="text-[10px] font-mono text-primary/70 hover:text-primary flex items-center gap-1 cursor-pointer transition-colors">
-                  Sector analytics <ArrowRight size={10} />
+                  Analytics <ArrowRight size={10} />
                 </span>
               </Link>
             </div>
@@ -209,10 +209,11 @@ export default function Doctrine() {
               <div className="space-y-2.5">
                 {(data?.winLossBySector ?? []).map((s) => {
                   const winPct = s.total > 0 ? Math.round((s.wins / s.total) * 100) : 0;
+                  const analyticsHref = `/analytics?sector=${encodeURIComponent(s.sector)}`;
                   return (
                     <div key={s.sector} className="space-y-0.5">
                       <div className="flex items-center justify-between">
-                        <Link href="/analytics">
+                        <Link href={analyticsHref}>
                           <span className="text-[11px] font-mono text-muted-foreground hover:text-primary cursor-pointer transition-colors truncate max-w-[160px]">
                             {s.sector}
                           </span>
@@ -220,7 +221,9 @@ export default function Doctrine() {
                         <div className="flex items-center gap-2 shrink-0">
                           <span className="text-[10px] font-mono text-emerald-600">{s.wins}W</span>
                           <span className="text-[10px] font-mono text-destructive/70">{s.losses}L</span>
-                          <Badge variant="secondary" className="text-[10px] font-mono">{winPct}%</Badge>
+                          <Link href={analyticsHref}>
+                            <Badge variant="secondary" className="text-[10px] font-mono cursor-pointer hover:bg-primary/10 transition-colors">{winPct}%</Badge>
+                          </Link>
                         </div>
                       </div>
                       <div className="flex h-1.5 w-full rounded-full overflow-hidden bg-destructive/20">

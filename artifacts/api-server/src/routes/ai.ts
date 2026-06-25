@@ -436,7 +436,7 @@ async function buildOpportunityBriefContext(targetId: number): Promise<string> {
           eq(targetsTable.sector, row.sector),
           isNotNull(targetsTable.phase1VerdictAccuracy),
           inArray(milestonesTable.currentStage, [
-            "Rejected", "Closing", "Closed", "Completed", "Signed", "Dropped",
+            "Rejected", "Closed", "Completed", "Signed", "Dropped",
           ]),
         ),
       )

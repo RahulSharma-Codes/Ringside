@@ -972,6 +972,9 @@ router.put("/:id/stage", async (req, res) => {
   // Server-side verdict enforcement for closure transitions
   const CLOSURE_VERDICT_STAGES = new Set(["Closed", "Dropped"]);
   if (CLOSURE_VERDICT_STAGES.has(newStage)) {
+    if (!parsed.data.phase1VerdictAccuracy?.trim()) {
+      return res.status(400).json({ error: "phase1VerdictAccuracy is required when closing or dropping a deal" });
+    }
     if (newStage === "Dropped" && !parsed.data.closeReasonCode?.trim()) {
       return res.status(400).json({ error: "closeReasonCode is required when dropping a deal" });
     }

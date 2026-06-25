@@ -4899,9 +4899,22 @@ components:
           type: string
           nullable: true
 
+    WinLossSector:
+      type: object
+      required: [sector, wins, losses, total]
+      properties:
+        sector:
+          type: string
+        wins:
+          type: integer
+        losses:
+          type: integer
+        total:
+          type: integer
+
     DoctrineSummary:
       type: object
-      required: [accuracyBySector, missThemes, recentClosures]
+      required: [accuracyBySector, missThemes, winLossBySector, recentClosures]
       properties:
         accuracyBySector:
           type: array
@@ -4911,6 +4924,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MissTheme"
+        winLossBySector:
+          type: array
+          items:
+            $ref: "#/components/schemas/WinLossSector"
         recentClosures:
           type: array
           items:
