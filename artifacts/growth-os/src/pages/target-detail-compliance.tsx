@@ -67,6 +67,32 @@ function isOverdueClearing(item: RegulatoryClearance): boolean {
   return new Date(item.targetClearanceDate) < new Date();
 }
 
+function daysFromNow(dateStr: string | null | undefined): number | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  const now = new Date();
+  return Math.round((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function ndaUrgencyScore(nda: NdaRecord): number {
+  if (isExpired(nda.expiryDate) || nda.status === "Expired") return 0;
+  if (isExpiringWithin30Days(nda.expiryDate)) return 1;
+  return 2;
+}
+
+function clearanceUrgencyScore(clr: RegulatoryClearance): number {
+  if (clr.status === "Blocked") return 0;
+  if (isOverdueClearing(clr)) return 1;
+  if (clr.status === "Pending" || clr.status === "Filed") return 2;
+  return 3;
+}
+
 function ndaStatusColor(nda: NdaRecord): string {
   if (isExpired(nda.expiryDate) || nda.status === "Expired") return "destructive";
   if (isExpiringWithin30Days(nda.expiryDate)) return "secondary";
@@ -488,9 +514,10 @@ export function ComplianceTab({ targetId }: ComplianceTabProps) {
             </div>
           ) : (
             <div className="border rounded-lg divide-y divide-border overflow-hidden mt-1">
-              {ndas.map(nda => {
+              {[...ndas].sort((a, b) => ndaUrgencyScore(a) - ndaUrgencyScore(b)).map(nda => {
                 const expiring = isExpiringWithin30Days(nda.expiryDate);
                 const expired  = isExpired(nda.expiryDate) || nda.status === "Expired";
+                const days     = daysFromNow(nda.expiryDate);
                 return (
                   <div key={nda.id} className={`flex items-start gap-3 px-4 py-3 bg-card ${expired ? "bg-destructive/5" : expiring ? "bg-amber-500/5" : ""}`}>
                     <div className="flex-1 min-w-0">
@@ -498,12 +525,27 @@ export function ComplianceTab({ targetId }: ComplianceTabProps) {
                         <span className="font-medium text-sm truncate">{nda.counterparty || "—"}</span>
                         <Badge variant={ndaStatusColor(nda) as "destructive" | "secondary" | "outline"} className="text-xs">{nda.status}</Badge>
                         <Badge variant="outline" className="text-xs">{nda.scope}</Badge>
-                        {expiring && !expired && <Badge className="text-xs bg-amber-500 text-white border-0 gap-1"><Clock size={9} />Expiring in ≤30d</Badge>}
-                        {expired   && <Badge variant="destructive" className="text-xs gap-1"><AlertTriangle size={9} />Expired</Badge>}
+                        {expiring && !expired && days !== null && (
+                          <Badge className="text-xs bg-amber-500 text-white border-0 gap-1">
+                            <Clock size={9} />{days === 0 ? "Expires today" : `Expires in ${days}d`}
+                          </Badge>
+                        )}
+                        {expired && days !== null && (
+                          <Badge variant="destructive" className="text-xs gap-1">
+                            <AlertTriangle size={9} />{Math.abs(days)}d ago
+                          </Badge>
+                        )}
+                        {expired && days === null && (
+                          <Badge variant="destructive" className="text-xs gap-1"><AlertTriangle size={9} />Expired</Badge>
+                        )}
                       </div>
                       <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-0.5">
-                        {nda.effectiveDate && <span>Effective: {nda.effectiveDate}</span>}
-                        {nda.expiryDate    && <span>Expires: {nda.expiryDate}</span>}
+                        {nda.effectiveDate && <span>Effective: {formatDate(nda.effectiveDate)}</span>}
+                        {nda.expiryDate    && (
+                          <span className={expired ? "text-destructive font-medium" : expiring ? "text-amber-700 font-medium" : ""}>
+                            Expires: {formatDate(nda.expiryDate)}
+                          </span>
+                        )}
                         {nda.termMonths    && <span>Term: {nda.termMonths}mo</span>}
                         {nda.docReference  && (
                           <a href={nda.docReference.startsWith("http") ? nda.docReference : undefined}
@@ -557,22 +599,34 @@ export function ComplianceTab({ targetId }: ComplianceTabProps) {
             </div>
           ) : (
             <div className="border rounded-lg divide-y divide-border overflow-hidden mt-1">
-              {clearances.map(clr => {
-                const overdue = isOverdueClearing(clr);
+              {[...clearances].sort((a, b) => clearanceUrgencyScore(a) - clearanceUrgencyScore(b)).map(clr => {
+                const overdue  = isOverdueClearing(clr);
+                const days     = daysFromNow(clr.targetClearanceDate);
                 return (
-                  <div key={clr.id} className={`flex items-start gap-3 px-4 py-3 bg-card ${overdue ? "bg-destructive/5" : ""}`}>
+                  <div key={clr.id} className={`flex items-start gap-3 px-4 py-3 bg-card ${clr.status === "Blocked" ? "bg-destructive/5" : overdue ? "bg-orange-500/5" : ""}`}>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <Badge variant="outline" className="text-xs font-mono">{clr.category}</Badge>
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border ${clearanceStatusColor(clr.status)}`}>
                           {clr.status}
                         </span>
-                        {overdue && <Badge className="text-xs bg-orange-500 text-white border-0 gap-1"><AlertTriangle size={9} />Overdue</Badge>}
+                        {overdue && days !== null && (
+                          <Badge className="text-xs bg-orange-500 text-white border-0 gap-1">
+                            <AlertTriangle size={9} />{Math.abs(days)}d overdue
+                          </Badge>
+                        )}
+                        {overdue && days === null && (
+                          <Badge className="text-xs bg-orange-500 text-white border-0 gap-1"><AlertTriangle size={9} />Overdue</Badge>
+                        )}
                       </div>
                       {clr.description && <p className="text-sm truncate mb-1">{clr.description}</p>}
                       <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-0.5">
                         {clr.ownerName            && <span>Owner: {clr.ownerName}</span>}
-                        {clr.targetClearanceDate  && <span className={overdue ? "text-destructive font-medium" : ""}>Target: {clr.targetClearanceDate}</span>}
+                        {clr.targetClearanceDate  && (
+                          <span className={overdue ? "text-destructive font-medium" : ""}>
+                            Target: {formatDate(clr.targetClearanceDate)}
+                          </span>
+                        )}
                         {clr.evidenceReference    && (
                           <a href={clr.evidenceReference.startsWith("http") ? clr.evidenceReference : undefined}
                              target="_blank" rel="noopener noreferrer"
