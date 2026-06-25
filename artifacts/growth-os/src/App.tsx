@@ -20,6 +20,7 @@ import DiligenceReview from "@/pages/diligence-review";
 import DocumentReview from "@/pages/document-review";
 import LaunchReadiness from "@/pages/launch-readiness";
 import Analytics from "@/pages/analytics";
+import Doctrine from "@/pages/doctrine";
 import AdminPage from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 
@@ -289,6 +290,9 @@ function Router() {
       </Route>
       <Route path="/analytics">
         <Layout><Analytics /></Layout>
+      </Route>
+      <Route path="/doctrine">
+        <Layout><Doctrine /></Layout>
       </Route>
       <Route path="/admin">
         <Layout><AdminPage /></Layout>

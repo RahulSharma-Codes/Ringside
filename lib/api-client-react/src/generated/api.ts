@@ -50,6 +50,7 @@ import type {
   DealEconomics,
   DiligenceReviewResponse,
   DiligenceTabResponse,
+  DoctrineSummary,
   DocumentDownloadUrlResponse,
   DocumentReviewResponse,
   FilterOptions,
@@ -8195,6 +8196,81 @@ export function useVerifyAuditChain<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getVerifyAuditChainQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Aggregated verdict accuracy and miss-theme analysis across closed deals
+ */
+export const getGetDoctrineSummaryUrl = () => {
+  return `/api/doctrine/summary`;
+};
+
+export const getDoctrineSummary = async (
+  options?: RequestInit,
+): Promise<DoctrineSummary> => {
+  return customFetch<DoctrineSummary>(getGetDoctrineSummaryUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDoctrineSummaryQueryKey = () => {
+  return [`/api/doctrine/summary`] as const;
+};
+
+export const getGetDoctrineSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDoctrineSummary>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDoctrineSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDoctrineSummaryQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDoctrineSummary>>
+  > = ({ signal }) => getDoctrineSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDoctrineSummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDoctrineSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDoctrineSummary>>
+>;
+export type GetDoctrineSummaryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Aggregated verdict accuracy and miss-theme analysis across closed deals
+ */
+
+export function useGetDoctrineSummary<
+  TData = Awaited<ReturnType<typeof getDoctrineSummary>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDoctrineSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDoctrineSummaryQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

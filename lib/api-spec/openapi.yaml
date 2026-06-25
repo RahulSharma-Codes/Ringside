@@ -37,6 +37,8 @@ tags:
   - name: sponsors
   - name: compliance
     description: NDA register and regulatory clearance tracking
+  - name: doctrine
+    description: Learning loop — deal closure verdicts and accuracy analysis
 paths:
   /healthz:
     get:
@@ -1926,6 +1928,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/AuditVerifyResult"
 
+  /doctrine/summary:
+    get:
+      operationId: getDoctrineSummary
+      tags: [doctrine]
+      summary: Aggregated verdict accuracy and miss-theme analysis across closed deals
+      responses:
+        "200":
+          description: Doctrine summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DoctrineSummary"
+
 components:
   schemas:
     HealthStatus:
@@ -2197,6 +2212,18 @@ components:
           type: string
           nullable: true
         changeReason:
+          type: string
+          nullable: true
+        closeReasonCode:
+          type: string
+          nullable: true
+        phase1VerdictAccuracy:
+          type: string
+          nullable: true
+        phase1VerdictNote:
+          type: string
+          nullable: true
+        closeMissTheme:
           type: string
           nullable: true
       required: [newStage]
@@ -4816,3 +4843,75 @@ components:
         firstBrokenAt:
           type: string
           nullable: true
+
+    SectorAccuracy:
+      type: object
+      required: [sector, correct, partiallyCorrect, wrong, total]
+      properties:
+        sector:
+          type: string
+        correct:
+          type: integer
+        partiallyCorrect:
+          type: integer
+        wrong:
+          type: integer
+        total:
+          type: integer
+
+    MissTheme:
+      type: object
+      required: [theme, count]
+      properties:
+        theme:
+          type: string
+        count:
+          type: integer
+
+    ClosureSummary:
+      type: object
+      required: [id, targetCode, projectName, currentStage]
+      properties:
+        id:
+          type: integer
+        targetCode:
+          type: string
+        projectName:
+          type: string
+        sector:
+          type: string
+          nullable: true
+        currentStage:
+          type: string
+        closeReasonCode:
+          type: string
+          nullable: true
+        phase1VerdictAccuracy:
+          type: string
+          nullable: true
+        phase1VerdictNote:
+          type: string
+          nullable: true
+        closeMissTheme:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+          nullable: true
+
+    DoctrineSummary:
+      type: object
+      required: [accuracyBySector, missThemes, recentClosures]
+      properties:
+        accuracyBySector:
+          type: array
+          items:
+            $ref: "#/components/schemas/SectorAccuracy"
+        missThemes:
+          type: array
+          items:
+            $ref: "#/components/schemas/MissTheme"
+        recentClosures:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClosureSummary"

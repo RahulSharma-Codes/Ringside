@@ -467,6 +467,12 @@ async function applyMigrations(): Promise<void> {
   await db.execute(sql`CREATE INDEX IF NOT EXISTS ic_proposals_target_id_idx ON ic_proposals(target_id)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS ic_votes_proposal_id_idx ON ic_votes(proposal_id)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS ic_cps_proposal_id_idx ON ic_cps(proposal_id)`);
+
+  // Verdict / doctrine columns (Task 74)
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS close_reason_code text`);
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS phase1_verdict_accuracy text`);
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS phase1_verdict_note text`);
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS close_miss_theme text`);
 }
 
 app.listen(port, (err) => {

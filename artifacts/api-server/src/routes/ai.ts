@@ -417,6 +417,41 @@ async function buildOpportunityBriefContext(targetId: number): Promise<string> {
     }
   }
 
+  // Sector calibration: prior deals in same sector with Phase 1 verdicts
+  if (row.sector) {
+    const priorDeals = await db
+      .select({
+        targetCode: targetsTable.targetCode,
+        projectName: targetsTable.projectName,
+        phase1VerdictAccuracy: targetsTable.phase1VerdictAccuracy,
+        phase1VerdictNote: targetsTable.phase1VerdictNote,
+        closeMissTheme: targetsTable.closeMissTheme,
+        closeReasonCode: targetsTable.closeReasonCode,
+        currentStage: milestonesTable.currentStage,
+      })
+      .from(targetsTable)
+      .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id))
+      .where(
+        and(
+          eq(targetsTable.sector, row.sector),
+          isNotNull(targetsTable.phase1VerdictAccuracy),
+        ),
+      )
+      .orderBy(desc(targetsTable.updatedAt))
+      .limit(5);
+
+    if (priorDeals.length > 0) {
+      lines.push(``, `--- SECTOR CALIBRATION (prior ${row.sector} deals with Phase 1 verdicts) ---`);
+      for (const p of priorDeals) {
+        const outcome = p.currentStage ?? "Unknown";
+        const accuracy = p.phase1VerdictAccuracy ?? "N/A";
+        const note = p.phase1VerdictNote ? ` | Note: ${p.phase1VerdictNote}` : "";
+        const theme = p.closeMissTheme ? ` | Miss theme: ${p.closeMissTheme}` : "";
+        lines.push(`[${p.targetCode}] ${p.projectName} — Outcome: ${outcome} | Phase1 accuracy: ${accuracy}${note}${theme}`);
+      }
+    }
+  }
+
   return lines.join("\n");
 }
 

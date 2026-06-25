@@ -996,11 +996,26 @@ router.put("/:id/stage", async (req, res) => {
     milestone = createdMilestone;
   }
 
+  const verdictUpdate: Partial<typeof targetsTable.$inferInsert> = {};
+  if (parsed.data.closeReasonCode !== undefined && parsed.data.closeReasonCode !== null) {
+    verdictUpdate.closeReasonCode = parsed.data.closeReasonCode;
+  }
+  if (parsed.data.phase1VerdictAccuracy !== undefined && parsed.data.phase1VerdictAccuracy !== null) {
+    verdictUpdate.phase1VerdictAccuracy = parsed.data.phase1VerdictAccuracy;
+  }
+  if (parsed.data.phase1VerdictNote !== undefined && parsed.data.phase1VerdictNote !== null) {
+    verdictUpdate.phase1VerdictNote = parsed.data.phase1VerdictNote;
+  }
+  if (parsed.data.closeMissTheme !== undefined && parsed.data.closeMissTheme !== null) {
+    verdictUpdate.closeMissTheme = parsed.data.closeMissTheme;
+  }
+
   const [updatedTarget] = await db
     .update(targetsTable)
     .set({
       isActive: !TERMINAL_STAGES.has(newStage),
       updatedAt: now,
+      ...verdictUpdate,
     })
     .where(eq(targetsTable.id, id))
     .returning();

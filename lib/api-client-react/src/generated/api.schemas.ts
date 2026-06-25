@@ -151,6 +151,10 @@ export interface UpdateStageBody {
   newStage: string;
   changedBy?: string | null;
   changeReason?: string | null;
+  closeReasonCode?: string | null;
+  phase1VerdictAccuracy?: string | null;
+  phase1VerdictNote?: string | null;
+  closeMissTheme?: string | null;
 }
 
 export interface CreateInteractionBody {
@@ -1637,6 +1641,38 @@ export interface AuditVerifyResult {
   valid: boolean;
   checkedCount: number;
   firstBrokenAt: string | null;
+}
+
+export interface SectorAccuracy {
+  sector: string;
+  correct: number;
+  partiallyCorrect: number;
+  wrong: number;
+  total: number;
+}
+
+export interface MissTheme {
+  theme: string;
+  count: number;
+}
+
+export interface ClosureSummary {
+  id: number;
+  targetCode: string;
+  projectName: string;
+  sector?: string | null;
+  currentStage: string;
+  closeReasonCode?: string | null;
+  phase1VerdictAccuracy?: string | null;
+  phase1VerdictNote?: string | null;
+  closeMissTheme?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface DoctrineSummary {
+  accuracyBySector: SectorAccuracy[];
+  missThemes: MissTheme[];
+  recentClosures: ClosureSummary[];
 }
 
 export type ListTargetsParams = {

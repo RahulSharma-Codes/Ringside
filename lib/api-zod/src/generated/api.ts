@@ -446,6 +446,10 @@ export const UpdateTargetStageBody = zod.object({
   newStage: zod.string(),
   changedBy: zod.string().nullish(),
   changeReason: zod.string().nullish(),
+  closeReasonCode: zod.string().nullish(),
+  phase1VerdictAccuracy: zod.string().nullish(),
+  phase1VerdictNote: zod.string().nullish(),
+  closeMissTheme: zod.string().nullish(),
 });
 
 export const UpdateTargetStageResponse = zod
@@ -2868,4 +2872,39 @@ export const VerifyAuditChainResponse = zod.object({
   valid: zod.boolean(),
   checkedCount: zod.number(),
   firstBrokenAt: zod.string().nullable(),
+});
+
+/**
+ * @summary Aggregated verdict accuracy and miss-theme analysis across closed deals
+ */
+export const GetDoctrineSummaryResponse = zod.object({
+  accuracyBySector: zod.array(
+    zod.object({
+      sector: zod.string(),
+      correct: zod.number(),
+      partiallyCorrect: zod.number(),
+      wrong: zod.number(),
+      total: zod.number(),
+    }),
+  ),
+  missThemes: zod.array(
+    zod.object({
+      theme: zod.string(),
+      count: zod.number(),
+    }),
+  ),
+  recentClosures: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetCode: zod.string(),
+      projectName: zod.string(),
+      sector: zod.string().nullish(),
+      currentStage: zod.string(),
+      closeReasonCode: zod.string().nullish(),
+      phase1VerdictAccuracy: zod.string().nullish(),
+      phase1VerdictNote: zod.string().nullish(),
+      closeMissTheme: zod.string().nullish(),
+      updatedAt: zod.string().nullish(),
+    }),
+  ),
 });

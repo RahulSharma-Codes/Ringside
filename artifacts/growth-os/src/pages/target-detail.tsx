@@ -129,6 +129,13 @@ export default function TargetDetail() {
   const [stageOpen, setStageOpen] = useState(false);
   const [stageVal, setStageVal] = useState("");
   const [stageReason, setStageReason] = useState("");
+  const [closeReasonCode, setCloseReasonCode] = useState("");
+  const [phase1VerdictAccuracy, setPhase1VerdictAccuracy] = useState("");
+  const [phase1VerdictNote, setPhase1VerdictNote] = useState("");
+  const [closeMissTheme, setCloseMissTheme] = useState("");
+
+  const CLOSURE_VERDICT_STAGES = new Set(["Closed", "Dropped"]);
+  const isClosureStage = CLOSURE_VERDICT_STAGES.has(stageVal);
 
   const [interactionOpen, setInteractionOpen] = useState(false);
   const [interType, setInterType] = useState("Meeting");
@@ -316,14 +323,29 @@ export default function TargetDetail() {
     }
   };
 
+  const verdictIncomplete =
+    (stageVal === "Dropped" && !closeReasonCode) ||
+    (["Partially-correct", "Wrong"].includes(phase1VerdictAccuracy) && !phase1VerdictNote.trim());
+
   const handleUpdateStage = () => {
-    if (!stageVal || !stageReason.trim()) return;
+    if (!stageVal || !stageReason.trim() || verdictIncomplete) return;
     updateStage.mutate(
-      { id: targetId, data: { newStage: stageVal, changeReason: stageReason } },
+      {
+        id: targetId,
+        data: {
+          newStage: stageVal,
+          changeReason: stageReason,
+          ...(closeReasonCode && { closeReasonCode }),
+          ...(phase1VerdictAccuracy && { phase1VerdictAccuracy }),
+          ...(phase1VerdictNote.trim() && { phase1VerdictNote: phase1VerdictNote.trim() }),
+          ...(closeMissTheme && { closeMissTheme }),
+        },
+      },
       {
         onSuccess: () => {
           toast({ title: "Stage Updated", description: `Moved to ${stageVal}` });
           setStageOpen(false); setStageVal(""); setStageReason("");
+          setCloseReasonCode(""); setPhase1VerdictAccuracy(""); setPhase1VerdictNote(""); setCloseMissTheme("");
           invalidateTarget(); invalidateHistory();
         },
         onError: () => toast({ title: "Error", description: "Stage update failed", variant: "destructive" }),
@@ -1113,10 +1135,103 @@ export default function TargetDetail() {
                 <p className="text-[10px] text-destructive font-mono">A reason is required to change stage.</p>
               )}
             </div>
+
+            {/* Deal Close Verdict — required when closing or dropping a deal */}
+            {isClosureStage && (
+              <div className="space-y-3 border border-amber-500/30 bg-amber-500/5 rounded-sm p-3">
+                <div className="text-[10px] font-mono uppercase tracking-wider text-amber-600 font-semibold flex items-center gap-1.5">
+                  <AlertTriangle size={11} />
+                  Deal Close Verdict
+                  <span className="text-muted-foreground/60 normal-case font-normal">— required to close the learning loop</span>
+                </div>
+
+                {stageVal === "Dropped" && (
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                      Close Reason Code <span className="text-destructive">*</span>
+                    </label>
+                    <Select value={closeReasonCode} onValueChange={setCloseReasonCode}>
+                      <SelectTrigger className="rounded-sm bg-background/50 text-sm h-9">
+                        <SelectValue placeholder="Select reason…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Price mismatch">Price mismatch</SelectItem>
+                        <SelectItem value="Owner unwilling to sell">Owner unwilling to sell</SelectItem>
+                        <SelectItem value="Competitive process lost">Competitive process lost</SelectItem>
+                        <SelectItem value="Strategy change">Strategy change</SelectItem>
+                        <SelectItem value="Regulatory block">Regulatory block</SelectItem>
+                        <SelectItem value="Due diligence finding">Due diligence finding</SelectItem>
+                        <SelectItem value="Target approach failed">Target approach failed</SelectItem>
+                        <SelectItem value="Process abandoned">Process abandoned</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {!closeReasonCode && (
+                      <p className="text-[10px] text-destructive font-mono">Close reason is required for Dropped deals.</p>
+                    )}
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                    Phase 1 AI Screen Accuracy <span className="text-muted-foreground/50">(optional)</span>
+                  </label>
+                  <Select value={phase1VerdictAccuracy} onValueChange={setPhase1VerdictAccuracy}>
+                    <SelectTrigger className="rounded-sm bg-background/50 text-sm h-9">
+                      <SelectValue placeholder="Was the Phase 1 AI screen correct?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Correct">Correct — AI assessment matched outcome</SelectItem>
+                      <SelectItem value="Partially-correct">Partially-correct — some elements were wrong</SelectItem>
+                      <SelectItem value="Wrong">Wrong — AI assessment was misleading</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {["Partially-correct", "Wrong"].includes(phase1VerdictAccuracy) && (
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                      Accuracy Note <span className="text-destructive">*</span>
+                    </label>
+                    <Textarea
+                      value={phase1VerdictNote}
+                      onChange={(e) => setPhase1VerdictNote(e.target.value)}
+                      className="rounded-sm bg-background/50 resize-none h-16"
+                      placeholder="Briefly describe what the AI got wrong or missed…"
+                    />
+                    {!phase1VerdictNote.trim() && (
+                      <p className="text-[10px] text-destructive font-mono">Note is required when accuracy is Partially-correct or Wrong.</p>
+                    )}
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                    Miss Theme <span className="text-muted-foreground/50">(optional — helps pattern analysis)</span>
+                  </label>
+                  <Select value={closeMissTheme} onValueChange={setCloseMissTheme}>
+                    <SelectTrigger className="rounded-sm bg-background/50 text-sm h-9">
+                      <SelectValue placeholder="Tag a miss theme…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Strategy mismatch">Strategy mismatch</SelectItem>
+                      <SelectItem value="Valuation gap">Valuation gap</SelectItem>
+                      <SelectItem value="Competitive loss">Competitive loss</SelectItem>
+                      <SelectItem value="Regulatory block">Regulatory block</SelectItem>
+                      <SelectItem value="Management resistance">Management resistance</SelectItem>
+                      <SelectItem value="Due diligence finding">Due diligence finding</SelectItem>
+                      <SelectItem value="Timing">Timing</SelectItem>
+                      <SelectItem value="AI false positive">AI false positive</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setStageOpen(false); setStageVal(""); setStageReason(""); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button onClick={handleUpdateStage} disabled={!stageVal || !stageReason.trim() || updateStage.isPending} className="rounded-sm font-mono uppercase text-[10px]">
+            <Button variant="outline" onClick={() => { setStageOpen(false); setStageVal(""); setStageReason(""); setCloseReasonCode(""); setPhase1VerdictAccuracy(""); setPhase1VerdictNote(""); setCloseMissTheme(""); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
+            <Button onClick={handleUpdateStage} disabled={!stageVal || !stageReason.trim() || verdictIncomplete || updateStage.isPending} className="rounded-sm font-mono uppercase text-[10px]">
               {stageVal ? `Move to ${stageVal}` : "Select a Stage"}
             </Button>
           </DialogFooter>
