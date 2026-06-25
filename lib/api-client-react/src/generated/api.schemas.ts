@@ -727,6 +727,61 @@ export interface CreateIcSessionBody {
   notes?: string | null;
 }
 
+export interface SynergyEntry {
+  id: number;
+  targetId: number;
+  /** Revenue | Cost | Capital | Tax */
+  type: string;
+  description: string;
+  fy1?: string | null;
+  fy2?: string | null;
+  fy3?: string | null;
+  fy4?: string | null;
+  fy5?: string | null;
+  oneTimeCost?: string | null;
+  /** Probable | Possible | Aspirational */
+  confidence: string;
+  ownerName?: string | null;
+  realisationStartMonth?: string | null;
+  /** Not Started | On Track | Slipping | Realised */
+  realisationStatus: string;
+  isDisynergy: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateSynergyBody {
+  type: string;
+  description: string;
+  fy1?: string | null;
+  fy2?: string | null;
+  fy3?: string | null;
+  fy4?: string | null;
+  fy5?: string | null;
+  oneTimeCost?: string | null;
+  confidence?: string;
+  ownerName?: string | null;
+  realisationStartMonth?: string | null;
+  realisationStatus?: string;
+  isDisynergy?: boolean;
+}
+
+export interface UpdateSynergyBody {
+  type?: string;
+  description?: string;
+  fy1?: string | null;
+  fy2?: string | null;
+  fy3?: string | null;
+  fy4?: string | null;
+  fy5?: string | null;
+  oneTimeCost?: string | null;
+  confidence?: string;
+  ownerName?: string | null;
+  realisationStartMonth?: string | null;
+  realisationStatus?: string;
+  isDisynergy?: boolean;
+}
+
 export interface Valuation {
   id: number;
   targetId: number;
@@ -878,6 +933,47 @@ export interface OriginationChannelItem {
   inProgress: number;
   /** Win rate as percentage (null when no concluded deals) */
   winRate?: number | null;
+}
+
+export interface ValuationSanityResult {
+  methodologyNote: string;
+  /** in-range | above-range | below-range | insufficient-data */
+  multiplesFlag: string;
+  sensitivityNote: string;
+  redFlags: string[];
+  runAt?: string | null;
+  model?: string | null;
+}
+
+export interface ValuationSanityResponse {
+  result: ValuationSanityResult | null;
+  setupRequired?: boolean | null;
+  billingRequired?: boolean | null;
+  error?: string | null;
+}
+
+export interface DdRisk {
+  rank: number;
+  workstream: string;
+  description: string;
+  /** High | Medium | Low */
+  severity: string;
+  mitigation: string;
+}
+
+export interface DdSynthesisResult {
+  risks: DdRisk[];
+  patterns: string[];
+  summaryNote: string;
+  runAt?: string | null;
+  model?: string | null;
+}
+
+export interface DdSynthesisResponse {
+  result: DdSynthesisResult | null;
+  setupRequired?: boolean | null;
+  billingRequired?: boolean | null;
+  error?: string | null;
 }
 
 export type ListTargetsParams = {

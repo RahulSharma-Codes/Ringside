@@ -5,6 +5,7 @@ import {
   useDeleteValuation,
   useGetDealEconomics, getGetDealEconomicsQueryKey,
   useUpsertDealEconomics,
+  useGetValuationSanity, getGetValuationSanityQueryKey, useRunValuationSanity,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Plus, Trash2, TrendingUp, BarChart3, Landmark, Save, Loader2,
+  Brain, Sparkles, AlertTriangle,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +37,13 @@ const METHODOLOGY_COLORS: Record<string, string> = {
   LBO: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   Asset: "bg-orange-500/10 text-orange-400 border-orange-500/20",
   Other: "bg-muted text-muted-foreground border-border",
+};
+
+const MULTIPLES_FLAG_COLORS: Record<string, string> = {
+  "in-range":           "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  "above-range":        "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  "below-range":        "bg-red-500/10 text-red-400 border-red-500/20",
+  "insufficient-data":  "bg-muted text-muted-foreground border-border",
 };
 
 type ValuationEntry = {
@@ -132,8 +141,24 @@ export function ValuationTab({ targetId, currentStage }: { targetId: number; cur
   const deleteValuation = useDeleteValuation();
   const upsertEconomics = useUpsertDealEconomics();
 
+  const { data: sanityData, isLoading: loadingSanity } = useGetValuationSanity(targetId, {
+    query: { enabled: !!targetId, queryKey: getGetValuationSanityQueryKey(targetId) },
+  });
+  const runSanity = useRunValuationSanity();
+
   const invalidateValuations = () => queryClient.invalidateQueries({ queryKey: getListValuationsQueryKey(targetId) });
   const invalidateEconomics = () => queryClient.invalidateQueries({ queryKey: getGetDealEconomicsQueryKey(targetId) });
+  const invalidateSanity = () => queryClient.invalidateQueries({ queryKey: getGetValuationSanityQueryKey(targetId) });
+
+  const handleRunSanity = () => {
+    runSanity.mutate(
+      { targetId },
+      {
+        onSuccess: () => { invalidateSanity(); },
+        onError: () => toast({ title: "AI Error", description: "Could not run sanity check", variant: "destructive" }),
+      },
+    );
+  };
 
   const [addOpen, setAddOpen] = useState(false);
   const [addMethodology, setAddMethodology] = useState<string>("DCF");
@@ -461,6 +486,94 @@ export function ValuationTab({ targetId, currentStage }: { targetId: number; cur
           )}
         </CardContent>
       </Card>
+
+      {/* AI Valuation Sanity-Check */}
+      {(valuations?.length ?? 0) > 0 && (
+        <Card className="bg-card/30 border-border rounded-sm">
+          <CardHeader className="pb-3 pt-4 px-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Brain size={15} className="text-primary" />
+                <CardTitle className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                  AI Valuation Sanity-Check
+                </CardTitle>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-sm font-mono text-[10px] uppercase border-border gap-1"
+                disabled={runSanity.isPending}
+                onClick={handleRunSanity}
+              >
+                {runSanity.isPending
+                  ? <Loader2 size={11} className="animate-spin" />
+                  : <Sparkles size={11} />}
+                {sanityData?.result ? "Re-run" : "Run Analysis"}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            {loadingSanity ? (
+              <div className="space-y-2">
+                <div className="h-4 bg-muted/40 rounded animate-pulse w-3/4" />
+                <div className="h-4 bg-muted/40 rounded animate-pulse w-1/2" />
+              </div>
+            ) : !sanityData?.result ? (
+              <div className="border border-dashed border-border rounded-sm py-8 text-center text-muted-foreground font-mono text-[11px] uppercase tracking-widest">
+                No analysis yet — click Run Analysis above
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Multiples flag + timestamp */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className={`font-mono text-[9px] uppercase rounded-sm ${MULTIPLES_FLAG_COLORS[sanityData.result.multiplesFlag] ?? MULTIPLES_FLAG_COLORS["insufficient-data"]}`}>
+                    Multiples: {sanityData.result.multiplesFlag.replace(/-/g, " ")}
+                  </Badge>
+                  {sanityData.result.runAt && (
+                    <span className="text-[10px] font-mono text-muted-foreground/50">
+                      {format(parseISO(sanityData.result.runAt), "MMM d · HH:mm")}
+                    </span>
+                  )}
+                </div>
+
+                {/* Methodology note */}
+                <div className="space-y-1">
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Methodology Assessment</div>
+                  <p className="text-xs text-foreground/80 leading-relaxed">{sanityData.result.methodologyNote}</p>
+                </div>
+
+                {/* Sensitivity note */}
+                <div className="space-y-1">
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Sensitivity Coverage</div>
+                  <p className="text-xs text-foreground/80 leading-relaxed">{sanityData.result.sensitivityNote}</p>
+                </div>
+
+                {/* Red flags */}
+                {sanityData.result.redFlags.length > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-red-400">
+                      <AlertTriangle size={10} />
+                      Red Flags ({sanityData.result.redFlags.length})
+                    </div>
+                    <ul className="space-y-1">
+                      {sanityData.result.redFlags.map((flag, i) => (
+                        <li key={i} className="text-xs text-red-400/80 flex items-start gap-2">
+                          <span className="mt-0.5 shrink-0">•</span>
+                          <span>{flag}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {sanityData.result.redFlags.length === 0 && (
+                  <p className="text-xs text-emerald-400/70 font-mono">No red flags identified.</p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Add Valuation Dialog */}
       <Dialog open={addOpen} onOpenChange={(o) => { if (!o) resetAddForm(); setAddOpen(o); }}>

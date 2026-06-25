@@ -32,6 +32,8 @@ tags:
     description: Pipeline analytics — funnel, time-in-stage, win/loss, origination
   - name: valuation
     description: Valuation log and deal economics
+  - name: synergies
+    description: Synergy hypothesis register
 paths:
   /healthz:
     get:
@@ -725,6 +727,88 @@ paths:
                 items:
                   $ref: "#/components/schemas/OriginationChannelItem"
 
+  /targets/{id}/synergies:
+    get:
+      operationId: listSynergies
+      tags: [synergies]
+      summary: List synergy hypotheses for a target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Synergy list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SynergyEntry"
+    post:
+      operationId: createSynergy
+      tags: [synergies]
+      summary: Add a synergy hypothesis to a target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSynergyBody"
+      responses:
+        "201":
+          description: Synergy created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SynergyEntry"
+
+  /synergies/{id}:
+    put:
+      operationId: updateSynergy
+      tags: [synergies]
+      summary: Update a synergy hypothesis
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSynergyBody"
+      responses:
+        "200":
+          description: Synergy updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SynergyEntry"
+    delete:
+      operationId: deleteSynergy
+      tags: [synergies]
+      summary: Delete a synergy hypothesis
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
   /targets/{id}/valuations:
     get:
       operationId: listValuations
@@ -1066,6 +1150,78 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BriefResponse"
+
+  /ai/{targetId}/valuation-sanity:
+    get:
+      operationId: getValuationSanity
+      tags: [ai]
+      summary: Get last AI valuation sanity-check result for a target
+      parameters:
+        - in: path
+          name: targetId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Last cached result or null
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValuationSanityResponse"
+    post:
+      operationId: runValuationSanity
+      tags: [ai]
+      summary: Run AI valuation sanity-check for a target
+      parameters:
+        - in: path
+          name: targetId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Valuation sanity-check result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValuationSanityResponse"
+
+  /ai/{targetId}/dd-synthesis:
+    get:
+      operationId: getDdSynthesis
+      tags: [ai]
+      summary: Get last AI DD synthesis result for a target
+      parameters:
+        - in: path
+          name: targetId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Last cached result or null
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DdSynthesisResponse"
+    post:
+      operationId: runDdSynthesis
+      tags: [ai]
+      summary: Run AI DD synthesis for a target
+      parameters:
+        - in: path
+          name: targetId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: DD synthesis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DdSynthesisResponse"
 
   /import/apply:
     post:
@@ -2694,6 +2850,135 @@ components:
           nullable: true
       required: [sessionDate, outcome]
 
+    SynergyEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        type:
+          type: string
+          description: Revenue | Cost | Capital | Tax
+        description:
+          type: string
+        fy1:
+          type: string
+          nullable: true
+        fy2:
+          type: string
+          nullable: true
+        fy3:
+          type: string
+          nullable: true
+        fy4:
+          type: string
+          nullable: true
+        fy5:
+          type: string
+          nullable: true
+        oneTimeCost:
+          type: string
+          nullable: true
+        confidence:
+          type: string
+          description: Probable | Possible | Aspirational
+        ownerName:
+          type: string
+          nullable: true
+        realisationStartMonth:
+          type: string
+          nullable: true
+        realisationStatus:
+          type: string
+          description: Not Started | On Track | Slipping | Realised
+        isDisynergy:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, targetId, type, description, confidence, realisationStatus, isDisynergy]
+
+    CreateSynergyBody:
+      type: object
+      properties:
+        type:
+          type: string
+        description:
+          type: string
+        fy1:
+          type: string
+          nullable: true
+        fy2:
+          type: string
+          nullable: true
+        fy3:
+          type: string
+          nullable: true
+        fy4:
+          type: string
+          nullable: true
+        fy5:
+          type: string
+          nullable: true
+        oneTimeCost:
+          type: string
+          nullable: true
+        confidence:
+          type: string
+        ownerName:
+          type: string
+          nullable: true
+        realisationStartMonth:
+          type: string
+          nullable: true
+        realisationStatus:
+          type: string
+        isDisynergy:
+          type: boolean
+      required: [type, description]
+
+    UpdateSynergyBody:
+      type: object
+      properties:
+        type:
+          type: string
+        description:
+          type: string
+        fy1:
+          type: string
+          nullable: true
+        fy2:
+          type: string
+          nullable: true
+        fy3:
+          type: string
+          nullable: true
+        fy4:
+          type: string
+          nullable: true
+        fy5:
+          type: string
+          nullable: true
+        oneTimeCost:
+          type: string
+          nullable: true
+        confidence:
+          type: string
+        ownerName:
+          type: string
+          nullable: true
+        realisationStartMonth:
+          type: string
+          nullable: true
+        realisationStatus:
+          type: string
+        isDisynergy:
+          type: boolean
+
     Valuation:
       type: object
       properties:
@@ -3023,3 +3308,98 @@ components:
           nullable: true
           description: Win rate as percentage (null when no concluded deals)
       required: [channel, total, won, dropped, inProgress]
+
+    ValuationSanityResult:
+      type: object
+      properties:
+        methodologyNote:
+          type: string
+        multiplesFlag:
+          type: string
+          description: "in-range | above-range | below-range | insufficient-data"
+        sensitivityNote:
+          type: string
+        redFlags:
+          type: array
+          items:
+            type: string
+        runAt:
+          type: string
+          nullable: true
+        model:
+          type: string
+          nullable: true
+      required: [methodologyNote, multiplesFlag, sensitivityNote, redFlags]
+
+    ValuationSanityResponse:
+      type: object
+      properties:
+        result:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/ValuationSanityResult"
+        setupRequired:
+          type: boolean
+          nullable: true
+        billingRequired:
+          type: boolean
+          nullable: true
+        error:
+          type: string
+          nullable: true
+      required: [result]
+
+    DdRisk:
+      type: object
+      properties:
+        rank:
+          type: integer
+        workstream:
+          type: string
+        description:
+          type: string
+        severity:
+          type: string
+          description: "High | Medium | Low"
+        mitigation:
+          type: string
+      required: [rank, workstream, description, severity, mitigation]
+
+    DdSynthesisResult:
+      type: object
+      properties:
+        risks:
+          type: array
+          items:
+            $ref: "#/components/schemas/DdRisk"
+        patterns:
+          type: array
+          items:
+            type: string
+        summaryNote:
+          type: string
+        runAt:
+          type: string
+          nullable: true
+        model:
+          type: string
+          nullable: true
+      required: [risks, patterns, summaryNote]
+
+    DdSynthesisResponse:
+      type: object
+      properties:
+        result:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/DdSynthesisResult"
+        setupRequired:
+          type: boolean
+          nullable: true
+        billingRequired:
+          type: boolean
+          nullable: true
+        error:
+          type: string
+          nullable: true
+      required: [result]

@@ -195,3 +195,39 @@ export const dealEconomicsTable = pgTable("deal_economics", {
 export const insertDealEconomicsSchema = createInsertSchema(dealEconomicsTable).omit({ id: true, updatedAt: true });
 export type InsertDealEconomics = z.infer<typeof insertDealEconomicsSchema>;
 export type DealEconomics = typeof dealEconomicsTable.$inferSelect;
+
+export const synergiesTable = pgTable("synergies", {
+  id: serial("id").primaryKey(),
+  targetId: integer("target_id").notNull().references(() => targetsTable.id),
+  type: text("type").notNull(),
+  description: text("description").notNull(),
+  fy1: text("fy1"),
+  fy2: text("fy2"),
+  fy3: text("fy3"),
+  fy4: text("fy4"),
+  fy5: text("fy5"),
+  oneTimeCost: text("one_time_cost"),
+  confidence: text("confidence").notNull().default("Possible"),
+  ownerName: text("owner_name"),
+  realisationStartMonth: text("realisation_start_month"),
+  realisationStatus: text("realisation_status").notNull().default("Not Started"),
+  isDisynergy: boolean("is_disynergy").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertSynergySchema = createInsertSchema(synergiesTable).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertSynergy = z.infer<typeof insertSynergySchema>;
+export type Synergy = typeof synergiesTable.$inferSelect;
+
+export const aiPhaseRunsTable = pgTable("ai_phase_runs", {
+  id: serial("id").primaryKey(),
+  targetId: integer("target_id").notNull().references(() => targetsTable.id),
+  phase: text("phase").notNull(),
+  promptHash: text("prompt_hash"),
+  outputJson: jsonb("output_json").notNull(),
+  model: text("model"),
+  tokensUsed: integer("tokens_used"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+export type AiPhaseRun = typeof aiPhaseRunsTable.$inferSelect;

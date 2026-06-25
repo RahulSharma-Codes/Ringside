@@ -10,8 +10,10 @@ import {
   actionItemsTable,
   stageChangeLogTable,
   dealDocumentsTable,
+  aiPhaseRunsTable,
+  valuationsTable,
 } from "@workspace/db";
-import { eq, and, desc, isNull, isNotNull, gte } from "drizzle-orm";
+import { eq, and, desc, isNull, isNotNull, gte, inArray } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -791,6 +793,315 @@ router.post("/weekly-brief", async (req, res) => {
     const { setupRequired, billingRequired, message } = classifyAiError(err);
     req.log.error({ err }, "Weekly brief AI error");
     return res.json({ brief: null, setupRequired, billingRequired, error: message });
+  }
+});
+
+// ── Helper: save / retrieve ai_phase_runs ────────────────────────────────
+
+async function getLastRun(targetId: number, phase: string) {
+  const [row] = await db
+    .select()
+    .from(aiPhaseRunsTable)
+    .where(and(eq(aiPhaseRunsTable.targetId, targetId), eq(aiPhaseRunsTable.phase, phase)))
+    .orderBy(desc(aiPhaseRunsTable.createdAt))
+    .limit(1);
+  return row ?? null;
+}
+
+async function saveRun(
+  targetId: number,
+  phase: string,
+  outputJson: unknown,
+  usedModel: string,
+  tokensUsed?: number,
+) {
+  await db.insert(aiPhaseRunsTable).values({
+    targetId,
+    phase,
+    outputJson: outputJson as Record<string, unknown>,
+    model: usedModel,
+    tokensUsed: tokensUsed ?? null,
+  });
+}
+
+// ── Phase 4: Valuation Sanity-Check ──────────────────────────────────────
+// GET /api/ai/:targetId/valuation-sanity  — return last cached result (or null)
+router.get("/:targetId/valuation-sanity", async (req, res) => {
+  const targetId = parseInt(req.params.targetId, 10);
+  if (isNaN(targetId)) return res.status(400).json({ error: "Invalid targetId" });
+
+  const row = await getLastRun(targetId, "valuation-sanity");
+  return res.json({ result: row ? row.outputJson : null });
+});
+
+// POST /api/ai/:targetId/valuation-sanity  — run fresh analysis
+router.post("/:targetId/valuation-sanity", async (req, res) => {
+  const targetId = parseInt(req.params.targetId, 10);
+  if (isNaN(targetId)) return res.status(400).json({ error: "Invalid targetId" });
+
+  if (!openai) {
+    return res.json({ result: null, setupRequired: true, billingRequired: false });
+  }
+
+  // Fetch target + valuation entries
+  const [targetRow] = await db
+    .select({
+      projectName: targetsTable.projectName,
+      sector: targetsTable.sector,
+      subsector: targetsTable.subsector,
+      country: targetsTable.country,
+      dealType: targetsTable.dealType,
+      priorityTier: targetsTable.priorityTier,
+      currentStage: milestonesTable.currentStage,
+    })
+    .from(targetsTable)
+    .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id))
+    .where(eq(targetsTable.id, targetId));
+
+  if (!targetRow) {
+    return res.status(404).json({ error: "Target not found" });
+  }
+
+  const valuations = await db
+    .select()
+    .from(valuationsTable)
+    .where(eq(valuationsTable.targetId, targetId))
+    .orderBy(desc(valuationsTable.recordedAt));
+
+  if (valuations.length === 0) {
+    return res.json({ result: null, error: "No valuation entries found for this target" });
+  }
+
+  // Fetch comparable closed deals in same sector for context
+  let sectorComps: string[] = [];
+  if (targetRow.sector) {
+    const compDeals = await db
+      .select({
+        projectName: targetsTable.projectName,
+        methodology: valuationsTable.methodology,
+        valueLow: valuationsTable.valueLow,
+        valuePoint: valuationsTable.valuePoint,
+        valueHigh: valuationsTable.valueHigh,
+        currency: valuationsTable.currency,
+        notes: valuationsTable.notes,
+      })
+      .from(valuationsTable)
+      .leftJoin(targetsTable, eq(valuationsTable.targetId, targetsTable.id))
+      .where(
+        and(
+          eq(targetsTable.sector, targetRow.sector),
+          eq(targetsTable.isActive, false), // closed / inactive deals only
+        ),
+      )
+      .limit(10);
+
+    sectorComps = compDeals.map((c) =>
+      `${c.projectName ?? "Unknown"} | ${c.methodology} | ${c.currency} ${c.valueLow ?? "?"}–${c.valueHigh ?? "?"} (point: ${c.valuePoint ?? "?"})`
+    );
+  }
+
+  const valuationLines = valuations.map((v) =>
+    `- [${v.methodology}] v${v.version} @ ${v.stageAtRecord ?? "Unknown Stage"}: ${v.currency} ${v.valueLow ?? "?"}–${v.valueHigh ?? "?"} (point: ${v.valuePoint ?? "?"}); notes: ${v.notes ?? "none"}`
+  );
+
+  const contextBlock = [
+    `Target: ${targetRow.projectName}`,
+    `Sector: ${targetRow.sector ?? "Unknown"}${targetRow.subsector ? ` / ${targetRow.subsector}` : ""}`,
+    `Country: ${targetRow.country ?? "Unknown"}`,
+    `Deal Type: ${targetRow.dealType ?? "Unknown"}`,
+    `Priority Tier: ${targetRow.priorityTier}`,
+    `Current Stage: ${targetRow.currentStage ?? "Unknown"}`,
+    ``,
+    `VALUATION ENTRIES (${valuations.length} total):`,
+    ...valuationLines,
+    ``,
+    sectorComps.length > 0
+      ? `SECTOR COMPARABLES (${targetRow.sector} closed deals):\n${sectorComps.map((c) => `- ${c}`).join("\n")}`
+      : `No closed deal comparables found in sector "${targetRow.sector ?? "Unknown"}".`,
+  ].join("\n");
+
+  const SANITY_PROMPT = `You are a senior M&A valuation analyst. Analyse the valuation entries for this deal and provide a structured sanity-check.
+
+Return your response as a JSON object with exactly these fields:
+{
+  "methodologyNote": "brief assessment of the methodology mix — completeness, coherence, and whether the right approaches were used for this deal type/sector",
+  "multiplesFlag": "one of: in-range | above-range | below-range | insufficient-data — based on sector comp ranges if available",
+  "sensitivityNote": "comment on range breadth and sensitivity coverage (do low/high bounds provide meaningful scenario analysis?)",
+  "redFlags": ["array of specific concerns, or empty array if none"],
+  "runAt": "${new Date().toISOString()}"
+}
+
+Rules:
+- Use only the data provided. Do not invent comparables.
+- Be specific and actionable — generic statements are unhelpful.
+- If sector comparables are absent, set multiplesFlag to insufficient-data.
+- Keep methodologyNote under 80 words, sensitivityNote under 60 words, each redFlag under 40 words.`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model,
+      max_completion_tokens: 1024,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: SANITY_PROMPT },
+        { role: "user", content: contextBlock },
+      ],
+    });
+
+    const raw = completion.choices[0]?.message?.content ?? "{}";
+    let result: unknown;
+    try {
+      result = JSON.parse(raw);
+    } catch {
+      return res.json({ result: null, error: "Failed to parse AI response" });
+    }
+
+    const tokensUsed = completion.usage?.total_tokens;
+    await saveRun(targetId, "valuation-sanity", result, model, tokensUsed);
+    req.log.info({ targetId, tokensUsed }, "Valuation sanity-check completed");
+    return res.json({ result, model });
+  } catch (err) {
+    const { setupRequired, billingRequired, message } = classifyAiError(err);
+    req.log.error({ err }, "Valuation sanity-check AI error");
+    return res.json({ result: null, setupRequired, billingRequired, error: message });
+  }
+});
+
+// ── Phase 5: DD Synthesis & Redflag Rollup ────────────────────────────────
+// GET /api/ai/:targetId/dd-synthesis  — return last cached result (or null)
+router.get("/:targetId/dd-synthesis", async (req, res) => {
+  const targetId = parseInt(req.params.targetId, 10);
+  if (isNaN(targetId)) return res.status(400).json({ error: "Invalid targetId" });
+
+  const row = await getLastRun(targetId, "dd-synthesis");
+  return res.json({ result: row ? row.outputJson : null });
+});
+
+// POST /api/ai/:targetId/dd-synthesis  — run fresh analysis
+router.post("/:targetId/dd-synthesis", async (req, res) => {
+  const targetId = parseInt(req.params.targetId, 10);
+  if (isNaN(targetId)) return res.status(400).json({ error: "Invalid targetId" });
+
+  if (!openai) {
+    return res.json({ result: null, setupRequired: true, billingRequired: false });
+  }
+
+  const [targetRow] = await db
+    .select({
+      projectName: targetsTable.projectName,
+      sector: targetsTable.sector,
+      currentStage: milestonesTable.currentStage,
+    })
+    .from(targetsTable)
+    .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id))
+    .where(eq(targetsTable.id, targetId));
+
+  if (!targetRow) {
+    return res.status(404).json({ error: "Target not found" });
+  }
+
+  const items = await db
+    .select({
+      workstream: actionItemsTable.workstream,
+      description: actionItemsTable.description,
+      status: actionItemsTable.status,
+      owner: actionItemsTable.owner,
+      dueDate: actionItemsTable.dueDate,
+      priority: actionItemsTable.priority,
+      notes: actionItemsTable.notes,
+    })
+    .from(actionItemsTable)
+    .where(and(eq(actionItemsTable.targetId, targetId), isNotNull(actionItemsTable.workstream)));
+
+  if (items.length < 3) {
+    return res.json({ result: null, error: "Insufficient diligence items (need ≥ 3 items across workstreams)" });
+  }
+
+  // Group by workstream for context
+  const byWorkstream = new Map<string, typeof items>();
+  for (const item of items) {
+    const ws = item.workstream ?? "Unknown";
+    if (!byWorkstream.has(ws)) byWorkstream.set(ws, []);
+    byWorkstream.get(ws)!.push(item);
+  }
+
+  const contextLines: string[] = [
+    `Target: ${targetRow.projectName}`,
+    `Sector: ${targetRow.sector ?? "Unknown"}`,
+    `Stage: ${targetRow.currentStage ?? "Unknown"}`,
+    `Total Diligence Items: ${items.length}`,
+    `Workstreams covered: ${[...byWorkstream.keys()].join(", ")}`,
+    ``,
+  ];
+
+  for (const [ws, wsItems] of byWorkstream) {
+    const completed = wsItems.filter((i) => i.status === "Completed").length;
+    contextLines.push(`${ws.toUpperCase()} (${completed}/${wsItems.length} complete):`);
+    for (const item of wsItems) {
+      const due = item.dueDate ? ` | due ${String(item.dueDate).slice(0, 10)}` : "";
+      const notesSnippet = item.notes ? ` | notes: ${item.notes.slice(0, 80)}` : "";
+      contextLines.push(
+        `  [${item.status}] ${item.description.slice(0, 100)}${due}${notesSnippet}`,
+      );
+    }
+    contextLines.push("");
+  }
+
+  const contextBlock = contextLines.join("\n");
+
+  const DD_PROMPT = `You are a senior M&A due diligence analyst. Analyse the diligence checklist and synthesise the key risks.
+
+Return your response as a JSON object with exactly these fields:
+{
+  "risks": [
+    {
+      "rank": 1,
+      "workstream": "Commercial",
+      "description": "specific risk description",
+      "severity": "High",
+      "mitigation": "recommended action"
+    }
+  ],
+  "patterns": ["cross-workstream pattern or theme"],
+  "summaryNote": "overall DD health summary in 2-3 sentences",
+  "runAt": "${new Date().toISOString()}"
+}
+
+Rules:
+- Identify the top 5 most material risks ranked by severity (High/Medium/Low).
+- Focus on open/blocked items — completed items are low priority.
+- Identify cross-workstream patterns (e.g. missing owner across workstreams, concentration in one area).
+- summaryNote should give a clear verdict: green/amber/red DD health with key concerns.
+- Be specific. Generic statements like "legal review pending" are unhelpful; describe the business impact.
+- severity must be exactly "High", "Medium", or "Low".`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model,
+      max_completion_tokens: 1536,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: DD_PROMPT },
+        { role: "user", content: contextBlock },
+      ],
+    });
+
+    const raw = completion.choices[0]?.message?.content ?? "{}";
+    let result: unknown;
+    try {
+      result = JSON.parse(raw);
+    } catch {
+      return res.json({ result: null, error: "Failed to parse AI response" });
+    }
+
+    const tokensUsed = completion.usage?.total_tokens;
+    await saveRun(targetId, "dd-synthesis", result, model, tokensUsed);
+    req.log.info({ targetId, tokensUsed }, "DD synthesis completed");
+    return res.json({ result, model });
+  } catch (err) {
+    const { setupRequired, billingRequired, message } = classifyAiError(err);
+    req.log.error({ err }, "DD synthesis AI error");
+    return res.json({ result: null, setupRequired, billingRequired, error: message });
   }
 });
 

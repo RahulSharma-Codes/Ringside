@@ -33,7 +33,7 @@ import {
   CheckCircle2, RotateCcw, Pencil, MessageSquare, ListChecks, GitBranch,
   LayoutGrid, ClipboardCheck, FolderOpen, Sparkles, Loader2, Copy, Check, Bot,
   ChevronDown, ChevronRight, Activity as ActivityIcon, Scale, TrendingUp,
-  AlertTriangle,
+  AlertTriangle, Download,
 } from "lucide-react";
 import {
   formatScore, getScoreConfidence, countAssessedScores,
@@ -44,6 +44,7 @@ import { format, parseISO, differenceInDays, formatDistanceToNow } from "date-fn
 import { DiligenceTab } from "@/pages/target-detail-diligence";
 import { DocumentsTab } from "@/pages/target-detail-documents";
 import { ValuationTab } from "@/pages/target-detail-valuation";
+import { SynergiesTab } from "@/pages/target-detail-synergies";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -712,6 +713,7 @@ export default function TargetDetail() {
                 { value: "diligence",  label: "Diligence",  icon: <ClipboardCheck size={13} /> },
                 { value: "documents",  label: "Documents",  icon: <FolderOpen size={13} /> },
                 { value: "valuation",  label: "Valuation",  icon: <TrendingUp size={13} /> },
+                { value: "synergies",  label: "Synergies",  icon: <TrendingUp size={13} /> },
                 { value: "activity",   label: "Activity",   icon: <ActivityIcon size={13} /> },
                 { value: "ic",         label: "IC",         icon: <Scale size={13} /> },
               ].map(({ value, label, icon }) => (
@@ -727,6 +729,16 @@ export default function TargetDetail() {
 
             {/* Overview */}
             <TabsContent value="overview" className="space-y-4 mt-0">
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="rounded-sm font-mono text-[10px] uppercase border-border/60 h-7 px-2.5 gap-1.5"
+                  onClick={() => { window.location.href = `/api/export/memo/${targetId}`; }}
+                >
+                  <Download size={11} /> Export Memo
+                </Button>
+              </div>
               <OverviewSections target={target} actions={actions ?? []} />
             </TabsContent>
 
@@ -984,6 +996,11 @@ export default function TargetDetail() {
             {/* Valuation */}
             <TabsContent value="valuation" className="mt-0">
               <ValuationTab targetId={targetId} currentStage={target.currentStage ?? undefined} />
+            </TabsContent>
+
+            {/* Synergies */}
+            <TabsContent value="synergies" className="mt-0">
+              <SynergiesTab targetId={targetId} currentStage={target.currentStage ?? undefined} />
             </TabsContent>
 
             {/* Activity Feed */}

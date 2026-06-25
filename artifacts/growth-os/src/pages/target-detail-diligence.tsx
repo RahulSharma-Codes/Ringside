@@ -4,6 +4,7 @@ import {
   useCreateDiligenceItem,
   useUpdateAction,
   useDeleteAction,
+  useGetDdSynthesis, getGetDdSynthesisQueryKey, useRunDdSynthesis,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Plus, CheckCircle2, RotateCcw, Pencil, Trash2,
   ChevronDown, ChevronRight, ShieldCheck, Link2, X,
+  Brain, Sparkles, AlertTriangle, Loader2,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +30,12 @@ const WORKSTREAMS = [
   "HR", "Technology", "Operations", "Integration",
   "ESG", "Regulatory",
 ] as const;
+
+const SEVERITY_COLORS: Record<string, string> = {
+  High:   "bg-red-500/10 text-red-400 border-red-500/20",
+  Medium: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  Low:    "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+};
 
 const WORKSTREAM_COLORS: Record<string, string> = {
   Commercial: "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -249,8 +257,25 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
+  const { data: ddData, isLoading: loadingDd } = useGetDdSynthesis(targetId, {
+    query: { enabled: !!targetId, queryKey: getGetDdSynthesisQueryKey(targetId) },
+  });
+  const runDd = useRunDdSynthesis();
+
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: getGetDiligenceForTargetQueryKey(targetId) });
+  const invalidateDd = () =>
+    queryClient.invalidateQueries({ queryKey: getGetDdSynthesisQueryKey(targetId) });
+
+  const handleRunDd = () => {
+    runDd.mutate(
+      { targetId },
+      {
+        onSuccess: () => { invalidateDd(); },
+        onError: () => toast({ title: "AI Error", description: "Could not run DD synthesis", variant: "destructive" }),
+      },
+    );
+  };
 
   const resetAddForm = () => {
     setAddWorkstream("Commercial");
@@ -434,6 +459,103 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
           </div>
         </CardContent>
       </Card>
+
+      {/* AI DD Synthesis */}
+      {(() => {
+        const wsWithItems = [...itemsByWs.entries()].filter(([, wsItems]) => wsItems.length > 0).length;
+        if (wsWithItems < 3) return null;
+        return (
+          <Card className="bg-card/30 border-border rounded-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Brain size={16} className="text-primary" />
+                  <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">AI Risk Synthesis</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="rounded-sm font-mono text-[10px] uppercase border-border gap-1"
+                  disabled={runDd.isPending}
+                  onClick={handleRunDd}
+                >
+                  {runDd.isPending
+                    ? <Loader2 size={11} className="animate-spin" />
+                    : <Sparkles size={11} />}
+                  {ddData?.result ? "Re-run" : "Run Synthesis"}
+                </Button>
+              </div>
+
+              {loadingDd ? (
+                <div className="space-y-2">
+                  <div className="h-4 bg-muted/40 rounded animate-pulse w-3/4" />
+                  <div className="h-4 bg-muted/40 rounded animate-pulse w-1/2" />
+                </div>
+              ) : !ddData?.result ? (
+                <div className="border border-dashed border-border rounded-sm py-8 text-center text-muted-foreground font-mono text-[11px] uppercase tracking-widest">
+                  No synthesis yet — click Run Synthesis above
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Summary */}
+                  <p className="text-xs text-foreground/80 leading-relaxed border-l-2 border-primary/40 pl-3 italic">
+                    {ddData.result.summaryNote}
+                  </p>
+
+                  {/* Top risks */}
+                  {ddData.result.risks.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                        <AlertTriangle size={10} />
+                        Top Risks
+                      </div>
+                      {ddData.result.risks.map((risk) => (
+                        <div
+                          key={risk.rank}
+                          className="p-2.5 rounded-sm border border-border bg-background/20 space-y-1.5"
+                        >
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[9px] font-mono text-muted-foreground/60 tabular-nums">#{risk.rank}</span>
+                            <Badge variant="outline" className={`font-mono text-[9px] uppercase rounded-sm ${SEVERITY_COLORS[risk.severity] ?? "bg-muted text-muted-foreground border-border"}`}>
+                              {risk.severity}
+                            </Badge>
+                            <Badge variant="outline" className="font-mono text-[9px] uppercase rounded-sm bg-muted/30 text-muted-foreground border-border">
+                              {risk.workstream}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-foreground/80">{risk.description}</p>
+                          <p className="text-[10px] text-muted-foreground/70 italic">→ {risk.mitigation}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Patterns */}
+                  {ddData.result.patterns.length > 0 && (
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Cross-Workstream Patterns</div>
+                      <ul className="space-y-1">
+                        {ddData.result.patterns.map((p, i) => (
+                          <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
+                            <span className="mt-0.5 text-primary shrink-0">•</span>
+                            <span>{p}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {ddData.result.runAt && (
+                    <div className="text-[10px] font-mono text-muted-foreground/50 text-right">
+                      Generated {format(parseISO(ddData.result.runAt), "MMM d · HH:mm")}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Workstream Sections */}
       <div className="space-y-2">

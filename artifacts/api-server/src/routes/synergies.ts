@@ -1,0 +1,59 @@
+import { Router } from "express";
+import { eq } from "drizzle-orm";
+import { db } from "@workspace/db";
+import { synergiesTable } from "@workspace/db";
+import { z } from "zod";
+
+const router = Router();
+
+const UpdateSynergyBodySchema = z.object({
+  type: z.string().optional(),
+  description: z.string().optional(),
+  fy1: z.string().nullable().optional(),
+  fy2: z.string().nullable().optional(),
+  fy3: z.string().nullable().optional(),
+  fy4: z.string().nullable().optional(),
+  fy5: z.string().nullable().optional(),
+  oneTimeCost: z.string().nullable().optional(),
+  confidence: z.string().optional(),
+  ownerName: z.string().nullable().optional(),
+  realisationStartMonth: z.string().nullable().optional(),
+  realisationStatus: z.string().optional(),
+  isDisynergy: z.boolean().optional(),
+});
+
+// PUT /api/synergies/:id
+router.put("/:id", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const parsed = UpdateSynergyBodySchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const d = parsed.data;
+
+  const updates: Partial<typeof synergiesTable.$inferInsert> = { updatedAt: new Date() };
+  if (d.type !== undefined)                   updates.type = d.type;
+  if (d.description !== undefined)            updates.description = d.description;
+  if (d.fy1 !== undefined)                    updates.fy1 = d.fy1;
+  if (d.fy2 !== undefined)                    updates.fy2 = d.fy2;
+  if (d.fy3 !== undefined)                    updates.fy3 = d.fy3;
+  if (d.fy4 !== undefined)                    updates.fy4 = d.fy4;
+  if (d.fy5 !== undefined)                    updates.fy5 = d.fy5;
+  if (d.oneTimeCost !== undefined)            updates.oneTimeCost = d.oneTimeCost;
+  if (d.confidence !== undefined)             updates.confidence = d.confidence;
+  if (d.ownerName !== undefined)              updates.ownerName = d.ownerName;
+  if (d.realisationStartMonth !== undefined)  updates.realisationStartMonth = d.realisationStartMonth;
+  if (d.realisationStatus !== undefined)      updates.realisationStatus = d.realisationStatus;
+  if (d.isDisynergy !== undefined)            updates.isDisynergy = d.isDisynergy;
+
+  const [row] = await db.update(synergiesTable).set(updates).where(eq(synergiesTable.id, id)).returning();
+  if (!row) return res.status(404).json({ error: "Not found" });
+  return res.json(row);
+});
+
+// DELETE /api/synergies/:id
+router.delete("/:id", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  await db.delete(synergiesTable).where(eq(synergiesTable.id, id));
+  return res.status(204).send();
+});
+
+export default router;

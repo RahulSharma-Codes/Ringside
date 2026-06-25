@@ -194,10 +194,48 @@ async function applyMigrations(): Promise<void> {
     )
   `);
 
+  // Create synergies table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS synergies (
+      id                      serial PRIMARY KEY,
+      target_id               integer NOT NULL REFERENCES targets(id),
+      type                    text NOT NULL,
+      description             text NOT NULL,
+      fy1                     text,
+      fy2                     text,
+      fy3                     text,
+      fy4                     text,
+      fy5                     text,
+      one_time_cost           text,
+      confidence              text NOT NULL DEFAULT 'Possible',
+      owner_name              text,
+      realisation_start_month text,
+      realisation_status      text NOT NULL DEFAULT 'Not Started',
+      is_disynergy            boolean NOT NULL DEFAULT false,
+      created_at              timestamp NOT NULL DEFAULT now(),
+      updated_at              timestamp NOT NULL DEFAULT now()
+    )
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS ai_phase_runs (
+      id          serial PRIMARY KEY,
+      target_id   integer NOT NULL REFERENCES targets(id),
+      phase       text NOT NULL,
+      prompt_hash text,
+      output_json jsonb NOT NULL,
+      model       text,
+      tokens_used integer,
+      created_at  timestamptz NOT NULL DEFAULT now()
+    )
+  `);
+
   // Indexes
   await db.execute(sql`CREATE INDEX IF NOT EXISTS ic_sessions_target_id_idx ON ic_sessions(target_id)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS deal_documents_target_id_idx ON deal_documents(target_id)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS valuations_target_id_idx ON valuations(target_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS synergies_target_id_idx ON synergies(target_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS ai_phase_runs_target_phase_idx ON ai_phase_runs(target_id, phase)`);
 }
 
 app.listen(port, (err) => {

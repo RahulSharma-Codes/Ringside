@@ -11,10 +11,13 @@ import documentsRouter from "./documents";
 import icSessionsRouter from "./ic-sessions";
 import analyticsRouter from "./analytics";
 import valuationsRouter from "./valuations";
+import synergiesRouter from "./synergies";
+import exportRouter from "./export";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use("/export", exportRouter);
 router.use("/targets", targetsRouter);
 router.use("/actions", actionsRouter);
 router.use("/interactions", interactionsRouter);
@@ -26,6 +29,7 @@ router.use("/documents", documentsRouter);
 router.use("/ic-sessions", icSessionsRouter);
 router.use("/analytics", analyticsRouter);
 router.use("/valuations", valuationsRouter);
+router.use("/synergies", synergiesRouter);
 
 export default router;
 

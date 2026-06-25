@@ -11,6 +11,7 @@ import {
   icSessionsTable,
   valuationsTable,
   dealEconomicsTable,
+  synergiesTable,
 } from "@workspace/db";
 import { z } from "zod";
 import {
@@ -1552,6 +1553,70 @@ router.put("/:id/economics", async (req, res) => {
   }
 
   return res.json(formatEconomics(row));
+});
+
+// ── Synergies routes ──────────────────────────────────────────────────────────
+
+const SYNERGY_TYPES    = ["Revenue", "Cost", "Capital", "Tax"] as const;
+const CONFIDENCE_TIERS = ["Probable", "Possible", "Aspirational"] as const;
+const REALISATION_STATUSES = ["Not Started", "On Track", "Slipping", "Realised"] as const;
+
+const CreateSynergyBodySchema = z.object({
+  type:                   z.enum(SYNERGY_TYPES),
+  description:            z.string().min(1),
+  fy1:                    z.string().nullable().optional(),
+  fy2:                    z.string().nullable().optional(),
+  fy3:                    z.string().nullable().optional(),
+  fy4:                    z.string().nullable().optional(),
+  fy5:                    z.string().nullable().optional(),
+  oneTimeCost:            z.string().nullable().optional(),
+  confidence:             z.enum(CONFIDENCE_TIERS).optional(),
+  ownerName:              z.string().nullable().optional(),
+  realisationStartMonth:  z.string().nullable().optional(),
+  realisationStatus:      z.enum(REALISATION_STATUSES).optional(),
+  isDisynergy:            z.boolean().optional(),
+});
+
+// GET /api/targets/:id/synergies
+router.get("/:id/synergies", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const rows = await db
+    .select()
+    .from(synergiesTable)
+    .where(eq(synergiesTable.targetId, id))
+    .orderBy(synergiesTable.createdAt);
+  return res.json(rows);
+});
+
+// POST /api/targets/:id/synergies
+router.post("/:id/synergies", async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  const parsed = CreateSynergyBodySchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const d = parsed.data;
+  const now = new Date();
+  const [row] = await db
+    .insert(synergiesTable)
+    .values({
+      targetId,
+      type:                  d.type,
+      description:           d.description,
+      fy1:                   d.fy1 ?? null,
+      fy2:                   d.fy2 ?? null,
+      fy3:                   d.fy3 ?? null,
+      fy4:                   d.fy4 ?? null,
+      fy5:                   d.fy5 ?? null,
+      oneTimeCost:           d.oneTimeCost ?? null,
+      confidence:            d.confidence ?? "Possible",
+      ownerName:             d.ownerName ?? null,
+      realisationStartMonth: d.realisationStartMonth ?? null,
+      realisationStatus:     d.realisationStatus ?? "Not Started",
+      isDisynergy:           d.isDisynergy ?? false,
+      createdAt:             now,
+      updatedAt:             now,
+    })
+    .returning();
+  return res.status(201).json(row);
 });
 
 export default router;

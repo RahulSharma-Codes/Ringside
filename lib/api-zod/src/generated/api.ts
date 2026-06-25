@@ -1065,6 +1065,111 @@ export const GetAnalyticsOriginationResponse = zod.array(
 );
 
 /**
+ * @summary List synergy hypotheses for a target
+ */
+export const ListSynergiesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListSynergiesResponseItem = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  type: zod.string().describe("Revenue | Cost | Capital | Tax"),
+  description: zod.string(),
+  fy1: zod.string().nullish(),
+  fy2: zod.string().nullish(),
+  fy3: zod.string().nullish(),
+  fy4: zod.string().nullish(),
+  fy5: zod.string().nullish(),
+  oneTimeCost: zod.string().nullish(),
+  confidence: zod.string().describe("Probable | Possible | Aspirational"),
+  ownerName: zod.string().nullish(),
+  realisationStartMonth: zod.string().nullish(),
+  realisationStatus: zod
+    .string()
+    .describe("Not Started | On Track | Slipping | Realised"),
+  isDisynergy: zod.boolean(),
+  createdAt: zod.coerce.date().optional(),
+  updatedAt: zod.coerce.date().optional(),
+});
+export const ListSynergiesResponse = zod.array(ListSynergiesResponseItem);
+
+/**
+ * @summary Add a synergy hypothesis to a target
+ */
+export const CreateSynergyParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateSynergyBody = zod.object({
+  type: zod.string(),
+  description: zod.string(),
+  fy1: zod.string().nullish(),
+  fy2: zod.string().nullish(),
+  fy3: zod.string().nullish(),
+  fy4: zod.string().nullish(),
+  fy5: zod.string().nullish(),
+  oneTimeCost: zod.string().nullish(),
+  confidence: zod.string().optional(),
+  ownerName: zod.string().nullish(),
+  realisationStartMonth: zod.string().nullish(),
+  realisationStatus: zod.string().optional(),
+  isDisynergy: zod.boolean().optional(),
+});
+
+/**
+ * @summary Update a synergy hypothesis
+ */
+export const UpdateSynergyParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateSynergyBody = zod.object({
+  type: zod.string().optional(),
+  description: zod.string().optional(),
+  fy1: zod.string().nullish(),
+  fy2: zod.string().nullish(),
+  fy3: zod.string().nullish(),
+  fy4: zod.string().nullish(),
+  fy5: zod.string().nullish(),
+  oneTimeCost: zod.string().nullish(),
+  confidence: zod.string().optional(),
+  ownerName: zod.string().nullish(),
+  realisationStartMonth: zod.string().nullish(),
+  realisationStatus: zod.string().optional(),
+  isDisynergy: zod.boolean().optional(),
+});
+
+export const UpdateSynergyResponse = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  type: zod.string().describe("Revenue | Cost | Capital | Tax"),
+  description: zod.string(),
+  fy1: zod.string().nullish(),
+  fy2: zod.string().nullish(),
+  fy3: zod.string().nullish(),
+  fy4: zod.string().nullish(),
+  fy5: zod.string().nullish(),
+  oneTimeCost: zod.string().nullish(),
+  confidence: zod.string().describe("Probable | Possible | Aspirational"),
+  ownerName: zod.string().nullish(),
+  realisationStartMonth: zod.string().nullish(),
+  realisationStatus: zod
+    .string()
+    .describe("Not Started | On Track | Slipping | Realised"),
+  isDisynergy: zod.boolean(),
+  createdAt: zod.coerce.date().optional(),
+  updatedAt: zod.coerce.date().optional(),
+});
+
+/**
+ * @summary Delete a synergy hypothesis
+ */
+export const DeleteSynergyParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
  * @summary List valuation entries for a target (most recent first)
  */
 export const ListValuationsParams = zod.object({
@@ -1781,6 +1886,116 @@ export const GenerateOpportunityBriefResponse = zod.object({
 export const GenerateWeeklyBriefResponse = zod.object({
   brief: zod.string().nullish(),
   model: zod.string().nullish(),
+  setupRequired: zod.boolean().nullish(),
+  billingRequired: zod.boolean().nullish(),
+  error: zod.string().nullish(),
+});
+
+/**
+ * @summary Get last AI valuation sanity-check result for a target
+ */
+export const GetValuationSanityParams = zod.object({
+  targetId: zod.coerce.number(),
+});
+
+export const GetValuationSanityResponse = zod.object({
+  result: zod
+    .object({
+      methodologyNote: zod.string(),
+      multiplesFlag: zod
+        .string()
+        .describe("in-range | above-range | below-range | insufficient-data"),
+      sensitivityNote: zod.string(),
+      redFlags: zod.array(zod.string()),
+      runAt: zod.string().nullish(),
+      model: zod.string().nullish(),
+    })
+    .nullable(),
+  setupRequired: zod.boolean().nullish(),
+  billingRequired: zod.boolean().nullish(),
+  error: zod.string().nullish(),
+});
+
+/**
+ * @summary Run AI valuation sanity-check for a target
+ */
+export const RunValuationSanityParams = zod.object({
+  targetId: zod.coerce.number(),
+});
+
+export const RunValuationSanityResponse = zod.object({
+  result: zod
+    .object({
+      methodologyNote: zod.string(),
+      multiplesFlag: zod
+        .string()
+        .describe("in-range | above-range | below-range | insufficient-data"),
+      sensitivityNote: zod.string(),
+      redFlags: zod.array(zod.string()),
+      runAt: zod.string().nullish(),
+      model: zod.string().nullish(),
+    })
+    .nullable(),
+  setupRequired: zod.boolean().nullish(),
+  billingRequired: zod.boolean().nullish(),
+  error: zod.string().nullish(),
+});
+
+/**
+ * @summary Get last AI DD synthesis result for a target
+ */
+export const GetDdSynthesisParams = zod.object({
+  targetId: zod.coerce.number(),
+});
+
+export const GetDdSynthesisResponse = zod.object({
+  result: zod
+    .object({
+      risks: zod.array(
+        zod.object({
+          rank: zod.number(),
+          workstream: zod.string(),
+          description: zod.string(),
+          severity: zod.string().describe("High | Medium | Low"),
+          mitigation: zod.string(),
+        }),
+      ),
+      patterns: zod.array(zod.string()),
+      summaryNote: zod.string(),
+      runAt: zod.string().nullish(),
+      model: zod.string().nullish(),
+    })
+    .nullable(),
+  setupRequired: zod.boolean().nullish(),
+  billingRequired: zod.boolean().nullish(),
+  error: zod.string().nullish(),
+});
+
+/**
+ * @summary Run AI DD synthesis for a target
+ */
+export const RunDdSynthesisParams = zod.object({
+  targetId: zod.coerce.number(),
+});
+
+export const RunDdSynthesisResponse = zod.object({
+  result: zod
+    .object({
+      risks: zod.array(
+        zod.object({
+          rank: zod.number(),
+          workstream: zod.string(),
+          description: zod.string(),
+          severity: zod.string().describe("High | Medium | Low"),
+          mitigation: zod.string(),
+        }),
+      ),
+      patterns: zod.array(zod.string()),
+      summaryNote: zod.string(),
+      runAt: zod.string().nullish(),
+      model: zod.string().nullish(),
+    })
+    .nullable(),
   setupRequired: zod.boolean().nullish(),
   billingRequired: zod.boolean().nullish(),
   error: zod.string().nullish(),

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, ChevronRight, AlertTriangle, Calendar, Zap, User, MapPin, Upload, Sparkles, LayoutList, LayoutGrid } from "lucide-react";
+import { Search, Plus, ChevronRight, AlertTriangle, Calendar, Zap, User, MapPin, Upload, Download, Sparkles, LayoutList, LayoutGrid } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
 import { StageChip } from "@/components/stage-chip";
@@ -198,6 +198,22 @@ export default function Pipeline() {
               </button>
             </div>
 
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-lg font-mono uppercase tracking-wider text-[10px] gap-1.5 border-border/60 h-7 px-2.5"
+              onClick={() => {
+                const p = new URLSearchParams();
+                if (stage !== "all")   p.set("stage", stage);
+                if (tier !== "all")    p.set("priorityTier", tier);
+                if (owner !== "all")   p.set("owner", owner);
+                if (country !== "all") p.set("country", country);
+                if (dealType !== "all") p.set("dealType", dealType);
+                window.location.href = `/api/export/pipeline?${p.toString()}`;
+              }}
+            >
+              <Download size={11} /> Export
+            </Button>
             <Button
               size="sm"
               variant="outline"

@@ -6,7 +6,7 @@ import { format, parseISO } from "date-fns";
 import {
   ChevronDown, ChevronRight, RefreshCw, AlertTriangle, Clock,
   Target, ArrowRight, CalendarCheck, Zap, ShieldAlert,
-  Sparkles, Loader2, Copy, Check, Bot, X,
+  Sparkles, Loader2, Copy, Check, Bot, X, Download,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -354,6 +354,14 @@ export default function WeeklyReview() {
             </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-7 px-2.5 gap-1.5"
+              onClick={() => { window.location.href = "/api/export/weekly-review"; }}
+            >
+              <Download size={11} /> Export PDF
+            </Button>
             <Button
               size="sm"
               variant="outline"
