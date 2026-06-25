@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
+import { downloadAuthenticatedFile } from "@/lib/download";
 import {
   useGetTarget, getGetTargetQueryKey,
   useUpdateTargetStage,
@@ -684,7 +685,7 @@ export default function TargetDetail() {
                   size="sm"
                   variant="outline"
                   className="rounded-sm font-mono text-[10px] uppercase border-border/60 h-7 px-2.5 gap-1.5"
-                  onClick={() => { window.location.href = `/api/export/memo/${targetId}`; }}
+                  onClick={() => { downloadAuthenticatedFile(`/api/export/memo/${targetId}`, `deal-memo-${targetId}.pdf`).catch(() => {}); }}
                 >
                   <Download size={11} /> Export Memo
                 </Button>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
+import { downloadAuthenticatedFile } from "@/lib/download";
 import { Link } from "wouter";
 import { format, parseISO } from "date-fns";
 import {
@@ -358,7 +359,7 @@ export default function WeeklyReview() {
               size="sm"
               variant="outline"
               className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-7 px-2.5 gap-1.5"
-              onClick={() => { window.location.href = "/api/export/weekly-review"; }}
+              onClick={() => { downloadAuthenticatedFile("/api/export/weekly-review", "weekly-review.pdf").catch(() => {}); }}
             >
               <Download size={11} /> Export PDF
             </Button>

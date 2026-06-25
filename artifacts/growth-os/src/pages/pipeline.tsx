@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
+import { downloadAuthenticatedFile } from "@/lib/download";
 import {
   useListTargets, getListTargetsQueryKey,
   useGetTargetFilterOptions, getGetTargetFilterOptionsQueryKey,
@@ -209,7 +210,10 @@ export default function Pipeline() {
                 if (owner !== "all")   p.set("owner", owner);
                 if (country !== "all") p.set("country", country);
                 if (dealType !== "all") p.set("dealType", dealType);
-                window.location.href = `/api/export/pipeline?${p.toString()}`;
+                downloadAuthenticatedFile(
+                  `/api/export/pipeline?${p.toString()}`,
+                  "pipeline-export.xlsx",
+                ).catch(() => {});
               }}
             >
               <Download size={11} /> Export
