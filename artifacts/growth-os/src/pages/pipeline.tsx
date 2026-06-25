@@ -26,12 +26,12 @@ const STAGES = [
 const TIERS = ["Must-Win", "Priority 1", "Priority 2", "Watchlist", "On Hold", "Dropped"];
 
 const DEAL_TYPES = [
-  "Platform Acquisition",
-  "Bolt-On Acquisition",
-  "Joint Venture",
-  "Merger",
-  "Minority Stake",
+  "Acquisition",
+  "Minority Investment",
   "Divestiture",
+  "JV",
+  "Partnership",
+  "Strategic Alliance",
   "Other",
 ];
 
@@ -347,7 +347,7 @@ export default function Pipeline() {
               </Button>
             </div>
           ) : (
-            <PipelineKanban targets={targets ?? []} aiMode={aiMode} stageFilter={stage} />
+            <PipelineKanban targets={targets ?? []} aiMode={aiMode} stageFilter={stage} dealTypeFilter={dealType} />
           )}
         </div>
       )}

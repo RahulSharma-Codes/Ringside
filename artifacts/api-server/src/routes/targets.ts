@@ -27,7 +27,7 @@ import {
   CreateActionBody,
   CreateDiligenceItemBody,
 } from "@workspace/api-zod";
-import { TERMINAL_STAGES, PIPELINE_STAGE_ORDER } from "../constants";
+import { TERMINAL_STAGES, PIPELINE_STAGE_ORDER, getStagesForDealType } from "../constants";
 import { writeAuditEvent } from "./audit";
 
 const router = Router();
@@ -286,9 +286,24 @@ function nextPipelineStage(stage: string): string | null {
   return PIPELINE_STAGE_SEQUENCE[idx + 1];
 }
 
-function evaluateGates(stage: string, ctx: GateContext): GateItem[] {
+function evaluateGates(stage: string, ctx: GateContext, dealType?: string | null): GateItem[] {
   const checks = STAGE_GATE_REQUIREMENTS[stage];
   if (!checks || checks.length === 0) return [];
+
+  // If the target stage is not in the applicable stage list for this deal type,
+  // return all gate items as "na" so the UI can signal they don't apply.
+  const applicableStages = getStagesForDealType(dealType);
+  if (!applicableStages.includes(stage)) {
+    return checks.map((fn) => {
+      const item = fn(ctx);
+      return {
+        ...item,
+        status: "na" as GateStatus,
+        detail: `Not applicable for ${dealType ?? "this"} deal type`,
+      };
+    });
+  }
+
   return checks.map((fn) => fn(ctx));
 }
 
@@ -833,6 +848,15 @@ router.put("/:id", async (req, res) => {
     return res.status(400).json({ error: parsed.error.flatten() });
   }
 
+  // Fetch current state before applying updates (needed for deal-type change guard)
+  const [existingRow] = await db
+    .select({ target: targetsTable, milestone: milestonesTable })
+    .from(targetsTable)
+    .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id))
+    .where(eq(targetsTable.id, id));
+
+  if (!existingRow) return res.status(404).json({ error: "Not found" });
+
   const updates: Partial<typeof targetsTable.$inferInsert> = {
     updatedAt: new Date(),
   };
@@ -857,7 +881,23 @@ router.put("/:id", async (req, res) => {
     updates.financialAttractivenessScore = d.financialAttractivenessScore;
   if (d.processMaturityScore !== undefined) updates.processMaturityScore = d.processMaturityScore;
   if (d.riskPenaltyScore !== undefined) updates.riskPenaltyScore = d.riskPenaltyScore;
-  if (d.dealType !== undefined) updates.dealType = d.dealType;
+  if (d.dealType !== undefined) {
+    // Only allow deal-type changes when the deal is still in early stages.
+    // If the current stage is past NDA/CIM, reject the change.
+    const DEAL_TYPE_EARLY_STAGES = new Set([
+      "Sourcing",
+      "Outreach",
+      "Introductory Discussion",
+      "NDA / CIM",
+    ]);
+    const existingStage = currentStage(existingRow.milestone);
+    if (d.dealType !== (existingRow.target.dealType ?? null) && !DEAL_TYPE_EARLY_STAGES.has(existingStage)) {
+      return res.status(422).json({
+        error: `Deal type can only be changed in early stages (Sourcing through NDA/CIM). Current stage: ${existingStage}`,
+      });
+    }
+    updates.dealType = d.dealType;
+  }
   if (d.isActive !== undefined) updates.isActive = d.isActive;
   if (d.isConfidential !== undefined) updates.isConfidential = d.isConfidential;
 
@@ -904,7 +944,7 @@ router.get("/:id/stage-gate", async (req, res) => {
   if (!row) return res.status(404).json({ error: "Not found" });
 
   const ctx = await fetchGateContext(id, row.target, row.milestone);
-  const gateItems = evaluateGates(newStage, ctx);
+  const gateItems = evaluateGates(newStage, ctx, row.target.dealType);
 
   return res.json({ newStage, gateItems });
 });
@@ -971,7 +1011,7 @@ router.put("/:id/stage", async (req, res) => {
   let gateWarnings: string[] = [];
   if (nextStage) {
     const ctx = await fetchGateContext(id, updatedTarget, milestone);
-    const items = evaluateGates(nextStage, ctx);
+    const items = evaluateGates(nextStage, ctx, updatedTarget.dealType);
     gateWarnings = items.filter((g) => g.status === "unmet").map((g) => g.label);
   }
 

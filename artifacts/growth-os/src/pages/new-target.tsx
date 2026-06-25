@@ -17,12 +17,12 @@ import { Slider } from "@/components/ui/slider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const DEAL_TYPES = [
-  "Platform Acquisition",
-  "Bolt-On Acquisition",
-  "Joint Venture",
-  "Merger",
-  "Minority Stake",
+  "Acquisition",
+  "Minority Investment",
   "Divestiture",
+  "JV",
+  "Partnership",
+  "Strategic Alliance",
   "Other",
 ] as const;
 

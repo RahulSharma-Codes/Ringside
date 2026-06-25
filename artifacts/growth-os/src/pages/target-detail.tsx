@@ -53,7 +53,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { StageRail, PIPELINE_STAGE_ORDER, ALL_KNOWN_STAGES, OFF_TRACK_STAGES, getStagesForDealType } from "@/components/stage-rail";
+import { StageRail, PIPELINE_STAGE_ORDER, ALL_KNOWN_STAGES, OFF_TRACK_STAGES, getStagesForDealType, isDealTypeChangeSafe } from "@/components/stage-rail";
 import { StageChip } from "@/components/stage-chip";
 import { AiMeetingNotesModal } from "@/components/ai-meeting-notes-modal";
 import { customFetch } from "@workspace/api-client-react";
@@ -70,9 +70,20 @@ const PRIORITY_TIERS = ["Must-Win", "Priority 1", "Priority 2", "Watchlist"];
 const ACTION_PRIORITIES = ["Critical", "High", "Medium", "Low"];
 const ACTION_STATUSES = ["Open", "In Progress", "Blocked", "Completed"];
 
+const DEAL_TYPES = [
+  "Acquisition",
+  "Minority Investment",
+  "Divestiture",
+  "JV",
+  "Partnership",
+  "Strategic Alliance",
+  "Other",
+];
+
 type EditTargetData = {
   projectName: string;
   priorityTier: string;
+  dealType: string;
   strategicRationale: string;
   sector: string;
   subsector: string;
@@ -158,6 +169,7 @@ export default function TargetDetail() {
   const [editData, setEditData] = useState<EditTargetData>({
     projectName: "",
     priorityTier: "",
+    dealType: "",
     strategicRationale: "",
     sector: "",
     subsector: "",
@@ -172,6 +184,7 @@ export default function TargetDetail() {
     processMaturityScore: 50,
     riskPenaltyScore: 0,
   });
+  const [dealTypeWarning, setDealTypeWarning] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const [deleteInterOpen, setDeleteInterOpen] = useState(false);
@@ -229,6 +242,7 @@ export default function TargetDetail() {
       setEditData({
         projectName: target.projectName ?? "",
         priorityTier: target.priorityTier ?? "",
+        dealType: target.dealType ?? "",
         strategicRationale: target.strategicRationale ?? "",
         sector: target.sector ?? "",
         subsector: target.subsector ?? "",
@@ -243,6 +257,7 @@ export default function TargetDetail() {
         processMaturityScore: target.processMaturityScore ?? 50,
         riskPenaltyScore: target.riskPenaltyScore ?? 0,
       });
+      setDealTypeWarning(null);
     }
   }, [target]);
 
@@ -454,6 +469,7 @@ export default function TargetDetail() {
         data: {
           projectName: editData.projectName || undefined,
           priorityTier: editData.priorityTier || undefined,
+          dealType: editData.dealType || null,
           strategicRationale: editData.strategicRationale || undefined,
           sector: editData.sector || undefined,
           subsector: editData.subsector || undefined,
@@ -1312,6 +1328,55 @@ export default function TargetDetail() {
                     <SelectTrigger className="rounded-sm bg-background/50"><SelectValue /></SelectTrigger>
                     <SelectContent className="rounded-sm">{PRIORITY_TIERS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Deal Type</label>
+                  {(() => {
+                    const EARLY_STAGES = ["Sourcing", "Outreach", "Introductory Discussion", "NDA / CIM"];
+                    const isEarlyStage = EARLY_STAGES.includes(target.currentStage ?? "Sourcing");
+                    return (
+                      <>
+                        <Select
+                          value={editData.dealType || "__none__"}
+                          disabled={!isEarlyStage}
+                          onValueChange={(v) => {
+                            const newType = v === "__none__" ? "" : v;
+                            if (newType && !isDealTypeChangeSafe(target.currentStage ?? "Sourcing", target.dealType ?? null, newType)) {
+                              setDealTypeWarning(
+                                `The current stage "${target.currentStage}" is not part of the ${newType} pipeline. ` +
+                                `The deal will remain in "${target.currentStage}" but future stage changes will use ${newType} stages.`
+                              );
+                            } else {
+                              setDealTypeWarning(null);
+                            }
+                            setEditData((d) => ({ ...d, dealType: newType }));
+                          }}
+                        >
+                          <SelectTrigger className="rounded-sm bg-background/50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <SelectValue placeholder="— Not set —" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-sm">
+                            <SelectItem value="__none__">— Not set —</SelectItem>
+                            {DEAL_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        {!isEarlyStage && (
+                          <div className="flex items-start gap-2 rounded-sm border border-border/40 bg-muted/30 px-3 py-2">
+                            <Hash size={11} className="text-muted-foreground/50 shrink-0 mt-0.5" />
+                            <p className="text-[10px] font-mono text-muted-foreground/70 leading-snug">
+                              Deal type is locked once a deal progresses past NDA / CIM (current: {target.currentStage}).
+                            </p>
+                          </div>
+                        )}
+                        {isEarlyStage && dealTypeWarning && (
+                          <div className="flex items-start gap-2 rounded-sm border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                            <AlertTriangle size={13} className="text-amber-500 shrink-0 mt-0.5" />
+                            <p className="text-[11px] font-mono text-amber-500/90 leading-snug">{dealTypeWarning}</p>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Sector</label>

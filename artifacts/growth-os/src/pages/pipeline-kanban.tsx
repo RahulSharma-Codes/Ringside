@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, User, Zap, ChevronDown, ChevronRight, X, Check } from "lucide-react";
 import { StageChip } from "@/components/stage-chip";
-import { PIPELINE_STAGE_ORDER, OFF_TRACK_STAGES } from "@/components/stage-rail";
+import { PIPELINE_STAGE_ORDER, OFF_TRACK_STAGES, getStagesForDealType } from "@/components/stage-rail";
 import { useToast } from "@/hooks/use-toast";
 import {
   DndContext,
@@ -49,6 +49,7 @@ interface PipelineKanbanProps {
   targets: KanbanTarget[];
   aiMode?: string | null;
   stageFilter?: string;
+  dealTypeFilter?: string;
   onRefresh?: () => void;
 }
 
@@ -73,7 +74,7 @@ function getTierCardAccent(tier: string | null | undefined): string {
   }
 }
 
-const ACTIVE_STAGES = PIPELINE_STAGE_ORDER.filter(s => !OFF_TRACK_STAGES.includes(s));
+const ALL_ACTIVE_STAGES = PIPELINE_STAGE_ORDER.filter(s => !OFF_TRACK_STAGES.includes(s));
 const OFF_TRACK = OFF_TRACK_STAGES;
 
 const STAGE_CHANGE_REASONS = [
@@ -313,6 +314,7 @@ export function PipelineKanban({
   targets,
   aiMode,
   stageFilter,
+  dealTypeFilter,
   onRefresh,
 }: PipelineKanbanProps) {
   const { toast } = useToast();
@@ -329,6 +331,11 @@ export function PipelineKanban({
 
   const changeStage = useUpdateTargetStage();
 
+  // When a deal-type filter is active, only show columns applicable to that deal type
+  const dealTypeStages = dealTypeFilter && dealTypeFilter !== "all"
+    ? getStagesForDealType(dealTypeFilter).filter(s => !OFF_TRACK_STAGES.includes(s))
+    : ALL_ACTIVE_STAGES;
+
   // Group targets by stage
   const filtered = stageFilter && stageFilter !== "all"
     ? targets.filter(t => t.currentStage === stageFilter)
@@ -341,7 +348,7 @@ export function PipelineKanban({
     byStage[s].push(t);
   }
 
-  const activeStages = ACTIVE_STAGES.filter(s => !stageFilter || stageFilter === "all" || stageFilter === s);
+  const activeStages = dealTypeStages.filter(s => !stageFilter || stageFilter === "all" || stageFilter === s);
   const offTrackTargets = OFF_TRACK.flatMap(s => byStage[s] ?? []);
 
   function handleDragStart(e: DragStartEvent) {
