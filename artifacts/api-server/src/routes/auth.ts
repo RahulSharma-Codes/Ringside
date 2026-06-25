@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, sql } from "drizzle-orm";
 import { createHash, randomInt } from "crypto";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -87,8 +87,13 @@ router.post("/otp/request", async (req, res) => {
   const codeHash = sha256(code);
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
 
-  // Invalidate old codes for this email
-  await db.delete(otpAttemptsTable).where(eq(otpAttemptsTable.email, email));
+  // Purge all expired OTPs + invalidate any prior code for this email
+  const now2 = new Date();
+  await db.delete(otpAttemptsTable).where(
+    eq(otpAttemptsTable.email, email)
+  );
+  // Also clean up globally expired rows (opportunistic purge — no scheduled job needed)
+  await db.execute(sql`DELETE FROM otp_attempts WHERE expires_at < ${now2}`);
 
   await db.insert(otpAttemptsTable).values({ email, codeHash, expiresAt, attempts: 0 });
 

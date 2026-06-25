@@ -112,6 +112,7 @@ router.get("/command-center", async (_req, res) => {
 // PUT /api/actions/:id — handles both regular actions and diligence items
 router.put("/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
   const parsed = UpdateActionBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.flatten() });
@@ -150,6 +151,7 @@ router.put("/:id", async (req, res) => {
 // DELETE /api/actions/:id
 router.delete("/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
   await db.delete(actionItemsTable).where(eq(actionItemsTable.id, id));
   return res.status(204).send();
 });

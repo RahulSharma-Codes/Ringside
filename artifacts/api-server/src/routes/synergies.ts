@@ -43,6 +43,7 @@ function formatSynergy(s: typeof synergiesTable.$inferSelect) {
 // PUT /api/synergies/:id
 router.put("/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
   const parsed = UpdateSynergyBodySchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.flatten() });
@@ -78,6 +79,7 @@ router.put("/:id", async (req, res) => {
 // DELETE /api/synergies/:id
 router.delete("/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
   await db.delete(synergiesTable).where(eq(synergiesTable.id, id));
   return res.status(204).send();
 });

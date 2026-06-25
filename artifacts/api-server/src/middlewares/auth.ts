@@ -1,5 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { db, sessionBlocklistTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 
 const JWT_SECRET = process.env.SESSION_SECRET ?? "dev-secret-change-me";
 
@@ -26,7 +28,7 @@ function extractBearerToken(header: string | undefined): string | null {
   return header.slice(prefix.length);
 }
 
-export function requireAppPassword(req: Request, res: Response, next: NextFunction) {
+export async function requireAppPassword(req: Request, res: Response, next: NextFunction) {
   if (req.method === "OPTIONS") return next();
   if (req.path === "/healthz" || req.path.startsWith("/auth/")) return next();
 
@@ -38,6 +40,13 @@ export function requireAppPassword(req: Request, res: Response, next: NextFuncti
   if (bearerToken && bearerToken !== expectedPassword) {
     try {
       const claims = jwt.verify(bearerToken, JWT_SECRET) as JwtClaims;
+      // Check session blocklist (logout revocation)
+      const [blocked] = await db
+        .select({ id: sessionBlocklistTable.id })
+        .from(sessionBlocklistTable)
+        .where(eq(sessionBlocklistTable.jti, claims.jti))
+        .limit(1);
+      if (blocked) return res.status(401).json({ error: "Session has been revoked. Please log in again." });
       req.jwtClaims = claims;
       return next();
     } catch {

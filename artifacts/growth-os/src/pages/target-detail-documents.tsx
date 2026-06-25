@@ -28,7 +28,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
-const PASSWORD_KEY = "ig_os_app_password";
+const PASSWORD_KEY = "ig_os_auth_token";
 
 function authHeaders(): Record<string, string> {
   const pw = typeof window !== "undefined" ? window.localStorage.getItem(PASSWORD_KEY) : null;

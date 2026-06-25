@@ -8,6 +8,7 @@ const router = Router();
 // DELETE /api/ic-sessions/:id
 router.delete("/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
   await db.delete(icSessionsTable).where(eq(icSessionsTable.id, id));
   return res.status(204).send();
 });
