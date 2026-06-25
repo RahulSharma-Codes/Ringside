@@ -2587,3 +2587,35 @@ export const MarkNotificationReadResponse = zod.object({
 export const MarkAllNotificationsReadResponse = zod.object({
   ok: zod.boolean().optional(),
 });
+
+/**
+ * @summary Get audit trail for a deal
+ */
+export const GetAuditTrailParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetAuditTrailResponseItem = zod.object({
+  id: zod.number(),
+  eventType: zod.string(),
+  targetId: zod.number().nullish(),
+  userIdentifier: zod.string().nullish(),
+  occurredAt: zod.coerce.date(),
+  payload: zod.record(zod.string(), zod.unknown()).nullish(),
+  hashPrev: zod.string().nullish(),
+  hashSelf: zod.string().nullish(),
+});
+export const GetAuditTrailResponse = zod.array(GetAuditTrailResponseItem);
+
+/**
+ * @summary Verify hash-chain integrity for a deal
+ */
+export const VerifyAuditChainParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const VerifyAuditChainResponse = zod.object({
+  valid: zod.boolean(),
+  checkedCount: zod.number(),
+  firstBrokenAt: zod.string().nullable(),
+});

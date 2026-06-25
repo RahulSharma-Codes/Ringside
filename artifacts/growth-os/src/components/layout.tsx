@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import {
   Target, ListTodo, Briefcase, Plus, BarChart3, Bot, CalendarCheck,
   ClipboardCheck, Upload, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu,
-  FolderOpen, LineChart,
+  FolderOpen, LineChart, ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -24,9 +24,10 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/analytics",        label: "Analytics",         icon: LineChart,      group: "Intelligence"     },
   { href: "/copilot",          label: "AI Copilot",        icon: Bot,            group: "Intelligence"     },
   { href: "/import",           label: "Import Targets",    icon: Upload,         group: "Data"             },
+  { href: "/admin",            label: "Admin",             icon: ShieldCheck,    group: "Admin"            },
 ];
 
-const NAV_GROUPS = ["Operating System", "Review Cadence", "Intelligence", "Data"];
+const NAV_GROUPS = ["Operating System", "Review Cadence", "Intelligence", "Data", "Admin"];
 
 function isActive(href: string, location: string) {
   if (href === "/") return location === "/";

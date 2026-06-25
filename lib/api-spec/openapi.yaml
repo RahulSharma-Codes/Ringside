@@ -1696,6 +1696,46 @@ paths:
                     type: boolean
 
 
+  /api/audit/target/{id}:
+    get:
+      operationId: getAuditTrail
+      summary: Get audit trail for a deal
+      tags: [audit]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Audit events list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditEvent"
+
+  /api/audit/verify/{id}:
+    get:
+      operationId: verifyAuditChain
+      summary: Verify hash-chain integrity for a deal
+      tags: [audit]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditVerifyResult"
+
 components:
   schemas:
     HealthStatus:
@@ -4362,3 +4402,43 @@ components:
       properties:
         count:
           type: integer
+
+    AuditEvent:
+      type: object
+      required: [id, eventType, occurredAt]
+      properties:
+        id:
+          type: integer
+        eventType:
+          type: string
+        targetId:
+          type: integer
+          nullable: true
+        userIdentifier:
+          type: string
+          nullable: true
+        occurredAt:
+          type: string
+          format: date-time
+        payload:
+          type: object
+          nullable: true
+          additionalProperties: true
+        hashPrev:
+          type: string
+          nullable: true
+        hashSelf:
+          type: string
+          nullable: true
+
+    AuditVerifyResult:
+      type: object
+      required: [valid, checkedCount, firstBrokenAt]
+      properties:
+        valid:
+          type: boolean
+        checkedCount:
+          type: integer
+        firstBrokenAt:
+          type: string
+          nullable: true

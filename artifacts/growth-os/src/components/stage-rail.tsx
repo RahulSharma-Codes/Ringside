@@ -29,6 +29,80 @@ export const OFF_TRACK_STAGES = ["On Hold", "Dropped", "Rejected"];
 /** All known stages — for display fallback if a stage appears outside the ordered list */
 export const ALL_KNOWN_STAGES = [...PIPELINE_STAGE_ORDER, ...OFF_TRACK_STAGES];
 
+/**
+ * Deal-type-aware stage variants.
+ * Acquisition / Minority Investment / Divestiture / null → full default set.
+ * JV → default + "NewCo Formation" inserted between SPA Negotiation and Integration Planning.
+ * Partnership / Strategic Alliance → lighter path (no Conf-DD, no Binding Offer, no Integration).
+ */
+export const STAGE_VARIANTS: Record<string, string[]> = {
+  "Acquisition": PIPELINE_STAGE_ORDER,
+  "Minority Investment": PIPELINE_STAGE_ORDER,
+  "Divestiture": PIPELINE_STAGE_ORDER,
+  "JV": [
+    "Sourcing",
+    "Outreach",
+    "Introductory Discussion",
+    "NDA / CIM",
+    "Preliminary Due Diligence",
+    "Management Meeting",
+    "Non-Binding Offer",
+    "Confirmatory Due Diligence",
+    "Binding Offer",
+    "SPA Negotiation",
+    "NewCo Formation",
+    "Integration Planning",
+    "Closing",
+    "Closed",
+    "Completed",
+    "Signed",
+  ],
+  "Partnership": [
+    "Sourcing",
+    "Outreach",
+    "Introductory Discussion",
+    "NDA / CIM",
+    "Preliminary Due Diligence",
+    "Management Meeting",
+    "Non-Binding Offer",
+    "SPA Negotiation",
+    "Closing",
+    "Signed",
+  ],
+  "Strategic Alliance": [
+    "Sourcing",
+    "Outreach",
+    "Introductory Discussion",
+    "NDA / CIM",
+    "Preliminary Due Diligence",
+    "Management Meeting",
+    "Non-Binding Offer",
+    "SPA Negotiation",
+    "Closing",
+    "Signed",
+  ],
+};
+
+/** Return the ordered stage list for a given deal type (falls back to full list). */
+export function getStagesForDealType(dealType?: string | null): string[] {
+  if (!dealType) return PIPELINE_STAGE_ORDER;
+  return STAGE_VARIANTS[dealType] ?? PIPELINE_STAGE_ORDER;
+}
+
+/**
+ * Whether changing deal type from `fromType` to `toType` would leave the deal
+ * stranded in a stage that doesn't exist in the new variant set.
+ */
+export function isDealTypeChangeSafe(
+  currentStage: string,
+  fromType: string | null | undefined,
+  toType: string | null | undefined,
+): boolean {
+  const newStages = getStagesForDealType(toType);
+  if (OFF_TRACK_STAGES.includes(currentStage)) return true;
+  return newStages.includes(currentStage);
+}
+
 function shortStageName(stage: string): string {
   const abbrev: Record<string, string> = {
     "Introductory Discussion": "Intro",
@@ -61,6 +135,8 @@ interface StageRailProgressionProps {
   mode: "progression";
   currentStage: string;
   daysInStage?: number;
+  /** Deal type — used to filter stages to only those applicable for this deal type */
+  dealType?: string | null;
   /** When provided, stages become selectable (used in Change Stage modal) */
   onSelectStage?: (stage: string) => void;
   /** The currently selected stage (for modal stepper mode) */
@@ -171,12 +247,12 @@ function DistributionRail({ stages, totalActive, onStageClick }: StageRailDistri
 
 type StageStatus = "completed" | "current" | "future" | "offtrack";
 
-function getProgressionStatus(stageName: string, currentStage: string): StageStatus {
+function getProgressionStatus(stageName: string, currentStage: string, stageList: string[]): StageStatus {
   if (OFF_TRACK_STAGES.includes(currentStage)) {
     return stageName === currentStage ? "current" : "offtrack";
   }
-  const currentIdx = PIPELINE_STAGE_ORDER.indexOf(currentStage);
-  const stageIdx = PIPELINE_STAGE_ORDER.indexOf(stageName);
+  const currentIdx = stageList.indexOf(currentStage);
+  const stageIdx = stageList.indexOf(stageName);
   if (currentIdx === -1) return "future";
   if (stageIdx < currentIdx) return "completed";
   if (stageIdx === currentIdx) return "current";
@@ -186,21 +262,23 @@ function getProgressionStatus(stageName: string, currentStage: string): StageSta
 function ProgressionRail({
   currentStage,
   daysInStage,
+  dealType,
   onSelectStage,
   selectedStage,
 }: StageRailProgressionProps) {
   const isSelectable = !!onSelectStage;
   const isOffTrack = OFF_TRACK_STAGES.includes(currentStage);
+  const baseStages = getStagesForDealType(dealType);
 
   const stagesToShow = isOffTrack
-    ? [...PIPELINE_STAGE_ORDER, currentStage]
-    : PIPELINE_STAGE_ORDER;
+    ? [...baseStages, currentStage]
+    : baseStages;
 
   return (
     <div className="overflow-x-auto pb-1 -mx-1 px-1">
       <div className="flex items-center gap-0 min-w-max">
         {stagesToShow.map((stage, idx) => {
-          const status = getProgressionStatus(stage, currentStage);
+          const status = getProgressionStatus(stage, currentStage, stagesToShow);
           const isSelected = selectedStage === stage;
           const isCurrentStage = stage === currentStage;
           const canSelect = isSelectable && !isCurrentStage;

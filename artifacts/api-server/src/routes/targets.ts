@@ -27,7 +27,8 @@ import {
   CreateActionBody,
   CreateDiligenceItemBody,
 } from "@workspace/api-zod";
-import { TERMINAL_STAGES } from "../constants";
+import { TERMINAL_STAGES, PIPELINE_STAGE_ORDER } from "../constants";
+import { writeAuditEvent } from "./audit";
 
 const router = Router();
 
@@ -605,6 +606,13 @@ router.post("/", async (req, res) => {
     changedAt: now,
   });
 
+  await writeAuditEvent("deal_created", target.id, data.dealOwner ?? null, {
+    targetCode: target.targetCode,
+    projectName: target.projectName,
+    dealType: target.dealType,
+    initialStage: "Sourcing",
+  });
+
   return res.status(201).json(formatTarget(target, milestone));
 });
 
@@ -966,6 +974,19 @@ router.put("/:id/stage", async (req, res) => {
     const items = evaluateGates(nextStage, ctx);
     gateWarnings = items.filter((g) => g.status === "unmet").map((g) => g.label);
   }
+
+  const isRevert = previousStage && PIPELINE_STAGE_ORDER.indexOf(newStage) < PIPELINE_STAGE_ORDER.indexOf(previousStage);
+  await writeAuditEvent(
+    isRevert ? "stage_reverted" : "stage_advanced",
+    id,
+    parsed.data.changedBy ?? null,
+    {
+      previousStage,
+      newStage,
+      changeReason: parsed.data.changeReason ?? null,
+      gateWarnings,
+    },
+  );
 
   return res.json({ ...formatTarget(updatedTarget, milestone), gateWarnings });
 });

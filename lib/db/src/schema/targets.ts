@@ -1,6 +1,48 @@
-import { pgTable, serial, text, integer, boolean, timestamp, date, jsonb, bigint, doublePrecision } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, boolean, timestamp, date, jsonb, bigint, doublePrecision, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+
+// ── Multi-tenancy foundation ─────────────────────────────────────────────────
+
+export const companiesTable = pgTable("companies", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  slug: text("slug").notNull(),
+  config: jsonb("config").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+export type Company = typeof companiesTable.$inferSelect;
+
+export const usersTable = pgTable("users", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: uuid("company_id").notNull(),
+  email: text("email").notNull(),
+  displayName: text("display_name"),
+  role: text("role").notNull().default("Member"),
+  passwordHash: text("password_hash"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+export type User = typeof usersTable.$inferSelect;
+
+export const otpAttemptsTable = pgTable("otp_attempts", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  codeHash: text("code_hash").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  lockedUntil: timestamp("locked_until"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+export type OtpAttempt = typeof otpAttemptsTable.$inferSelect;
+
+export const sessionBlocklistTable = pgTable("session_blocklist", {
+  id: serial("id").primaryKey(),
+  jti: text("jti").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+export type SessionBlocklist = typeof sessionBlocklistTable.$inferSelect;
 
 export const targetsTable = pgTable("targets", {
   id: serial("id").primaryKey(),
@@ -288,6 +330,18 @@ export const regulatoryClearancesTable = pgTable("regulatory_clearances", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 export type RegulatoryClearance = typeof regulatoryClearancesTable.$inferSelect;
+
+export const auditEventsTable = pgTable("audit_events", {
+  id: serial("id").primaryKey(),
+  eventType: text("event_type").notNull(),
+  targetId: integer("target_id"),
+  userIdentifier: text("user_identifier"),
+  occurredAt: timestamp("occurred_at").notNull().defaultNow(),
+  payload: jsonb("payload").$type<Record<string, unknown>>(),
+  hashPrev: text("hash_prev"),
+  hashSelf: text("hash_self"),
+});
+export type AuditEvent = typeof auditEventsTable.$inferSelect;
 
 export const notificationsTable = pgTable("notifications", {
   id: serial("id").primaryKey(),

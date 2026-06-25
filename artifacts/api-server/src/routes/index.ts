@@ -18,6 +18,8 @@ import sponsorsRouter from "./sponsors";
 import ndaRecordsRouter from "./nda-records";
 import regulatoryClearancesRouter from "./regulatory-clearances";
 import notificationsRouter from "./notifications";
+import auditRouter from "./audit";
+import adminRouter from "./admin";
 
 const router: IRouter = Router();
 
@@ -40,6 +42,8 @@ router.use("/sponsors", sponsorsRouter);
 router.use("/nda-records", ndaRecordsRouter);
 router.use("/regulatory-clearances", regulatoryClearancesRouter);
 router.use("/notifications", notificationsRouter);
+router.use("/audit", auditRouter);
+router.use("/admin", adminRouter);
 
 export default router;
 

@@ -33,7 +33,7 @@ import {
   CheckCircle2, RotateCcw, Pencil, MessageSquare, ListChecks, GitBranch,
   LayoutGrid, ClipboardCheck, FolderOpen, Sparkles, Loader2, Copy, Check, Bot,
   ChevronDown, ChevronRight, Activity as ActivityIcon, Scale, TrendingUp,
-  AlertTriangle, Download, Users, ShieldCheck,
+  AlertTriangle, Download, Users, ShieldCheck, ClipboardList, Hash, Shield,
 } from "lucide-react";
 import {
   formatScore, getScoreConfidence, countAssessedScores,
@@ -47,13 +47,14 @@ import { ValuationTab } from "@/pages/target-detail-valuation";
 import { SynergiesTab } from "@/pages/target-detail-synergies";
 import { StakeholdersTab } from "@/pages/target-detail-stakeholders";
 import { ComplianceTab } from "@/pages/target-detail-compliance";
+import { AuditTrailTab } from "@/components/audit-trail-tab";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { StageRail, PIPELINE_STAGE_ORDER, ALL_KNOWN_STAGES, OFF_TRACK_STAGES } from "@/components/stage-rail";
+import { StageRail, PIPELINE_STAGE_ORDER, ALL_KNOWN_STAGES, OFF_TRACK_STAGES, getStagesForDealType } from "@/components/stage-rail";
 import { StageChip } from "@/components/stage-chip";
 import { AiMeetingNotesModal } from "@/components/ai-meeting-notes-modal";
 import { customFetch } from "@workspace/api-client-react";
@@ -698,6 +699,7 @@ export default function TargetDetail() {
             mode="progression"
             currentStage={target.currentStage ?? "Sourcing"}
             daysInStage={daysInCurrentStage}
+            dealType={target.dealType}
           />
         </div>
       </div>
@@ -720,6 +722,7 @@ export default function TargetDetail() {
                 { value: "ic",         label: "IC",         icon: <Scale size={13} /> },
                 { value: "stakeholders", label: "Stakeholders", icon: <Users size={13} /> },
                 { value: "compliance",   label: "Compliance",   icon: <ShieldCheck size={13} /> },
+                { value: "audit",        label: "Audit",        icon: <ClipboardList size={13} /> },
               ].map(({ value, label, icon }) => (
                 <TabsTrigger
                   key={value}
@@ -997,6 +1000,11 @@ export default function TargetDetail() {
               <ComplianceTab targetId={targetId} />
             </TabsContent>
 
+            {/* Audit Trail */}
+            <TabsContent value="audit" className="mt-0">
+              <AuditTrailTab targetId={targetId} />
+            </TabsContent>
+
             {/* Diligence */}
             <TabsContent value="diligence" className="space-y-4 mt-0">
               <DiligenceTab targetId={targetId} />
@@ -1119,6 +1127,7 @@ export default function TargetDetail() {
               <StageRail
                 mode="progression"
                 currentStage={target.currentStage ?? "Sourcing"}
+                dealType={target.dealType}
                 onSelectStage={setStageVal}
                 selectedStage={stageVal}
               />

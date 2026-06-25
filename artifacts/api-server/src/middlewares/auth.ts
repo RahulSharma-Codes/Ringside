@@ -1,4 +1,23 @@
 import type { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.SESSION_SECRET ?? "dev-secret-change-me";
+
+export interface JwtClaims {
+  userId: string;
+  companyId: string;
+  email: string;
+  role: string;
+  jti: string;
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      jwtClaims?: JwtClaims;
+    }
+  }
+}
 
 function extractBearerToken(header: string | undefined): string | null {
   if (!header) return null;
@@ -9,18 +28,27 @@ function extractBearerToken(header: string | undefined): string | null {
 
 export function requireAppPassword(req: Request, res: Response, next: NextFunction) {
   if (req.method === "OPTIONS") return next();
-
-  // When mounted under /api, req.path is the part after /api.
   if (req.path === "/healthz" || req.path.startsWith("/auth/")) return next();
 
   const expectedPassword = process.env.APP_PASSWORD;
-  if (!expectedPassword) {
-    return res.status(500).json({ error: "APP_PASSWORD is not configured in Replit Secrets." });
-  }
-
   const bearerToken = extractBearerToken(req.get("authorization"));
   const headerPassword = req.get("x-app-password") ?? null;
 
+  // 1. Try JWT verification
+  if (bearerToken && bearerToken !== expectedPassword) {
+    try {
+      const claims = jwt.verify(bearerToken, JWT_SECRET) as JwtClaims;
+      req.jwtClaims = claims;
+      return next();
+    } catch {
+      // Fall through to legacy check
+    }
+  }
+
+  // 2. Legacy shared-password fallback (for existing sessions stored in localStorage)
+  if (!expectedPassword) {
+    return res.status(500).json({ error: "APP_PASSWORD is not configured in Replit Secrets." });
+  }
   if (bearerToken === expectedPassword || headerPassword === expectedPassword) {
     return next();
   }

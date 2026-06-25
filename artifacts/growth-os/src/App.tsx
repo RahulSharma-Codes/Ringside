@@ -20,42 +20,107 @@ import DiligenceReview from "@/pages/diligence-review";
 import DocumentReview from "@/pages/document-review";
 import LaunchReadiness from "@/pages/launch-readiness";
 import Analytics from "@/pages/analytics";
+import AdminPage from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
-const PASSWORD_STORAGE_KEY = "ig_os_app_password";
+
+// Auth token storage — stores either a raw APP_PASSWORD (legacy) or a JWT
+const AUTH_TOKEN_KEY = "ig_os_auth_token";
 
 setAuthTokenGetter(() => {
   if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(PASSWORD_STORAGE_KEY);
+  return window.localStorage.getItem(AUTH_TOKEN_KEY);
 });
 
+// ── Login screen with OTP + password support ───────────────────────────────────
+
+type LoginMode = "password" | "otp-email" | "otp-code";
+
+interface OtpState {
+  email: string;
+  code: string;
+  /** The in-app generated code returned by the server (shown for UX since no email delivery yet) */
+  serverCode: string | null;
+}
+
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
+  const [mode, setMode] = useState<LoginMode>("password");
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState<OtpState>({ email: "", code: "", serverCode: null });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  // ── Password login ──────────────────────────────────────────────────────────
+
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
     setIsSubmitting(true);
-
     try {
-      const response = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       });
+      if (!res.ok) { setError("Password not accepted."); return; }
+      const data = await res.json();
+      // Prefer JWT token; fall back to storing the raw password for legacy auth middleware
+      window.localStorage.setItem(AUTH_TOKEN_KEY, data.token ?? password);
+      onLogin();
+    } catch {
+      setError("Could not reach the server. Check the app is running.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-      if (!response.ok) {
-        setError("Password not accepted. Please try again.");
+  // ── OTP — step 1: request code ──────────────────────────────────────────────
+
+  const handleOtpRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otp.email.trim()) return;
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/otp/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: otp.email.trim().toLowerCase() }),
+      });
+      const data = await res.json();
+      setOtp((prev) => ({ ...prev, serverCode: data.code ?? null }));
+      setMode("otp-code");
+    } catch {
+      setError("Could not send OTP. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ── OTP — step 2: verify code ───────────────────────────────────────────────
+
+  const handleOtpVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otp.code.trim()) return;
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: otp.email, code: otp.code.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error ?? "Invalid code.");
         return;
       }
-
-      window.localStorage.setItem(PASSWORD_STORAGE_KEY, password);
+      const data = await res.json();
+      window.localStorage.setItem(AUTH_TOKEN_KEY, data.token);
       onLogin();
-    } catch (_error) {
-      setError("Could not reach the API server. Check that the Replit app is running.");
+    } catch {
+      setError("Verification failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -67,30 +132,124 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
         <CardHeader className="space-y-2 pb-2">
           <p className="text-[10px] font-mono uppercase tracking-widest text-primary/70">Inorganic Growth Command Center</p>
           <CardTitle className="font-mono uppercase tracking-widest text-2xl leading-tight">Ringside</CardTitle>
-          <p className="text-sm text-muted-foreground leading-relaxed">Your command center for corporate development, diligence, and inorganic growth execution.</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Your command center for corporate development, diligence, and inorganic growth execution.
+          </p>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Access Password</label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="rounded-sm bg-background/50"
-                autoFocus
-              />
-            </div>
-            {error && <div className="text-sm text-destructive">{error}</div>}
-            <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]" disabled={!password || isSubmitting}>
-              {isSubmitting ? "Checking..." : "Login"}
-            </Button>
-          </form>
+        <CardContent className="space-y-4">
+
+          {/* ── Password mode ── */}
+          {mode === "password" && (
+            <form onSubmit={handlePasswordLogin} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  Access Password
+                </label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="rounded-sm bg-background/50"
+                  autoFocus
+                />
+              </div>
+              {error && <p className="text-sm text-destructive font-mono">{error}</p>}
+              <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]" disabled={!password || isSubmitting}>
+                {isSubmitting ? "Checking…" : "Login"}
+              </Button>
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => { setMode("otp-email"); setError(null); }}
+                  className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2 transition-colors"
+                >
+                  Sign in with one-time code instead
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ── OTP step 1: enter email ── */}
+          {mode === "otp-email" && (
+            <form onSubmit={handleOtpRequest} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  Email Address
+                </label>
+                <Input
+                  type="email"
+                  value={otp.email}
+                  onChange={(e) => setOtp((p) => ({ ...p, email: e.target.value }))}
+                  placeholder="you@example.com"
+                  className="rounded-sm bg-background/50"
+                  autoFocus
+                />
+                <p className="text-[9px] text-muted-foreground/40 font-mono">
+                  A 6-digit code will be generated for your email.
+                </p>
+              </div>
+              {error && <p className="text-sm text-destructive font-mono">{error}</p>}
+              <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]" disabled={!otp.email.trim() || isSubmitting}>
+                {isSubmitting ? "Generating…" : "Get Code"}
+              </Button>
+              <div className="text-center">
+                <button type="button" onClick={() => { setMode("password"); setError(null); }}
+                  className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2">
+                  Use password instead
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ── OTP step 2: enter code ── */}
+          {mode === "otp-code" && (
+            <form onSubmit={handleOtpVerify} className="space-y-4">
+              {otp.serverCode && (
+                <div className="rounded-sm border border-primary/30 bg-primary/10 p-3 space-y-1">
+                  <p className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider">
+                    Your one-time code (shown here — enter below)
+                  </p>
+                  <p className="font-mono text-2xl font-bold tracking-[0.3em] text-primary">{otp.serverCode}</p>
+                  <p className="text-[9px] font-mono text-muted-foreground/40">Expires in 10 minutes</p>
+                </div>
+              )}
+              <div className="space-y-2">
+                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  6-Digit Code <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  value={otp.code}
+                  onChange={(e) => setOtp((p) => ({ ...p, code: e.target.value.replace(/\D/g, "").slice(0, 6) }))}
+                  placeholder="123456"
+                  className="rounded-sm bg-background/50 font-mono text-xl tracking-[0.3em] text-center"
+                  maxLength={6}
+                  autoFocus
+                />
+              </div>
+              {error && <p className="text-sm text-destructive font-mono">{error}</p>}
+              <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]" disabled={otp.code.length < 6 || isSubmitting}>
+                {isSubmitting ? "Verifying…" : "Verify Code"}
+              </Button>
+              <div className="flex items-center justify-between">
+                <button type="button" onClick={() => setMode("otp-email")}
+                  className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2">
+                  ← Back
+                </button>
+                <button type="button" onClick={() => { setMode("password"); setError(null); }}
+                  className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2">
+                  Use password instead
+                </button>
+              </div>
+            </form>
+          )}
+
         </CardContent>
       </Card>
     </div>
   );
 }
+
+// ── Router ────────────────────────────────────────────────────────────────────
 
 function Router() {
   return (
@@ -131,6 +290,9 @@ function Router() {
       <Route path="/analytics">
         <Layout><Analytics /></Layout>
       </Route>
+      <Route path="/admin">
+        <Layout><AdminPage /></Layout>
+      </Route>
       <Route path="*">
         <Layout><NotFound /></Layout>
       </Route>
@@ -138,10 +300,12 @@ function Router() {
   );
 }
 
+// ── App root ──────────────────────────────────────────────────────────────────
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     if (typeof window === "undefined") return false;
-    return Boolean(window.localStorage.getItem(PASSWORD_STORAGE_KEY));
+    return Boolean(window.localStorage.getItem(AUTH_TOKEN_KEY));
   });
 
   return (

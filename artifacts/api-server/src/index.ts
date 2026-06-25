@@ -348,6 +348,79 @@ async function applyMigrations(): Promise<void> {
     )
   `);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS notifications_is_read_idx ON notifications(is_read)`);
+
+  // Create audit_events table (append-only — no UPDATE/DELETE routes exposed)
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS audit_events (
+      id               serial PRIMARY KEY,
+      event_type       text NOT NULL,
+      target_id        integer,
+      user_identifier  text,
+      occurred_at      timestamptz NOT NULL DEFAULT now(),
+      payload          jsonb,
+      hash_prev        text,
+      hash_self        text
+    )
+  `);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS audit_events_target_id_idx ON audit_events(target_id, occurred_at DESC)`);
+
+  // Multi-tenancy: companies + users + OTP + session blocklist tables
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS companies (
+      id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      name        text NOT NULL,
+      slug        text NOT NULL,
+      config      jsonb,
+      created_at  timestamptz NOT NULL DEFAULT now()
+    )
+  `);
+  await db.execute(sql`
+    INSERT INTO companies (id, name, slug)
+    SELECT '00000000-0000-0000-0000-000000000001', 'CDS', 'cds'
+    WHERE NOT EXISTS (SELECT 1 FROM companies LIMIT 1)
+  `);
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      company_id    uuid NOT NULL,
+      email         text NOT NULL,
+      display_name  text,
+      role          text NOT NULL DEFAULT 'Member',
+      password_hash text,
+      created_at    timestamptz NOT NULL DEFAULT now()
+    )
+  `);
+  await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email)`);
+  // Seed default admin user from APP_PASSWORD env var
+  const appPassword = process.env.APP_PASSWORD;
+  if (appPassword) {
+    const { default: bcrypt } = await import("bcryptjs");
+    const passwordHash = await bcrypt.hash(appPassword, 10);
+    await db.execute(sql`
+      INSERT INTO users (company_id, email, display_name, role, password_hash)
+      SELECT '00000000-0000-0000-0000-000000000001', 'admin@ringside.local', 'Admin', 'Admin', ${passwordHash}
+      WHERE NOT EXISTS (SELECT 1 FROM users LIMIT 1)
+    `);
+  }
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS otp_attempts (
+      id            serial PRIMARY KEY,
+      email         text NOT NULL,
+      code_hash     text NOT NULL,
+      expires_at    timestamptz NOT NULL,
+      attempts      integer NOT NULL DEFAULT 0,
+      locked_until  timestamptz,
+      created_at    timestamptz NOT NULL DEFAULT now()
+    )
+  `);
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS session_blocklist (
+      id          serial PRIMARY KEY,
+      jti         text NOT NULL UNIQUE,
+      expires_at  timestamptz NOT NULL,
+      created_at  timestamptz NOT NULL DEFAULT now()
+    )
+  `);
 }
 
 app.listen(port, (err) => {

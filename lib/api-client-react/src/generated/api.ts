@@ -24,6 +24,8 @@ import type {
   AiAskResponse,
   AiStatusResponse,
   AppNotification,
+  AuditEvent,
+  AuditVerifyResult,
   BriefResponse,
   CommandCenterAction,
   CounterpartyInfo,
@@ -7327,3 +7329,177 @@ export const useMarkAllNotificationsRead = <
 > => {
   return useMutation(getMarkAllNotificationsReadMutationOptions(options));
 };
+
+/**
+ * @summary Get audit trail for a deal
+ */
+export const getGetAuditTrailUrl = (id: number) => {
+  return `/api/api/audit/target/${id}`;
+};
+
+export const getAuditTrail = async (
+  id: number,
+  options?: RequestInit,
+): Promise<AuditEvent[]> => {
+  return customFetch<AuditEvent[]>(getGetAuditTrailUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAuditTrailQueryKey = (id: number) => {
+  return [`/api/api/audit/target/${id}`] as const;
+};
+
+export const getGetAuditTrailQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAuditTrail>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAuditTrail>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAuditTrailQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAuditTrail>>> = ({
+    signal,
+  }) => getAuditTrail(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAuditTrail>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAuditTrailQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAuditTrail>>
+>;
+export type GetAuditTrailQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get audit trail for a deal
+ */
+
+export function useGetAuditTrail<
+  TData = Awaited<ReturnType<typeof getAuditTrail>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAuditTrail>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAuditTrailQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Verify hash-chain integrity for a deal
+ */
+export const getVerifyAuditChainUrl = (id: number) => {
+  return `/api/api/audit/verify/${id}`;
+};
+
+export const verifyAuditChain = async (
+  id: number,
+  options?: RequestInit,
+): Promise<AuditVerifyResult> => {
+  return customFetch<AuditVerifyResult>(getVerifyAuditChainUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getVerifyAuditChainQueryKey = (id: number) => {
+  return [`/api/api/audit/verify/${id}`] as const;
+};
+
+export const getVerifyAuditChainQueryOptions = <
+  TData = Awaited<ReturnType<typeof verifyAuditChain>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof verifyAuditChain>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getVerifyAuditChainQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof verifyAuditChain>>
+  > = ({ signal }) => verifyAuditChain(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof verifyAuditChain>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type VerifyAuditChainQueryResult = NonNullable<
+  Awaited<ReturnType<typeof verifyAuditChain>>
+>;
+export type VerifyAuditChainQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Verify hash-chain integrity for a deal
+ */
+
+export function useVerifyAuditChain<
+  TData = Awaited<ReturnType<typeof verifyAuditChain>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof verifyAuditChain>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getVerifyAuditChainQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

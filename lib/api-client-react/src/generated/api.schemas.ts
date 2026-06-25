@@ -1491,6 +1491,25 @@ export interface UnreadCountResult {
   count: number;
 }
 
+export type AuditEventPayload = { [key: string]: unknown } | null;
+
+export interface AuditEvent {
+  id: number;
+  eventType: string;
+  targetId?: number | null;
+  userIdentifier?: string | null;
+  occurredAt: string;
+  payload?: AuditEventPayload;
+  hashPrev?: string | null;
+  hashSelf?: string | null;
+}
+
+export interface AuditVerifyResult {
+  valid: boolean;
+  checkedCount: number;
+  firstBrokenAt: string | null;
+}
+
 export type ListTargetsParams = {
   sector?: string;
   priorityTier?: string;
