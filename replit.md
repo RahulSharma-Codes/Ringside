@@ -170,3 +170,34 @@ Chat interface at `/copilot` backed by `POST /api/ai/ask`. Reads a live DB snaps
 | Label | Commit | Notes |
 |---|---|---|
 | working-supabase-read-write-baseline | 7243ed55 | Full stack working: API + React frontend + seeded DB. DB uses Replit Postgres (helium) with fallback from any supabase DATABASE_URL secret. |
+
+### Phase 8H — In-App Notification Inbox
+
+**Notification Bell** (mobile header, all pages):
+- Bell icon with unread count badge (red, hides when 0) in top mobile header
+- Clicking opens dropdown panel: unread notifications listed first, each with icon, title, body, timestamp, blue dot; "Mark all read" button
+- Clicking a notification navigates to the relevant deal/tab and marks it read
+- Auto-generates notifications on app load if last generation > 15 min ago (localStorage TTL)
+
+**Generation engine** (`POST /api/notifications/generate`) — 4 check types:
+- **Stage stagnation**: active deal in current stage > 45 days with no progression
+- **Action overdue**: open (non-diligence) action past its due date
+- **NDA expiring**: active NDA with expiry_date within 30 days
+- **Must-Win no activity**: Must-Win deal with no interaction logged in 14+ days
+- All checks are idempotent: deduplication within 24h per type+target combo
+
+**Backend routes**: `POST /api/notifications/generate`, `GET /api/notifications`, `GET /api/notifications/unread-count`, `PUT /api/notifications/:id/read`, `PUT /api/notifications/read-all`
+
+**Schema**: `notifications` table (id, target_id nullable, type, title, body, link_path, is_read, created_at) added via startup migration
+
+**OpenAPI + codegen**: 5 new paths; 3 new schemas (AppNotification, NotificationGenerateResult, UnreadCountResult); hooks generated
+
+### Phase 8J — Drag-and-Drop Kanban
+
+**Draggable deal cards** on Kanban board (`/pipeline` → Kanban view):
+- Cards in active pipeline stage columns are draggable via `@dnd-kit/core` (PointerSensor with 8px threshold to avoid accidental drags on tap)
+- Off-track column cards (On Hold / Dropped / Rejected) are click-only links, not draggable; column is collapsed by default
+- Drag overlay shows a floating rotated card while dragging; droppable columns highlight with primary glow when hovered during drag
+- Dropping on a different column opens **KanbanStageChangeDialog** — reason select with preset options plus "Other" with free-text fallback — before any API call is made
+- On confirm: calls existing `PUT /api/targets/:id/stage` with `changeReason`; success toast + query invalidation; error toast on failure with card snapping back
+- Library: `@dnd-kit/core` + `@dnd-kit/utilities` added to `@workspace/growth-os`

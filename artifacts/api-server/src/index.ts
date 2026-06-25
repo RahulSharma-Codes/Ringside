@@ -333,6 +333,21 @@ async function applyMigrations(): Promise<void> {
 
   await db.execute(sql`CREATE INDEX IF NOT EXISTS nda_records_target_id_idx ON nda_records(target_id)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS reg_clearances_target_id_idx ON regulatory_clearances(target_id)`);
+
+  // Create notifications table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id          serial PRIMARY KEY,
+      target_id   integer REFERENCES targets(id),
+      type        text NOT NULL,
+      title       text NOT NULL,
+      body        text NOT NULL,
+      link_path   text,
+      is_read     boolean NOT NULL DEFAULT false,
+      created_at  timestamptz NOT NULL DEFAULT now()
+    )
+  `);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS notifications_is_read_idx ON notifications(is_read)`);
 }
 
 app.listen(port, (err) => {

@@ -1616,6 +1616,86 @@ paths:
           description: Deleted
 
 
+  /notifications/generate:
+    post:
+      summary: Generate new notifications from live data
+      operationId: generateNotifications
+      tags: [notifications]
+      responses:
+        "200":
+          description: Generation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationGenerateResult"
+
+  /notifications:
+    get:
+      summary: List recent notifications (newest 50, unread first)
+      operationId: listNotifications
+      tags: [notifications]
+      responses:
+        "200":
+          description: Notification list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AppNotification"
+
+  /notifications/unread-count:
+    get:
+      summary: Get unread notification count
+      operationId: getUnreadCount
+      tags: [notifications]
+      responses:
+        "200":
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnreadCountResult"
+
+  /notifications/{id}/read:
+    put:
+      summary: Mark a notification as read
+      operationId: markNotificationRead
+      tags: [notifications]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+
+  /notifications/read-all:
+    put:
+      summary: Mark all notifications as read
+      operationId: markAllNotificationsRead
+      tags: [notifications]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+
+
 components:
   schemas:
     HealthStatus:
@@ -4242,3 +4322,43 @@ components:
         notes:
           type: string
           nullable: true
+
+    AppNotification:
+      type: object
+      required: [id, type, title, body, isRead, createdAt]
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+          nullable: true
+        type:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        linkPath:
+          type: string
+          nullable: true
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    NotificationGenerateResult:
+      type: object
+      required: [inserted, unreadCount]
+      properties:
+        inserted:
+          type: integer
+        unreadCount:
+          type: integer
+
+    UnreadCountResult:
+      type: object
+      required: [count]
+      properties:
+        count:
+          type: integer

@@ -17,6 +17,7 @@ import advisorsRouter from "./advisors";
 import sponsorsRouter from "./sponsors";
 import ndaRecordsRouter from "./nda-records";
 import regulatoryClearancesRouter from "./regulatory-clearances";
+import notificationsRouter from "./notifications";
 
 const router: IRouter = Router();
 
@@ -38,6 +39,7 @@ router.use("/advisors", advisorsRouter);
 router.use("/sponsors", sponsorsRouter);
 router.use("/nda-records", ndaRecordsRouter);
 router.use("/regulatory-clearances", regulatoryClearancesRouter);
+router.use("/notifications", notificationsRouter);
 
 export default router;
 

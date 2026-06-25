@@ -2537,3 +2537,53 @@ export const UpdateRegulatoryClearanceResponse = zod.object({
 export const DeleteRegulatoryClearanceParams = zod.object({
   id: zod.coerce.number(),
 });
+
+/**
+ * @summary Generate new notifications from live data
+ */
+export const GenerateNotificationsResponse = zod.object({
+  inserted: zod.number(),
+  unreadCount: zod.number(),
+});
+
+/**
+ * @summary List recent notifications (newest 50, unread first)
+ */
+export const ListNotificationsResponseItem = zod.object({
+  id: zod.number(),
+  targetId: zod.number().nullish(),
+  type: zod.string(),
+  title: zod.string(),
+  body: zod.string(),
+  linkPath: zod.string().nullish(),
+  isRead: zod.boolean(),
+  createdAt: zod.coerce.date(),
+});
+export const ListNotificationsResponse = zod.array(
+  ListNotificationsResponseItem,
+);
+
+/**
+ * @summary Get unread notification count
+ */
+export const GetUnreadCountResponse = zod.object({
+  count: zod.number(),
+});
+
+/**
+ * @summary Mark a notification as read
+ */
+export const MarkNotificationReadParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const MarkNotificationReadResponse = zod.object({
+  ok: zod.boolean().optional(),
+});
+
+/**
+ * @summary Mark all notifications as read
+ */
+export const MarkAllNotificationsReadResponse = zod.object({
+  ok: zod.boolean().optional(),
+});

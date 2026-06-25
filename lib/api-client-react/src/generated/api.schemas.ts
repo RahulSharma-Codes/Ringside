@@ -1471,6 +1471,26 @@ export interface UpdateRegulatoryClearanceBody {
   notes?: string | null;
 }
 
+export interface AppNotification {
+  id: number;
+  targetId?: number | null;
+  type: string;
+  title: string;
+  body: string;
+  linkPath?: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface NotificationGenerateResult {
+  inserted: number;
+  unreadCount: number;
+}
+
+export interface UnreadCountResult {
+  count: number;
+}
+
 export type ListTargetsParams = {
   sector?: string;
   priorityTier?: string;
@@ -1509,4 +1529,12 @@ export type GetAnalyticsWinLossParams = {
 export type GetAnalyticsOriginationParams = {
   dealType?: string;
   sector?: string;
+};
+
+export type MarkNotificationRead200 = {
+  ok?: boolean;
+};
+
+export type MarkAllNotificationsRead200 = {
+  ok?: boolean;
 };

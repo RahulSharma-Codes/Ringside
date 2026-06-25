@@ -1,9 +1,34 @@
-import React from "react";
-import { Link } from "wouter";
+import React, { useState, useRef } from "react";
+import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, User, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, User, Zap, ChevronDown, ChevronRight, X, Check } from "lucide-react";
 import { StageChip } from "@/components/stage-chip";
 import { PIPELINE_STAGE_ORDER, OFF_TRACK_STAGES } from "@/components/stage-rail";
+import { useToast } from "@/hooks/use-toast";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+  useDraggable,
+} from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useUpdateTargetStage } from "@workspace/api-client-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -23,8 +48,8 @@ interface KanbanTarget {
 interface PipelineKanbanProps {
   targets: KanbanTarget[];
   aiMode?: string | null;
-  /** Active stage filter value — "all" or a specific stage name */
   stageFilter?: string;
+  onRefresh?: () => void;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -48,189 +73,393 @@ function getTierCardAccent(tier: string | null | undefined): string {
   }
 }
 
-// ── Deal Card ─────────────────────────────────────────────────────────────────
+const ACTIVE_STAGES = PIPELINE_STAGE_ORDER.filter(s => !OFF_TRACK_STAGES.includes(s));
+const OFF_TRACK = OFF_TRACK_STAGES;
 
-function DealCard({ target, href }: { target: KanbanTarget; href: string }) {
+const STAGE_CHANGE_REASONS = [
+  "Deal progressed as planned",
+  "Management meeting completed",
+  "NDA executed",
+  "LOI / NBO submitted",
+  "IC approval received",
+  "Diligence findings reviewed",
+  "Commercial terms agreed",
+  "Definitive agreement signed",
+  "Regulatory clearance received",
+  "Other",
+];
+
+// ── Draggable Card ─────────────────────────────────────────────────────────────
+
+function DraggableCard({
+  target,
+  isDragging = false,
+  isOffTrack = false,
+}: {
+  target: KanbanTarget;
+  isDragging?: boolean;
+  isOffTrack?: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: `card-${target.id}`,
+    data: { target },
+    disabled: isOffTrack,
+  });
+
+  const style = transform
+    ? { transform: CSS.Translate.toString(transform) }
+    : undefined;
+
   const overdueCount = target.overdueActionCount ?? 0;
   const openCount = target.openActionCount ?? 0;
 
-  return (
-    <Link href={href}>
-      <div
-        className={`group bg-card border border-border/70 border-l-2 ${getTierCardAccent(target.priorityTier)} rounded-lg p-3 hover:shadow-md hover:border-border transition-all duration-150 cursor-pointer space-y-2`}
-      >
-        {/* Name + attention flag */}
-        <div className="flex items-start justify-between gap-1.5">
-          <div className="min-w-0 flex-1">
-            <div className="text-[12px] font-semibold leading-snug truncate group-hover:text-primary transition-colors">
-              {target.projectName ?? "Untitled"}
-            </div>
-            <div className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-wider mt-0.5">
-              {target.targetCode}
-            </div>
+  const cardContent = (
+    <div
+      className={`bg-card border border-border/70 border-l-2 ${getTierCardAccent(target.priorityTier)} rounded-lg p-3 space-y-2 ${isDragging ? "shadow-xl opacity-90 rotate-1" : "hover:shadow-md hover:border-border"} transition-all duration-150`}
+    >
+      <div className="flex items-start justify-between gap-1.5">
+        <div className="min-w-0 flex-1">
+          <div className="text-[12px] font-semibold leading-snug truncate group-hover:text-primary transition-colors">
+            {target.projectName ?? "Untitled"}
           </div>
-          {target.needsAttention && (
-            <AlertTriangle size={11} className="text-destructive shrink-0 mt-0.5" />
-          )}
+          <div className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-wider mt-0.5">
+            {target.targetCode}
+          </div>
         </div>
-
-        {/* Tier badge + score */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <Badge className={`font-mono text-[9px] uppercase rounded-sm px-1.5 py-0 h-4 ${getTierBadgeColor(target.priorityTier)}`}>
-            {target.priorityTier ?? "—"}
-          </Badge>
-          {target.priorityScore != null && (
-            <span className="text-[9px] font-mono text-muted-foreground/60 flex items-center gap-0.5">
-              <Zap size={8} className="text-primary/50" />
-              {Math.round(target.priorityScore)}
-            </span>
-          )}
-        </div>
-
-        {/* Owner + open actions */}
-        <div className="flex items-center justify-between gap-1.5">
-          {target.dealOwner ? (
-            <span className="text-[9px] font-mono text-muted-foreground/60 flex items-center gap-0.5 min-w-0 truncate">
-              <User size={8} className="shrink-0" />
-              <span className="truncate">{target.dealOwner}</span>
-            </span>
-          ) : (
-            <span />
-          )}
-          {openCount > 0 && (
-            <span className={`text-[9px] font-mono shrink-0 ${overdueCount > 0 ? "text-destructive" : "text-amber-500"}`}>
-              {openCount} action{openCount !== 1 ? "s" : ""}
-            </span>
-          )}
-        </div>
+        {target.needsAttention && (
+          <AlertTriangle size={11} className="text-destructive shrink-0 mt-0.5" />
+        )}
       </div>
-    </Link>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <Badge className={`font-mono text-[9px] uppercase rounded-sm px-1.5 py-0 h-4 ${getTierBadgeColor(target.priorityTier)}`}>
+          {target.priorityTier ?? "—"}
+        </Badge>
+        {target.priorityScore != null && (
+          <span className="text-[9px] font-mono text-muted-foreground/60 flex items-center gap-0.5">
+            <Zap size={8} className="text-primary/50" />
+            {Math.round(target.priorityScore)}
+          </span>
+        )}
+      </div>
+      <div className="flex items-center justify-between gap-1.5">
+        {target.dealOwner ? (
+          <span className="text-[9px] font-mono text-muted-foreground/60 flex items-center gap-0.5 min-w-0 truncate">
+            <User size={8} className="shrink-0" />
+            <span className="truncate">{target.dealOwner}</span>
+          </span>
+        ) : <span />}
+        {openCount > 0 && (
+          <span className={`text-[9px] font-mono shrink-0 ${overdueCount > 0 ? "text-destructive" : "text-amber-500"}`}>
+            {openCount} action{openCount !== 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+      {!isOffTrack && (
+        <div className="text-[9px] text-muted-foreground/40 font-mono text-center border-t border-border/30 pt-1.5 mt-0.5">
+          drag to move stage
+        </div>
+      )}
+    </div>
+  );
+
+  if (isOffTrack) {
+    return (
+      <Link href={`/targets/${target.id}`}>
+        <div className="cursor-pointer group">{cardContent}</div>
+      </Link>
+    );
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing touch-none select-none">
+      <Link href={`/targets/${target.id}`}>
+        <div>{cardContent}</div>
+      </Link>
+    </div>
   );
 }
 
-// ── Column ────────────────────────────────────────────────────────────────────
+// ── Droppable Column ───────────────────────────────────────────────────────────
 
-function KanbanColumn({
+function DroppableColumn({
   stage,
   targets,
   aiMode,
   isOffTrack = false,
+  isOver = false,
 }: {
   stage: string;
   targets: KanbanTarget[];
   aiMode?: string | null;
   isOffTrack?: boolean;
+  isOver?: boolean;
 }) {
+  const { setNodeRef } = useDroppable({ id: `col-${stage}`, disabled: isOffTrack });
   const count = targets.length;
 
   return (
-    <div className="flex flex-col shrink-0 w-[220px]">
-      {/* Column header */}
-      <div
-        className={`flex items-center justify-between gap-2 px-3 py-2 rounded-t-lg border border-b-0 ${
-          isOffTrack
-            ? "bg-amber-500/5 border-amber-500/20"
-            : "bg-muted/30 border-border/50"
-        }`}
-      >
-        <span
-          className={`text-[9px] font-mono uppercase tracking-wider font-semibold truncate ${
-            isOffTrack ? "text-amber-500/80" : "text-muted-foreground"
-          }`}
-        >
-          {stage}
-        </span>
-        <span
-          className={`text-[10px] font-mono font-bold shrink-0 ${
-            count > 0
-              ? isOffTrack
-                ? "text-amber-500"
-                : "text-foreground"
-              : "text-muted-foreground/30"
-          }`}
-        >
-          {count}
-        </span>
-      </div>
-
-      {/* Card stack */}
-      <div
-        className={`flex-1 rounded-b-lg border border-t-0 p-2 space-y-2 min-h-[120px] ${
-          isOffTrack ? "border-amber-500/20 bg-amber-500/3" : "border-border/50 bg-muted/10"
-        }`}
-      >
-        {count === 0 ? (
-          <div className="flex items-center justify-center h-[80px]">
-            <span className="text-[9px] font-mono text-muted-foreground/30 uppercase tracking-widest">
-              0 deals
-            </span>
-          </div>
-        ) : (
-          targets.map((t) => {
-            const href = aiMode ? `/targets/${t.id}?ai=${aiMode}` : `/targets/${t.id}`;
-            return <DealCard key={t.id} target={t} href={href} />;
-          })
+    <div
+      ref={isOffTrack ? undefined : setNodeRef}
+      className={`flex flex-col shrink-0 w-[220px] transition-colors ${isOver ? "bg-primary/5 rounded-xl" : ""}`}
+    >
+      <div className="flex items-center justify-between mb-2 px-1">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <StageChip stage={stage} size="xs" />
+          <span className="text-[10px] font-mono text-muted-foreground/50">
+            {count}
+          </span>
+        </div>
+        {isOffTrack && count > 0 && (
+          <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 font-mono text-muted-foreground/50">
+            off-track
+          </Badge>
         )}
+      </div>
+      <div className={`flex flex-col gap-2 min-h-[80px] p-2 rounded-xl border ${isOver ? "border-primary/30 bg-primary/5" : "border-transparent"} transition-colors`}>
+        {count === 0 && (
+          <div className="flex items-center justify-center h-16 text-[10px] font-mono text-muted-foreground/30">
+            0 deals
+          </div>
+        )}
+        {targets.map(t => (
+          <DraggableCard key={t.id} target={t} isOffTrack={isOffTrack} />
+        ))}
       </div>
     </div>
   );
 }
 
-// ── Main export ───────────────────────────────────────────────────────────────
+// ── Stage Change Dialog ────────────────────────────────────────────────────────
 
-export function PipelineKanban({ targets, aiMode, stageFilter }: PipelineKanbanProps) {
+interface StageChangePending {
+  target: KanbanTarget;
+  newStage: string;
+}
+
+function KanbanStageChangeDialog({
+  pending,
+  onConfirm,
+  onCancel,
+  isSaving,
+}: {
+  pending: StageChangePending | null;
+  onConfirm: (reason: string) => void;
+  onCancel: () => void;
+  isSaving: boolean;
+}) {
+  const [reason, setReason] = useState("");
+  const [customReason, setCustomReason] = useState("");
+
+  const effectiveReason = reason === "Other" ? customReason : reason;
+
+  if (!pending) return null;
+
+  return (
+    <Dialog open={!!pending} onOpenChange={v => !v && onCancel()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Move to {pending.newStage}?</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="text-sm text-muted-foreground">
+            Moving <span className="font-semibold text-foreground">{pending.target.projectName ?? pending.target.targetCode}</span>{" "}
+            from <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{pending.target.currentStage}</span>{" "}
+            to <span className="font-mono text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">{pending.newStage}</span>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Reason for stage change <span className="text-destructive">*</span></Label>
+            <Select value={reason} onValueChange={setReason}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a reason…" />
+              </SelectTrigger>
+              <SelectContent>
+                {STAGE_CHANGE_REASONS.map(r => (
+                  <SelectItem key={r} value={r}>{r}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {reason === "Other" && (
+            <div className="space-y-1.5">
+              <Label>Custom reason</Label>
+              <Textarea
+                value={customReason}
+                onChange={e => setCustomReason(e.target.value)}
+                placeholder="Describe the reason…"
+                rows={2}
+              />
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel} disabled={isSaving}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => effectiveReason && onConfirm(effectiveReason)}
+            disabled={!effectiveReason.trim() || isSaving}
+          >
+            {isSaving ? "Moving…" : `Move to ${pending.newStage}`}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Main PipelineKanban ────────────────────────────────────────────────────────
+
+export function PipelineKanban({
+  targets,
+  aiMode,
+  stageFilter,
+  onRefresh,
+}: PipelineKanbanProps) {
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  const [activeCard, setActiveCard] = useState<KanbanTarget | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+  const [pending, setPending] = useState<StageChangePending | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const changeStage = useUpdateTargetStage();
+
   // Group targets by stage
-  const byStage = new Map<string, KanbanTarget[]>();
-  for (const stage of PIPELINE_STAGE_ORDER) {
-    byStage.set(stage, []);
-  }
-  const offTrackTargets: KanbanTarget[] = [];
+  const filtered = stageFilter && stageFilter !== "all"
+    ? targets.filter(t => t.currentStage === stageFilter)
+    : targets;
 
-  for (const t of targets) {
-    const stage = t.currentStage ?? "Sourcing";
-    if (OFF_TRACK_STAGES.includes(stage)) {
-      offTrackTargets.push(t);
-    } else if (byStage.has(stage)) {
-      byStage.get(stage)!.push(t);
-    } else {
-      offTrackTargets.push(t);
+  const byStage: Record<string, KanbanTarget[]> = {};
+  for (const t of filtered) {
+    const s = t.currentStage ?? "Unknown";
+    if (!byStage[s]) byStage[s] = [];
+    byStage[s].push(t);
+  }
+
+  const activeStages = ACTIVE_STAGES.filter(s => !stageFilter || stageFilter === "all" || stageFilter === s);
+  const offTrackTargets = OFF_TRACK.flatMap(s => byStage[s] ?? []);
+
+  function handleDragStart(e: DragStartEvent) {
+    const card = (e.active.data.current as { target: KanbanTarget })?.target;
+    if (card) setActiveCard(card);
+  }
+
+  function handleDragOver(e: { over: { id: string } | null }) {
+    setOverId(e.over?.id ?? null);
+  }
+
+  function handleDragEnd(e: DragEndEvent) {
+    setActiveCard(null);
+    setOverId(null);
+
+    const card = (e.active.data.current as { target: KanbanTarget })?.target;
+    if (!card || !e.over) return;
+
+    const newStage = (e.over.id as string).replace("col-", "");
+    if (newStage === card.currentStage) return;
+    if (OFF_TRACK.includes(newStage)) return; // can't drag to off-track
+
+    setPending({ target: card, newStage });
+  }
+
+  async function handleConfirmStageChange(reason: string) {
+    if (!pending) return;
+    setIsSaving(true);
+    try {
+      await changeStage.mutateAsync({
+        id: pending.target.id,
+        data: { newStage: pending.newStage, changeReason: reason },
+      });
+      toast({
+        title: "Stage updated",
+        description: `${pending.target.projectName ?? pending.target.targetCode} moved to ${pending.newStage}.`,
+      });
+      setPending(null);
+      onRefresh?.();
+    } catch {
+      toast({
+        title: "Stage change failed",
+        description: "Could not update stage. The card has been returned to its original column.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
   }
 
-  // When a specific stage is filtered, collapse to just that column (+ off-track
-  // if the filter is an off-track stage, or omit off-track for pipeline stages).
-  const isOffTrackFilter = stageFilter && OFF_TRACK_STAGES.includes(stageFilter);
-  const activeStagesToShow =
-    stageFilter && stageFilter !== "all"
-      ? isOffTrackFilter
-        ? [] // show only off-track column
-        : PIPELINE_STAGE_ORDER.filter((s) => s === stageFilter)
-      : PIPELINE_STAGE_ORDER;
-
-  const showOffTrack =
-    !stageFilter || stageFilter === "all" || isOffTrackFilter;
+  const [offTrackOpen, setOffTrackOpen] = useState(false);
 
   return (
-    <div className="overflow-x-auto pb-4 -mx-1 px-1">
-      <div className="flex gap-2.5 min-w-max items-start">
-        {activeStagesToShow.map((stage) => (
-          <KanbanColumn
-            key={stage}
-            stage={stage}
-            targets={byStage.get(stage) ?? []}
-            aiMode={aiMode}
-          />
-        ))}
+    <>
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver as never}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex gap-3 overflow-x-auto pb-4 pt-1 min-h-[400px]">
+          {/* Active stage columns */}
+          {activeStages.map(stage => (
+            <DroppableColumn
+              key={stage}
+              stage={stage}
+              targets={byStage[stage] ?? []}
+              aiMode={aiMode}
+              isOver={overId === `col-${stage}`}
+            />
+          ))}
 
-        {showOffTrack && (
-          <KanbanColumn
-            stage="Off-Track"
-            targets={offTrackTargets}
-            aiMode={aiMode}
-            isOffTrack
-          />
-        )}
-      </div>
-    </div>
+          {/* Off-Track collapsed column */}
+          {offTrackTargets.length > 0 && (
+            <div className="flex flex-col shrink-0 w-[220px]">
+              <button
+                onClick={() => setOffTrackOpen(v => !v)}
+                className="flex items-center justify-between mb-2 px-1 w-full group"
+              >
+                <div className="flex items-center gap-1.5">
+                  {offTrackOpen
+                    ? <ChevronDown size={12} className="text-muted-foreground/50" />
+                    : <ChevronRight size={12} className="text-muted-foreground/50" />}
+                  <span className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-wider">
+                    Off-Track
+                  </span>
+                  <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 font-mono">
+                    {offTrackTargets.length}
+                  </Badge>
+                </div>
+              </button>
+              {offTrackOpen && (
+                <div className="flex flex-col gap-2 p-2 rounded-xl border border-border/40 bg-muted/20">
+                  {offTrackTargets.map(t => (
+                    <DraggableCard key={t.id} target={t} isOffTrack />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Drag overlay — floating card while dragging */}
+        <DragOverlay dropAnimation={null}>
+          {activeCard && (
+            <div className="w-[220px] pointer-events-none">
+              <DraggableCard target={activeCard} isDragging />
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
+
+      <KanbanStageChangeDialog
+        pending={pending}
+        onConfirm={handleConfirmStageChange}
+        onCancel={() => setPending(null)}
+        isSaving={isSaving}
+      />
+    </>
   );
 }

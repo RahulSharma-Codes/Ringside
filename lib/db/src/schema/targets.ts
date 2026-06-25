@@ -288,3 +288,15 @@ export const regulatoryClearancesTable = pgTable("regulatory_clearances", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 export type RegulatoryClearance = typeof regulatoryClearancesTable.$inferSelect;
+
+export const notificationsTable = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  targetId: integer("target_id").references(() => targetsTable.id),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  linkPath: text("link_path"),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+export type Notification = typeof notificationsTable.$inferSelect;

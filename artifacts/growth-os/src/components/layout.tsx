@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { NotificationBell } from "@/components/notification-bell";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -238,6 +239,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <span className="font-bold text-[11px] tracking-widest uppercase text-foreground/90 font-mono">Ringside</span>
         </div>
         <div className="flex items-center gap-1.5">
+          <NotificationBell />
           <Link href="/targets/new">
             <Button size="sm" className="h-7 px-2.5 rounded-lg font-mono text-[10px] uppercase gap-1.5 font-semibold">
               <Plus size={11} /> New
