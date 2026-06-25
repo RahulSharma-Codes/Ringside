@@ -688,6 +688,135 @@ export interface ActivityEvent {
 
 export type ActivityFeedResponse = ActivityEvent[];
 
+export type IcProposalStatus =
+  (typeof IcProposalStatus)[keyof typeof IcProposalStatus];
+
+export const IcProposalStatus = {
+  Voting_Open: "Voting Open",
+  Resolved: "Resolved",
+} as const;
+
+export type IcProposalOutcome =
+  | (typeof IcProposalOutcome)[keyof typeof IcProposalOutcome]
+  | null;
+
+export const IcProposalOutcome = {
+  Approved: "Approved",
+  Approved_with_Conditions: "Approved with Conditions",
+  Rejected: "Rejected",
+} as const;
+
+export interface IcProposal {
+  id: number;
+  targetId: number;
+  submittedBy?: string | null;
+  submittedAt: string;
+  recommendedTerms?: string | null;
+  keyRisks?: string | null;
+  memoNote?: string | null;
+  votingDeadline?: string | null;
+  status: IcProposalStatus;
+  outcome?: IcProposalOutcome;
+  outcomeAt?: string | null;
+}
+
+export interface CreateIcProposalBody {
+  submittedBy?: string | null;
+  recommendedTerms?: string | null;
+  keyRisks?: string | null;
+  memoNote?: string | null;
+  votingDeadline?: string | null;
+}
+
+export type IcVoteVote = (typeof IcVoteVote)[keyof typeof IcVoteVote] | null;
+
+export const IcVoteVote = {
+  Approve: "Approve",
+  Approve_with_Conditions: "Approve with Conditions",
+  Reject: "Reject",
+  Recuse: "Recuse",
+} as const;
+
+export interface IcVote {
+  id: number;
+  proposalId: number;
+  voterName: string;
+  vote?: IcVoteVote;
+  rationale?: string | null;
+  conditions?: string[] | null;
+  castAt?: string | null;
+}
+
+export interface AddIcVoterBody {
+  voterName: string;
+}
+
+export type CastIcVoteBodyVote =
+  (typeof CastIcVoteBodyVote)[keyof typeof CastIcVoteBodyVote];
+
+export const CastIcVoteBodyVote = {
+  Approve: "Approve",
+  Approve_with_Conditions: "Approve with Conditions",
+  Reject: "Reject",
+  Recuse: "Recuse",
+} as const;
+
+export interface CastIcVoteBody {
+  vote: CastIcVoteBodyVote;
+  rationale: string;
+  conditions?: string[] | null;
+}
+
+export type IcCpStatus = (typeof IcCpStatus)[keyof typeof IcCpStatus];
+
+export const IcCpStatus = {
+  Open: "Open",
+  Closed: "Closed",
+} as const;
+
+export interface IcCp {
+  id: number;
+  proposalId: number;
+  description: string;
+  ownerName?: string | null;
+  targetDate?: string | null;
+  closedAt?: string | null;
+  status: IcCpStatus;
+  /** True when status is Open and targetDate is in the past */
+  isSlipping: boolean;
+}
+
+export type UpdateIcCpBodyStatus =
+  (typeof UpdateIcCpBodyStatus)[keyof typeof UpdateIcCpBodyStatus];
+
+export const UpdateIcCpBodyStatus = {
+  Open: "Open",
+  Closed: "Closed",
+} as const;
+
+export interface UpdateIcCpBody {
+  ownerName?: string | null;
+  targetDate?: string | null;
+  status?: UpdateIcCpBodyStatus;
+}
+
+export type IcProposalDetailVoteTally = {
+  total: number;
+  voted: number;
+  approve: number;
+  approveWithConditions: number;
+  reject: number;
+  recuse: number;
+};
+
+export interface IcProposalDetail {
+  proposal: IcProposal;
+  votes: IcVote[];
+  cps: IcCp[];
+  voteTally: IcProposalDetailVoteTally;
+  stageSuggestion?: string | null;
+}
+
 export type IcSessionOutcome =
   (typeof IcSessionOutcome)[keyof typeof IcSessionOutcome];
 

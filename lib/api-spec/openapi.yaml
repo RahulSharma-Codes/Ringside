@@ -638,6 +638,196 @@ paths:
         "204":
           description: Deleted
 
+  /targets/{id}/ic-proposals:
+    get:
+      operationId: listIcProposals
+      tags: [ic]
+      summary: List IC proposals for a target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: IC proposals list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IcProposal"
+    post:
+      operationId: createIcProposal
+      tags: [ic]
+      summary: Submit a new IC proposal for a target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateIcProposalBody"
+      responses:
+        "201":
+          description: IC proposal created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IcProposal"
+
+  /ic-proposals/{id}:
+    get:
+      operationId: getIcProposal
+      tags: [ic]
+      summary: Get IC proposal detail with votes and CPs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: IC proposal detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IcProposalDetail"
+        "404":
+          description: Not found
+
+  /ic-proposals/{id}/voters:
+    post:
+      operationId: addIcVoter
+      tags: [ic]
+      summary: Add a voter to an IC proposal (creates pending vote record)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddIcVoterBody"
+      responses:
+        "201":
+          description: Voter added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IcVote"
+
+  /ic-votes/{id}/cast:
+    post:
+      operationId: castIcVote
+      tags: [ic]
+      summary: Cast a vote on an IC proposal (immutable after casting)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CastIcVoteBody"
+      responses:
+        "200":
+          description: Vote cast
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IcVote"
+        "400":
+          description: Vote already cast or invalid
+        "404":
+          description: Not found
+
+  /ic-proposals/{id}/resolve:
+    post:
+      operationId: resolveIcProposal
+      tags: [ic]
+      summary: Compute and lock the outcome of an IC proposal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Proposal resolved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IcProposalDetail"
+        "400":
+          description: Already resolved
+        "404":
+          description: Not found
+
+  /ic-proposals/{id}/cps:
+    get:
+      operationId: listIcCps
+      tags: [ic]
+      summary: List conditions precedent for an IC proposal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: CP list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IcCp"
+
+  /ic-cps/{cpId}:
+    put:
+      operationId: updateIcCp
+      tags: [ic]
+      summary: Update a conditions precedent item (close, set owner/date)
+      parameters:
+        - name: cpId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateIcCpBody"
+      responses:
+        "200":
+          description: CP updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IcCp"
+        "404":
+          description: Not found
+
   /analytics/funnel:
     get:
       operationId: getAnalyticsFunnel
@@ -749,11 +939,11 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/SynergyEntry"
+                  $ref: "#/components/schemas/Synergy"
     post:
       operationId: createSynergy
       tags: [synergies]
-      summary: Add a synergy hypothesis to a target
+      summary: Add a synergy hypothesis for a target
       parameters:
         - name: id
           in: path
@@ -772,7 +962,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SynergyEntry"
+                $ref: "#/components/schemas/Synergy"
 
   /synergies/{id}:
     put:
@@ -793,11 +983,11 @@ paths:
               $ref: "#/components/schemas/UpdateSynergyBody"
       responses:
         "200":
-          description: Synergy updated
+          description: Updated synergy
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SynergyEntry"
+                $ref: "#/components/schemas/Synergy"
     delete:
       operationId: deleteSynergy
       tags: [synergies]
@@ -3295,6 +3485,190 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/ActivityEvent"
+
+    IcProposal:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetId:
+          type: integer
+        submittedBy:
+          type: string
+          nullable: true
+        submittedAt:
+          type: string
+          format: date-time
+        recommendedTerms:
+          type: string
+          nullable: true
+        keyRisks:
+          type: string
+          nullable: true
+        memoNote:
+          type: string
+          nullable: true
+        votingDeadline:
+          type: string
+          format: date
+          nullable: true
+        status:
+          type: string
+          enum: [Voting Open, Resolved]
+        outcome:
+          type: string
+          enum: [Approved, Approved with Conditions, Rejected]
+          nullable: true
+        outcomeAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, targetId, submittedAt, status]
+
+    CreateIcProposalBody:
+      type: object
+      properties:
+        submittedBy:
+          type: string
+          nullable: true
+        recommendedTerms:
+          type: string
+          nullable: true
+        keyRisks:
+          type: string
+          nullable: true
+        memoNote:
+          type: string
+          nullable: true
+        votingDeadline:
+          type: string
+          format: date
+          nullable: true
+
+    IcVote:
+      type: object
+      properties:
+        id:
+          type: integer
+        proposalId:
+          type: integer
+        voterName:
+          type: string
+        vote:
+          type: string
+          enum: [Approve, Approve with Conditions, Reject, Recuse]
+          nullable: true
+        rationale:
+          type: string
+          nullable: true
+        conditions:
+          type: array
+          items:
+            type: string
+          nullable: true
+        castAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, proposalId, voterName]
+
+    AddIcVoterBody:
+      type: object
+      properties:
+        voterName:
+          type: string
+      required: [voterName]
+
+    CastIcVoteBody:
+      type: object
+      properties:
+        vote:
+          type: string
+          enum: [Approve, Approve with Conditions, Reject, Recuse]
+        rationale:
+          type: string
+        conditions:
+          type: array
+          items:
+            type: string
+          nullable: true
+      required: [vote, rationale]
+
+    IcCp:
+      type: object
+      properties:
+        id:
+          type: integer
+        proposalId:
+          type: integer
+        description:
+          type: string
+        ownerName:
+          type: string
+          nullable: true
+        targetDate:
+          type: string
+          format: date
+          nullable: true
+        closedAt:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [Open, Closed]
+        isSlipping:
+          type: boolean
+          description: True when status is Open and targetDate is in the past
+      required: [id, proposalId, description, status, isSlipping]
+
+    UpdateIcCpBody:
+      type: object
+      properties:
+        ownerName:
+          type: string
+          nullable: true
+        targetDate:
+          type: string
+          format: date
+          nullable: true
+        status:
+          type: string
+          enum: [Open, Closed]
+
+    IcProposalDetail:
+      type: object
+      properties:
+        proposal:
+          $ref: "#/components/schemas/IcProposal"
+        votes:
+          type: array
+          items:
+            $ref: "#/components/schemas/IcVote"
+        cps:
+          type: array
+          items:
+            $ref: "#/components/schemas/IcCp"
+        voteTally:
+          type: object
+          properties:
+            total:
+              type: integer
+            voted:
+              type: integer
+            approve:
+              type: integer
+            approveWithConditions:
+              type: integer
+            reject:
+              type: integer
+            recuse:
+              type: integer
+          required: [total, voted, approve, approveWithConditions, reject, recuse]
+        stageSuggestion:
+          type: string
+          nullable: true
+      required: [proposal, votes, cps, voteTally]
 
     IcSession:
       type: object

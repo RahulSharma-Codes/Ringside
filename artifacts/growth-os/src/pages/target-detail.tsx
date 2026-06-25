@@ -15,9 +15,6 @@ import {
   useDeleteTarget,
   useUpdateTarget,
   useGetActivityFeed, getGetActivityFeedQueryKey,
-  useListIcSessions, getListIcSessionsQueryKey,
-  useCreateIcSession,
-  useDeleteIcSession,
   useGetStageGate,
 } from "@workspace/api-client-react";
 import { LinkifiedText } from "@/components/linkified-text";
@@ -48,6 +45,7 @@ import { SynergiesTab } from "@/pages/target-detail-synergies";
 import { StakeholdersTab } from "@/pages/target-detail-stakeholders";
 import { ComplianceTab } from "@/pages/target-detail-compliance";
 import { AuditTrailTab } from "@/components/audit-trail-tab";
+import { IcTab } from "@/pages/target-detail-ic";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -181,15 +179,6 @@ export default function TargetDetail() {
   const [deleteActionOpen, setDeleteActionOpen] = useState(false);
   const [deleteActionId, setDeleteActionId] = useState<number | null>(null);
 
-  // IC Sessions state
-  const [icAddOpen, setIcAddOpen] = useState(false);
-  const [icDeleteOpen, setIcDeleteOpen] = useState(false);
-  const [icDeleteId, setIcDeleteId] = useState<number | null>(null);
-  const [icDate, setIcDate] = useState("");
-  const [icAttendees, setIcAttendees] = useState("");
-  const [icOutcome, setIcOutcome] = useState<"Approved" | "Conditional" | "Rejected" | "Deferred">("Approved");
-  const [icConditions, setIcConditions] = useState("");
-  const [icNotes, setIcNotes] = useState("");
 
   const [aiNotesOpen, setAiNotesOpen] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -218,9 +207,6 @@ export default function TargetDetail() {
     query: { enabled: !!targetId && activeTab === "activity", queryKey: getGetActivityFeedQueryKey(targetId) },
   });
 
-  const { data: icSessions, isLoading: loadingIcSessions } = useListIcSessions(targetId, {
-    query: { enabled: !!targetId && activeTab === "ic", queryKey: getListIcSessionsQueryKey(targetId) },
-  });
   const { data: stageGateData, isFetching: loadingGate } = useGetStageGate(
     targetId,
     { newStage: stageVal },
@@ -236,8 +222,6 @@ export default function TargetDetail() {
   const deleteTarget = useDeleteTarget();
   const deleteInteraction = useDeleteInteraction();
   const deleteAction = useDeleteAction();
-  const createIcSession = useCreateIcSession();
-  const deleteIcSession = useDeleteIcSession();
 
   useEffect(() => {
     if (target) {
@@ -280,47 +264,6 @@ export default function TargetDetail() {
   const invalidateInteractions = () => queryClient.invalidateQueries({ queryKey: getListInteractionsQueryKey(targetId) });
   const invalidateActions = () => queryClient.invalidateQueries({ queryKey: getListActionsQueryKey(targetId) });
   const invalidateHistory = () => queryClient.invalidateQueries({ queryKey: getGetStageHistoryQueryKey(targetId) });
-  const invalidateIcSessions = () => queryClient.invalidateQueries({ queryKey: getListIcSessionsQueryKey(targetId) });
-
-  const resetIcForm = () => {
-    setIcDate("");
-    setIcAttendees("");
-    setIcOutcome("Approved");
-    setIcConditions("");
-    setIcNotes("");
-  };
-
-  const handleCreateIcSession = () => {
-    if (!icDate || !icOutcome) return;
-    createIcSession.mutate(
-      { id: targetId, data: { sessionDate: icDate, attendees: icAttendees || null, outcome: icOutcome, conditions: icConditions || null, notes: icNotes || null } },
-      {
-        onSuccess: () => {
-          toast({ title: "IC Session Recorded" });
-          setIcAddOpen(false);
-          resetIcForm();
-          invalidateIcSessions();
-        },
-        onError: () => toast({ title: "Error", description: "Could not record IC session", variant: "destructive" }),
-      }
-    );
-  };
-
-  const handleDeleteIcSession = () => {
-    if (!icDeleteId) return;
-    deleteIcSession.mutate(
-      { id: icDeleteId },
-      {
-        onSuccess: () => {
-          toast({ title: "IC Session Deleted" });
-          setIcDeleteOpen(false);
-          setIcDeleteId(null);
-          invalidateIcSessions();
-        },
-        onError: () => toast({ title: "Error", description: "Could not delete IC session", variant: "destructive" }),
-      }
-    );
-  };
 
   // Auto-open brief when navigated here from Copilot with ?ai=opportunity-brief
   useEffect(() => {
@@ -918,76 +861,9 @@ export default function TargetDetail() {
               )}
             </TabsContent>
 
-            {/* IC Sessions */}
-            <TabsContent value="ic" className="space-y-4 mt-0">
-              <div className="flex items-center justify-between">
-                <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
-                  Investment Committee Sessions
-                </div>
-                <Button size="sm" variant="outline" className="rounded-sm font-mono text-[10px] uppercase border-border" onClick={() => setIcAddOpen(true)}>
-                  <Plus size={13} className="mr-1" /> Add IC Session
-                </Button>
-              </div>
-              {loadingIcSessions ? (
-                <Skeleton className="h-32 w-full" />
-              ) : !icSessions?.length ? (
-                <div className="border border-dashed border-border rounded-sm py-16 text-center text-muted-foreground font-mono text-[11px] uppercase tracking-widest flex flex-col items-center gap-2">
-                  <Scale size={20} className="text-muted-foreground/40" />
-                  No IC sessions recorded
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {icSessions.map((session) => {
-                    const outcomeStyle =
-                      session.outcome === "Approved"   ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/25" :
-                      session.outcome === "Conditional" ? "bg-amber-500/10 text-amber-500 border-amber-500/25" :
-                      session.outcome === "Rejected"   ? "bg-destructive/10 text-destructive border-destructive/25" :
-                      "bg-muted/50 text-muted-foreground border-border/60";
-                    return (
-                      <Card key={session.id} className="bg-card/30 border-border rounded-sm group">
-                        <CardHeader className="pb-2 pt-4 px-4">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Badge variant="outline" className={`font-mono text-[10px] uppercase rounded-sm ${outcomeStyle}`}>
-                                {session.outcome}
-                              </Badge>
-                              <span className="text-[10px] font-mono text-muted-foreground">
-                                {session.sessionDate || "—"}
-                              </span>
-                              {session.attendees && (
-                                <span className="text-[10px] font-mono text-muted-foreground">
-                                  · {session.attendees}
-                                </span>
-                              )}
-                            </div>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7 text-destructive/60 hover:text-destructive md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0"
-                              onClick={() => { setIcDeleteId(session.id); setIcDeleteOpen(true); }}
-                            >
-                              <Trash2 size={12} />
-                            </Button>
-                          </div>
-                        </CardHeader>
-                        {(session.conditions || session.notes) && (
-                          <CardContent className="px-4 pb-4 space-y-1.5">
-                            {session.outcome === "Conditional" && session.conditions && (
-                              <div className="text-sm text-amber-500/90 leading-relaxed">
-                                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mr-1">Conditions:</span>
-                                {session.conditions}
-                              </div>
-                            )}
-                            {session.notes && (
-                              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{session.notes}</p>
-                            )}
-                          </CardContent>
-                        )}
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
+            {/* IC — Proposals + Session Log */}
+            <TabsContent value="ic" className="mt-0">
+              <IcTab targetId={targetId} />
             </TabsContent>
 
             {/* Stakeholders */}
@@ -1642,68 +1518,6 @@ export default function TargetDetail() {
             >
               Close
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add IC Session */}
-      <Dialog open={icAddOpen} onOpenChange={(open) => { if (!open) resetIcForm(); setIcAddOpen(open); }}>
-        <DialogContent className="sm:max-w-[500px] border-border bg-sidebar rounded-sm">
-          <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg">Record IC Session</DialogTitle>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Date <span className="text-destructive">*</span></label>
-                <Input type="date" value={icDate} onChange={(e) => setIcDate(e.target.value)} className="rounded-sm bg-background/50" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Outcome <span className="text-destructive">*</span></label>
-                <Select value={icOutcome} onValueChange={(v) => setIcOutcome(v as typeof icOutcome)}>
-                  <SelectTrigger className="rounded-sm bg-background/50"><SelectValue /></SelectTrigger>
-                  <SelectContent className="rounded-sm">
-                    {(["Approved", "Conditional", "Rejected", "Deferred"] as const).map((o) => (
-                      <SelectItem key={o} value={o}>{o}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Attendees</label>
-              <Input value={icAttendees} onChange={(e) => setIcAttendees(e.target.value)} className="rounded-sm bg-background/50" placeholder="Names or roles…" />
-            </div>
-            {icOutcome === "Conditional" && (
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Conditions</label>
-                <Textarea value={icConditions} onChange={(e) => setIcConditions(e.target.value)} className="rounded-sm bg-background/50 resize-none h-16" placeholder="Conditions for approval…" />
-              </div>
-            )}
-            <div className="space-y-2">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Notes</label>
-              <Textarea value={icNotes} onChange={(e) => setIcNotes(e.target.value)} className="rounded-sm bg-background/50 resize-none h-20" placeholder="Key discussion points, decisions…" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setIcAddOpen(false); resetIcForm(); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button onClick={handleCreateIcSession} disabled={!icDate || !icOutcome || createIcSession.isPending} className="rounded-sm font-mono uppercase text-[10px]">Save Session</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete IC Session */}
-      <Dialog open={icDeleteOpen} onOpenChange={(open) => { setIcDeleteOpen(open); if (!open) setIcDeleteId(null); }}>
-        <DialogContent className="sm:max-w-[400px] border-destructive bg-sidebar rounded-sm">
-          <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg text-destructive">Delete IC Session</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">This will permanently remove this IC session record. This action cannot be undone.</p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setIcDeleteOpen(false); setIcDeleteId(null); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button variant="destructive" onClick={handleDeleteIcSession} disabled={deleteIcSession.isPending} className="rounded-sm font-mono uppercase text-[10px]">Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -248,6 +248,49 @@ async function applyMigrations(): Promise<void> {
     )
   `);
 
+  // Create ic_proposals table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS ic_proposals (
+      id                serial PRIMARY KEY,
+      target_id         integer NOT NULL REFERENCES targets(id),
+      submitted_by      text,
+      submitted_at      timestamp NOT NULL DEFAULT now(),
+      recommended_terms text,
+      key_risks         text,
+      memo_note         text,
+      voting_deadline   date,
+      status            text NOT NULL DEFAULT 'Voting Open',
+      outcome           text,
+      outcome_at        timestamp
+    )
+  `);
+
+  // Create ic_votes table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS ic_votes (
+      id           serial PRIMARY KEY,
+      proposal_id  integer NOT NULL REFERENCES ic_proposals(id) ON DELETE CASCADE,
+      voter_name   text NOT NULL,
+      vote         text,
+      rationale    text,
+      conditions   jsonb,
+      cast_at      timestamp
+    )
+  `);
+
+  // Create ic_cps table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS ic_cps (
+      id           serial PRIMARY KEY,
+      proposal_id  integer NOT NULL REFERENCES ic_proposals(id) ON DELETE CASCADE,
+      description  text NOT NULL,
+      owner_name   text,
+      target_date  date,
+      closed_at    timestamp,
+      status       text NOT NULL DEFAULT 'Open'
+    )
+  `);
+
   // Indexes
   // Create deal_sponsors table
   await db.execute(sql`
@@ -348,7 +391,6 @@ async function applyMigrations(): Promise<void> {
     )
   `);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS notifications_is_read_idx ON notifications(is_read)`);
-
   // Create audit_events table (append-only — no UPDATE/DELETE routes exposed)
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS audit_events (
@@ -421,6 +463,10 @@ async function applyMigrations(): Promise<void> {
       created_at  timestamptz NOT NULL DEFAULT now()
     )
   `);
+
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS ic_proposals_target_id_idx ON ic_proposals(target_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS ic_votes_proposal_id_idx ON ic_votes(proposal_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS ic_cps_proposal_id_idx ON ic_cps(proposal_id)`);
 }
 
 app.listen(port, (err) => {

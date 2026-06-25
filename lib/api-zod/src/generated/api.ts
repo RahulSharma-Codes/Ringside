@@ -952,6 +952,250 @@ export const DeleteIcSessionParams = zod.object({
 });
 
 /**
+ * @summary List IC proposals for a target
+ */
+export const ListIcProposalsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListIcProposalsResponseItem = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  submittedBy: zod.string().nullish(),
+  submittedAt: zod.coerce.date(),
+  recommendedTerms: zod.string().nullish(),
+  keyRisks: zod.string().nullish(),
+  memoNote: zod.string().nullish(),
+  votingDeadline: zod.coerce.date().nullish(),
+  status: zod.enum(["Voting Open", "Resolved"]),
+  outcome: zod
+    .enum(["Approved", "Approved with Conditions", "Rejected"])
+    .nullish(),
+  outcomeAt: zod.coerce.date().nullish(),
+});
+export const ListIcProposalsResponse = zod.array(ListIcProposalsResponseItem);
+
+/**
+ * @summary Submit a new IC proposal for a target
+ */
+export const CreateIcProposalParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateIcProposalBody = zod.object({
+  submittedBy: zod.string().nullish(),
+  recommendedTerms: zod.string().nullish(),
+  keyRisks: zod.string().nullish(),
+  memoNote: zod.string().nullish(),
+  votingDeadline: zod.coerce.date().nullish(),
+});
+
+/**
+ * @summary Get IC proposal detail with votes and CPs
+ */
+export const GetIcProposalParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetIcProposalResponse = zod.object({
+  proposal: zod.object({
+    id: zod.number(),
+    targetId: zod.number(),
+    submittedBy: zod.string().nullish(),
+    submittedAt: zod.coerce.date(),
+    recommendedTerms: zod.string().nullish(),
+    keyRisks: zod.string().nullish(),
+    memoNote: zod.string().nullish(),
+    votingDeadline: zod.coerce.date().nullish(),
+    status: zod.enum(["Voting Open", "Resolved"]),
+    outcome: zod
+      .enum(["Approved", "Approved with Conditions", "Rejected"])
+      .nullish(),
+    outcomeAt: zod.coerce.date().nullish(),
+  }),
+  votes: zod.array(
+    zod.object({
+      id: zod.number(),
+      proposalId: zod.number(),
+      voterName: zod.string(),
+      vote: zod
+        .enum(["Approve", "Approve with Conditions", "Reject", "Recuse"])
+        .nullish(),
+      rationale: zod.string().nullish(),
+      conditions: zod.array(zod.string()).nullish(),
+      castAt: zod.coerce.date().nullish(),
+    }),
+  ),
+  cps: zod.array(
+    zod.object({
+      id: zod.number(),
+      proposalId: zod.number(),
+      description: zod.string(),
+      ownerName: zod.string().nullish(),
+      targetDate: zod.coerce.date().nullish(),
+      closedAt: zod.coerce.date().nullish(),
+      status: zod.enum(["Open", "Closed"]),
+      isSlipping: zod
+        .boolean()
+        .describe("True when status is Open and targetDate is in the past"),
+    }),
+  ),
+  voteTally: zod.object({
+    total: zod.number(),
+    voted: zod.number(),
+    approve: zod.number(),
+    approveWithConditions: zod.number(),
+    reject: zod.number(),
+    recuse: zod.number(),
+  }),
+  stageSuggestion: zod.string().nullish(),
+});
+
+/**
+ * @summary Add a voter to an IC proposal (creates pending vote record)
+ */
+export const AddIcVoterParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AddIcVoterBody = zod.object({
+  voterName: zod.string(),
+});
+
+/**
+ * @summary Cast a vote on an IC proposal (immutable after casting)
+ */
+export const CastIcVoteParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CastIcVoteBody = zod.object({
+  vote: zod.enum(["Approve", "Approve with Conditions", "Reject", "Recuse"]),
+  rationale: zod.string(),
+  conditions: zod.array(zod.string()).nullish(),
+});
+
+export const CastIcVoteResponse = zod.object({
+  id: zod.number(),
+  proposalId: zod.number(),
+  voterName: zod.string(),
+  vote: zod
+    .enum(["Approve", "Approve with Conditions", "Reject", "Recuse"])
+    .nullish(),
+  rationale: zod.string().nullish(),
+  conditions: zod.array(zod.string()).nullish(),
+  castAt: zod.coerce.date().nullish(),
+});
+
+/**
+ * @summary Compute and lock the outcome of an IC proposal
+ */
+export const ResolveIcProposalParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ResolveIcProposalResponse = zod.object({
+  proposal: zod.object({
+    id: zod.number(),
+    targetId: zod.number(),
+    submittedBy: zod.string().nullish(),
+    submittedAt: zod.coerce.date(),
+    recommendedTerms: zod.string().nullish(),
+    keyRisks: zod.string().nullish(),
+    memoNote: zod.string().nullish(),
+    votingDeadline: zod.coerce.date().nullish(),
+    status: zod.enum(["Voting Open", "Resolved"]),
+    outcome: zod
+      .enum(["Approved", "Approved with Conditions", "Rejected"])
+      .nullish(),
+    outcomeAt: zod.coerce.date().nullish(),
+  }),
+  votes: zod.array(
+    zod.object({
+      id: zod.number(),
+      proposalId: zod.number(),
+      voterName: zod.string(),
+      vote: zod
+        .enum(["Approve", "Approve with Conditions", "Reject", "Recuse"])
+        .nullish(),
+      rationale: zod.string().nullish(),
+      conditions: zod.array(zod.string()).nullish(),
+      castAt: zod.coerce.date().nullish(),
+    }),
+  ),
+  cps: zod.array(
+    zod.object({
+      id: zod.number(),
+      proposalId: zod.number(),
+      description: zod.string(),
+      ownerName: zod.string().nullish(),
+      targetDate: zod.coerce.date().nullish(),
+      closedAt: zod.coerce.date().nullish(),
+      status: zod.enum(["Open", "Closed"]),
+      isSlipping: zod
+        .boolean()
+        .describe("True when status is Open and targetDate is in the past"),
+    }),
+  ),
+  voteTally: zod.object({
+    total: zod.number(),
+    voted: zod.number(),
+    approve: zod.number(),
+    approveWithConditions: zod.number(),
+    reject: zod.number(),
+    recuse: zod.number(),
+  }),
+  stageSuggestion: zod.string().nullish(),
+});
+
+/**
+ * @summary List conditions precedent for an IC proposal
+ */
+export const ListIcCpsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListIcCpsResponseItem = zod.object({
+  id: zod.number(),
+  proposalId: zod.number(),
+  description: zod.string(),
+  ownerName: zod.string().nullish(),
+  targetDate: zod.coerce.date().nullish(),
+  closedAt: zod.coerce.date().nullish(),
+  status: zod.enum(["Open", "Closed"]),
+  isSlipping: zod
+    .boolean()
+    .describe("True when status is Open and targetDate is in the past"),
+});
+export const ListIcCpsResponse = zod.array(ListIcCpsResponseItem);
+
+/**
+ * @summary Update a conditions precedent item (close, set owner/date)
+ */
+export const UpdateIcCpParams = zod.object({
+  cpId: zod.coerce.number(),
+});
+
+export const UpdateIcCpBody = zod.object({
+  ownerName: zod.string().nullish(),
+  targetDate: zod.coerce.date().nullish(),
+  status: zod.enum(["Open", "Closed"]).optional(),
+});
+
+export const UpdateIcCpResponse = zod.object({
+  id: zod.number(),
+  proposalId: zod.number(),
+  description: zod.string(),
+  ownerName: zod.string().nullish(),
+  targetDate: zod.coerce.date().nullish(),
+  closedAt: zod.coerce.date().nullish(),
+  status: zod.enum(["Open", "Closed"]),
+  isSlipping: zod
+    .boolean()
+    .describe("True when status is Open and targetDate is in the past"),
+});
+
+/**
  * @summary Pipeline funnel — deals entered vs currently active at each stage with stage-to-stage conversion rate
  */
 export const GetAnalyticsFunnelQueryParams = zod.object({
@@ -1074,28 +1318,31 @@ export const ListSynergiesParams = zod.object({
 export const ListSynergiesResponseItem = zod.object({
   id: zod.number(),
   targetId: zod.number(),
-  type: zod.string().describe("Revenue | Cost | Capital | Tax"),
+  type: zod.enum(["Revenue", "Cost", "Capital", "Tax"]),
   description: zod.string(),
-  fy1: zod.string().nullish(),
-  fy2: zod.string().nullish(),
-  fy3: zod.string().nullish(),
-  fy4: zod.string().nullish(),
-  fy5: zod.string().nullish(),
-  oneTimeCost: zod.string().nullish(),
-  confidence: zod.string().describe("Probable | Possible | Aspirational"),
+  fy1: zod.number().nullish(),
+  fy2: zod.number().nullish(),
+  fy3: zod.number().nullish(),
+  fy4: zod.number().nullish(),
+  fy5: zod.number().nullish(),
+  oneTimeCost: zod.number().nullish(),
+  confidence: zod.enum(["Probable", "Possible", "Aspirational"]),
   ownerName: zod.string().nullish(),
   realisationStartMonth: zod.string().nullish(),
-  realisationStatus: zod
-    .string()
-    .describe("Not Started | On Track | Slipping | Realised"),
+  realisationStatus: zod.enum([
+    "Not Started",
+    "On Track",
+    "Slipping",
+    "Realised",
+  ]),
   isDisynergy: zod.boolean(),
-  createdAt: zod.coerce.date().optional(),
-  updatedAt: zod.coerce.date().optional(),
+  createdAt: zod.coerce.date().nullish(),
+  updatedAt: zod.coerce.date().nullish(),
 });
 export const ListSynergiesResponse = zod.array(ListSynergiesResponseItem);
 
 /**
- * @summary Add a synergy hypothesis to a target
+ * @summary Add a synergy hypothesis for a target
  */
 export const CreateSynergyParams = zod.object({
   id: zod.coerce.number(),
@@ -1147,23 +1394,26 @@ export const UpdateSynergyBody = zod.object({
 export const UpdateSynergyResponse = zod.object({
   id: zod.number(),
   targetId: zod.number(),
-  type: zod.string().describe("Revenue | Cost | Capital | Tax"),
+  type: zod.enum(["Revenue", "Cost", "Capital", "Tax"]),
   description: zod.string(),
-  fy1: zod.string().nullish(),
-  fy2: zod.string().nullish(),
-  fy3: zod.string().nullish(),
-  fy4: zod.string().nullish(),
-  fy5: zod.string().nullish(),
-  oneTimeCost: zod.string().nullish(),
-  confidence: zod.string().describe("Probable | Possible | Aspirational"),
+  fy1: zod.number().nullish(),
+  fy2: zod.number().nullish(),
+  fy3: zod.number().nullish(),
+  fy4: zod.number().nullish(),
+  fy5: zod.number().nullish(),
+  oneTimeCost: zod.number().nullish(),
+  confidence: zod.enum(["Probable", "Possible", "Aspirational"]),
   ownerName: zod.string().nullish(),
   realisationStartMonth: zod.string().nullish(),
-  realisationStatus: zod
-    .string()
-    .describe("Not Started | On Track | Slipping | Realised"),
+  realisationStatus: zod.enum([
+    "Not Started",
+    "On Track",
+    "Slipping",
+    "Realised",
+  ]),
   isDisynergy: zod.boolean(),
-  createdAt: zod.coerce.date().optional(),
-  updatedAt: zod.coerce.date().optional(),
+  createdAt: zod.coerce.date().nullish(),
+  updatedAt: zod.coerce.date().nullish(),
 });
 
 /**

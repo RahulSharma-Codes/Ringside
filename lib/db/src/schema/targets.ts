@@ -354,3 +354,46 @@ export const notificationsTable = pgTable("notifications", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 export type Notification = typeof notificationsTable.$inferSelect;
+
+export const icProposalsTable = pgTable("ic_proposals", {
+  id: serial("id").primaryKey(),
+  targetId: integer("target_id").notNull().references(() => targetsTable.id),
+  submittedBy: text("submitted_by"),
+  submittedAt: timestamp("submitted_at").notNull().defaultNow(),
+  recommendedTerms: text("recommended_terms"),
+  keyRisks: text("key_risks"),
+  memoNote: text("memo_note"),
+  votingDeadline: date("voting_deadline"),
+  status: text("status").notNull().default("Voting Open"),
+  outcome: text("outcome"),
+  outcomeAt: timestamp("outcome_at"),
+});
+export const insertIcProposalSchema = createInsertSchema(icProposalsTable).omit({ id: true, submittedAt: true });
+export type InsertIcProposal = z.infer<typeof insertIcProposalSchema>;
+export type IcProposal = typeof icProposalsTable.$inferSelect;
+
+export const icVotesTable = pgTable("ic_votes", {
+  id: serial("id").primaryKey(),
+  proposalId: integer("proposal_id").notNull().references(() => icProposalsTable.id),
+  voterName: text("voter_name").notNull(),
+  vote: text("vote"),
+  rationale: text("rationale"),
+  conditions: jsonb("conditions").$type<string[]>(),
+  castAt: timestamp("cast_at"),
+});
+export const insertIcVoteSchema = createInsertSchema(icVotesTable).omit({ id: true });
+export type InsertIcVote = z.infer<typeof insertIcVoteSchema>;
+export type IcVote = typeof icVotesTable.$inferSelect;
+
+export const icCpsTable = pgTable("ic_cps", {
+  id: serial("id").primaryKey(),
+  proposalId: integer("proposal_id").notNull().references(() => icProposalsTable.id),
+  description: text("description").notNull(),
+  ownerName: text("owner_name"),
+  targetDate: date("target_date"),
+  closedAt: timestamp("closed_at"),
+  status: text("status").notNull().default("Open"),
+});
+export const insertIcCpSchema = createInsertSchema(icCpsTable).omit({ id: true });
+export type InsertIcCp = z.infer<typeof insertIcCpSchema>;
+export type IcCp = typeof icCpsTable.$inferSelect;

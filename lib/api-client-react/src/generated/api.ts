@@ -19,6 +19,7 @@ import type {
 import type {
   ActionItem,
   ActivityFeedResponse,
+  AddIcVoterBody,
   Advisor,
   AiAskRequest,
   AiAskResponse,
@@ -27,12 +28,14 @@ import type {
   AuditEvent,
   AuditVerifyResult,
   BriefResponse,
+  CastIcVoteBody,
   CommandCenterAction,
   CounterpartyInfo,
   CreateActionBody,
   CreateAdvisorBody,
   CreateDiligenceItemBody,
   CreateDocumentBody,
+  CreateIcProposalBody,
   CreateIcSessionBody,
   CreateInteractionBody,
   CreateNdaRecordBody,
@@ -58,7 +61,11 @@ import type {
   GetStageGateParams,
   GetTopPriorityTargetsParams,
   HealthStatus,
+  IcCp,
+  IcProposal,
+  IcProposalDetail,
   IcSession,
+  IcVote,
   ImportApplyRequest,
   ImportApplyResult,
   ImportValidateRequest,
@@ -80,7 +87,7 @@ import type {
   StageCount,
   StageGateCheckResponse,
   StageUpdateResponse,
-  SynergyEntry,
+  Synergy,
   Target,
   TargetDetail,
   TimeInStageResponse,
@@ -89,6 +96,7 @@ import type {
   UpdateAdvisorBody,
   UpdateCounterpartyBody,
   UpdateDocumentBody,
+  UpdateIcCpBody,
   UpdateInteractionBody,
   UpdateNdaRecordBody,
   UpdateRegulatoryClearanceBody,
@@ -2661,6 +2669,697 @@ export const useDeleteIcSession = <
 };
 
 /**
+ * @summary List IC proposals for a target
+ */
+export const getListIcProposalsUrl = (id: number) => {
+  return `/api/targets/${id}/ic-proposals`;
+};
+
+export const listIcProposals = async (
+  id: number,
+  options?: RequestInit,
+): Promise<IcProposal[]> => {
+  return customFetch<IcProposal[]>(getListIcProposalsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListIcProposalsQueryKey = (id: number) => {
+  return [`/api/targets/${id}/ic-proposals`] as const;
+};
+
+export const getListIcProposalsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listIcProposals>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listIcProposals>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListIcProposalsQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listIcProposals>>> = ({
+    signal,
+  }) => listIcProposals(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listIcProposals>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListIcProposalsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listIcProposals>>
+>;
+export type ListIcProposalsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List IC proposals for a target
+ */
+
+export function useListIcProposals<
+  TData = Awaited<ReturnType<typeof listIcProposals>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listIcProposals>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListIcProposalsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Submit a new IC proposal for a target
+ */
+export const getCreateIcProposalUrl = (id: number) => {
+  return `/api/targets/${id}/ic-proposals`;
+};
+
+export const createIcProposal = async (
+  id: number,
+  createIcProposalBody: CreateIcProposalBody,
+  options?: RequestInit,
+): Promise<IcProposal> => {
+  return customFetch<IcProposal>(getCreateIcProposalUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createIcProposalBody),
+  });
+};
+
+export const getCreateIcProposalMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createIcProposal>>,
+    TError,
+    { id: number; data: BodyType<CreateIcProposalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createIcProposal>>,
+  TError,
+  { id: number; data: BodyType<CreateIcProposalBody> },
+  TContext
+> => {
+  const mutationKey = ["createIcProposal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createIcProposal>>,
+    { id: number; data: BodyType<CreateIcProposalBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createIcProposal(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateIcProposalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createIcProposal>>
+>;
+export type CreateIcProposalMutationBody = BodyType<CreateIcProposalBody>;
+export type CreateIcProposalMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Submit a new IC proposal for a target
+ */
+export const useCreateIcProposal = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createIcProposal>>,
+    TError,
+    { id: number; data: BodyType<CreateIcProposalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createIcProposal>>,
+  TError,
+  { id: number; data: BodyType<CreateIcProposalBody> },
+  TContext
+> => {
+  return useMutation(getCreateIcProposalMutationOptions(options));
+};
+
+/**
+ * @summary Get IC proposal detail with votes and CPs
+ */
+export const getGetIcProposalUrl = (id: number) => {
+  return `/api/ic-proposals/${id}`;
+};
+
+export const getIcProposal = async (
+  id: number,
+  options?: RequestInit,
+): Promise<IcProposalDetail> => {
+  return customFetch<IcProposalDetail>(getGetIcProposalUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetIcProposalQueryKey = (id: number) => {
+  return [`/api/ic-proposals/${id}`] as const;
+};
+
+export const getGetIcProposalQueryOptions = <
+  TData = Awaited<ReturnType<typeof getIcProposal>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getIcProposal>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetIcProposalQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getIcProposal>>> = ({
+    signal,
+  }) => getIcProposal(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getIcProposal>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetIcProposalQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getIcProposal>>
+>;
+export type GetIcProposalQueryError = ErrorType<void>;
+
+/**
+ * @summary Get IC proposal detail with votes and CPs
+ */
+
+export function useGetIcProposal<
+  TData = Awaited<ReturnType<typeof getIcProposal>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getIcProposal>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetIcProposalQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a voter to an IC proposal (creates pending vote record)
+ */
+export const getAddIcVoterUrl = (id: number) => {
+  return `/api/ic-proposals/${id}/voters`;
+};
+
+export const addIcVoter = async (
+  id: number,
+  addIcVoterBody: AddIcVoterBody,
+  options?: RequestInit,
+): Promise<IcVote> => {
+  return customFetch<IcVote>(getAddIcVoterUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(addIcVoterBody),
+  });
+};
+
+export const getAddIcVoterMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addIcVoter>>,
+    TError,
+    { id: number; data: BodyType<AddIcVoterBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addIcVoter>>,
+  TError,
+  { id: number; data: BodyType<AddIcVoterBody> },
+  TContext
+> => {
+  const mutationKey = ["addIcVoter"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addIcVoter>>,
+    { id: number; data: BodyType<AddIcVoterBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return addIcVoter(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddIcVoterMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addIcVoter>>
+>;
+export type AddIcVoterMutationBody = BodyType<AddIcVoterBody>;
+export type AddIcVoterMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add a voter to an IC proposal (creates pending vote record)
+ */
+export const useAddIcVoter = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addIcVoter>>,
+    TError,
+    { id: number; data: BodyType<AddIcVoterBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addIcVoter>>,
+  TError,
+  { id: number; data: BodyType<AddIcVoterBody> },
+  TContext
+> => {
+  return useMutation(getAddIcVoterMutationOptions(options));
+};
+
+/**
+ * @summary Cast a vote on an IC proposal (immutable after casting)
+ */
+export const getCastIcVoteUrl = (id: number) => {
+  return `/api/ic-votes/${id}/cast`;
+};
+
+export const castIcVote = async (
+  id: number,
+  castIcVoteBody: CastIcVoteBody,
+  options?: RequestInit,
+): Promise<IcVote> => {
+  return customFetch<IcVote>(getCastIcVoteUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(castIcVoteBody),
+  });
+};
+
+export const getCastIcVoteMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof castIcVote>>,
+    TError,
+    { id: number; data: BodyType<CastIcVoteBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof castIcVote>>,
+  TError,
+  { id: number; data: BodyType<CastIcVoteBody> },
+  TContext
+> => {
+  const mutationKey = ["castIcVote"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof castIcVote>>,
+    { id: number; data: BodyType<CastIcVoteBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return castIcVote(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CastIcVoteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof castIcVote>>
+>;
+export type CastIcVoteMutationBody = BodyType<CastIcVoteBody>;
+export type CastIcVoteMutationError = ErrorType<void>;
+
+/**
+ * @summary Cast a vote on an IC proposal (immutable after casting)
+ */
+export const useCastIcVote = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof castIcVote>>,
+    TError,
+    { id: number; data: BodyType<CastIcVoteBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof castIcVote>>,
+  TError,
+  { id: number; data: BodyType<CastIcVoteBody> },
+  TContext
+> => {
+  return useMutation(getCastIcVoteMutationOptions(options));
+};
+
+/**
+ * @summary Compute and lock the outcome of an IC proposal
+ */
+export const getResolveIcProposalUrl = (id: number) => {
+  return `/api/ic-proposals/${id}/resolve`;
+};
+
+export const resolveIcProposal = async (
+  id: number,
+  options?: RequestInit,
+): Promise<IcProposalDetail> => {
+  return customFetch<IcProposalDetail>(getResolveIcProposalUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getResolveIcProposalMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resolveIcProposal>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resolveIcProposal>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["resolveIcProposal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resolveIcProposal>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return resolveIcProposal(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResolveIcProposalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resolveIcProposal>>
+>;
+
+export type ResolveIcProposalMutationError = ErrorType<void>;
+
+/**
+ * @summary Compute and lock the outcome of an IC proposal
+ */
+export const useResolveIcProposal = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resolveIcProposal>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof resolveIcProposal>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getResolveIcProposalMutationOptions(options));
+};
+
+/**
+ * @summary List conditions precedent for an IC proposal
+ */
+export const getListIcCpsUrl = (id: number) => {
+  return `/api/ic-proposals/${id}/cps`;
+};
+
+export const listIcCps = async (
+  id: number,
+  options?: RequestInit,
+): Promise<IcCp[]> => {
+  return customFetch<IcCp[]>(getListIcCpsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListIcCpsQueryKey = (id: number) => {
+  return [`/api/ic-proposals/${id}/cps`] as const;
+};
+
+export const getListIcCpsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listIcCps>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listIcCps>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListIcCpsQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listIcCps>>> = ({
+    signal,
+  }) => listIcCps(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listIcCps>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type ListIcCpsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listIcCps>>
+>;
+export type ListIcCpsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List conditions precedent for an IC proposal
+ */
+
+export function useListIcCps<
+  TData = Awaited<ReturnType<typeof listIcCps>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listIcCps>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListIcCpsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update a conditions precedent item (close, set owner/date)
+ */
+export const getUpdateIcCpUrl = (cpId: number) => {
+  return `/api/ic-cps/${cpId}`;
+};
+
+export const updateIcCp = async (
+  cpId: number,
+  updateIcCpBody: UpdateIcCpBody,
+  options?: RequestInit,
+): Promise<IcCp> => {
+  return customFetch<IcCp>(getUpdateIcCpUrl(cpId), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateIcCpBody),
+  });
+};
+
+export const getUpdateIcCpMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateIcCp>>,
+    TError,
+    { cpId: number; data: BodyType<UpdateIcCpBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateIcCp>>,
+  TError,
+  { cpId: number; data: BodyType<UpdateIcCpBody> },
+  TContext
+> => {
+  const mutationKey = ["updateIcCp"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateIcCp>>,
+    { cpId: number; data: BodyType<UpdateIcCpBody> }
+  > = (props) => {
+    const { cpId, data } = props ?? {};
+
+    return updateIcCp(cpId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateIcCpMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateIcCp>>
+>;
+export type UpdateIcCpMutationBody = BodyType<UpdateIcCpBody>;
+export type UpdateIcCpMutationError = ErrorType<void>;
+
+/**
+ * @summary Update a conditions precedent item (close, set owner/date)
+ */
+export const useUpdateIcCp = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateIcCp>>,
+    TError,
+    { cpId: number; data: BodyType<UpdateIcCpBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateIcCp>>,
+  TError,
+  { cpId: number; data: BodyType<UpdateIcCpBody> },
+  TContext
+> => {
+  return useMutation(getUpdateIcCpMutationOptions(options));
+};
+
+/**
  * @summary Pipeline funnel — deals entered vs currently active at each stage with stage-to-stage conversion rate
  */
 export const getGetAnalyticsFunnelUrl = (params?: GetAnalyticsFunnelParams) => {
@@ -3073,8 +3772,8 @@ export const getListSynergiesUrl = (id: number) => {
 export const listSynergies = async (
   id: number,
   options?: RequestInit,
-): Promise<SynergyEntry[]> => {
-  return customFetch<SynergyEntry[]>(getListSynergiesUrl(id), {
+): Promise<Synergy[]> => {
+  return customFetch<Synergy[]>(getListSynergiesUrl(id), {
     ...options,
     method: "GET",
   });
@@ -3151,7 +3850,7 @@ export function useListSynergies<
 }
 
 /**
- * @summary Add a synergy hypothesis to a target
+ * @summary Add a synergy hypothesis for a target
  */
 export const getCreateSynergyUrl = (id: number) => {
   return `/api/targets/${id}/synergies`;
@@ -3161,8 +3860,8 @@ export const createSynergy = async (
   id: number,
   createSynergyBody: CreateSynergyBody,
   options?: RequestInit,
-): Promise<SynergyEntry> => {
-  return customFetch<SynergyEntry>(getCreateSynergyUrl(id), {
+): Promise<Synergy> => {
+  return customFetch<Synergy>(getCreateSynergyUrl(id), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -3215,7 +3914,7 @@ export type CreateSynergyMutationBody = BodyType<CreateSynergyBody>;
 export type CreateSynergyMutationError = ErrorType<unknown>;
 
 /**
- * @summary Add a synergy hypothesis to a target
+ * @summary Add a synergy hypothesis for a target
  */
 export const useCreateSynergy = <
   TError = ErrorType<unknown>,
@@ -3248,8 +3947,8 @@ export const updateSynergy = async (
   id: number,
   updateSynergyBody: UpdateSynergyBody,
   options?: RequestInit,
-): Promise<SynergyEntry> => {
-  return customFetch<SynergyEntry>(getUpdateSynergyUrl(id), {
+): Promise<Synergy> => {
+  return customFetch<Synergy>(getUpdateSynergyUrl(id), {
     ...options,
     method: "PUT",
     headers: { "Content-Type": "application/json", ...options?.headers },
