@@ -635,7 +635,16 @@ paths:
     get:
       operationId: getAnalyticsFunnel
       tags: [analytics]
-      summary: Pipeline funnel — deals entered vs currently active at each stage
+      summary: Pipeline funnel — deals entered vs currently active at each stage with stage-to-stage conversion rate
+      parameters:
+        - name: dealType
+          in: query
+          schema:
+            type: string
+        - name: sector
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: Funnel data
@@ -650,22 +659,38 @@ paths:
     get:
       operationId: getAnalyticsTimeInStage
       tags: [analytics]
-      summary: Average and median dwell time (days) per pipeline stage
+      summary: Dwell time per stage (historical avg/median) plus current deal aging list
+      parameters:
+        - name: dealType
+          in: query
+          schema:
+            type: string
+        - name: sector
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: Time-in-stage data
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/TimeInStageItem"
+                $ref: "#/components/schemas/TimeInStageResponse"
 
   /analytics/win-loss:
     get:
       operationId: getAnalyticsWinLoss
       tags: [analytics]
-      summary: Win/loss breakdown — outcomes, drop reasons, by deal type
+      summary: Win/loss breakdown over trailing 12 months — outcomes, drop reasons, sector breakdown
+      parameters:
+        - name: dealType
+          in: query
+          schema:
+            type: string
+        - name: sector
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: Win/loss analysis
@@ -679,6 +704,15 @@ paths:
       operationId: getAnalyticsOrigination
       tags: [analytics]
       summary: Deal origination by sourcing channel — volume and win rate
+      parameters:
+        - name: dealType
+          in: query
+          schema:
+            type: string
+        - name: sector
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: Origination channel data
@@ -1517,7 +1551,15 @@ components:
           type: array
           items:
             type: string
-      required: [owners, countries]
+        sectors:
+          type: array
+          items:
+            type: string
+        dealTypes:
+          type: array
+          items:
+            type: string
+      required: [owners, countries, sectors, dealTypes]
 
     ImportRow:
       type: object
@@ -2596,9 +2638,13 @@ components:
         current:
           type: integer
           description: Active targets currently at this stage
+        conversionRate:
+          type: number
+          nullable: true
+          description: Percentage of deals at this stage that advanced to the next stage (null for last stage)
       required: [stage, entered, current]
 
-    TimeInStageItem:
+    TimeInStageHistoricalItem:
       type: object
       properties:
         stage:
@@ -2612,6 +2658,40 @@ components:
           description: Number of stage exits used for calculation
       required: [stage, avgDays, medianDays, count]
 
+    TimeInStageDeal:
+      type: object
+      properties:
+        targetId:
+          type: integer
+        targetCode:
+          type: string
+        projectName:
+          type: string
+        stage:
+          type: string
+        daysInStage:
+          type: number
+        isStale:
+          type: boolean
+          description: True when daysInStage exceeds the stale threshold (30 days)
+        dealOwner:
+          type: string
+          nullable: true
+      required: [targetId, targetCode, projectName, stage, daysInStage, isStale]
+
+    TimeInStageResponse:
+      type: object
+      properties:
+        historical:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeInStageHistoricalItem"
+        currentDeals:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeInStageDeal"
+      required: [historical, currentDeals]
+
     WinLossDropReason:
       type: object
       properties:
@@ -2621,39 +2701,40 @@ components:
           type: integer
       required: [category, count]
 
-    WinLossDealType:
+    WinLossSectorItem:
       type: object
       properties:
-        type:
+        sector:
           type: string
         won:
           type: integer
         dropped:
           type: integer
-        inProgress:
-          type: integer
-      required: [type, won, dropped, inProgress]
+      required: [sector, won, dropped]
 
     WinLossResponse:
       type: object
       properties:
-        totalEvaluated:
+        periodLabel:
+          type: string
+        totalConcluded:
           type: integer
         won:
           type: integer
         dropped:
           type: integer
-        inProgress:
-          type: integer
+        winRate:
+          type: number
+          nullable: true
         byDropReason:
           type: array
           items:
             $ref: "#/components/schemas/WinLossDropReason"
-        byDealType:
+        bySector:
           type: array
           items:
-            $ref: "#/components/schemas/WinLossDealType"
-      required: [totalEvaluated, won, dropped, inProgress, byDropReason, byDealType]
+            $ref: "#/components/schemas/WinLossSectorItem"
+      required: [periodLabel, totalConcluded, won, dropped, byDropReason, bySector]
 
     OriginationChannelItem:
       type: object

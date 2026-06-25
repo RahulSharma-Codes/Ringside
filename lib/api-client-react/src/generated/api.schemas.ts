@@ -222,6 +222,8 @@ export type NeedsAttentionTarget = Target & {
 export interface FilterOptions {
   owners: string[];
   countries: string[];
+  sectors: string[];
+  dealTypes: string[];
 }
 
 export interface ImportRow {
@@ -756,9 +758,11 @@ export interface FunnelStageItem {
   entered: number;
   /** Active targets currently at this stage */
   current: number;
+  /** Percentage of deals at this stage that advanced to the next stage (null for last stage) */
+  conversionRate?: number | null;
 }
 
-export interface TimeInStageItem {
+export interface TimeInStageHistoricalItem {
   stage: string;
   avgDays: number;
   medianDays: number;
@@ -766,25 +770,41 @@ export interface TimeInStageItem {
   count: number;
 }
 
+export interface TimeInStageDeal {
+  targetId: number;
+  targetCode: string;
+  projectName: string;
+  stage: string;
+  daysInStage: number;
+  /** True when daysInStage exceeds the stale threshold (30 days) */
+  isStale: boolean;
+  dealOwner?: string | null;
+}
+
+export interface TimeInStageResponse {
+  historical: TimeInStageHistoricalItem[];
+  currentDeals: TimeInStageDeal[];
+}
+
 export interface WinLossDropReason {
   category: string;
   count: number;
 }
 
-export interface WinLossDealType {
-  type: string;
+export interface WinLossSectorItem {
+  sector: string;
   won: number;
   dropped: number;
-  inProgress: number;
 }
 
 export interface WinLossResponse {
-  totalEvaluated: number;
+  periodLabel: string;
+  totalConcluded: number;
   won: number;
   dropped: number;
-  inProgress: number;
+  winRate?: number | null;
   byDropReason: WinLossDropReason[];
-  byDealType: WinLossDealType[];
+  bySector: WinLossSectorItem[];
 }
 
 export interface OriginationChannelItem {
@@ -815,4 +835,24 @@ export type GetTopPriorityTargetsParams = {
 
 export type GetStageGateParams = {
   newStage: string;
+};
+
+export type GetAnalyticsFunnelParams = {
+  dealType?: string;
+  sector?: string;
+};
+
+export type GetAnalyticsTimeInStageParams = {
+  dealType?: string;
+  sector?: string;
+};
+
+export type GetAnalyticsWinLossParams = {
+  dealType?: string;
+  sector?: string;
+};
+
+export type GetAnalyticsOriginationParams = {
+  dealType?: string;
+  sector?: string;
 };

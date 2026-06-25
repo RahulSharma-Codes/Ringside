@@ -189,6 +189,8 @@ export const GetTopPriorityTargetsResponse = zod.array(
 export const GetTargetFilterOptionsResponse = zod.object({
   owners: zod.array(zod.string()),
   countries: zod.array(zod.string()),
+  sectors: zod.array(zod.string()),
+  dealTypes: zod.array(zod.string()),
 });
 
 /**
@@ -950,52 +952,91 @@ export const DeleteIcSessionParams = zod.object({
 });
 
 /**
- * @summary Pipeline funnel — deals entered vs currently active at each stage
+ * @summary Pipeline funnel — deals entered vs currently active at each stage with stage-to-stage conversion rate
  */
+export const GetAnalyticsFunnelQueryParams = zod.object({
+  dealType: zod.coerce.string().optional(),
+  sector: zod.coerce.string().optional(),
+});
+
 export const GetAnalyticsFunnelResponseItem = zod.object({
   stage: zod.string(),
   entered: zod
     .number()
     .describe("Distinct targets that ever reached this stage"),
   current: zod.number().describe("Active targets currently at this stage"),
+  conversionRate: zod
+    .number()
+    .nullish()
+    .describe(
+      "Percentage of deals at this stage that advanced to the next stage (null for last stage)",
+    ),
 });
 export const GetAnalyticsFunnelResponse = zod.array(
   GetAnalyticsFunnelResponseItem,
 );
 
 /**
- * @summary Average and median dwell time (days) per pipeline stage
+ * @summary Dwell time per stage (historical avg/median) plus current deal aging list
  */
-export const GetAnalyticsTimeInStageResponseItem = zod.object({
-  stage: zod.string(),
-  avgDays: zod.number(),
-  medianDays: zod.number(),
-  count: zod.number().describe("Number of stage exits used for calculation"),
+export const GetAnalyticsTimeInStageQueryParams = zod.object({
+  dealType: zod.coerce.string().optional(),
+  sector: zod.coerce.string().optional(),
 });
-export const GetAnalyticsTimeInStageResponse = zod.array(
-  GetAnalyticsTimeInStageResponseItem,
-);
+
+export const GetAnalyticsTimeInStageResponse = zod.object({
+  historical: zod.array(
+    zod.object({
+      stage: zod.string(),
+      avgDays: zod.number(),
+      medianDays: zod.number(),
+      count: zod
+        .number()
+        .describe("Number of stage exits used for calculation"),
+    }),
+  ),
+  currentDeals: zod.array(
+    zod.object({
+      targetId: zod.number(),
+      targetCode: zod.string(),
+      projectName: zod.string(),
+      stage: zod.string(),
+      daysInStage: zod.number(),
+      isStale: zod
+        .boolean()
+        .describe(
+          "True when daysInStage exceeds the stale threshold (30 days)",
+        ),
+      dealOwner: zod.string().nullish(),
+    }),
+  ),
+});
 
 /**
- * @summary Win/loss breakdown — outcomes, drop reasons, by deal type
+ * @summary Win/loss breakdown over trailing 12 months — outcomes, drop reasons, sector breakdown
  */
+export const GetAnalyticsWinLossQueryParams = zod.object({
+  dealType: zod.coerce.string().optional(),
+  sector: zod.coerce.string().optional(),
+});
+
 export const GetAnalyticsWinLossResponse = zod.object({
-  totalEvaluated: zod.number(),
+  periodLabel: zod.string(),
+  totalConcluded: zod.number(),
   won: zod.number(),
   dropped: zod.number(),
-  inProgress: zod.number(),
+  winRate: zod.number().nullish(),
   byDropReason: zod.array(
     zod.object({
       category: zod.string(),
       count: zod.number(),
     }),
   ),
-  byDealType: zod.array(
+  bySector: zod.array(
     zod.object({
-      type: zod.string(),
+      sector: zod.string(),
       won: zod.number(),
       dropped: zod.number(),
-      inProgress: zod.number(),
     }),
   ),
 });
@@ -1003,6 +1044,11 @@ export const GetAnalyticsWinLossResponse = zod.object({
 /**
  * @summary Deal origination by sourcing channel — volume and win rate
  */
+export const GetAnalyticsOriginationQueryParams = zod.object({
+  dealType: zod.coerce.string().optional(),
+  sector: zod.coerce.string().optional(),
+});
+
 export const GetAnalyticsOriginationResponseItem = zod.object({
   channel: zod.string(),
   total: zod.number(),

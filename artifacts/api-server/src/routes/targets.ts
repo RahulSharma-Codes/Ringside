@@ -732,9 +732,13 @@ router.get("/top-priority", async (req, res) => {
 // for populating filter dropdowns (guardrail #5: unfiltered, stable options)
 router.get("/filter-options", async (_req, res) => {
   const rows = await db
-    .select({ dealOwner: targetsTable.dealOwner, country: targetsTable.country })
-    .from(targetsTable)
-    .where(eq(targetsTable.isActive, true));
+    .select({
+      dealOwner: targetsTable.dealOwner,
+      country: targetsTable.country,
+      sector: targetsTable.sector,
+      dealType: targetsTable.dealType,
+    })
+    .from(targetsTable);
 
   const owners = [
     ...new Set(rows.map((r) => r.dealOwner).filter((v): v is string => v !== null)),
@@ -742,8 +746,14 @@ router.get("/filter-options", async (_req, res) => {
   const countries = [
     ...new Set(rows.map((r) => r.country).filter((v): v is string => v !== null)),
   ].sort();
+  const sectors = [
+    ...new Set(rows.map((r) => r.sector).filter((v): v is string => v !== null)),
+  ].sort();
+  const dealTypes = [
+    ...new Set(rows.map((r) => r.dealType).filter((v): v is string => v !== null)),
+  ].sort();
 
-  return res.json({ owners, countries });
+  return res.json({ owners, countries, sectors, dealTypes });
 });
 
 // GET /api/targets/needs-attention -- must come before /:id

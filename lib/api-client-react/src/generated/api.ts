@@ -38,6 +38,10 @@ import type {
   DocumentReviewResponse,
   FilterOptions,
   FunnelStageItem,
+  GetAnalyticsFunnelParams,
+  GetAnalyticsOriginationParams,
+  GetAnalyticsTimeInStageParams,
+  GetAnalyticsWinLossParams,
   GetStageGateParams,
   GetTopPriorityTargetsParams,
   HealthStatus,
@@ -59,7 +63,7 @@ import type {
   StageUpdateResponse,
   Target,
   TargetDetail,
-  TimeInStageItem,
+  TimeInStageResponse,
   UpdateActionBody,
   UpdateDocumentBody,
   UpdateInteractionBody,
@@ -2627,43 +2631,62 @@ export const useDeleteIcSession = <
 };
 
 /**
- * @summary Pipeline funnel — deals entered vs currently active at each stage
+ * @summary Pipeline funnel — deals entered vs currently active at each stage with stage-to-stage conversion rate
  */
-export const getGetAnalyticsFunnelUrl = () => {
-  return `/api/analytics/funnel`;
+export const getGetAnalyticsFunnelUrl = (params?: GetAnalyticsFunnelParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/analytics/funnel?${stringifiedParams}`
+    : `/api/analytics/funnel`;
 };
 
 export const getAnalyticsFunnel = async (
+  params?: GetAnalyticsFunnelParams,
   options?: RequestInit,
 ): Promise<FunnelStageItem[]> => {
-  return customFetch<FunnelStageItem[]>(getGetAnalyticsFunnelUrl(), {
+  return customFetch<FunnelStageItem[]>(getGetAnalyticsFunnelUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getGetAnalyticsFunnelQueryKey = () => {
-  return [`/api/analytics/funnel`] as const;
+export const getGetAnalyticsFunnelQueryKey = (
+  params?: GetAnalyticsFunnelParams,
+) => {
+  return [`/api/analytics/funnel`, ...(params ? [params] : [])] as const;
 };
 
 export const getGetAnalyticsFunnelQueryOptions = <
   TData = Awaited<ReturnType<typeof getAnalyticsFunnel>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getAnalyticsFunnel>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: GetAnalyticsFunnelParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAnalyticsFunnel>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetAnalyticsFunnelQueryKey();
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAnalyticsFunnelQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getAnalyticsFunnel>>
-  > = ({ signal }) => getAnalyticsFunnel({ signal, ...requestOptions });
+  > = ({ signal }) => getAnalyticsFunnel(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getAnalyticsFunnel>>,
@@ -2678,21 +2701,24 @@ export type GetAnalyticsFunnelQueryResult = NonNullable<
 export type GetAnalyticsFunnelQueryError = ErrorType<unknown>;
 
 /**
- * @summary Pipeline funnel — deals entered vs currently active at each stage
+ * @summary Pipeline funnel — deals entered vs currently active at each stage with stage-to-stage conversion rate
  */
 
 export function useGetAnalyticsFunnel<
   TData = Awaited<ReturnType<typeof getAnalyticsFunnel>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getAnalyticsFunnel>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetAnalyticsFunnelQueryOptions(options);
+>(
+  params?: GetAnalyticsFunnelParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAnalyticsFunnel>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAnalyticsFunnelQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -2702,44 +2728,68 @@ export function useGetAnalyticsFunnel<
 }
 
 /**
- * @summary Average and median dwell time (days) per pipeline stage
+ * @summary Dwell time per stage (historical avg/median) plus current deal aging list
  */
-export const getGetAnalyticsTimeInStageUrl = () => {
-  return `/api/analytics/time-in-stage`;
+export const getGetAnalyticsTimeInStageUrl = (
+  params?: GetAnalyticsTimeInStageParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/analytics/time-in-stage?${stringifiedParams}`
+    : `/api/analytics/time-in-stage`;
 };
 
 export const getAnalyticsTimeInStage = async (
+  params?: GetAnalyticsTimeInStageParams,
   options?: RequestInit,
-): Promise<TimeInStageItem[]> => {
-  return customFetch<TimeInStageItem[]>(getGetAnalyticsTimeInStageUrl(), {
-    ...options,
-    method: "GET",
-  });
+): Promise<TimeInStageResponse> => {
+  return customFetch<TimeInStageResponse>(
+    getGetAnalyticsTimeInStageUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
 };
 
-export const getGetAnalyticsTimeInStageQueryKey = () => {
-  return [`/api/analytics/time-in-stage`] as const;
+export const getGetAnalyticsTimeInStageQueryKey = (
+  params?: GetAnalyticsTimeInStageParams,
+) => {
+  return [`/api/analytics/time-in-stage`, ...(params ? [params] : [])] as const;
 };
 
 export const getGetAnalyticsTimeInStageQueryOptions = <
   TData = Awaited<ReturnType<typeof getAnalyticsTimeInStage>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getAnalyticsTimeInStage>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: GetAnalyticsTimeInStageParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAnalyticsTimeInStage>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getGetAnalyticsTimeInStageQueryKey();
+    queryOptions?.queryKey ?? getGetAnalyticsTimeInStageQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getAnalyticsTimeInStage>>
-  > = ({ signal }) => getAnalyticsTimeInStage({ signal, ...requestOptions });
+  > = ({ signal }) =>
+    getAnalyticsTimeInStage(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getAnalyticsTimeInStage>>,
@@ -2754,21 +2804,24 @@ export type GetAnalyticsTimeInStageQueryResult = NonNullable<
 export type GetAnalyticsTimeInStageQueryError = ErrorType<unknown>;
 
 /**
- * @summary Average and median dwell time (days) per pipeline stage
+ * @summary Dwell time per stage (historical avg/median) plus current deal aging list
  */
 
 export function useGetAnalyticsTimeInStage<
   TData = Awaited<ReturnType<typeof getAnalyticsTimeInStage>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getAnalyticsTimeInStage>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetAnalyticsTimeInStageQueryOptions(options);
+>(
+  params?: GetAnalyticsTimeInStageParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAnalyticsTimeInStage>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAnalyticsTimeInStageQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -2778,43 +2831,65 @@ export function useGetAnalyticsTimeInStage<
 }
 
 /**
- * @summary Win/loss breakdown — outcomes, drop reasons, by deal type
+ * @summary Win/loss breakdown over trailing 12 months — outcomes, drop reasons, sector breakdown
  */
-export const getGetAnalyticsWinLossUrl = () => {
-  return `/api/analytics/win-loss`;
+export const getGetAnalyticsWinLossUrl = (
+  params?: GetAnalyticsWinLossParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/analytics/win-loss?${stringifiedParams}`
+    : `/api/analytics/win-loss`;
 };
 
 export const getAnalyticsWinLoss = async (
+  params?: GetAnalyticsWinLossParams,
   options?: RequestInit,
 ): Promise<WinLossResponse> => {
-  return customFetch<WinLossResponse>(getGetAnalyticsWinLossUrl(), {
+  return customFetch<WinLossResponse>(getGetAnalyticsWinLossUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getGetAnalyticsWinLossQueryKey = () => {
-  return [`/api/analytics/win-loss`] as const;
+export const getGetAnalyticsWinLossQueryKey = (
+  params?: GetAnalyticsWinLossParams,
+) => {
+  return [`/api/analytics/win-loss`, ...(params ? [params] : [])] as const;
 };
 
 export const getGetAnalyticsWinLossQueryOptions = <
   TData = Awaited<ReturnType<typeof getAnalyticsWinLoss>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getAnalyticsWinLoss>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: GetAnalyticsWinLossParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAnalyticsWinLoss>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetAnalyticsWinLossQueryKey();
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAnalyticsWinLossQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getAnalyticsWinLoss>>
-  > = ({ signal }) => getAnalyticsWinLoss({ signal, ...requestOptions });
+  > = ({ signal }) =>
+    getAnalyticsWinLoss(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getAnalyticsWinLoss>>,
@@ -2829,21 +2904,24 @@ export type GetAnalyticsWinLossQueryResult = NonNullable<
 export type GetAnalyticsWinLossQueryError = ErrorType<unknown>;
 
 /**
- * @summary Win/loss breakdown — outcomes, drop reasons, by deal type
+ * @summary Win/loss breakdown over trailing 12 months — outcomes, drop reasons, sector breakdown
  */
 
 export function useGetAnalyticsWinLoss<
   TData = Awaited<ReturnType<typeof getAnalyticsWinLoss>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getAnalyticsWinLoss>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetAnalyticsWinLossQueryOptions(options);
+>(
+  params?: GetAnalyticsWinLossParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAnalyticsWinLoss>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAnalyticsWinLossQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -2855,15 +2933,30 @@ export function useGetAnalyticsWinLoss<
 /**
  * @summary Deal origination by sourcing channel — volume and win rate
  */
-export const getGetAnalyticsOriginationUrl = () => {
-  return `/api/analytics/origination`;
+export const getGetAnalyticsOriginationUrl = (
+  params?: GetAnalyticsOriginationParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/analytics/origination?${stringifiedParams}`
+    : `/api/analytics/origination`;
 };
 
 export const getAnalyticsOrigination = async (
+  params?: GetAnalyticsOriginationParams,
   options?: RequestInit,
 ): Promise<OriginationChannelItem[]> => {
   return customFetch<OriginationChannelItem[]>(
-    getGetAnalyticsOriginationUrl(),
+    getGetAnalyticsOriginationUrl(params),
     {
       ...options,
       method: "GET",
@@ -2871,29 +2964,35 @@ export const getAnalyticsOrigination = async (
   );
 };
 
-export const getGetAnalyticsOriginationQueryKey = () => {
-  return [`/api/analytics/origination`] as const;
+export const getGetAnalyticsOriginationQueryKey = (
+  params?: GetAnalyticsOriginationParams,
+) => {
+  return [`/api/analytics/origination`, ...(params ? [params] : [])] as const;
 };
 
 export const getGetAnalyticsOriginationQueryOptions = <
   TData = Awaited<ReturnType<typeof getAnalyticsOrigination>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getAnalyticsOrigination>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: GetAnalyticsOriginationParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAnalyticsOrigination>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getGetAnalyticsOriginationQueryKey();
+    queryOptions?.queryKey ?? getGetAnalyticsOriginationQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getAnalyticsOrigination>>
-  > = ({ signal }) => getAnalyticsOrigination({ signal, ...requestOptions });
+  > = ({ signal }) =>
+    getAnalyticsOrigination(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getAnalyticsOrigination>>,
@@ -2914,15 +3013,18 @@ export type GetAnalyticsOriginationQueryError = ErrorType<unknown>;
 export function useGetAnalyticsOrigination<
   TData = Awaited<ReturnType<typeof getAnalyticsOrigination>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getAnalyticsOrigination>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetAnalyticsOriginationQueryOptions(options);
+>(
+  params?: GetAnalyticsOriginationParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAnalyticsOrigination>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAnalyticsOriginationQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

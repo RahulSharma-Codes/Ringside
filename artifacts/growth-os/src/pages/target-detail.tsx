@@ -1152,13 +1152,22 @@ export default function TargetDetail() {
 
             <div className="space-y-2">
               <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                Rationale / Notes <span className="text-destructive">*</span>
+                {(stageVal === "Rejected" || stageVal === "On Hold")
+                  ? <>Drop / Hold Reason <span className="text-destructive">*</span></>
+                  : <>Rationale / Notes <span className="text-destructive">*</span></>
+                }
               </label>
               <Textarea
                 value={stageReason}
                 onChange={(e) => setStageReason(e.target.value)}
                 className="rounded-sm bg-background/50 resize-none h-20"
-                placeholder="Required — explain the reason for this stage change"
+                placeholder={
+                  stageVal === "Rejected"
+                    ? "Required — state the primary reason this deal is being dropped (e.g. Price mismatch, Owner unwilling to sell)"
+                    : stageVal === "On Hold"
+                    ? "Required — explain why the deal is being put on hold"
+                    : "Required — explain the reason for this stage change"
+                }
               />
               {stageVal && !stageReason.trim() && (
                 <p className="text-[10px] text-destructive font-mono">A reason is required to change stage.</p>
