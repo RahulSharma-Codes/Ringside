@@ -59,8 +59,10 @@ import type {
   GetAnalyticsOriginationParams,
   GetAnalyticsTimeInStageParams,
   GetAnalyticsWinLossParams,
+  GetDiligenceReviewParams,
   GetStageGateParams,
   GetTopPriorityTargetsParams,
+  GetWeeklyReviewParams,
   HealthStatus,
   IcCp,
   IcProposal,
@@ -2339,41 +2341,63 @@ export const useCreateDiligenceItem = <
 /**
  * @summary Pipeline-wide diligence review — blocked, overdue, completion by target, recently completed
  */
-export const getGetDiligenceReviewUrl = () => {
-  return `/api/diligence/review`;
+export const getGetDiligenceReviewUrl = (params?: GetDiligenceReviewParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/diligence/review?${stringifiedParams}`
+    : `/api/diligence/review`;
 };
 
 export const getDiligenceReview = async (
+  params?: GetDiligenceReviewParams,
   options?: RequestInit,
 ): Promise<DiligenceReviewResponse> => {
-  return customFetch<DiligenceReviewResponse>(getGetDiligenceReviewUrl(), {
-    ...options,
-    method: "GET",
-  });
+  return customFetch<DiligenceReviewResponse>(
+    getGetDiligenceReviewUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
 };
 
-export const getGetDiligenceReviewQueryKey = () => {
-  return [`/api/diligence/review`] as const;
+export const getGetDiligenceReviewQueryKey = (
+  params?: GetDiligenceReviewParams,
+) => {
+  return [`/api/diligence/review`, ...(params ? [params] : [])] as const;
 };
 
 export const getGetDiligenceReviewQueryOptions = <
   TData = Awaited<ReturnType<typeof getDiligenceReview>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getDiligenceReview>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: GetDiligenceReviewParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDiligenceReview>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetDiligenceReviewQueryKey();
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDiligenceReviewQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getDiligenceReview>>
-  > = ({ signal }) => getDiligenceReview({ signal, ...requestOptions });
+  > = ({ signal }) => getDiligenceReview(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getDiligenceReview>>,
@@ -2394,15 +2418,18 @@ export type GetDiligenceReviewQueryError = ErrorType<unknown>;
 export function useGetDiligenceReview<
   TData = Awaited<ReturnType<typeof getDiligenceReview>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getDiligenceReview>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetDiligenceReviewQueryOptions(options);
+>(
+  params?: GetDiligenceReviewParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDiligenceReview>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDiligenceReviewQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -5057,41 +5084,57 @@ export function useGetDocumentDownloadUrl<
 /**
  * @summary Weekly pipeline review — 8 sections computed server-side in one batch
  */
-export const getGetWeeklyReviewUrl = () => {
-  return `/api/review/weekly`;
+export const getGetWeeklyReviewUrl = (params?: GetWeeklyReviewParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/review/weekly?${stringifiedParams}`
+    : `/api/review/weekly`;
 };
 
 export const getWeeklyReview = async (
+  params?: GetWeeklyReviewParams,
   options?: RequestInit,
 ): Promise<WeeklyReviewResponse> => {
-  return customFetch<WeeklyReviewResponse>(getGetWeeklyReviewUrl(), {
+  return customFetch<WeeklyReviewResponse>(getGetWeeklyReviewUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getGetWeeklyReviewQueryKey = () => {
-  return [`/api/review/weekly`] as const;
+export const getGetWeeklyReviewQueryKey = (params?: GetWeeklyReviewParams) => {
+  return [`/api/review/weekly`, ...(params ? [params] : [])] as const;
 };
 
 export const getGetWeeklyReviewQueryOptions = <
   TData = Awaited<ReturnType<typeof getWeeklyReview>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getWeeklyReview>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: GetWeeklyReviewParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWeeklyReview>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetWeeklyReviewQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getGetWeeklyReviewQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getWeeklyReview>>> = ({
     signal,
-  }) => getWeeklyReview({ signal, ...requestOptions });
+  }) => getWeeklyReview(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getWeeklyReview>>,
@@ -5112,15 +5155,18 @@ export type GetWeeklyReviewQueryError = ErrorType<unknown>;
 export function useGetWeeklyReview<
   TData = Awaited<ReturnType<typeof getWeeklyReview>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getWeeklyReview>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetWeeklyReviewQueryOptions(options);
+>(
+  params?: GetWeeklyReviewParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWeeklyReview>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetWeeklyReviewQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

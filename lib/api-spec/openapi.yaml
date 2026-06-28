@@ -575,6 +575,12 @@ paths:
       operationId: getDiligenceReview
       tags: [diligence]
       summary: Pipeline-wide diligence review — blocked, overdue, completion by target, recently completed
+      parameters:
+        - name: dealType
+          in: query
+          required: false
+          schema:
+            type: string
       responses:
         "200":
           description: Diligence review data
@@ -1238,6 +1244,12 @@ paths:
       operationId: getWeeklyReview
       tags: [review]
       summary: Weekly pipeline review — 8 sections computed server-side in one batch
+      parameters:
+        - name: dealType
+          in: query
+          required: false
+          schema:
+            type: string
       responses:
         "200":
           description: Weekly review data

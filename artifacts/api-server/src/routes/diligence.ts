@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, isNotNull } from "drizzle-orm";
+import { eq, isNotNull, and } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { actionItemsTable, targetsTable, milestonesTable } from "@workspace/db";
 
@@ -23,11 +23,17 @@ function toDateString(value: Date | string | null | undefined): string | null {
   return String(value).slice(0, 10);
 }
 
-// GET /api/diligence/review — pipeline-wide diligence review
-router.get("/review", async (_req, res) => {
+// GET /api/diligence/review?dealType=<optional> — pipeline-wide diligence review
+router.get("/review", async (req, res) => {
+  const dealType = (req.query.dealType as string | undefined) || undefined;
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+
+  // Build target conditions
+  const targetConditions = [] as ReturnType<typeof eq>[];
+  if (dealType) targetConditions.push(eq(targetsTable.dealType, dealType));
 
   const [allItems, allTargets, allMilestones] = await Promise.all([
     db
@@ -51,8 +57,16 @@ router.get("/review", async (_req, res) => {
       .from(actionItemsTable)
       .leftJoin(targetsTable, eq(actionItemsTable.targetId, targetsTable.id))
       .leftJoin(milestonesTable, eq(milestonesTable.targetId, actionItemsTable.targetId))
-      .where(isNotNull(actionItemsTable.workstream)),
-    db.select().from(targetsTable),
+      .where(
+        and(
+          isNotNull(actionItemsTable.workstream),
+          ...(dealType ? [eq(targetsTable.dealType, dealType)] : []),
+        ),
+      ),
+    db
+      .select()
+      .from(targetsTable)
+      .where(targetConditions.length > 0 ? and(...targetConditions) : undefined),
     db.select().from(milestonesTable),
   ]);
 
@@ -67,7 +81,7 @@ router.get("/review", async (_req, res) => {
   const milestoneByTarget = new Map<number, (typeof allMilestones)[number]>();
   for (const m of allMilestones) milestoneByTarget.set(m.targetId, m);
 
-  // Include every active target, defaulting to empty items for those with none.
+  // Include every active target (matching deal type if filtered), defaulting to empty items for those with none.
   const activeTargets = allTargets.filter((t) => t.isActive !== false);
   const targetSummaries = activeTargets.map((target) => {
     const items = itemsByTarget.get(target.id) ?? [];

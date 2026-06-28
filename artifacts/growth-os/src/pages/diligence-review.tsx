@@ -1,15 +1,39 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useGetDiligenceReview } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
+import { customFetch } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   ClipboardCheck, AlertTriangle, Clock, CheckCircle2,
-  ChevronDown, ChevronRight, RefreshCw, ExternalLink,
+  ChevronDown, ChevronRight, RefreshCw, ExternalLink, Filter, X,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { StageChip } from "@/components/stage-chip";
+
+// ── URL query string helpers ───────────────────────────────────────────────
+
+function getUrlParam(key: string): string {
+  return new URLSearchParams(window.location.search).get(key) ?? "";
+}
+
+function setUrlParam(key: string, value: string) {
+  const params = new URLSearchParams(window.location.search);
+  if (value) {
+    params.set(key, value);
+  } else {
+    params.delete(key);
+  }
+  const newUrl = `${window.location.pathname}${params.toString() ? "?" + params.toString() : ""}`;
+  window.history.replaceState({}, "", newUrl);
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
 
 const WORKSTREAM_COLORS: Record<string, string> = {
   Commercial: "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -136,9 +160,29 @@ function EmptyState({ label }: { label: string }) {
   );
 }
 
+interface FiltersData {
+  dealTypes: string[];
+}
+
 export default function DiligenceReview() {
-  const { data, isLoading, refetch, isFetching } = useGetDiligenceReview();
+  const [dealTypeFilter, setDealTypeFilter] = useState(() => getUrlParam("dealType"));
   const [lastRefresh, setLastRefresh] = useState(() => new Date());
+
+  // Sync dealType filter to URL
+  useEffect(() => {
+    setUrlParam("dealType", dealTypeFilter);
+  }, [dealTypeFilter]);
+
+  const diligenceParams = dealTypeFilter ? { dealType: dealTypeFilter } : {};
+  const { data, isLoading, refetch, isFetching } = useGetDiligenceReview(diligenceParams);
+
+  // Fetch available deal types for the filter dropdown
+  const { data: filtersData } = useQuery({
+    queryKey: ["targets-filters"],
+    queryFn: () => customFetch<FiltersData>("/api/targets/filters"),
+    staleTime: 5 * 60 * 1000,
+  });
+  const availableDealTypes = filtersData?.dealTypes ?? [];
 
   const handleRefresh = () => {
     refetch();
@@ -169,6 +213,31 @@ export default function DiligenceReview() {
           >
             <RefreshCw size={11} className={isFetching ? "animate-spin" : ""} /> Refresh
           </Button>
+        </div>
+
+        {/* Deal-type filter bar */}
+        <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-border/40">
+          <Filter size={11} className="text-muted-foreground/50 shrink-0" />
+          <span className="text-[10px] font-mono text-muted-foreground/50 uppercase tracking-wider shrink-0">Deal Type</span>
+          <Select value={dealTypeFilter || "_all"} onValueChange={(v) => setDealTypeFilter(v === "_all" ? "" : v)}>
+            <SelectTrigger className="h-6 text-[10px] font-mono rounded-md border-border/60 bg-background w-[160px] px-2">
+              <SelectValue placeholder="All deal types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all" className="text-[11px] font-mono">All deal types</SelectItem>
+              {availableDealTypes.map((dt) => (
+                <SelectItem key={dt} value={dt} className="text-[11px] font-mono">{dt}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {dealTypeFilter && (
+            <button
+              onClick={() => setDealTypeFilter("")}
+              className="text-[10px] font-mono text-muted-foreground/60 hover:text-muted-foreground transition-colors flex items-center gap-1"
+            >
+              <X size={10} /> Clear
+            </button>
+          )}
         </div>
       </div>
 

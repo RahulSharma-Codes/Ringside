@@ -23,14 +23,16 @@ function toDateString(v: Date | string | null | undefined): string | null {
   return String(v).slice(0, 10);
 }
 
-// GET /api/review/weekly
+// GET /api/review/weekly?dealType=<optional>
 // Read-only. No schema changes. Uses existing tables only.
 // Limitations (per Phase 4A guardrails):
 //   - "Recently updated" uses targets.updatedAt which reflects the last PUT /targets/:id call.
 //   - "No recent interaction" guardrail: newly created targets (<30d) are never flagged.
 //   - "Recently completed" actions use completedAt; rows completed before that field was
 //     populated (completedAt IS NULL) are omitted from that bucket.
-router.get("/weekly", async (_req, res) => {
+router.get("/weekly", async (req, res) => {
+  const dealType = (req.query.dealType as string | undefined) || undefined;
+
   const now = new Date();
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
@@ -41,6 +43,10 @@ router.get("/weekly", async (_req, res) => {
   const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
   const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
   const fortyFiveDaysAgo = new Date(today.getTime() - 45 * 24 * 60 * 60 * 1000);
+
+  // Build target WHERE conditions
+  const targetConditions = [eq(targetsTable.isActive, true) as ReturnType<typeof eq>];
+  if (dealType) targetConditions.push(eq(targetsTable.dealType, dealType));
 
   // ── Batch all DB reads in parallel ──────────────────────────────────────
   const [targetsWithMilestones, allOpenActions, allInteractions, recentStageChangesRaw, allDiligenceItems] =
@@ -55,12 +61,13 @@ router.get("/weekly", async (_req, res) => {
           isActive: targetsTable.isActive,
           createdAt: targetsTable.createdAt,
           updatedAt: targetsTable.updatedAt,
+          dealType: targetsTable.dealType,
           currentStage: milestonesTable.currentStage,
           stageEnteredAt: milestonesTable.stageEnteredAt,
         })
         .from(targetsTable)
         .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id))
-        .where(eq(targetsTable.isActive, true)),
+        .where(and(...targetConditions)),
 
       // All open/in-progress/blocked actions with enriched target fields
       db
@@ -76,6 +83,7 @@ router.get("/weekly", async (_req, res) => {
           targetCode: targetsTable.targetCode,
           priorityTier: targetsTable.priorityTier,
           currentStage: milestonesTable.currentStage,
+          dealType: targetsTable.dealType,
         })
         .from(actionItemsTable)
         .leftJoin(targetsTable, eq(actionItemsTable.targetId, targetsTable.id))
@@ -84,6 +92,7 @@ router.get("/weekly", async (_req, res) => {
           and(
             inArray(actionItemsTable.status, ["Open", "In Progress", "Blocked"]),
             isNull(actionItemsTable.workstream),
+            ...(dealType ? [eq(targetsTable.dealType, dealType)] : []),
           ),
         ),
 
@@ -107,10 +116,16 @@ router.get("/weekly", async (_req, res) => {
           targetName: targetsTable.projectName,
           targetCode: targetsTable.targetCode,
           priorityTier: targetsTable.priorityTier,
+          dealType: targetsTable.dealType,
         })
         .from(stageChangeLogTable)
         .leftJoin(targetsTable, eq(stageChangeLogTable.targetId, targetsTable.id))
-        .where(gte(stageChangeLogTable.changedAt, sevenDaysAgo))
+        .where(
+          and(
+            gte(stageChangeLogTable.changedAt, sevenDaysAgo),
+            ...(dealType ? [eq(targetsTable.dealType, dealType)] : []),
+          ),
+        )
         .orderBy(desc(stageChangeLogTable.changedAt)),
 
       // Diligence items (actions with a workstream) for active targets
@@ -121,7 +136,13 @@ router.get("/weekly", async (_req, res) => {
         })
         .from(actionItemsTable)
         .leftJoin(targetsTable, eq(actionItemsTable.targetId, targetsTable.id))
-        .where(and(isNotNull(actionItemsTable.workstream), eq(targetsTable.isActive, true))),
+        .where(
+          and(
+            isNotNull(actionItemsTable.workstream),
+            eq(targetsTable.isActive, true),
+            ...(dealType ? [eq(targetsTable.dealType, dealType)] : []),
+          ),
+        ),
     ]);
 
   // ── Build lookup maps ────────────────────────────────────────────────────

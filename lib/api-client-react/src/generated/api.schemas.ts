@@ -1703,6 +1703,10 @@ export type GetStageGateParams = {
   newStage: string;
 };
 
+export type GetDiligenceReviewParams = {
+  dealType?: string;
+};
+
 export type GetAnalyticsFunnelParams = {
   dealType?: string;
   sector?: string;
@@ -1721,6 +1725,10 @@ export type GetAnalyticsWinLossParams = {
 export type GetAnalyticsOriginationParams = {
   dealType?: string;
   sector?: string;
+};
+
+export type GetWeeklyReviewParams = {
+  dealType?: string;
 };
 
 export type MarkNotificationRead200 = {

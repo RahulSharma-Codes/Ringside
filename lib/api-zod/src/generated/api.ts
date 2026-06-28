@@ -827,6 +827,10 @@ export const CreateDiligenceItemBody = zod.object({
 /**
  * @summary Pipeline-wide diligence review — blocked, overdue, completion by target, recently completed
  */
+export const GetDiligenceReviewQueryParams = zod.object({
+  dealType: zod.coerce.string().optional(),
+});
+
 export const GetDiligenceReviewResponse = zod.object({
   mustWinIncomplete: zod.array(
     zod.object({
@@ -1800,6 +1804,10 @@ export const GetDocumentDownloadUrlResponse = zod.object({
 /**
  * @summary Weekly pipeline review — 8 sections computed server-side in one batch
  */
+export const GetWeeklyReviewQueryParams = zod.object({
+  dealType: zod.coerce.string().optional(),
+});
+
 export const GetWeeklyReviewResponse = zod.object({
   mustWin: zod.array(
     zod.object({
