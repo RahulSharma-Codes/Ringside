@@ -8034,7 +8034,7 @@ export const useMarkAllNotificationsRead = <
  * @summary Get audit trail for a deal
  */
 export const getGetAuditTrailUrl = (id: number) => {
-  return `/api/api/audit/target/${id}`;
+  return `/api/audit/target/${id}`;
 };
 
 export const getAuditTrail = async (
@@ -8048,7 +8048,7 @@ export const getAuditTrail = async (
 };
 
 export const getGetAuditTrailQueryKey = (id: number) => {
-  return [`/api/api/audit/target/${id}`] as const;
+  return [`/api/audit/target/${id}`] as const;
 };
 
 export const getGetAuditTrailQueryOptions = <
@@ -8121,7 +8121,7 @@ export function useGetAuditTrail<
  * @summary Verify hash-chain integrity for a deal
  */
 export const getVerifyAuditChainUrl = (id: number) => {
-  return `/api/api/audit/verify/${id}`;
+  return `/api/audit/verify/${id}`;
 };
 
 export const verifyAuditChain = async (
@@ -8135,7 +8135,7 @@ export const verifyAuditChain = async (
 };
 
 export const getVerifyAuditChainQueryKey = (id: number) => {
-  return [`/api/api/audit/verify/${id}`] as const;
+  return [`/api/audit/verify/${id}`] as const;
 };
 
 export const getVerifyAuditChainQueryOptions = <

@@ -11,6 +11,7 @@ import {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE,
 } from "../lib/supabase-storage";
+import { writeAuditEvent } from "./audit";
 
 const router = Router();
 
@@ -226,6 +227,11 @@ router.get("/:id/download-url", async (req, res) => {
 
   try {
     const { signedUrl, expiresAt } = await getSignedUrl(doc.storagePath);
+    await writeAuditEvent("document_downloaded", doc.targetId, null, {
+      documentId: doc.id,
+      title: doc.title,
+      documentType: doc.documentType,
+    });
     return res.json({
       storageEnabled: true,
       signedUrl,

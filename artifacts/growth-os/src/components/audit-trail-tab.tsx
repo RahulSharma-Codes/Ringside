@@ -38,8 +38,9 @@ const EVENT_META: Record<string, { label: string; icon: React.ReactNode; color: 
   ic_vote_cast:                 { label: "IC Vote Cast",              icon: <Shield size={13} />,      color: "text-purple-400" },
   ic_decision_recorded:         { label: "IC Decision Recorded",      icon: <Shield size={13} />,      color: "text-purple-500" },
   ic_cp_satisfied:              { label: "IC Condition Satisfied",    icon: <CheckCircle2 size={13} />, color: "text-emerald-500" },
-  gate_overridden:              { label: "Gate Overridden",           icon: <AlertTriangle size={13} />, color: "text-amber-500" },
+  gate_overridden:              { label: "Gate Override",             icon: <AlertTriangle size={13} />, color: "text-amber-500" },
   document_uploaded:            { label: "Document Uploaded",         icon: <FileText size={13} />,    color: "text-blue-400" },
+  document_downloaded:          { label: "Document Downloaded",       icon: <FileText size={13} />,    color: "text-muted-foreground" },
   diligence_item_completed:     { label: "Diligence Item Completed",  icon: <CheckCircle2 size={13} />, color: "text-emerald-500" },
   action_created:               { label: "Action Created",            icon: <FileText size={13} />,    color: "text-muted-foreground" },
   action_completed:             { label: "Action Completed",          icon: <CheckCircle2 size={13} />, color: "text-emerald-500" },
@@ -47,6 +48,7 @@ const EVENT_META: Record<string, { label: string; icon: React.ReactNode; color: 
   regulatory_clearance_updated: { label: "Regulatory Clearance Updated", icon: <Shield size={13} />,  color: "text-blue-400" },
   valuation_recorded:           { label: "Valuation Recorded",        icon: <FileText size={13} />,    color: "text-emerald-400" },
   synergy_recorded:             { label: "Synergy Recorded",          icon: <FileText size={13} />,    color: "text-emerald-400" },
+  login:                        { label: "User Login",                icon: <Shield size={13} />,      color: "text-muted-foreground" },
 };
 
 function getEventMeta(eventType: string) {

@@ -3,6 +3,7 @@ import { eq, inArray, and, or, gte, isNotNull, isNull } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { actionItemsTable, targetsTable, milestonesTable } from "@workspace/db";
 import { UpdateActionBody } from "@workspace/api-zod";
+import { writeAuditEvent } from "./audit";
 
 const router = Router();
 
@@ -132,6 +133,11 @@ router.put("/:id", async (req, res) => {
   if (d.notes !== undefined) updates.notes = d.notes;
   if (d.evidenceLinks !== undefined) updates.evidenceLinks = d.evidenceLinks ?? null;
 
+  const [prevAction] = await db
+    .select({ status: actionItemsTable.status, workstream: actionItemsTable.workstream, description: actionItemsTable.description, targetId: actionItemsTable.targetId })
+    .from(actionItemsTable)
+    .where(eq(actionItemsTable.id, id));
+
   const [action] = await db
     .update(actionItemsTable)
     .set(updates)
@@ -139,6 +145,15 @@ router.put("/:id", async (req, res) => {
     .returning();
 
   if (!action) return res.status(404).json({ error: "Not found" });
+
+  if (d.status === "Completed" && prevAction && prevAction.status !== "Completed") {
+    const eventType = prevAction.workstream ? "diligence_item_completed" : "action_completed";
+    await writeAuditEvent(eventType, action.targetId, null, {
+      actionId: action.id,
+      description: action.description,
+      ...(action.workstream && { workstream: action.workstream }),
+    });
+  }
 
   return res.json({
     ...action,

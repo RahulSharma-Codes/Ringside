@@ -37,6 +37,8 @@ tags:
   - name: sponsors
   - name: compliance
     description: NDA register and regulatory clearance tracking
+  - name: audit
+    description: Tamper-evident append-only audit log with hash-chain verification
   - name: doctrine
     description: Learning loop — deal closure verdicts and accuracy analysis
 paths:
@@ -1888,7 +1890,7 @@ paths:
                     type: boolean
 
 
-  /api/audit/target/{id}:
+  /audit/target/{id}:
     get:
       operationId: getAuditTrail
       summary: Get audit trail for a deal
@@ -1909,7 +1911,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/AuditEvent"
 
-  /api/audit/verify/{id}:
+  /audit/verify/{id}:
     get:
       operationId: verifyAuditChain
       summary: Verify hash-chain integrity for a deal

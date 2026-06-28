@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import { icProposalsTable, icVotesTable, icCpsTable, milestonesTable } from "@workspace/db";
 import { z } from "zod";
 import { logger } from "../lib/logger";
+import { writeAuditEvent } from "./audit";
 
 const router = Router();
 
@@ -169,6 +170,11 @@ router.post("/targets/:id/ic-proposals", async (req, res) => {
     })
     .returning();
 
+  await writeAuditEvent("ic_proposal_submitted", targetId, body.submittedBy ?? null, {
+    proposalId: created!.id,
+    votingDeadline: created!.votingDeadline,
+  });
+
   return res.status(201).json(formatProposal(created!));
 });
 
@@ -257,6 +263,12 @@ router.post("/ic-votes/:id/cast", async (req, res) => {
     .where(eq(icVotesTable.id, voteId))
     .returning();
 
+  await writeAuditEvent("ic_vote_cast", proposal.targetId, voteRow.voterName, {
+    proposalId: voteRow.proposalId,
+    voteId: voteRow.id,
+    vote: body.vote,
+  });
+
   return res.json(formatVote(updated!));
 });
 
@@ -311,6 +323,13 @@ router.post("/ic-proposals/:id/resolve", async (req, res) => {
     .update(icProposalsTable)
     .set({ status: "Resolved", outcome, outcomeAt: now })
     .where(eq(icProposalsTable.id, id));
+
+  await writeAuditEvent("ic_decision_recorded", proposal.targetId, null, {
+    proposalId: id,
+    outcome,
+    totalVotes: votes.length,
+    votedCount: votes.filter((v) => v.castAt !== null).length,
+  });
 
   // ── Auto-create CP items from Approve-with-Conditions votes ───────────────
   if (outcome === "Approved with Conditions") {
@@ -399,6 +418,20 @@ router.put("/ic-cps/:cpId", async (req, res) => {
     .set(updates)
     .where(eq(icCpsTable.id, cpId))
     .returning();
+
+  if (body.status === "Closed" && existing.status !== "Closed") {
+    const [proposal] = await db
+      .select()
+      .from(icProposalsTable)
+      .where(eq(icProposalsTable.id, existing.proposalId));
+    if (proposal) {
+      await writeAuditEvent("ic_cp_satisfied", proposal.targetId, null, {
+        cpId,
+        description: existing.description,
+        proposalId: existing.proposalId,
+      });
+    }
+  }
 
   return res.json(formatCp(updated!));
 });

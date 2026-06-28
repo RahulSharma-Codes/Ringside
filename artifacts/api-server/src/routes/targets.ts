@@ -914,6 +914,11 @@ router.put("/:id", async (req, res) => {
     .from(milestonesTable)
     .where(eq(milestonesTable.targetId, id));
 
+  await writeAuditEvent("deal_updated", id, d.dealOwner ?? null, {
+    updatedFields: Object.keys(updates).filter((k) => k !== "updatedAt"),
+    projectName: target.projectName,
+  });
+
   return res.json(formatTarget(target, milestone ?? null));
 });
 
@@ -1073,6 +1078,22 @@ router.put("/:id/stage", async (req, res) => {
     },
   );
 
+  if (newStage === "Dropped") {
+    await writeAuditEvent("deal_dropped", id, parsed.data.changedBy ?? null, {
+      closeReasonCode: verdictUpdate.closeReasonCode ?? null,
+      phase1VerdictAccuracy: verdictUpdate.phase1VerdictAccuracy ?? null,
+      changeReason: parsed.data.changeReason ?? null,
+    });
+  }
+
+  if (gateWarnings.length > 0 && !isRevert) {
+    await writeAuditEvent("gate_overridden", id, parsed.data.changedBy ?? null, {
+      newStage,
+      unmetGates: gateWarnings,
+      changeReason: parsed.data.changeReason ?? null,
+    });
+  }
+
   return res.json({ ...formatTarget(updatedTarget, milestone), gateWarnings });
 });
 
@@ -1175,6 +1196,12 @@ router.post("/:id/actions", async (req, res) => {
     .update(targetsTable)
     .set({ updatedAt: now })
     .where(eq(targetsTable.id, targetId));
+
+  await writeAuditEvent("action_created", targetId, d.owner ?? null, {
+    actionId: action.id,
+    description: action.description,
+    priority: action.priority,
+  });
 
   return res.status(201).json(formatAction(action));
 });
@@ -1388,6 +1415,12 @@ router.post("/:id/documents", async (req, res) => {
       updatedAt: now,
     })
     .returning();
+  await writeAuditEvent("document_uploaded", targetId, d.owner ?? null, {
+    documentId: doc.id,
+    title: doc.title,
+    documentType: doc.documentType,
+  });
+
   return res.status(201).json({
     ...doc,
     documentDate: doc.documentDate ? String(doc.documentDate).slice(0, 10) : null,
@@ -1482,6 +1515,12 @@ router.post("/:id/ic-sessions", async (req, res) => {
       createdAt: now,
     })
     .returning();
+  await writeAuditEvent("ic_decision_recorded", targetId, d.attendees ?? null, {
+    sessionId: session.id,
+    outcome: session.outcome,
+    sessionDate: session.sessionDate,
+  });
+
   return res.status(201).json(formatIcSession(session));
 });
 
@@ -1553,6 +1592,14 @@ router.post("/:id/valuations", async (req, res) => {
       recordedAt: now,
     })
     .returning();
+  await writeAuditEvent("valuation_recorded", targetId, d.recordedBy ?? null, {
+    valuationId: row.id,
+    methodology: row.methodology,
+    valuePoint: row.valuePoint,
+    currency: row.currency,
+    version: row.version,
+  });
+
   return res.status(201).json(formatValuation(row));
 });
 
@@ -1627,6 +1674,13 @@ router.post("/:id/synergies", async (req, res) => {
       updatedAt: now,
     })
     .returning();
+  await writeAuditEvent("synergy_recorded", targetId, d.ownerName ?? null, {
+    synergyId: row.id,
+    type: row.type,
+    description: row.description,
+    confidence: row.confidence,
+    isDisynergy: row.isDisynergy,
+  });
   return res.status(201).json(formatSynergy(row));
 });
 
@@ -1775,6 +1829,13 @@ router.post("/:id/nda-records", async (req, res) => {
     .insert(ndaRecordsTable)
     .values({ targetId, ...parsed.data })
     .returning();
+  await writeAuditEvent("nda_recorded", targetId, null, {
+    ndaId: created.id,
+    counterparty: created.counterparty,
+    scope: created.scope,
+    effectiveDate: created.effectiveDate,
+    expiryDate: created.expiryDate,
+  });
   return res.status(201).json(created);
 });
 
@@ -1816,6 +1877,12 @@ router.post("/:id/regulatory-clearances", async (req, res) => {
     .insert(regulatoryClearancesTable)
     .values({ targetId, ...parsed.data })
     .returning();
+  await writeAuditEvent("regulatory_clearance_updated", targetId, created.ownerName ?? null, {
+    clearanceId: created.id,
+    category: created.category,
+    status: created.status,
+    description: created.description,
+  });
   return res.status(201).json(created);
 });
 

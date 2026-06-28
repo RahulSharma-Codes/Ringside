@@ -4,6 +4,7 @@ import { createHash, randomInt } from "crypto";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { db, usersTable, otpAttemptsTable, companiesTable, sessionBlocklistTable } from "@workspace/db";
+import { writeAuditEvent } from "./audit";
 
 const router = Router();
 
@@ -49,6 +50,7 @@ router.post("/login", async (req, res) => {
       .limit(1);
     if (user) {
       const token = issueJwt({ userId: user.id, companyId: company.id, email: user.email, role: user.role });
+      await writeAuditEvent("login", null, user.email, { method: "legacy-password", email: user.email });
       return res.json({ ok: true, token, user: { id: user.id, email: user.email, role: user.role, displayName: user.displayName } });
     }
     return res.json({ ok: true, token: null });
@@ -63,6 +65,7 @@ router.post("/login", async (req, res) => {
     const valid = await bcrypt.compare(suppliedPassword, user.passwordHash);
     if (!valid) return res.status(401).json({ error: "Invalid credentials." });
     const token = issueJwt({ userId: user.id, companyId: user.companyId, email: user.email, role: user.role });
+    await writeAuditEvent("login", null, user.email, { method: "password", email: user.email });
     return res.json({ ok: true, token, user: { id: user.id, email: user.email, role: user.role, displayName: user.displayName } });
   }
 
