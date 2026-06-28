@@ -5,15 +5,16 @@ import { Link } from "wouter";
 import { format, parseISO } from "date-fns";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip,
-  ResponsiveContainer, Legend, Cell,
+  ResponsiveContainer, Legend,
 } from "recharts";
 import {
-  Lightbulb, RefreshCw, ArrowRight,
+  Lightbulb, RefreshCw, ArrowRight, FileDown, Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import jsPDF from "jspdf";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -72,11 +73,332 @@ function stageColor(stage: string) {
   return "bg-muted text-muted-foreground border-border/50";
 }
 
+// ── PDF export ─────────────────────────────────────────────────────────────
+
+function buildDoctrinePdf(data: DoctrineSummary): jsPDF {
+  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const PAGE_W = 210;
+  const MARGIN = 16;
+  const CONTENT_W = PAGE_W - MARGIN * 2;
+  const generatedAt = format(new Date(), "d MMM yyyy, h:mm a");
+
+  // ── Fonts & helpers ──────────────────────────────────────────────────────
+  let y = MARGIN;
+
+  const checkPageBreak = (needed: number) => {
+    if (y + needed > 277) {
+      pdf.addPage();
+      y = MARGIN;
+      drawPageFooter();
+    }
+  };
+
+  const drawPageFooter = () => {
+    const totalPages = pdf.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(7);
+      pdf.setTextColor(160, 160, 160);
+      pdf.text(
+        `RINGSIDE — Doctrine Report · Generated ${generatedAt} · Page ${i} of ${totalPages}`,
+        MARGIN,
+        290,
+      );
+    }
+  };
+
+  // ── Cover header ────────────────────────────────────────────────────────
+  pdf.setFillColor(15, 15, 20);
+  pdf.rect(0, 0, PAGE_W, 38, "F");
+
+  pdf.setFontSize(18);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(255, 255, 255);
+  pdf.text("RINGSIDE", MARGIN, 16);
+
+  pdf.setFontSize(9);
+  pdf.setFont("helvetica", "normal");
+  pdf.setTextColor(200, 160, 80);
+  pdf.text("DOCTRINE REPORT", MARGIN, 23);
+
+  pdf.setFontSize(8);
+  pdf.setTextColor(140, 140, 140);
+  pdf.text(`Learning Loop · Phase 1 Accuracy & Deal Closure Analysis`, MARGIN, 30);
+  pdf.text(`Generated ${generatedAt}`, PAGE_W - MARGIN - pdf.getTextWidth(`Generated ${generatedAt}`), 30);
+
+  y = 50;
+
+  // ── Section heading helper ───────────────────────────────────────────────
+  const sectionHeading = (title: string) => {
+    checkPageBreak(14);
+    pdf.setFontSize(9);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(30, 30, 30);
+    pdf.text(title.toUpperCase(), MARGIN, y);
+    pdf.setDrawColor(220, 220, 220);
+    pdf.line(MARGIN, y + 2, MARGIN + CONTENT_W, y + 2);
+    y += 8;
+  };
+
+  // ── Table helpers ────────────────────────────────────────────────────────
+  const COL_HEAD_BG: [number, number, number] = [240, 240, 243];
+  const ROW_ALT_BG: [number, number, number] = [250, 250, 252];
+
+  const tableHeader = (cols: { label: string; w: number }[], startX: number) => {
+    checkPageBreak(8);
+    pdf.setFillColor(...COL_HEAD_BG);
+    pdf.rect(startX, y, CONTENT_W, 7, "F");
+    pdf.setFontSize(7.5);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(80, 80, 95);
+    let cx = startX + 2;
+    for (const col of cols) {
+      pdf.text(col.label, cx, y + 5);
+      cx += col.w;
+    }
+    y += 7;
+  };
+
+  const tableRow = (
+    values: string[],
+    cols: { w: number }[],
+    startX: number,
+    isAlt: boolean,
+    rowH = 7,
+    accent?: string,
+  ) => {
+    checkPageBreak(rowH);
+    if (isAlt) {
+      pdf.setFillColor(...ROW_ALT_BG);
+      pdf.rect(startX, y, CONTENT_W, rowH, "F");
+    }
+    pdf.setFontSize(7.5);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(40, 40, 50);
+    let cx = startX + 2;
+    for (let i = 0; i < values.length; i++) {
+      const val = values[i];
+      // Accent cell for accuracy (col 4 = index 3)
+      if (accent && i === 3) {
+        if (val === "Correct") pdf.setTextColor(5, 150, 105);
+        else if (val === "Partially-correct") pdf.setTextColor(180, 100, 0);
+        else if (val === "Wrong") pdf.setTextColor(220, 38, 38);
+        else pdf.setTextColor(40, 40, 50);
+      } else {
+        pdf.setTextColor(40, 40, 50);
+      }
+      // Truncate long strings
+      const maxW = cols[i].w - 4;
+      const truncated = pdf.getTextWidth(val) > maxW
+        ? val.slice(0, Math.floor(val.length * (maxW / pdf.getTextWidth(val)))) + "…"
+        : val;
+      pdf.text(truncated, cx, y + rowH * 0.62);
+      cx += cols[i].w;
+    }
+    y += rowH;
+  };
+
+  // ── Mini horizontal bar ─────────────────────────────────────────────────
+  const miniBar = (x: number, rowY: number, pct: number, w: number, h: number, colorR: number, colorG: number, colorB: number) => {
+    pdf.setFillColor(230, 230, 235);
+    pdf.roundedRect(x, rowY, w, h, 0.5, 0.5, "F");
+    if (pct > 0) {
+      pdf.setFillColor(colorR, colorG, colorB);
+      pdf.roundedRect(x, rowY, Math.max(w * pct, 1.5), h, 0.5, 0.5, "F");
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // 1 — PHASE 1 ACCURACY BY SECTOR
+  // ═══════════════════════════════════════════════════════════════════════
+  sectionHeading("Phase 1 Accuracy by Sector");
+
+  if (data.accuracyBySector.length === 0) {
+    pdf.setFontSize(8); pdf.setTextColor(130, 130, 140);
+    pdf.text("No accuracy data recorded yet.", MARGIN, y + 4);
+    y += 12;
+  } else {
+    const cols = [
+      { label: "Sector", w: 52 },
+      { label: "Correct", w: 24 },
+      { label: "Partial", w: 24 },
+      { label: "Wrong", w: 24 },
+      { label: "Total", w: 20 },
+      { label: "Accuracy Bar", w: CONTENT_W - 144 },
+    ];
+    tableHeader(cols, MARGIN);
+    data.accuracyBySector.forEach((s, i) => {
+      const pct = s.total > 0 ? s.correct / s.total : 0;
+      checkPageBreak(8);
+      if (i % 2 === 1) {
+        pdf.setFillColor(...ROW_ALT_BG);
+        pdf.rect(MARGIN, y, CONTENT_W, 7, "F");
+      }
+      pdf.setFontSize(7.5); pdf.setFont("helvetica", "normal"); pdf.setTextColor(40, 40, 50);
+      const vals = [s.sector, String(s.correct), String(s.partiallyCorrect), String(s.wrong), String(s.total)];
+      let cx = MARGIN + 2;
+      vals.forEach((v, vi) => {
+        const truncated = pdf.getTextWidth(v) > cols[vi].w - 4
+          ? v.slice(0, Math.floor(v.length * ((cols[vi].w - 4) / pdf.getTextWidth(v)))) + "…"
+          : v;
+        pdf.text(truncated, cx, y + 4.8);
+        cx += cols[vi].w;
+      });
+      // bar
+      const barX = MARGIN + 2 + cols.slice(0, 5).reduce((a, c) => a + c.w, 0);
+      const barW = cols[5].w - 6;
+      miniBar(barX, y + 1.5, pct, barW, 4, 5, 150, 105);
+      y += 7;
+    });
+    y += 4;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // 2 — WIN / LOSS BY SECTOR
+  // ═══════════════════════════════════════════════════════════════════════
+  checkPageBreak(20);
+  sectionHeading("Win / Loss by Sector");
+
+  if (data.winLossBySector.length === 0) {
+    pdf.setFontSize(8); pdf.setTextColor(130, 130, 140);
+    pdf.text("No closed deals recorded yet.", MARGIN, y + 4);
+    y += 12;
+  } else {
+    const cols = [
+      { label: "Sector", w: 60 },
+      { label: "Wins", w: 22 },
+      { label: "Losses", w: 22 },
+      { label: "Total", w: 22 },
+      { label: "Win Rate", w: 24 },
+      { label: "Win Bar", w: CONTENT_W - 150 },
+    ];
+    tableHeader(cols, MARGIN);
+    data.winLossBySector.forEach((s, i) => {
+      const pct = s.total > 0 ? s.wins / s.total : 0;
+      const winPct = Math.round(pct * 100);
+      checkPageBreak(8);
+      if (i % 2 === 1) {
+        pdf.setFillColor(...ROW_ALT_BG);
+        pdf.rect(MARGIN, y, CONTENT_W, 7, "F");
+      }
+      pdf.setFontSize(7.5); pdf.setFont("helvetica", "normal");
+      const vals = [s.sector, String(s.wins), String(s.losses), String(s.total), `${winPct}%`];
+      let cx = MARGIN + 2;
+      vals.forEach((v, vi) => {
+        if (vi === 4) {
+          pdf.setTextColor(winPct >= 60 ? 5 : winPct >= 40 ? 160 : 220, winPct >= 60 ? 150 : winPct >= 40 ? 100 : 38, winPct >= 60 ? 105 : 38);
+        } else {
+          pdf.setTextColor(40, 40, 50);
+        }
+        pdf.text(v, cx, y + 4.8);
+        cx += cols[vi].w;
+      });
+      const barX = MARGIN + 2 + cols.slice(0, 5).reduce((a, c) => a + c.w, 0);
+      const barW = cols[5].w - 6;
+      // Win (green) + loss overlay (red)
+      pdf.setFillColor(230, 230, 235);
+      pdf.roundedRect(barX, y + 1.5, barW, 4, 0.5, 0.5, "F");
+      if (pct > 0) {
+        pdf.setFillColor(5, 150, 105);
+        pdf.roundedRect(barX, y + 1.5, Math.max(barW * pct, 1.5), 4, 0.5, 0.5, "F");
+      }
+      y += 7;
+    });
+    y += 4;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // 3 — MOST COMMON MISS THEMES
+  // ═══════════════════════════════════════════════════════════════════════
+  checkPageBreak(20);
+  sectionHeading("Most Common Miss Themes");
+
+  if (data.missThemes.length === 0) {
+    pdf.setFontSize(8); pdf.setTextColor(130, 130, 140);
+    pdf.text("No miss themes tagged yet.", MARGIN, y + 4);
+    y += 12;
+  } else {
+    const maxCount = Math.max(...data.missThemes.map((t) => t.count), 1);
+    const cols = [
+      { label: "Theme", w: 80 },
+      { label: "Count", w: 20 },
+      { label: "Frequency Bar", w: CONTENT_W - 100 },
+    ];
+    tableHeader(cols, MARGIN);
+    data.missThemes.forEach((t, i) => {
+      const pct = t.count / maxCount;
+      checkPageBreak(8);
+      if (i % 2 === 1) {
+        pdf.setFillColor(...ROW_ALT_BG);
+        pdf.rect(MARGIN, y, CONTENT_W, 7, "F");
+      }
+      pdf.setFontSize(7.5); pdf.setFont("helvetica", "normal"); pdf.setTextColor(40, 40, 50);
+      pdf.text(t.theme, MARGIN + 2, y + 4.8);
+      pdf.text(String(t.count), MARGIN + 2 + 80, y + 4.8);
+      const barX = MARGIN + 2 + 100;
+      const barW = CONTENT_W - 104;
+      miniBar(barX, y + 1.5, pct, barW, 4, 99, 102, 241);
+      y += 7;
+    });
+    y += 4;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // 4 — RECENT CLOSURES
+  // ═══════════════════════════════════════════════════════════════════════
+  checkPageBreak(20);
+  sectionHeading("Recent Closures");
+
+  if (data.recentClosures.length === 0) {
+    pdf.setFontSize(8); pdf.setTextColor(130, 130, 140);
+    pdf.text("No closures recorded yet.", MARGIN, y + 4);
+    y += 12;
+  } else {
+    const cols = [
+      { label: "Deal", w: 48 },
+      { label: "Sector", w: 34 },
+      { label: "Stage", w: 22 },
+      { label: "Phase 1", w: 30 },
+      { label: "Close Reason", w: 36 },
+      { label: "Miss Theme", w: CONTENT_W - 170 },
+    ];
+    tableHeader(cols, MARGIN);
+    data.recentClosures.forEach((c, i) => {
+      const accuracy = c.phase1VerdictAccuracy ?? "—";
+      const row = [
+        c.projectName ?? c.targetCode,
+        c.sector ?? "—",
+        c.currentStage,
+        accuracy,
+        c.closeReasonCode ?? "—",
+        c.closeMissTheme ?? "—",
+      ];
+      tableRow(row, cols, MARGIN, i % 2 === 1, 7, "accent");
+
+      // If there's a note, add it as a sub-row
+      if (c.phase1VerdictNote) {
+        checkPageBreak(6);
+        pdf.setFontSize(6.5);
+        pdf.setFont("helvetica", "italic");
+        pdf.setTextColor(100, 100, 110);
+        const noteLines = pdf.splitTextToSize(`Note: ${c.phase1VerdictNote}`, CONTENT_W - 4);
+        pdf.text(noteLines.slice(0, 2), MARGIN + 2, y + 4);
+        y += Math.min(noteLines.length, 2) * 4 + 2;
+      }
+    });
+    y += 4;
+  }
+
+  drawPageFooter();
+  return pdf;
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function Doctrine() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [refreshedAt, setRefreshedAt] = useState(new Date());
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["doctrine-summary", refreshKey],
@@ -86,6 +408,18 @@ export default function Doctrine() {
   const handleRefresh = () => {
     setRefreshKey((k) => k + 1);
     setRefreshedAt(new Date());
+  };
+
+  const handleExportPdf = async () => {
+    if (!data || isExporting) return;
+    setIsExporting(true);
+    try {
+      await new Promise<void>((resolve) => setTimeout(resolve, 50)); // yield to paint loading state
+      const pdf = buildDoctrinePdf(data);
+      pdf.save(`ringside-doctrine-${format(new Date(), "yyyy-MM-dd")}.pdf`);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const chartData = (data?.accuracyBySector ?? []).map((s) => ({
@@ -114,16 +448,33 @@ export default function Doctrine() {
               refreshed {format(refreshedAt, "h:mm a")}
             </span>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-7 px-2.5 gap-1.5"
-            onClick={handleRefresh}
-            disabled={isLoading}
-          >
-            <RefreshCw size={11} className={isLoading ? "animate-spin" : ""} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-7 px-2.5 gap-1.5"
+              onClick={handleExportPdf}
+              disabled={isLoading || !data || isExporting}
+              title="Export as PDF"
+            >
+              {isExporting ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <FileDown size={11} />
+              )}
+              {isExporting ? "Exporting…" : "Export PDF"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-7 px-2.5 gap-1.5"
+              onClick={handleRefresh}
+              disabled={isLoading}
+            >
+              <RefreshCw size={11} className={isLoading ? "animate-spin" : ""} />
+              Refresh
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -240,7 +591,7 @@ export default function Doctrine() {
           </CardContent>
         </Card>
 
-        {/* Panel 3 — Most Common Miss Categories */}
+        {/* Panel 3 — Most Common Miss Themes */}
         <Card className="border-border/60 bg-card rounded-xl">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="font-mono uppercase tracking-tight text-sm">
@@ -277,7 +628,7 @@ export default function Doctrine() {
           </CardContent>
         </Card>
 
-        {/* Panel 3 — Recent Closures */}
+        {/* Panel 4 — Recent Closures */}
         <Card className="border-border/60 bg-card rounded-xl">
           <CardHeader className="pb-2 pt-4 px-4">
             <div className="flex items-center justify-between">
