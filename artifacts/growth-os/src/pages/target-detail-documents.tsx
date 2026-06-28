@@ -322,6 +322,66 @@ function DocModal({
   );
 }
 
+function RestrictedPreviewModal({
+  open,
+  onConfirm,
+  onCancel,
+  viewerIdentity,
+  classification,
+}: {
+  open: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+  viewerIdentity: string;
+  classification: string;
+}) {
+  const dateStr = format(new Date(), "d MMM yyyy HH:mm");
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onCancel(); }}>
+      <DialogContent className="sm:max-w-[440px] border-amber-500/40 bg-sidebar rounded-sm">
+        <DialogHeader>
+          <DialogTitle className="font-mono uppercase tracking-tight text-base text-amber-400 flex items-center gap-2">
+            <Lock size={14} /> Restricted Document
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          {/* Watermark preview area */}
+          <div className="relative rounded-sm border border-amber-500/30 bg-amber-500/5 p-6 overflow-hidden select-none">
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-10" aria-hidden="true">
+              <span className="font-mono font-bold uppercase tracking-widest text-amber-500 text-2xl rotate-[-30deg] whitespace-nowrap">
+                {classification.toUpperCase()}
+              </span>
+            </div>
+            <div className="relative z-10 space-y-1 text-center">
+              <p className="text-[11px] font-mono text-amber-400 font-semibold uppercase tracking-wide">{classification}</p>
+              <p className="text-[11px] font-mono text-muted-foreground">
+                Viewer: <span className="text-foreground">{viewerIdentity}</span>
+              </p>
+              <p className="text-[11px] font-mono text-muted-foreground">
+                Accessed: <span className="text-foreground">{dateStr}</span>
+              </p>
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            This document is <strong className="text-amber-400">{classification}</strong>. Access is logged.
+            Do not share or distribute outside authorised deal team members.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={onCancel}
+            className="rounded-sm font-mono text-[10px] uppercase border-border">
+            Cancel
+          </Button>
+          <Button size="sm" onClick={onConfirm}
+            className="rounded-sm font-mono text-[10px] uppercase bg-amber-600 hover:bg-amber-700 text-white border-0">
+            Continue — Open Document
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function DocCard({
   doc,
   onEdit,
@@ -335,12 +395,21 @@ function DocCard({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [opening, setOpening] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const pendingOpenRef = useRef<(() => Promise<void>) | null>(null);
 
   const hasFile = Boolean(doc.storagePath && doc.fileName);
   const hasUrl = Boolean(doc.url);
   const classification = (doc.classification ?? "Restricted") as Classification;
   const isHighlyRestricted = classification === "Highly-Restricted";
   const isRestricted = classification === "Restricted";
+
+  const viewerIdentity = (() => {
+    const pw = typeof window !== "undefined" ? window.localStorage.getItem(PASSWORD_KEY) : null;
+    if (!pw) return "Anonymous";
+    if (pw.length > 12) return pw.slice(0, 6) + "…" + pw.slice(-4);
+    return pw;
+  })();
 
   const handleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -397,15 +466,7 @@ function DocCard({
     [doc.id, hasFile, onInvalidate, toast],
   );
 
-  const handleOpen = useCallback(async () => {
-    if (isHighlyRestricted) {
-      toast({
-        title: "Access restricted",
-        description: "This document is Highly-Restricted. Contact the deal owner to request access.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const doActualOpen = useCallback(async () => {
     setOpening(true);
     try {
       const res = await fetch(`/api/documents/${doc.id}/download-url`, {
@@ -448,9 +509,28 @@ function DocCard({
     } finally {
       setOpening(false);
     }
-  }, [doc.id, isHighlyRestricted, toast]);
+  }, [doc.id, toast]);
+
+  const handleOpen = useCallback(async () => {
+    if (isHighlyRestricted) {
+      toast({
+        title: "Access restricted",
+        description: "This document is Highly-Restricted. Contact the deal owner to request access.",
+        variant: "destructive",
+      });
+      return;
+    }
+    // For Restricted / Internal docs: show the watermark preview modal before opening
+    if (isRestricted || classification === "Internal") {
+      pendingOpenRef.current = doActualOpen;
+      setPreviewOpen(true);
+      return;
+    }
+    await doActualOpen();
+  }, [doc.id, isHighlyRestricted, isRestricted, classification, doActualOpen, toast]);
 
   return (
+    <>
     <div
       className={`relative bg-card/30 border rounded-sm p-3 flex items-start gap-3 group transition-colors overflow-hidden
         ${isHighlyRestricted
@@ -459,21 +539,7 @@ function DocCard({
             ? "border-amber-500/20 hover:border-amber-500/40"
             : "border-border/60 hover:border-border"
         }`}
-      onContextMenu={isRestricted || isHighlyRestricted ? (e) => e.preventDefault() : undefined}
     >
-      {/* Watermark overlay for Restricted / Highly-Restricted */}
-      {(isRestricted || isHighlyRestricted) && (
-        <div
-          className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.04] select-none"
-          aria-hidden="true"
-        >
-          <span
-            className="font-mono font-bold uppercase tracking-widest text-foreground text-lg rotate-[-30deg] whitespace-nowrap"
-          >
-            {isHighlyRestricted ? "HIGHLY RESTRICTED" : "RESTRICTED"}
-          </span>
-        </div>
-      )}
 
       {statusIcon(doc.status)}
       <div className="flex-1 min-w-0">
@@ -528,19 +594,22 @@ function DocCard({
             </div>
 
             {hasFile && (
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <div
+                className="flex items-center gap-2 mt-2 flex-wrap"
+                onContextMenu={isRestricted || isHighlyRestricted ? (e) => e.preventDefault() : undefined}
+              >
                 <File size={10} className="text-primary/60 shrink-0" />
-                <span className="text-[10px] font-mono text-primary/80 truncate max-w-[200px]">{doc.fileName}</span>
+                <span className="text-[10px] font-mono text-primary/80 truncate max-w-[200px] select-none">{doc.fileName}</span>
                 {doc.fileSize != null && (
-                  <span className="text-[10px] font-mono text-muted-foreground">{formatBytes(doc.fileSize)}</span>
+                  <span className="text-[10px] font-mono text-muted-foreground select-none">{formatBytes(doc.fileSize)}</span>
                 )}
                 {doc.mimeType && (
-                  <span className="text-[10px] font-mono text-muted-foreground bg-muted/20 px-1 py-0.5 rounded-sm border border-border/30">
+                  <span className="text-[10px] font-mono text-muted-foreground bg-muted/20 px-1 py-0.5 rounded-sm border border-border/30 select-none">
                     {mimeLabel(doc.mimeType)}
                   </span>
                 )}
                 {doc.uploadedAt && (
-                  <span className="text-[10px] font-mono text-muted-foreground">
+                  <span className="text-[10px] font-mono text-muted-foreground select-none">
                     · uploaded {format(parseISO(doc.uploadedAt), "d MMM yyyy")}
                   </span>
                 )}
@@ -606,6 +675,23 @@ function DocCard({
         </div>
       </div>
     </div>
+    <RestrictedPreviewModal
+      open={previewOpen}
+      viewerIdentity={viewerIdentity}
+      classification={classification}
+      onConfirm={() => {
+        setPreviewOpen(false);
+        if (pendingOpenRef.current) {
+          void pendingOpenRef.current();
+          pendingOpenRef.current = null;
+        }
+      }}
+      onCancel={() => {
+        setPreviewOpen(false);
+        pendingOpenRef.current = null;
+      }}
+    />
+    </>
   );
 }
 

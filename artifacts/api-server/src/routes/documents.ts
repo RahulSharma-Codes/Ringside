@@ -208,13 +208,38 @@ router.get("/:id/download-url", async (req, res) => {
 
   if (!doc) return res.status(404).json({ error: "Not found" });
 
-  // Block downloads for Highly-Restricted documents
+  // For Highly-Restricted documents, allow only the deal owner to download.
+  // The requester identity comes from the Authorization bearer token.
   if (doc.classification === "Highly-Restricted") {
-    return res.status(403).json({
-      error: "Access restricted",
-      classification: "Highly-Restricted",
-      message: "This document is Highly-Restricted. Contact the deal owner to request access.",
-    });
+    const authHeader = req.headers.authorization ?? "";
+    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+    let isOwner = false;
+
+    if (bearerToken) {
+      // Fetch the target to get the deal owner
+      const [target] = await db
+        .select({ dealOwner: targetsTable.dealOwner })
+        .from(targetsTable)
+        .where(eq(targetsTable.id, doc.targetId))
+        .limit(1);
+
+      const dealOwner = (target?.dealOwner ?? "").trim().toLowerCase();
+      const docOwner = (doc.owner ?? "").trim().toLowerCase();
+      const requester = bearerToken.toLowerCase();
+
+      // Match against target dealOwner or document-level owner field
+      isOwner =
+        (dealOwner.length > 0 && (requester === dealOwner || requester.includes(dealOwner) || dealOwner.includes(requester))) ||
+        (docOwner.length > 0 && (requester === docOwner || requester.includes(docOwner) || docOwner.includes(requester)));
+    }
+
+    if (!isOwner) {
+      return res.status(403).json({
+        error: "Access restricted",
+        classification: "Highly-Restricted",
+        message: "This document is Highly-Restricted. Contact the deal owner to request access.",
+      });
+    }
   }
 
   if (!storageEnabled) {
