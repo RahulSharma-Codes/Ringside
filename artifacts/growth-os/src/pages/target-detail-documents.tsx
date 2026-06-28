@@ -405,10 +405,18 @@ function DocCard({
   const isRestricted = classification === "Restricted";
 
   const viewerIdentity = (() => {
-    const pw = typeof window !== "undefined" ? window.localStorage.getItem(PASSWORD_KEY) : null;
-    if (!pw) return "Anonymous";
-    if (pw.length > 12) return pw.slice(0, 6) + "…" + pw.slice(-4);
-    return pw;
+    const token = typeof window !== "undefined" ? window.localStorage.getItem(PASSWORD_KEY) : null;
+    if (!token) return "Anonymous";
+    try {
+      const parts = token.split(".");
+      if (parts.length === 3) {
+        const raw = parts[1]!.replace(/-/g, "+").replace(/_/g, "/");
+        const payload = JSON.parse(atob(raw)) as Record<string, unknown>;
+        if (typeof payload["email"] === "string") return payload["email"];
+        if (typeof payload["sub"] === "string") return payload["sub"];
+      }
+    } catch { /* not a JWT — fall through */ }
+    return "Authenticated User";
   })();
 
   const handleFileChange = useCallback(

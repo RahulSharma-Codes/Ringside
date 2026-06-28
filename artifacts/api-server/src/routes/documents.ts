@@ -209,20 +209,24 @@ router.get("/:id/download-url", async (req, res) => {
   if (!doc) return res.status(404).json({ error: "Not found" });
 
   // For Highly-Restricted documents, allow only the deal owner (or Admin role) to download.
-  // Requester identity comes from verified JWT claims set by the requireAppPassword middleware.
+  // Requester identity MUST come from verified JWT claims (req.jwtClaims).
+  // If no JWT identity is available (e.g. legacy shared-password session), access is denied —
+  // the download endpoint requires a per-user token to make an access-control decision.
   if (doc.classification === "Highly-Restricted") {
     const claims = req.jwtClaims;
 
-    // Legacy shared-password sessions have no jwtClaims — treat them as admin/allow.
-    // Real JWT sessions: Admin role always allowed; others must match target.dealOwner.
-    let isOwner = false;
-
     if (!claims) {
-      // Legacy shared-password auth — grant access (no per-user identity available)
-      isOwner = true;
-    } else if (claims.role === "Admin") {
-      isOwner = true;
-    } else {
+      // No verified identity — deny to enforce the classification policy.
+      return res.status(403).json({
+        error: "Access restricted",
+        classification: "Highly-Restricted",
+        message: "Highly-Restricted documents require a personal login. Please sign in with your email to access.",
+      });
+    }
+
+    let isOwner = claims.role === "Admin";
+
+    if (!isOwner) {
       // Verify the JWT email matches the target's dealOwner (strict, case-insensitive equality)
       const [target] = await db
         .select({ dealOwner: targetsTable.dealOwner })
