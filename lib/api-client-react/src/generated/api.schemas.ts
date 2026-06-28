@@ -466,6 +466,8 @@ export interface DealDocument {
   title: string;
   documentType: string;
   status: string;
+  /** Security tier: Public | Internal | Restricted | Highly-Restricted */
+  classification: string;
   owner?: string | null;
   documentDate?: string | null;
   url?: string | null;
@@ -484,6 +486,8 @@ export interface CreateDocumentBody {
   title: string;
   documentType?: string;
   status?: string;
+  /** Security tier: Public | Internal | Restricted | Highly-Restricted */
+  classification?: string;
   owner?: string | null;
   documentDate?: string | null;
   url?: string | null;
@@ -495,6 +499,8 @@ export interface UpdateDocumentBody {
   title?: string;
   documentType?: string;
   status?: string;
+  /** Security tier: Public | Internal | Restricted | Highly-Restricted */
+  classification?: string;
   owner?: string | null;
   documentDate?: string | null;
   url?: string | null;

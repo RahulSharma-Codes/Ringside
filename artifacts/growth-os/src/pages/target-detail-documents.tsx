@@ -23,7 +23,7 @@ import {
 import {
   Plus, ExternalLink, Pencil, FolderOpen,
   CheckCircle2, Clock, AlertCircle, FileText,
-  Upload, Download, File, Info,
+  Upload, Download, File, Info, Lock, ShieldAlert,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -52,10 +52,38 @@ function mimeLabel(mime: string): string {
 }
 
 const DOCUMENT_TYPES = [
-  "NDA", "CIM", "Financials", "Legal", "Tax",
-  "Integration", "Commercial", "Technical", "HR",
-  "Management Presentation", "Offer Letter", "Board / IC Material", "Other",
+  "Teaser",
+  "IM",
+  "Management Presentation",
+  "NDA",
+  "IOI",
+  "LOI",
+  "Term Sheet",
+  "IC Memo",
+  "Board Memo",
+  "Valuation Pack",
+  "Synergy Schedule",
+  "Integration Plan",
+  "DD Report",
+  "Commercial Contract",
+  "Definitive Agreement",
+  "CP Register",
+  "Closing Document",
+  "Post-close Report",
+  "Other",
 ] as const;
+
+const HIGHLY_RESTRICTED_TYPES = new Set(["IC Memo", "Definitive Agreement"]);
+
+const CLASSIFICATIONS = ["Public", "Internal", "Restricted", "Highly-Restricted"] as const;
+type Classification = typeof CLASSIFICATIONS[number];
+
+const CLASSIFICATION_COLORS: Record<Classification, string> = {
+  "Public":            "bg-muted/30 text-muted-foreground border-border/40",
+  "Internal":          "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  "Restricted":        "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  "Highly-Restricted": "bg-rose-500/10 text-rose-400 border-rose-500/20",
+};
 
 const DOCUMENT_STATUSES = [
   "Requested", "Received", "Under Review", "Reviewed", "Missing", "Not Applicable",
@@ -92,6 +120,7 @@ type DocForm = {
   title: string;
   documentType: string;
   status: string;
+  classification: string;
   owner: string;
   documentDate: string;
   url: string;
@@ -103,6 +132,7 @@ const BLANK_FORM: DocForm = {
   title: "",
   documentType: "Other",
   status: "Requested",
+  classification: "Restricted",
   owner: "",
   documentDate: "",
   url: "",
@@ -118,6 +148,21 @@ function statusIcon(status: string) {
   if (status === "Under Review" || status === "Received")
     return <Clock size={12} className="text-blue-400 shrink-0 mt-0.5" />;
   return <FileText size={12} className="text-muted-foreground shrink-0 mt-0.5" />;
+}
+
+function ClassificationBadge({ value }: { value: string }) {
+  const colorClass = CLASSIFICATION_COLORS[value as Classification] ?? "bg-muted/30 text-muted-foreground border-border/40";
+  return (
+    <Badge
+      variant="outline"
+      className={`text-[10px] font-mono px-1.5 py-0 rounded-sm border ${colorClass} flex items-center gap-1`}
+    >
+      {(value === "Restricted" || value === "Highly-Restricted") && (
+        <Lock size={8} className="shrink-0" />
+      )}
+      {value}
+    </Badge>
+  );
 }
 
 function DocModal({
@@ -138,11 +183,19 @@ function DocModal({
   const [form, setForm] = useState<DocForm>(initial);
   React.useEffect(() => { if (open) setForm(initial); }, [open]);
 
-  const set = (k: keyof DocForm, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const set = (k: keyof DocForm, v: string) =>
+    setForm((f) => {
+      const next = { ...f, [k]: v };
+      // Auto-classify IC Memo and Definitive Agreement as Highly-Restricted
+      if (k === "documentType" && HIGHLY_RESTRICTED_TYPES.has(v)) {
+        next.classification = "Highly-Restricted";
+      }
+      return next;
+    });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[540px] border-border bg-sidebar rounded-sm">
+      <DialogContent className="sm:max-w-[560px] border-border bg-sidebar rounded-sm">
         <DialogHeader>
           <DialogTitle className="font-mono uppercase tracking-tight text-base">{modalTitle}</DialogTitle>
         </DialogHeader>
@@ -178,6 +231,30 @@ function DocModal({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
+              <Label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Classification</Label>
+              <Select value={form.classification} onValueChange={(v) => set("classification", v)}>
+                <SelectTrigger className="rounded-sm bg-background/50 text-sm h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CLASSIFICATIONS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Workstream</Label>
+              <Select
+                value={form.workstream || "__none"}
+                onValueChange={(v) => set("workstream", v === "__none" ? "" : v)}
+              >
+                <SelectTrigger className="rounded-sm bg-background/50 text-sm h-9"><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">None</SelectItem>
+                  {WORKSTREAMS.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
               <Label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Owner</Label>
               <Input
                 value={form.owner}
@@ -196,30 +273,23 @@ function DocModal({
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Workstream</Label>
-              <Select
-                value={form.workstream || "__none"}
-                onValueChange={(v) => set("workstream", v === "__none" ? "" : v)}
-              >
-                <SelectTrigger className="rounded-sm bg-background/50 text-sm h-9"><SelectValue placeholder="None" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none">None</SelectItem>
-                  {WORKSTREAMS.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">External URL / Link</Label>
-              <Input
-                value={form.url}
-                onChange={(e) => set("url", e.target.value)}
-                className="rounded-sm bg-background/50 text-sm"
-                placeholder="https://..."
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">External URL / Link</Label>
+            <Input
+              value={form.url}
+              onChange={(e) => set("url", e.target.value)}
+              className="rounded-sm bg-background/50 text-sm"
+              placeholder="https://..."
+            />
           </div>
+          {form.classification === "Highly-Restricted" && (
+            <div className="rounded-sm border border-rose-500/30 bg-rose-500/5 p-2.5 flex items-start gap-2">
+              <ShieldAlert size={12} className="text-rose-400 shrink-0 mt-0.5" />
+              <p className="text-[10px] text-rose-400 leading-relaxed">
+                <strong>Highly-Restricted</strong> — direct downloads are blocked. Deal owner access only.
+              </p>
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Notes</Label>
             <Textarea
@@ -268,6 +338,9 @@ function DocCard({
 
   const hasFile = Boolean(doc.storagePath && doc.fileName);
   const hasUrl = Boolean(doc.url);
+  const classification = (doc.classification ?? "Restricted") as Classification;
+  const isHighlyRestricted = classification === "Highly-Restricted";
+  const isRestricted = classification === "Restricted";
 
   const handleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -325,11 +398,28 @@ function DocCard({
   );
 
   const handleOpen = useCallback(async () => {
+    if (isHighlyRestricted) {
+      toast({
+        title: "Access restricted",
+        description: "This document is Highly-Restricted. Contact the deal owner to request access.",
+        variant: "destructive",
+      });
+      return;
+    }
     setOpening(true);
     try {
       const res = await fetch(`/api/documents/${doc.id}/download-url`, {
         headers: authHeaders(),
       });
+
+      if (res.status === 403) {
+        toast({
+          title: "Access restricted",
+          description: "This document is Highly-Restricted. Contact the deal owner to request access.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       if (!res.ok) {
         toast({ title: "Could not get download link", variant: "destructive" });
@@ -358,17 +448,40 @@ function DocCard({
     } finally {
       setOpening(false);
     }
-  }, [doc.id, toast]);
+  }, [doc.id, isHighlyRestricted, toast]);
 
   return (
-    <div className="bg-card/30 border border-border/60 rounded-sm p-3 flex items-start gap-3 group hover:border-border transition-colors">
+    <div
+      className={`relative bg-card/30 border rounded-sm p-3 flex items-start gap-3 group transition-colors overflow-hidden
+        ${isHighlyRestricted
+          ? "border-rose-500/30 hover:border-rose-500/50"
+          : isRestricted
+            ? "border-amber-500/20 hover:border-amber-500/40"
+            : "border-border/60 hover:border-border"
+        }`}
+      onContextMenu={isRestricted || isHighlyRestricted ? (e) => e.preventDefault() : undefined}
+    >
+      {/* Watermark overlay for Restricted / Highly-Restricted */}
+      {(isRestricted || isHighlyRestricted) && (
+        <div
+          className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.04] select-none"
+          aria-hidden="true"
+        >
+          <span
+            className="font-mono font-bold uppercase tracking-widest text-foreground text-lg rotate-[-30deg] whitespace-nowrap"
+          >
+            {isHighlyRestricted ? "HIGHLY RESTRICTED" : "RESTRICTED"}
+          </span>
+        </div>
+      )}
+
       {statusIcon(doc.status)}
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-mono text-[12px] text-foreground">{doc.title}</span>
-              {hasUrl && (
+              {hasUrl && !isHighlyRestricted && (
                 <a
                   href={doc.url!}
                   target="_blank"
@@ -379,6 +492,9 @@ function DocCard({
                 >
                   <ExternalLink size={11} />
                 </a>
+              )}
+              {isHighlyRestricted && (
+                <Lock size={10} className="text-rose-400 shrink-0" />
               )}
             </div>
 
@@ -392,6 +508,7 @@ function DocCard({
               <span className="text-[10px] font-mono text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded-sm border border-border/40">
                 {doc.documentType}
               </span>
+              <ClassificationBadge value={classification} />
               {doc.workstream && (
                 <Badge
                   variant="outline"
@@ -435,18 +552,29 @@ function DocCard({
             )}
 
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              {hasFile && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-6 rounded-sm font-mono text-[10px] uppercase border-border/60 px-2"
-                  onClick={handleOpen}
-                  disabled={opening}
-                >
-                  <Download size={10} className="mr-1" />
-                  {opening ? "Opening..." : "Open File"}
-                </Button>
+              {/* Highly-Restricted: show "Request Access" notice instead of download */}
+              {isHighlyRestricted ? (
+                <div className="flex items-center gap-1.5 rounded-sm border border-rose-500/30 bg-rose-500/5 px-2 py-1">
+                  <Lock size={9} className="text-rose-400" />
+                  <span className="text-[10px] font-mono text-rose-400">
+                    Highly-Restricted — contact deal owner to access
+                  </span>
+                </div>
+              ) : (
+                hasFile && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 rounded-sm font-mono text-[10px] uppercase border-border/60 px-2"
+                    onClick={handleOpen}
+                    disabled={opening}
+                  >
+                    <Download size={10} className="mr-1" />
+                    {opening ? "Opening..." : "Open File"}
+                  </Button>
+                )
               )}
+              {/* Upload allowed regardless of classification (admins manage classification) */}
               <Button
                 variant="outline"
                 size="sm"
@@ -511,6 +639,7 @@ export function DocumentsTab({ targetId }: { targetId: number }) {
   const missing  = docs?.filter((d) => d.status === "Missing" || d.status === "Requested").length ?? 0;
   const inFlight = docs?.filter((d) => d.status === "Received" || d.status === "Under Review").length ?? 0;
   const reviewed = docs?.filter((d) => d.status === "Reviewed").length ?? 0;
+  const highlyRestricted = docs?.filter((d) => d.classification === "Highly-Restricted").length ?? 0;
 
   const handleAdd = (form: DocForm) => {
     createDoc.mutate(
@@ -520,6 +649,7 @@ export function DocumentsTab({ targetId }: { targetId: number }) {
           title: form.title,
           documentType: form.documentType || "Other",
           status: form.status || "Requested",
+          classification: form.classification || "Restricted",
           owner: form.owner || null,
           documentDate: form.documentDate || null,
           url: form.url || null,
@@ -543,6 +673,7 @@ export function DocumentsTab({ targetId }: { targetId: number }) {
           title: form.title,
           documentType: form.documentType || undefined,
           status: form.status || undefined,
+          classification: form.classification || undefined,
           owner: form.owner || null,
           documentDate: form.documentDate || null,
           url: form.url || null,
@@ -589,16 +720,26 @@ export function DocumentsTab({ targetId }: { targetId: number }) {
       {!isLoading && total > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {[
-            { label: "Total",               value: total,    color: "text-foreground" },
-            { label: "Missing / Requested", value: missing,  color: missing  > 0 ? "text-rose-400" : "text-muted-foreground" },
-            { label: "In Flight",           value: inFlight, color: inFlight > 0 ? "text-blue-400" : "text-muted-foreground" },
-            { label: "Reviewed",            value: reviewed, color: reviewed > 0 ? "text-emerald-400" : "text-muted-foreground" },
+            { label: "Total",               value: total,             color: "text-foreground" },
+            { label: "Missing / Requested", value: missing,           color: missing          > 0 ? "text-rose-400" : "text-muted-foreground" },
+            { label: "In Flight",           value: inFlight,          color: inFlight         > 0 ? "text-blue-400" : "text-muted-foreground" },
+            { label: "Reviewed",            value: reviewed,          color: reviewed         > 0 ? "text-emerald-400" : "text-muted-foreground" },
           ].map(({ label, value, color }) => (
             <Card key={label} className="bg-card/30 border-border/50 rounded-sm p-3 text-center">
               <div className={`text-xl font-mono font-semibold ${color}`}>{value}</div>
               <div className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground mt-0.5">{label}</div>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Highly-Restricted alert banner */}
+      {!isLoading && highlyRestricted > 0 && (
+        <div className="rounded-sm border border-rose-500/30 bg-rose-500/5 p-2.5 flex items-center gap-2">
+          <ShieldAlert size={12} className="text-rose-400 shrink-0" />
+          <p className="text-[11px] font-mono text-rose-400">
+            {highlyRestricted} Highly-Restricted document{highlyRestricted > 1 ? "s" : ""} in this vault — downloads blocked. Contact deal owner for access.
+          </p>
         </div>
       )}
 
@@ -666,14 +807,15 @@ export function DocumentsTab({ targetId }: { targetId: number }) {
         initial={
           editDoc
             ? {
-                title:        editDoc.title,
-                documentType: editDoc.documentType,
-                status:       editDoc.status,
-                owner:        editDoc.owner ?? "",
-                documentDate: editDoc.documentDate ?? "",
-                url:          editDoc.url ?? "",
-                workstream:   editDoc.workstream ?? "",
-                notes:        editDoc.notes ?? "",
+                title:          editDoc.title,
+                documentType:   editDoc.documentType,
+                status:         editDoc.status,
+                classification: editDoc.classification ?? "Restricted",
+                owner:          editDoc.owner ?? "",
+                documentDate:   editDoc.documentDate ?? "",
+                url:            editDoc.url ?? "",
+                workstream:     editDoc.workstream ?? "",
+                notes:          editDoc.notes ?? "",
               }
             : BLANK_FORM
         }

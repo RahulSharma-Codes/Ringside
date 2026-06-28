@@ -391,6 +391,8 @@ async function applyMigrations(): Promise<void> {
     )
   `);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS notifications_is_read_idx ON notifications(is_read)`);
+  // Add classification column to deal_documents (Task #76)
+  await db.execute(sql`ALTER TABLE deal_documents ADD COLUMN IF NOT EXISTS classification text NOT NULL DEFAULT 'Restricted'`);
   // Create audit_events table (append-only — no UPDATE/DELETE routes exposed)
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS audit_events (

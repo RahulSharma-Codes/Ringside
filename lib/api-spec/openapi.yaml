@@ -3048,6 +3048,10 @@ components:
           type: string
         status:
           type: string
+        classification:
+          type: string
+          description: "Security tier: Public | Internal | Restricted | Highly-Restricted"
+          default: Restricted
         owner:
           type: string
           nullable: true
@@ -3086,7 +3090,7 @@ components:
         updatedAt:
           type: string
           format: date-time
-      required: [id, targetId, title, documentType, status, createdAt, updatedAt]
+      required: [id, targetId, title, documentType, status, classification, createdAt, updatedAt]
 
     CreateDocumentBody:
       type: object
@@ -3099,6 +3103,10 @@ components:
         status:
           type: string
           default: Requested
+        classification:
+          type: string
+          description: "Security tier: Public | Internal | Restricted | Highly-Restricted"
+          default: Restricted
         owner:
           type: string
           nullable: true
@@ -3126,6 +3134,9 @@ components:
           type: string
         status:
           type: string
+        classification:
+          type: string
+          description: "Security tier: Public | Internal | Restricted | Highly-Restricted"
         owner:
           type: string
           nullable: true

@@ -1379,10 +1379,13 @@ router.get("/:id/documents", async (req, res) => {
   );
 });
 
+const HIGHLY_RESTRICTED_DOC_TYPES = new Set(["IC Memo", "Definitive Agreement"]);
+
 const CreateDocumentBodySchema = z.object({
   title: z.string().min(1),
   documentType: z.string().optional(),
   status: z.string().optional(),
+  classification: z.string().optional(),
   owner: z.string().nullable().optional(),
   documentDate: z.string().nullable().optional(),
   url: z.string().nullable().optional(),
@@ -1398,14 +1401,20 @@ router.post("/:id/documents", async (req, res) => {
     return res.status(400).json({ error: parsed.error.flatten() });
   }
   const d = parsed.data;
+  const docType = d.documentType ?? "Other";
+  // Auto-classify IC Memo and Definitive Agreement as Highly-Restricted
+  const defaultClassification = HIGHLY_RESTRICTED_DOC_TYPES.has(docType)
+    ? "Highly-Restricted"
+    : "Restricted";
   const now = new Date();
   const [doc] = await db
     .insert(dealDocumentsTable)
     .values({
       targetId,
       title: d.title,
-      documentType: d.documentType ?? "Other",
+      documentType: docType,
       status: d.status ?? "Requested",
+      classification: d.classification ?? defaultClassification,
       owner: d.owner ?? null,
       documentDate: d.documentDate ?? null,
       url: d.url ?? null,

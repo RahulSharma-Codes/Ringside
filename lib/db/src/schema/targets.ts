@@ -166,6 +166,7 @@ export const dealDocumentsTable = pgTable("deal_documents", {
   title: text("title").notNull(),
   documentType: text("document_type").notNull().default("Other"),
   status: text("status").notNull().default("Requested"),
+  classification: text("classification").notNull().default("Restricted"),
   owner: text("owner"),
   documentDate: date("document_date"),
   url: text("url"),

@@ -67,6 +67,7 @@ const UpdateDocSchema = z.object({
   title: z.string().min(1).optional(),
   documentType: z.string().optional(),
   status: z.string().optional(),
+  classification: z.string().optional(),
   owner: z.string().nullable().optional(),
   documentDate: z.string().nullable().optional(),
   url: z.string().nullable().optional(),
@@ -207,12 +208,22 @@ router.get("/:id/download-url", async (req, res) => {
 
   if (!doc) return res.status(404).json({ error: "Not found" });
 
+  // Block downloads for Highly-Restricted documents
+  if (doc.classification === "Highly-Restricted") {
+    return res.status(403).json({
+      error: "Access restricted",
+      classification: "Highly-Restricted",
+      message: "This document is Highly-Restricted. Contact the deal owner to request access.",
+    });
+  }
+
   if (!storageEnabled) {
     return res.json({
       storageEnabled: false,
       signedUrl: null,
       expiresAt: null,
       fileName: doc.fileName ?? null,
+      classification: doc.classification ?? "Restricted",
     });
   }
 
@@ -222,6 +233,7 @@ router.get("/:id/download-url", async (req, res) => {
       signedUrl: null,
       expiresAt: null,
       fileName: doc.fileName ?? null,
+      classification: doc.classification ?? "Restricted",
     });
   }
 
@@ -237,6 +249,7 @@ router.get("/:id/download-url", async (req, res) => {
       signedUrl,
       expiresAt,
       fileName: doc.fileName ?? null,
+      classification: doc.classification ?? "Restricted",
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
@@ -366,6 +379,7 @@ router.put("/:id", async (req, res) => {
       ...(d.title !== undefined ? { title: d.title } : {}),
       ...(d.documentType !== undefined ? { documentType: d.documentType } : {}),
       ...(d.status !== undefined ? { status: d.status } : {}),
+      ...(d.classification !== undefined ? { classification: d.classification } : {}),
       ...(d.owner !== undefined ? { owner: d.owner } : {}),
       ...(d.documentDate !== undefined ? { documentDate: d.documentDate ?? null } : {}),
       ...(d.url !== undefined ? { url: d.url ?? null } : {}),

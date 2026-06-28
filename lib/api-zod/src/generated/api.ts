@@ -1581,12 +1581,20 @@ export const ListDocumentsParams = zod.object({
   id: zod.coerce.number(),
 });
 
+export const listDocumentsResponseClassificationDefault = `Restricted`;
+
 export const ListDocumentsResponseItem = zod.object({
   id: zod.number(),
   targetId: zod.number(),
   title: zod.string(),
   documentType: zod.string(),
   status: zod.string(),
+  classification: zod
+    .string()
+    .default(listDocumentsResponseClassificationDefault)
+    .describe(
+      "Security tier: Public | Internal | Restricted | Highly-Restricted",
+    ),
   owner: zod.string().nullish(),
   documentDate: zod.string().nullish(),
   url: zod.string().nullish(),
@@ -1611,11 +1619,18 @@ export const CreateDocumentParams = zod.object({
 
 export const createDocumentBodyDocumentTypeDefault = `Other`;
 export const createDocumentBodyStatusDefault = `Requested`;
+export const createDocumentBodyClassificationDefault = `Restricted`;
 
 export const CreateDocumentBody = zod.object({
   title: zod.string(),
   documentType: zod.string().default(createDocumentBodyDocumentTypeDefault),
   status: zod.string().default(createDocumentBodyStatusDefault),
+  classification: zod
+    .string()
+    .default(createDocumentBodyClassificationDefault)
+    .describe(
+      "Security tier: Public | Internal | Restricted | Highly-Restricted",
+    ),
   owner: zod.string().nullish(),
   documentDate: zod.coerce.date().nullish(),
   url: zod.string().nullish(),
@@ -1760,6 +1775,12 @@ export const UpdateDocumentBody = zod.object({
   title: zod.string().optional(),
   documentType: zod.string().optional(),
   status: zod.string().optional(),
+  classification: zod
+    .string()
+    .optional()
+    .describe(
+      "Security tier: Public | Internal | Restricted | Highly-Restricted",
+    ),
   owner: zod.string().nullish(),
   documentDate: zod.coerce.date().nullish(),
   url: zod.string().nullish(),
@@ -1767,12 +1788,20 @@ export const UpdateDocumentBody = zod.object({
   notes: zod.string().nullish(),
 });
 
+export const updateDocumentResponseClassificationDefault = `Restricted`;
+
 export const UpdateDocumentResponse = zod.object({
   id: zod.number(),
   targetId: zod.number(),
   title: zod.string(),
   documentType: zod.string(),
   status: zod.string(),
+  classification: zod
+    .string()
+    .default(updateDocumentResponseClassificationDefault)
+    .describe(
+      "Security tier: Public | Internal | Restricted | Highly-Restricted",
+    ),
   owner: zod.string().nullish(),
   documentDate: zod.string().nullish(),
   url: zod.string().nullish(),
