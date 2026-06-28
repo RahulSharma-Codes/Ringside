@@ -4937,9 +4937,30 @@ components:
         total:
           type: integer
 
+    AccuracyByPeriod:
+      type: object
+      required: [period, periodStart, total, correct, partiallyCorrect, wrong, accuracyPct]
+      properties:
+        period:
+          type: string
+          description: Human-readable label e.g. "Q2 2025" or "Jun 2025"
+        periodStart:
+          type: string
+          description: ISO 8601 date of the first day of the period (for sorting/filtering)
+        total:
+          type: integer
+        correct:
+          type: integer
+        partiallyCorrect:
+          type: integer
+        wrong:
+          type: integer
+        accuracyPct:
+          type: number
+          description: Percentage of correct verdicts (0–100)
     DoctrineSummary:
       type: object
-      required: [accuracyBySector, missThemes, winLossBySector, recentClosures]
+      required: [accuracyBySector, missThemes, winLossBySector, recentClosures, accuracyByQuarter, accuracyByMonth]
       properties:
         accuracyBySector:
           type: array
@@ -4957,3 +4978,13 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ClosureSummary"
+        accuracyByQuarter:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccuracyByPeriod"
+          description: Phase 1 accuracy % bucketed by quarter (chronological)
+        accuracyByMonth:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccuracyByPeriod"
+          description: Phase 1 accuracy % bucketed by calendar month (chronological)

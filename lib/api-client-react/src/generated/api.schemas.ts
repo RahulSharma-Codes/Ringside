@@ -1682,11 +1682,28 @@ export interface WinLossSector {
   total: number;
 }
 
+export interface AccuracyByPeriod {
+  /** Human-readable label e.g. "Q2 2025" or "Jun 2025" */
+  period: string;
+  /** ISO 8601 date of the first day of the period (for sorting/filtering) */
+  periodStart: string;
+  total: number;
+  correct: number;
+  partiallyCorrect: number;
+  wrong: number;
+  /** Percentage of correct verdicts (0–100) */
+  accuracyPct: number;
+}
+
 export interface DoctrineSummary {
   accuracyBySector: SectorAccuracy[];
   missThemes: MissTheme[];
   winLossBySector: WinLossSector[];
   recentClosures: ClosureSummary[];
+  /** Phase 1 accuracy % bucketed by quarter (chronological) */
+  accuracyByQuarter: AccuracyByPeriod[];
+  /** Phase 1 accuracy % bucketed by calendar month (chronological) */
+  accuracyByMonth: AccuracyByPeriod[];
 }
 
 export type ListTargetsParams = {

@@ -2952,4 +2952,46 @@ export const GetDoctrineSummaryResponse = zod.object({
       updatedAt: zod.string().nullish(),
     }),
   ),
+  accuracyByQuarter: zod
+    .array(
+      zod.object({
+        period: zod
+          .string()
+          .describe('Human-readable label e.g. \"Q2 2025\" or \"Jun 2025\"'),
+        periodStart: zod
+          .string()
+          .describe(
+            "ISO 8601 date of the first day of the period (for sorting\/filtering)",
+          ),
+        total: zod.number(),
+        correct: zod.number(),
+        partiallyCorrect: zod.number(),
+        wrong: zod.number(),
+        accuracyPct: zod
+          .number()
+          .describe("Percentage of correct verdicts (0–100)"),
+      }),
+    )
+    .describe("Phase 1 accuracy % bucketed by quarter (chronological)"),
+  accuracyByMonth: zod
+    .array(
+      zod.object({
+        period: zod
+          .string()
+          .describe('Human-readable label e.g. \"Q2 2025\" or \"Jun 2025\"'),
+        periodStart: zod
+          .string()
+          .describe(
+            "ISO 8601 date of the first day of the period (for sorting\/filtering)",
+          ),
+        total: zod.number(),
+        correct: zod.number(),
+        partiallyCorrect: zod.number(),
+        wrong: zod.number(),
+        accuracyPct: zod
+          .number()
+          .describe("Percentage of correct verdicts (0–100)"),
+      }),
+    )
+    .describe("Phase 1 accuracy % bucketed by calendar month (chronological)"),
 });

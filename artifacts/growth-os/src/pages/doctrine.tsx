@@ -6,6 +6,8 @@ import { format, parseISO } from "date-fns";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip,
   ResponsiveContainer, Legend,
+  LineChart, Line, ReferenceLine,
+  CartesianGrid,
 } from "recharts";
 import {
   Lightbulb, RefreshCw, ArrowRight, FileDown, Loader2,
@@ -51,11 +53,23 @@ interface WinLossSector {
   total: number;
 }
 
+interface AccuracyByPeriod {
+  period: string;
+  periodStart: string;
+  total: number;
+  correct: number;
+  partiallyCorrect: number;
+  wrong: number;
+  accuracyPct: number;
+}
+
 interface DoctrineSummary {
   accuracyBySector: SectorAccuracy[];
   missThemes: MissTheme[];
   winLossBySector: WinLossSector[];
   recentClosures: ClosureSummary[];
+  accuracyByQuarter: AccuracyByPeriod[];
+  accuracyByMonth: AccuracyByPeriod[];
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -399,6 +413,8 @@ export default function Doctrine() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [refreshedAt, setRefreshedAt] = useState(new Date());
   const [isExporting, setIsExporting] = useState(false);
+  const [granularity, setGranularity] = useState<"quarter" | "month">("quarter");
+  const [rolling90, setRolling90] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["doctrine-summary", refreshKey],
@@ -429,6 +445,14 @@ export default function Doctrine() {
     "Partially-correct": s.partiallyCorrect,
     Wrong: s.wrong,
   }));
+
+  const cutoff90 = Date.now() - 90 * 24 * 60 * 60 * 1000;
+  const rawTrendData = granularity === "quarter"
+    ? (data?.accuracyByQuarter ?? [])
+    : (data?.accuracyByMonth ?? []);
+  const accuracyTrendData = rolling90
+    ? rawTrendData.filter((p) => new Date(p.periodStart).getTime() >= cutoff90)
+    : rawTrendData;
 
   const hasVerdictData = (data?.recentClosures ?? []).some((c) => c.phase1VerdictAccuracy);
 
@@ -535,7 +559,122 @@ export default function Doctrine() {
           </CardContent>
         </Card>
 
-        {/* Panel 2 — Win / Loss by Sector */}
+        {/* Panel 2 — Accuracy Over Time */}
+        <Card className="border-border/60 bg-card rounded-xl">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <CardTitle className="font-mono uppercase tracking-tight text-sm">
+                Accuracy Over Time
+              </CardTitle>
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Granularity toggle */}
+                <div className="flex items-center rounded-lg border border-border/60 overflow-hidden text-[10px] font-mono">
+                  <button
+                    className={`px-2.5 h-6 transition-colors ${granularity === "quarter" ? "bg-primary text-primary-foreground" : "bg-transparent text-muted-foreground hover:text-foreground"}`}
+                    onClick={() => setGranularity("quarter")}
+                  >
+                    Quarter
+                  </button>
+                  <button
+                    className={`px-2.5 h-6 transition-colors border-l border-border/60 ${granularity === "month" ? "bg-primary text-primary-foreground" : "bg-transparent text-muted-foreground hover:text-foreground"}`}
+                    onClick={() => setGranularity("month")}
+                  >
+                    Month
+                  </button>
+                </div>
+                {/* 90-day window toggle */}
+                <button
+                  className={`h-6 px-2.5 rounded-lg border text-[10px] font-mono transition-colors ${rolling90 ? "border-primary/60 bg-primary/10 text-primary" : "border-border/60 text-muted-foreground hover:text-foreground"}`}
+                  onClick={() => setRolling90((v) => !v)}
+                  title="Show only the last 90 days"
+                >
+                  90d window
+                </button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            {isLoading ? (
+              <Skeleton className="h-48 w-full rounded-lg" />
+            ) : accuracyTrendData.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground font-mono py-6 text-center">
+                {rolling90
+                  ? "No verdicts recorded in the last 90 days."
+                  : "No accuracy trend data yet — close deals with Phase 1 verdicts to populate this chart."}
+              </p>
+            ) : (
+              <>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart
+                    data={accuracyTrendData}
+                    margin={{ top: 8, right: 16, left: 0, bottom: 4 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.4)" />
+                    <XAxis
+                      dataKey="period"
+                      tick={{ fontSize: 10, fontFamily: "monospace" }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      domain={[0, 100]}
+                      tickFormatter={(v: number) => `${v}%`}
+                      tick={{ fontSize: 10, fontFamily: "monospace" }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={36}
+                    />
+                    <ReferenceLine
+                      y={50}
+                      stroke="#6b7280"
+                      strokeDasharray="4 3"
+                      strokeWidth={1}
+                      label={{ value: "50%", fontSize: 9, fill: "#9ca3af", fontFamily: "monospace", position: "right" }}
+                    />
+                    <RechartsTooltip
+                      contentStyle={{ fontSize: 11, fontFamily: "monospace", borderRadius: 6 }}
+                      formatter={(value: number, name: string) => {
+                        if (name === "accuracyPct") return [`${value}%`, "Correct %"];
+                        return [value, name];
+                      }}
+                      labelFormatter={(label: string, payload) => {
+                        const p = payload?.[0]?.payload as AccuracyByPeriod | undefined;
+                        if (!p) return label;
+                        return `${label} · ${p.total} deal${p.total === 1 ? "" : "s"} (${p.correct} correct, ${p.partiallyCorrect} partial, ${p.wrong} wrong)`;
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="accuracyPct"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: "#10b981", strokeWidth: 0 }}
+                      activeDot={{ r: 5 }}
+                      name="accuracyPct"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+                {/* Legend / summary strip */}
+                <div className="flex flex-wrap gap-3 mt-3 px-1">
+                  {accuracyTrendData.map((p) => (
+                    <div key={p.period} className="flex flex-col items-center gap-0.5">
+                      <span
+                        className="text-[11px] font-mono font-medium"
+                        style={{ color: p.accuracyPct >= 67 ? "#10b981" : p.accuracyPct >= 34 ? "#f59e0b" : "#ef4444" }}
+                      >
+                        {p.accuracyPct}%
+                      </span>
+                      <span className="text-[9px] font-mono text-muted-foreground/50">{p.period}</span>
+                      <span className="text-[9px] font-mono text-muted-foreground/35">n={p.total}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Panel 3 — Win / Loss by Sector */}
         <Card className="border-border/60 bg-card rounded-xl">
           <CardHeader className="pb-2 pt-4 px-4">
             <div className="flex items-center justify-between">

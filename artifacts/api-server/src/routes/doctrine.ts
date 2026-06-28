@@ -96,7 +96,62 @@ router.get("/summary", async (_req, res) => {
       updatedAt: t.updatedAt ? new Date(t.updatedAt).toISOString() : null,
     }));
 
-  return res.json({ accuracyBySector, missThemes, winLossBySector, recentClosures });
+  // Accuracy over time — bucket closed deals with verdicts by quarter and month
+  const dealsWithVerdicts = closedDeals.filter((d) => d.phase1VerdictAccuracy && d.updatedAt);
+
+  type PeriodEntry = {
+    period: string;
+    periodStart: string;
+    correct: number;
+    partiallyCorrect: number;
+    wrong: number;
+    total: number;
+  };
+
+  const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  function buildPeriodAccuracy(granularity: "quarter" | "month") {
+    const map = new Map<string, PeriodEntry>();
+
+    for (const deal of dealsWithVerdicts) {
+      const date = new Date(deal.updatedAt!);
+      const year = date.getFullYear();
+      const month = date.getMonth();
+
+      let key: string;
+      let start: Date;
+
+      if (granularity === "quarter") {
+        const q = Math.floor(month / 3) + 1;
+        key = `Q${q} ${year}`;
+        start = new Date(year, Math.floor(month / 3) * 3, 1);
+      } else {
+        key = `${MONTH_NAMES[month]} ${year}`;
+        start = new Date(year, month, 1);
+      }
+
+      if (!map.has(key)) {
+        map.set(key, { period: key, periodStart: start.toISOString(), correct: 0, partiallyCorrect: 0, wrong: 0, total: 0 });
+      }
+      const entry = map.get(key)!;
+      entry.total++;
+      if (deal.phase1VerdictAccuracy === "Correct") entry.correct++;
+      else if (deal.phase1VerdictAccuracy === "Partially-correct") entry.partiallyCorrect++;
+      else if (deal.phase1VerdictAccuracy === "Wrong") entry.wrong++;
+    }
+
+    return Array.from(map.values())
+      .sort((a, b) => a.periodStart.localeCompare(b.periodStart))
+      .map((e) => ({
+        ...e,
+        accuracyPct: e.total > 0 ? Math.round((e.correct / e.total) * 100) : 0,
+      }));
+  }
+
+  const accuracyByQuarter = buildPeriodAccuracy("quarter");
+  const accuracyByMonth = buildPeriodAccuracy("month");
+
+  return res.json({ accuracyBySector, missThemes, winLossBySector, recentClosures, accuracyByQuarter, accuracyByMonth });
 });
 
 export default router;
