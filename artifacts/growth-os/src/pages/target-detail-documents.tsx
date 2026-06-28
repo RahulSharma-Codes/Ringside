@@ -593,28 +593,75 @@ function DocCard({
               )}
             </div>
 
-            {hasFile && (
+            {hasFile && (isRestricted || isHighlyRestricted) ? (
+              /* ── Restricted / Highly-Restricted: document preview frame with watermark ─ */
               <div
-                className="flex items-center gap-2 mt-2 flex-wrap"
-                onContextMenu={isRestricted || isHighlyRestricted ? (e) => e.preventDefault() : undefined}
+                className={`relative mt-2 rounded-sm border overflow-hidden select-none
+                  ${isHighlyRestricted
+                    ? "border-rose-500/30 bg-rose-950/20"
+                    : "border-amber-500/20 bg-amber-950/10"
+                  }`}
+                onContextMenu={(e) => e.preventDefault()}
               >
+                {/* Watermark overlay — viewer identity + current date */}
+                <div
+                  className="pointer-events-none absolute inset-0 flex items-center justify-center"
+                  aria-hidden="true"
+                >
+                  <div className="flex flex-col items-center gap-0.5 rotate-[-25deg] opacity-[0.18]">
+                    <span className={`font-mono font-bold uppercase tracking-widest text-sm ${isHighlyRestricted ? "text-rose-400" : "text-amber-400"}`}>
+                      {isHighlyRestricted ? "HIGHLY RESTRICTED" : "RESTRICTED"}
+                    </span>
+                    <span className="font-mono text-[9px] text-foreground">
+                      {viewerIdentity} · {format(new Date(), "d MMM yyyy HH:mm")}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Preview content */}
+                <div className="relative z-10 px-3 py-2.5 flex items-center gap-2">
+                  {isHighlyRestricted
+                    ? <Lock size={9} className="text-rose-400 shrink-0" />
+                    : <File size={9} className="text-amber-400/60 shrink-0" />
+                  }
+                  <span className="text-[10px] font-mono text-muted-foreground/70 truncate max-w-[180px]">
+                    {isHighlyRestricted ? "File access restricted" : doc.fileName}
+                  </span>
+                  {doc.fileSize != null && !isHighlyRestricted && (
+                    <span className="text-[10px] font-mono text-muted-foreground/50 ml-auto shrink-0">{formatBytes(doc.fileSize)}</span>
+                  )}
+                  {doc.mimeType && !isHighlyRestricted && (
+                    <span className="text-[10px] font-mono text-muted-foreground/50 bg-muted/10 px-1 py-0.5 rounded-sm border border-border/20">
+                      {mimeLabel(doc.mimeType)}
+                    </span>
+                  )}
+                  {doc.uploadedAt && !isHighlyRestricted && (
+                    <span className="text-[10px] font-mono text-muted-foreground/50 shrink-0">
+                      {format(parseISO(doc.uploadedAt), "d MMM yyyy")}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : hasFile ? (
+              /* ── Public / Internal (no restriction): plain file info row ─────────── */
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <File size={10} className="text-primary/60 shrink-0" />
-                <span className="text-[10px] font-mono text-primary/80 truncate max-w-[200px] select-none">{doc.fileName}</span>
+                <span className="text-[10px] font-mono text-primary/80 truncate max-w-[200px]">{doc.fileName}</span>
                 {doc.fileSize != null && (
-                  <span className="text-[10px] font-mono text-muted-foreground select-none">{formatBytes(doc.fileSize)}</span>
+                  <span className="text-[10px] font-mono text-muted-foreground">{formatBytes(doc.fileSize)}</span>
                 )}
                 {doc.mimeType && (
-                  <span className="text-[10px] font-mono text-muted-foreground bg-muted/20 px-1 py-0.5 rounded-sm border border-border/30 select-none">
+                  <span className="text-[10px] font-mono text-muted-foreground bg-muted/20 px-1 py-0.5 rounded-sm border border-border/30">
                     {mimeLabel(doc.mimeType)}
                   </span>
                 )}
                 {doc.uploadedAt && (
-                  <span className="text-[10px] font-mono text-muted-foreground select-none">
+                  <span className="text-[10px] font-mono text-muted-foreground">
                     · uploaded {format(parseISO(doc.uploadedAt), "d MMM yyyy")}
                   </span>
                 )}
               </div>
-            )}
+            ) : null}
 
             {doc.notes && (
               <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">{doc.notes}</p>

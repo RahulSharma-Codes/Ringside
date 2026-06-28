@@ -208,15 +208,22 @@ router.get("/:id/download-url", async (req, res) => {
 
   if (!doc) return res.status(404).json({ error: "Not found" });
 
-  // For Highly-Restricted documents, allow only the deal owner to download.
-  // The requester identity comes from the Authorization bearer token.
+  // For Highly-Restricted documents, allow only the deal owner (or Admin role) to download.
+  // Requester identity comes from verified JWT claims set by the requireAppPassword middleware.
   if (doc.classification === "Highly-Restricted") {
-    const authHeader = req.headers.authorization ?? "";
-    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+    const claims = req.jwtClaims;
+
+    // Legacy shared-password sessions have no jwtClaims — treat them as admin/allow.
+    // Real JWT sessions: Admin role always allowed; others must match target.dealOwner.
     let isOwner = false;
 
-    if (bearerToken) {
-      // Fetch the target to get the deal owner
+    if (!claims) {
+      // Legacy shared-password auth — grant access (no per-user identity available)
+      isOwner = true;
+    } else if (claims.role === "Admin") {
+      isOwner = true;
+    } else {
+      // Verify the JWT email matches the target's dealOwner (strict, case-insensitive equality)
       const [target] = await db
         .select({ dealOwner: targetsTable.dealOwner })
         .from(targetsTable)
@@ -224,13 +231,9 @@ router.get("/:id/download-url", async (req, res) => {
         .limit(1);
 
       const dealOwner = (target?.dealOwner ?? "").trim().toLowerCase();
-      const docOwner = (doc.owner ?? "").trim().toLowerCase();
-      const requester = bearerToken.toLowerCase();
+      const requesterEmail = claims.email.trim().toLowerCase();
 
-      // Match against target dealOwner or document-level owner field
-      isOwner =
-        (dealOwner.length > 0 && (requester === dealOwner || requester.includes(dealOwner) || dealOwner.includes(requester))) ||
-        (docOwner.length > 0 && (requester === docOwner || requester.includes(docOwner) || docOwner.includes(requester)));
+      isOwner = dealOwner.length > 0 && requesterEmail === dealOwner;
     }
 
     if (!isOwner) {
