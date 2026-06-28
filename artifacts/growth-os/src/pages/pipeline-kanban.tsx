@@ -116,7 +116,7 @@ function DraggableCard({
 
   const cardContent = (
     <div
-      className={`bg-card border border-border/70 border-l-2 ${getTierCardAccent(target.priorityTier)} rounded-lg p-3 space-y-2 ${isDragging ? "shadow-xl opacity-90 rotate-1" : "hover:shadow-md hover:border-border"} transition-all duration-150`}
+      className={`group/card bg-card border border-border/70 border-l-2 ${getTierCardAccent(target.priorityTier)} rounded-lg p-3 space-y-2 ${isDragging ? "shadow-xl opacity-90 rotate-1" : "hover:shadow-md hover:border-border"} transition-all duration-150`}
     >
       <div className="flex items-start justify-between gap-1.5">
         <div className="min-w-0 flex-1">
@@ -156,7 +156,7 @@ function DraggableCard({
         )}
       </div>
       {!isOffTrack && (
-        <div className="text-[9px] text-muted-foreground/40 font-mono text-center border-t border-border/30 pt-1.5 mt-0.5">
+        <div className="text-[9px] text-muted-foreground/40 font-mono text-center border-t border-border/30 pt-1.5 mt-0.5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-150">
           drag to move stage
         </div>
       )}
