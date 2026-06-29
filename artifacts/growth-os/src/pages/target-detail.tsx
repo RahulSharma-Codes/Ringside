@@ -1747,6 +1747,10 @@ type OverviewTarget = {
   riskPenaltyScore?: number | null;
   sourcingChannel?: string | null;
   dealType?: string | null;
+  closeReasonCode?: string | null;
+  phase1VerdictAccuracy?: string | null;
+  phase1VerdictNote?: string | null;
+  closeMissTheme?: string | null;
 };
 
 type OverviewAction = {
@@ -2072,6 +2076,78 @@ function OverviewSections({
                 Diligence tab and track actions below.
               </p>
             </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ── Section 5: Deal Verdict (Closed / Dropped only) ── */}
+      {(stage === "Closed" || stage === "Dropped") && (
+        <div className="space-y-2">
+          <OverviewSectionHeader label="Deal Verdict" />
+          <Card className="bg-card/40 border-border/70 rounded-xl overflow-hidden">
+            {/* Accuracy banner */}
+            <div
+              className={`px-4 py-3 border-b border-border/60 flex items-center gap-3 ${
+                target.phase1VerdictAccuracy === "Correct"
+                  ? "bg-emerald-500/10"
+                  : target.phase1VerdictAccuracy === "Partially-correct"
+                  ? "bg-amber-500/10"
+                  : target.phase1VerdictAccuracy === "Wrong"
+                  ? "bg-destructive/10"
+                  : "bg-muted/30"
+              }`}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider mb-0.5">
+                  Phase 1 Screen Accuracy
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {target.phase1VerdictAccuracy ? (
+                    <span
+                      className={`status-chip font-mono text-[11px] ${
+                        target.phase1VerdictAccuracy === "Correct"
+                          ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
+                          : target.phase1VerdictAccuracy === "Partially-correct"
+                          ? "bg-amber-500/15 text-amber-600 border-amber-500/30"
+                          : "bg-destructive/15 text-destructive border-destructive/30"
+                      }`}
+                    >
+                      {target.phase1VerdictAccuracy}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground italic">Not recorded</span>
+                  )}
+                  {target.closeMissTheme && (
+                    <span className="metadata-label text-muted-foreground/70">{target.closeMissTheme}</span>
+                  )}
+                </div>
+              </div>
+              {target.closeReasonCode && (
+                <div className="text-right shrink-0">
+                  <div className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider mb-0.5">Close Reason</div>
+                  <div className="text-sm font-medium font-mono">{target.closeReasonCode}</div>
+                </div>
+              )}
+            </div>
+
+            {/* Accuracy note */}
+            {target.phase1VerdictNote && (
+              <CardContent className="pt-3 pb-3">
+                <div className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider mb-1">Accuracy Note</div>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
+                  {target.phase1VerdictNote}
+                </p>
+              </CardContent>
+            )}
+
+            {/* Empty state when no verdict was recorded */}
+            {!target.phase1VerdictAccuracy && !target.closeReasonCode && (
+              <CardContent className="pt-3 pb-3">
+                <p className="text-[11px] font-mono text-muted-foreground/50 italic">
+                  No verdict recorded — the deal was closed or dropped without a Phase 1 assessment.
+                </p>
+              </CardContent>
+            )}
           </Card>
         </div>
       )}
