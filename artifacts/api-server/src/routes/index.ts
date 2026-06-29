@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
 import targetsRouter from "./targets";
+import targetNestedRouter from "./target-nested-routes";
 import actionsRouter from "./actions";
 import interactionsRouter from "./interactions";
 import importRouter from "./import";
@@ -29,6 +30,7 @@ const router: IRouter = Router();
 router.use(healthRouter);
 router.use("/export", exportRouter);
 router.use("/targets", targetsRouter);
+router.use("/targets", targetNestedRouter);
 router.use("/actions", actionsRouter);
 router.use("/interactions", interactionsRouter);
 router.use("/import", importRouter);
