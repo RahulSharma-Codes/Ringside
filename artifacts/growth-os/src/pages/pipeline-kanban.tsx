@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, User, Zap, ChevronDown, ChevronRight, X, Check } from "lucide-react";
+import { AlertTriangle, User, Zap, ChevronDown, ChevronRight, X, Check, Loader2 } from "lucide-react";
 import { StageChip } from "@/components/stage-chip";
 import { PIPELINE_STAGE_ORDER, OFF_TRACK_STAGES, getStagesForDealType } from "@/components/stage-rail";
 import { useToast } from "@/hooks/use-toast";
@@ -105,15 +105,17 @@ function DraggableCard({
   target,
   isDragging = false,
   isOffTrack = false,
+  isSaving = false,
 }: {
   target: KanbanTarget;
   isDragging?: boolean;
   isOffTrack?: boolean;
+  isSaving?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: `card-${target.id}`,
     data: { target },
-    disabled: isOffTrack,
+    disabled: isOffTrack || isSaving,
   });
 
   const style = transform
@@ -125,7 +127,7 @@ function DraggableCard({
 
   const cardContent = (
     <div
-      className={`group/card bg-card border border-border/70 border-l-2 ${getTierCardAccent(target.priorityTier)} rounded-lg p-3 space-y-2 ${isDragging ? "shadow-xl opacity-90 rotate-1" : "hover:shadow-md hover:border-border"} transition-all duration-150`}
+      className={`group/card bg-card border border-border/70 border-l-2 ${getTierCardAccent(target.priorityTier)} rounded-lg p-3 space-y-2 ${isDragging ? "shadow-xl opacity-90 rotate-1" : isSaving ? "opacity-60" : "hover:shadow-md hover:border-border"} transition-all duration-150`}
     >
       <div className="flex items-start justify-between gap-1.5">
         <div className="min-w-0 flex-1">
@@ -170,8 +172,10 @@ function DraggableCard({
         )}
       </div>
       {!isOffTrack && (
-        <div className="text-[9px] text-muted-foreground/40 font-mono text-center border-t border-border/30 pt-1.5 mt-0.5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-150">
-          drag to move stage
+        <div className={`text-[9px] font-mono text-center border-t border-border/30 pt-1.5 mt-0.5 transition-opacity duration-150 flex items-center justify-center gap-1 ${isSaving ? "opacity-100 text-primary/60" : "opacity-0 group-hover/card:opacity-100 text-muted-foreground/40"}`}>
+          {isSaving
+            ? <><Loader2 size={8} className="animate-spin" /> saving…</>
+            : "drag to move stage"}
         </div>
       )}
     </div>
@@ -202,12 +206,14 @@ function DroppableColumn({
   aiMode,
   isOffTrack = false,
   isOver = false,
+  savingIds,
 }: {
   stage: string;
   targets: KanbanTarget[];
   aiMode?: string | null;
   isOffTrack?: boolean;
   isOver?: boolean;
+  savingIds?: Set<number>;
 }) {
   const { setNodeRef } = useDroppable({ id: `col-${stage}`, disabled: isOffTrack });
   const count = targets.length;
@@ -237,7 +243,7 @@ function DroppableColumn({
           </div>
         )}
         {targets.map(t => (
-          <DraggableCard key={t.id} target={t} isOffTrack={isOffTrack} />
+          <DraggableCard key={t.id} target={t} isOffTrack={isOffTrack} isSaving={savingIds?.has(t.id)} />
         ))}
       </div>
     </div>
@@ -450,6 +456,11 @@ export function PipelineKanban({
   const [pending, setPending] = useState<StageChangePending | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Optimistic stage overrides: id → new stage while the API call is in-flight
+  const [optimisticStages, setOptimisticStages] = useState<Map<number, string>>(new Map);
+  // Track which target ids have a save in-flight so we can show the spinner
+  const [savingIds, setSavingIds] = useState<Set<number>>(new Set);
+
   const changeStage = useUpdateTargetStage();
 
   // When a deal-type filter is active, only show columns applicable to that deal type
@@ -457,10 +468,16 @@ export function PipelineKanban({
     ? getStagesForDealType(dealTypeFilter).filter(s => !OFF_TRACK_STAGES.includes(s))
     : ALL_ACTIVE_STAGES;
 
-  // Group targets by stage
+  // Group targets by stage, applying any in-flight optimistic overrides
+  const targetsWithOverrides = targets.map(t =>
+    optimisticStages.has(t.id)
+      ? { ...t, currentStage: optimisticStages.get(t.id) }
+      : t
+  );
+
   const filtered = stageFilter && stageFilter !== "all"
-    ? targets.filter(t => t.currentStage === stageFilter)
-    : targets;
+    ? targetsWithOverrides.filter(t => t.currentStage === stageFilter)
+    : targetsWithOverrides;
 
   const byStage: Record<string, KanbanTarget[]> = {};
   for (const t of filtered) {
@@ -497,25 +514,44 @@ export function PipelineKanban({
 
   async function handleConfirmStageChange(reason: string, verdict: VerdictData) {
     if (!pending) return;
+
+    const targetId = pending.target.id;
+    const newStage = pending.newStage;
+
+    // Optimistically move the card now, before the API call completes
+    setOptimisticStages(prev => new Map(prev).set(targetId, newStage));
+    setSavingIds(prev => new Set(prev).add(targetId));
     setIsSaving(true);
+    setPending(null);
+
     try {
       await changeStage.mutateAsync({
-        id: pending.target.id,
-        data: { newStage: pending.newStage, changeReason: reason, ...verdict },
+        id: targetId,
+        data: { newStage, changeReason: reason, ...verdict },
       });
       toast({
         title: "Stage updated",
-        description: `${pending.target.projectName ?? pending.target.targetCode} moved to ${pending.newStage}.`,
+        description: `${pending.target.projectName ?? pending.target.targetCode} moved to ${newStage}.`,
       });
-      setPending(null);
       onRefresh?.();
     } catch {
+      // Snap back to original stage on error
+      setOptimisticStages(prev => {
+        const next = new Map(prev);
+        next.delete(targetId);
+        return next;
+      });
       toast({
         title: "Stage change failed",
         description: "Could not update stage. The card has been returned to its original column.",
         variant: "destructive",
       });
     } finally {
+      setSavingIds(prev => {
+        const next = new Set(prev);
+        next.delete(targetId);
+        return next;
+      });
       setIsSaving(false);
     }
   }
@@ -539,6 +575,7 @@ export function PipelineKanban({
               targets={byStage[stage] ?? []}
               aiMode={aiMode}
               isOver={overId === `col-${stage}`}
+              savingIds={savingIds}
             />
           ))}
 
