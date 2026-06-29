@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Shield, UserPlus, RefreshCw, Loader2, CheckCircle2, AlertTriangle, Users,
+  Shield, UserPlus, RefreshCw, Loader2, CheckCircle2,
+  Users, Trash2, AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,8 @@ import { customFetch } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 
+// ── Types ──────────────────────────────────────────────────────────────────────
+
 interface AdminUser {
   id: string;
   email: string;
@@ -24,45 +27,73 @@ interface AdminUser {
   createdAt: string;
 }
 
+// ── Constants ──────────────────────────────────────────────────────────────────
+
+const ALL_ROLES = ["Admin", "Deal Lead", "Member", "IC Voter"] as const;
+type Role = (typeof ALL_ROLES)[number];
+
 const ROLE_COLORS: Record<string, string> = {
-  Admin: "bg-primary/20 text-primary border-primary/30",
-  Member: "bg-muted/50 text-muted-foreground border-border/50",
-  Viewer: "bg-muted/30 text-muted-foreground/60 border-border/30",
+  Admin:      "bg-primary/20 text-primary border-primary/30",
+  "Deal Lead":"bg-blue-500/15 text-blue-600 border-blue-500/25",
+  Member:     "bg-muted/50 text-muted-foreground border-border/50",
+  "IC Voter": "bg-violet-500/15 text-violet-600 border-violet-500/25",
+  Viewer:     "bg-muted/30 text-muted-foreground/60 border-border/30",
 };
+
+// ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Invite dialog
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteDisplayName, setInviteDisplayName] = useState("");
-  const [inviteRole, setInviteRole] = useState("Member");
-  const [invitePassword, setInvitePassword] = useState("");
+  const [inviteRole, setInviteRole] = useState<Role>("Member");
+
+  // Delete confirmation
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
+
+  // OTP generator
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [otpEmail, setOtpEmail] = useState("");
-  const [otpOpen, setOtpOpen] = useState(false);
+
+  // ── Queries ───────────────────────────────────────────────────────────────
 
   const { data: users, isLoading, refetch } = useQuery<AdminUser[]>({
     queryKey: ["/api/admin/users"],
     queryFn: () => customFetch("/api/admin/users"),
   });
 
+  // ── Mutations ─────────────────────────────────────────────────────────────
+
   const inviteUser = useMutation({
-    mutationFn: (data: { email: string; displayName: string; role: string; temporaryPassword: string }) =>
-      customFetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }),
+    mutationFn: (data: { email: string; displayName: string; role: string }) =>
+      customFetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
     onSuccess: () => {
-      toast({ title: "User invited" });
+      toast({ title: "User created", description: `${inviteEmail} can now log in via OTP.` });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       setInviteOpen(false);
-      setInviteEmail(""); setInviteDisplayName(""); setInviteRole("Member"); setInvitePassword("");
+      setInviteEmail("");
+      setInviteDisplayName("");
+      setInviteRole("Member");
     },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    onError: (err: Error) =>
+      toast({ title: "Error creating user", description: err.message, variant: "destructive" }),
   });
 
   const updateRole = useMutation({
     mutationFn: ({ id, role }: { id: string; role: string }) =>
-      customFetch(`/api/admin/users/${id}/role`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ role }) }),
+      customFetch(`/api/admin/users/${id}/role`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role }),
+      }),
     onSuccess: () => {
       toast({ title: "Role updated" });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
@@ -70,11 +101,28 @@ export default function AdminPage() {
     onError: () => toast({ title: "Error updating role", variant: "destructive" }),
   });
 
+  const deleteUser = useMutation({
+    mutationFn: (id: string) =>
+      customFetch(`/api/admin/users/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      toast({ title: "User removed", description: `${deleteTarget?.email} has been deleted.` });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setDeleteTarget(null);
+    },
+    onError: () =>
+      toast({ title: "Error deleting user", variant: "destructive" }),
+  });
+
   const requestOtp = useMutation({
     mutationFn: (email: string) =>
-      customFetch<{ ok: boolean; code?: string; message?: string }>("/api/auth/otp/request", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }),
-      }),
+      customFetch<{ ok: boolean; code?: string; message?: string }>(
+        "/api/auth/otp/request",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        },
+      ),
     onSuccess: (data) => {
       if (data.code) setGeneratedCode(data.code);
     },
@@ -87,8 +135,11 @@ export default function AdminPage() {
     requestOtp.mutate(otpEmail.trim().toLowerCase());
   };
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -104,7 +155,11 @@ export default function AdminPage() {
           <Button size="sm" variant="ghost" onClick={() => refetch()} className="h-7 px-2">
             <RefreshCw size={12} />
           </Button>
-          <Button size="sm" onClick={() => setInviteOpen(true)} className="rounded-sm font-mono text-[10px] uppercase h-7 px-2.5 gap-1.5">
+          <Button
+            size="sm"
+            onClick={() => setInviteOpen(true)}
+            className="rounded-sm font-mono text-[10px] uppercase h-7 px-2.5 gap-1.5"
+          >
             <UserPlus size={11} /> Invite User
           </Button>
         </div>
@@ -114,10 +169,13 @@ export default function AdminPage() {
       <div className="rounded-sm border border-border/50 bg-card/30 p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Shield size={13} className="text-primary" />
-          <span className="font-mono text-[11px] uppercase tracking-wider font-semibold">Generate Login Code (OTP)</span>
+          <span className="font-mono text-[11px] uppercase tracking-wider font-semibold">
+            Generate Login Code (OTP)
+          </span>
         </div>
         <p className="text-[10px] text-muted-foreground/60 font-mono">
           Generate a 6-digit one-time login code for a user. Share the code with them directly.
+          New users must be created first, then given a code to log in for the first time.
         </p>
         <div className="flex gap-2">
           <Input
@@ -133,7 +191,9 @@ export default function AdminPage() {
             disabled={!otpEmail.trim() || requestOtp.isPending}
             className="rounded-sm font-mono text-[10px] uppercase h-8 px-3 gap-1.5"
           >
-            {requestOtp.isPending ? <Loader2 size={10} className="animate-spin" /> : <Shield size={10} />}
+            {requestOtp.isPending
+              ? <Loader2 size={10} className="animate-spin" />
+              : <Shield size={10} />}
             Generate
           </Button>
         </div>
@@ -141,8 +201,12 @@ export default function AdminPage() {
           <div className="flex items-center gap-3 p-2.5 rounded-sm border border-primary/30 bg-primary/10">
             <CheckCircle2 size={13} className="text-primary shrink-0" />
             <div>
-              <div className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-wider">One-time code for {otpEmail}</div>
-              <div className="font-mono text-2xl font-bold tracking-[0.3em] text-primary mt-0.5">{generatedCode}</div>
+              <div className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-wider">
+                One-time code for {otpEmail}
+              </div>
+              <div className="font-mono text-2xl font-bold tracking-[0.3em] text-primary mt-0.5">
+                {generatedCode}
+              </div>
               <div className="text-[9px] font-mono text-muted-foreground/40 mt-0.5">Expires in 10 minutes</div>
             </div>
           </div>
@@ -160,22 +224,33 @@ export default function AdminPage() {
 
         {isLoading && (
           <div className="space-y-2">
-            {[1, 2, 3].map((i) => <div key={i} className="h-14 rounded-sm bg-muted/20 animate-pulse" />)}
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-14 rounded-sm bg-muted/20 animate-pulse" />
+            ))}
           </div>
         )}
 
         {!isLoading && (!users || users.length === 0) && (
           <div className="text-center py-10 text-muted-foreground/40 font-mono text-[11px]">
-            No users yet. Invite the first user to get started.
+            No users yet. Use "Invite User" to create the first account.
           </div>
         )}
 
         {users?.map((user) => (
-          <div key={user.id} className="flex items-center justify-between p-3 rounded-sm border border-border/40 bg-card/40 hover:bg-card/60 transition-colors">
+          <div
+            key={user.id}
+            className="flex items-center justify-between gap-3 p-3 rounded-sm border border-border/40 bg-card/40 hover:bg-card/60 transition-colors"
+          >
+            {/* User info */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-mono text-[12px] font-medium">{user.displayName ?? user.email}</span>
-                <Badge variant="outline" className={`text-[9px] font-mono px-1.5 py-0 ${ROLE_COLORS[user.role] ?? ROLE_COLORS.Member}`}>
+                <span className="font-mono text-[12px] font-medium">
+                  {user.displayName ?? user.email}
+                </span>
+                <Badge
+                  variant="outline"
+                  className={`text-[9px] font-mono px-1.5 py-0 ${ROLE_COLORS[user.role] ?? ROLE_COLORS.Member}`}
+                >
                   {user.role}
                 </Badge>
               </div>
@@ -184,70 +259,168 @@ export default function AdminPage() {
                 Joined {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true })}
               </div>
             </div>
+
+            {/* Role selector */}
             <Select
               value={user.role}
               onValueChange={(role) => updateRole.mutate({ id: user.id, role })}
             >
-              <SelectTrigger className="w-28 h-6 rounded-sm bg-background/50 font-mono text-[10px] border-border/50">
+              <SelectTrigger className="w-28 h-6 rounded-sm bg-background/50 font-mono text-[10px] border-border/50 shrink-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="rounded-sm font-mono text-[11px]">
-                <SelectItem value="Admin">Admin</SelectItem>
-                <SelectItem value="Member">Member</SelectItem>
-                <SelectItem value="Viewer">Viewer</SelectItem>
+                {ALL_ROLES.map((r) => (
+                  <SelectItem key={r} value={r}>{r}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
+
+            {/* Delete button */}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 shrink-0"
+              onClick={() => setDeleteTarget(user)}
+              title="Remove user"
+            >
+              <Trash2 size={11} />
+            </Button>
           </div>
         ))}
       </div>
 
-      {/* Invite Dialog */}
-      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+      {/* ── Invite Dialog ─────────────────────────────────────────────────── */}
+      <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) { setInviteEmail(""); setInviteDisplayName(""); setInviteRole("Member"); } }}>
         <DialogContent className="sm:max-w-md border-border bg-sidebar rounded-sm">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-base">Invite User</DialogTitle>
+            <DialogTitle className="font-mono uppercase tracking-tight text-base">
+              Invite User
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-3">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Email <span className="text-destructive">*</span></label>
-              <Input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="user@example.com" className="rounded-sm bg-background/50 font-mono text-[11px]" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Display Name</label>
-              <Input value={inviteDisplayName} onChange={(e) => setInviteDisplayName(e.target.value)} placeholder="Jane Smith" className="rounded-sm bg-background/50 font-mono text-[11px]" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Role</label>
-              <Select value={inviteRole} onValueChange={setInviteRole}>
-                <SelectTrigger className="rounded-sm bg-background/50 font-mono text-[11px]"><SelectValue /></SelectTrigger>
-                <SelectContent className="rounded-sm">
-                  <SelectItem value="Admin" className="font-mono text-[11px]">Admin</SelectItem>
-                  <SelectItem value="Member" className="font-mono text-[11px]">Member</SelectItem>
-                  <SelectItem value="Viewer" className="font-mono text-[11px]">Viewer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Temporary Password</label>
+              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                Email <span className="text-destructive">*</span>
+              </label>
               <Input
-                type="password"
-                value={invitePassword}
-                onChange={(e) => setInvitePassword(e.target.value)}
-                placeholder="Optional — they can also use OTP"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="user@company.com"
                 className="rounded-sm bg-background/50 font-mono text-[11px]"
               />
-              <p className="text-[9px] text-muted-foreground/50 font-mono">If left blank, user must log in via OTP code (generated from this admin panel).</p>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                Display Name
+              </label>
+              <Input
+                value={inviteDisplayName}
+                onChange={(e) => setInviteDisplayName(e.target.value)}
+                placeholder="Jane Smith"
+                className="rounded-sm bg-background/50 font-mono text-[11px]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                Role
+              </label>
+              <Select value={inviteRole} onValueChange={(r) => setInviteRole(r as Role)}>
+                <SelectTrigger className="rounded-sm bg-background/50 font-mono text-[11px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-sm">
+                  {ALL_ROLES.map((r) => (
+                    <SelectItem key={r} value={r} className="font-mono text-[11px]">
+                      {r}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[9px] text-muted-foreground/50 font-mono">
+                <strong>Admin</strong> — full access · <strong>Deal Lead</strong> — can change stages &amp; run IC ·{" "}
+                <strong>Member</strong> — read + comment · <strong>IC Voter</strong> — vote on proposals
+              </p>
+            </div>
+            <div className="rounded-sm bg-amber-500/10 border border-amber-500/25 p-2.5 flex items-start gap-2">
+              <AlertTriangle size={11} className="text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-[10px] font-mono text-amber-700/80 leading-relaxed">
+                The user will log in via a one-time code. After creating their account, use the OTP
+                generator above to share their first login code.
+              </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setInviteOpen(false)} className="rounded-sm font-mono text-[10px] uppercase">Cancel</Button>
             <Button
-              onClick={() => inviteUser.mutate({ email: inviteEmail, displayName: inviteDisplayName, role: inviteRole, temporaryPassword: invitePassword })}
-              disabled={!inviteEmail || inviteUser.isPending}
+              variant="outline"
+              onClick={() => setInviteOpen(false)}
+              className="rounded-sm font-mono text-[10px] uppercase"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() =>
+                inviteUser.mutate({
+                  email: inviteEmail,
+                  displayName: inviteDisplayName,
+                  role: inviteRole,
+                })
+              }
+              disabled={!inviteEmail.trim() || inviteUser.isPending}
               className="rounded-sm font-mono text-[10px] uppercase"
             >
               {inviteUser.isPending ? <Loader2 size={10} className="animate-spin mr-1" /> : null}
-              Send Invite
+              Create User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Confirmation Dialog ──────────────────────────────────── */}
+      <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
+        <DialogContent className="sm:max-w-sm border-border bg-sidebar rounded-sm">
+          <DialogHeader>
+            <DialogTitle className="font-mono uppercase tracking-tight text-base text-destructive">
+              Remove User
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-3 space-y-2">
+            <p className="text-sm text-muted-foreground">
+              This will permanently delete{" "}
+              <strong className="font-mono text-foreground">{deleteTarget?.email}</strong> and
+              revoke their access. This cannot be undone.
+            </p>
+            {deleteTarget && (
+              <div className="rounded-sm bg-destructive/10 border border-destructive/25 p-2.5">
+                <div className="text-[10px] font-mono text-muted-foreground/60 uppercase">User to remove</div>
+                <div className="font-mono text-[12px] font-medium mt-0.5">{deleteTarget.displayName ?? deleteTarget.email}</div>
+                {deleteTarget.displayName && (
+                  <div className="text-[10px] font-mono text-muted-foreground/50">{deleteTarget.email}</div>
+                )}
+                <Badge
+                  variant="outline"
+                  className={`mt-1.5 text-[9px] font-mono px-1.5 py-0 ${ROLE_COLORS[deleteTarget.role] ?? ROLE_COLORS.Member}`}
+                >
+                  {deleteTarget.role}
+                </Badge>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteTarget(null)}
+              className="rounded-sm font-mono text-[10px] uppercase"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteTarget && deleteUser.mutate(deleteTarget.id)}
+              disabled={deleteUser.isPending}
+              className="rounded-sm font-mono text-[10px] uppercase"
+            >
+              {deleteUser.isPending ? <Loader2 size={10} className="animate-spin mr-1" /> : null}
+              Remove User
             </Button>
           </DialogFooter>
         </DialogContent>
