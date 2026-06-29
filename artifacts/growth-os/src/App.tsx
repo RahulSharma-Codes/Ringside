@@ -23,6 +23,7 @@ import LaunchReadiness from "@/pages/launch-readiness";
 import Analytics from "@/pages/analytics";
 import Doctrine from "@/pages/doctrine";
 import AdminPage from "@/pages/admin";
+import AccessDenied from "@/pages/access-denied";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -216,10 +217,19 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
   );
 }
 
+// ── Route guard — Admin-only ───────────────────────────────────────────────────
+
+function RequireAdmin({ children }: { children: React.ReactNode }) {
+  const { isAdmin } = useAuth();
+  if (!isAdmin) {
+    return <Layout><AccessDenied /></Layout>;
+  }
+  return <>{children}</>;
+}
+
 // ── Router ────────────────────────────────────────────────────────────────────
 
 function Router() {
-  const { isAdmin } = useAuth();
   return (
     <Switch>
       <Route path="/">
@@ -262,7 +272,7 @@ function Router() {
         <Layout><Doctrine /></Layout>
       </Route>
       <Route path="/admin">
-        {isAdmin ? <Layout><AdminPage /></Layout> : <Layout><NotFound /></Layout>}
+        <RequireAdmin><Layout><AdminPage /></Layout></RequireAdmin>
       </Route>
       <Route path="*">
         <Layout><NotFound /></Layout>
