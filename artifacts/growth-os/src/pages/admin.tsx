@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Shield, UserPlus, RefreshCw, Loader2, CheckCircle2,
-  Users, Trash2, AlertTriangle,
+  Users, Trash2, AlertTriangle, MailX, MailCheck, WifiOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +65,14 @@ export default function AdminPage() {
     queryKey: ["/api/admin/users"],
     queryFn: () => customFetch("/api/admin/users"),
   });
+
+  const { data: smtpStatus, isLoading: smtpLoading, refetch: refetchSmtp } =
+    useQuery<{ configured: boolean; reachable: boolean }>({
+      queryKey: ["/api/auth/smtp/status"],
+      queryFn: () => customFetch("/api/auth/smtp/status"),
+      staleTime: 5 * 60 * 1000,
+      retry: false,
+    });
 
   // ── Mutations ─────────────────────────────────────────────────────────────
 
@@ -164,6 +172,51 @@ export default function AdminPage() {
           </Button>
         </div>
       </div>
+
+      {/* SMTP Health Banner */}
+      {!smtpLoading && smtpStatus && (
+        smtpStatus.configured && !smtpStatus.reachable ? (
+          <div className="rounded-sm border border-amber-500/40 bg-amber-500/10 p-3 flex items-start gap-2.5">
+            <WifiOff size={13} className="text-amber-500 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="font-mono text-[11px] font-semibold text-amber-600 uppercase tracking-wider">
+                Email Delivery Unavailable
+              </div>
+              <p className="text-[10px] font-mono text-amber-700/80 leading-relaxed mt-0.5">
+                SMTP credentials are configured but the server is not reachable. Login codes
+                will fail to deliver until this is fixed. Check{" "}
+                <code className="bg-amber-500/15 px-0.5 rounded">SMTP_HOST</code>,{" "}
+                <code className="bg-amber-500/15 px-0.5 rounded">SMTP_USER</code>, and{" "}
+                <code className="bg-amber-500/15 px-0.5 rounded">SMTP_PASS</code> in your
+                environment secrets.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => refetchSmtp()}
+              className="h-6 w-6 p-0 text-amber-600/60 hover:text-amber-600 hover:bg-amber-500/20 shrink-0"
+              title="Re-check SMTP"
+            >
+              <RefreshCw size={10} />
+            </Button>
+          </div>
+        ) : smtpStatus.configured && smtpStatus.reachable ? (
+          <div className="rounded-sm border border-green-500/30 bg-green-500/8 p-3 flex items-center gap-2.5">
+            <MailCheck size={13} className="text-green-500 shrink-0" />
+            <span className="font-mono text-[10px] text-green-600">
+              SMTP is configured and reachable — login codes will be delivered by email.
+            </span>
+          </div>
+        ) : (
+          <div className="rounded-sm border border-border/40 bg-muted/20 p-3 flex items-center gap-2.5">
+            <MailX size={13} className="text-muted-foreground/50 shrink-0" />
+            <span className="font-mono text-[10px] text-muted-foreground/60">
+              SMTP is not configured. Admins must generate login codes manually and share them.
+            </span>
+          </div>
+        )
+      )}
 
       {/* OTP Generator */}
       <div className="rounded-sm border border-border/50 bg-card/30 p-4 space-y-3">

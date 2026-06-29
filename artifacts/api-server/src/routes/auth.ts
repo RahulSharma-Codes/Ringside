@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 import { db, usersTable, otpAttemptsTable, companiesTable, sessionBlocklistTable } from "@workspace/db";
 import { writeAuditEvent } from "./audit";
+import type { JwtClaims } from "../middlewares/auth";
 
 const router = Router();
 
@@ -220,6 +221,52 @@ router.post("/logout", async (req, res) => {
     } catch { /* invalid token — ignore */ }
   }
   return res.json({ ok: true });
+});
+
+// ── GET /api/auth/smtp/status ─────────────────────────────────────────────────
+// Admin-only: verifies SMTP transporter can connect. Returns { configured, reachable }.
+
+router.get("/smtp/status", async (req, res) => {
+  // Require a valid JWT with Admin role — this reveals infrastructure state
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) {
+    return res.status(401).json({ error: "Authentication required." });
+  }
+  let claims: JwtClaims;
+  try {
+    claims = jwt.verify(token, JWT_SECRET) as JwtClaims;
+  } catch {
+    return res.status(401).json({ error: "Invalid or expired session." });
+  }
+  if (claims.role !== "Admin") {
+    return res.status(403).json({ error: "Admin role required." });
+  }
+
+  const configured = isSmtpConfigured();
+  if (!configured) {
+    return res.json({ configured: false, reachable: false });
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST!,
+    port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587,
+    secure: process.env.SMTP_PORT === "465",
+    auth: {
+      user: process.env.SMTP_USER!,
+      pass: process.env.SMTP_PASS!,
+    },
+    connectionTimeout: 8_000,
+    greetingTimeout: 8_000,
+  });
+
+  try {
+    await transporter.verify();
+    return res.json({ configured: true, reachable: true });
+  } catch (err) {
+    req.log?.warn({ err }, "SMTP verify failed");
+    return res.json({ configured: true, reachable: false });
+  }
 });
 
 // ── GET /api/auth/oidc/config ─────────────────────────────────────────────────
