@@ -139,7 +139,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   autoFocus
                 />
                 <p className="text-[9px] text-muted-foreground/40 font-mono">
-                  A 6-digit code will be generated for your email.
+                  A 6-digit code will be sent to your email address.
                 </p>
               </div>
               {error && <p className="text-sm text-destructive font-mono">{error}</p>}
@@ -152,13 +152,23 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
           {/* ── OTP step 2: enter code ── */}
           {mode === "otp-code" && (
             <form onSubmit={handleOtpVerify} className="space-y-4">
-              {otp.serverCode && (
+              {otp.serverCode ? (
                 <div className="rounded-sm border border-primary/30 bg-primary/10 p-3 space-y-1">
                   <p className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider">
-                    Your one-time code (shown here — enter below)
+                    Your one-time code (dev mode — enter below)
                   </p>
                   <p className="font-mono text-2xl font-bold tracking-[0.3em] text-primary">{otp.serverCode}</p>
                   <p className="text-[9px] font-mono text-muted-foreground/40">Expires in 10 minutes</p>
+                </div>
+              ) : (
+                <div className="rounded-sm border border-border/40 bg-muted/30 p-3 space-y-1">
+                  <p className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider">
+                    Code sent
+                  </p>
+                  <p className="text-sm font-mono text-foreground/80">
+                    Check your email at <span className="text-primary">{otp.email}</span>
+                  </p>
+                  <p className="text-[9px] font-mono text-muted-foreground/40">Expires in 10 minutes. Check your spam folder if it doesn't arrive.</p>
                 </div>
               )}
               <div className="space-y-2">

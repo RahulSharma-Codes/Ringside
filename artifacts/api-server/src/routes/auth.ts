@@ -3,6 +3,7 @@ import { eq, and, gt, sql } from "drizzle-orm";
 import { createHash, randomInt } from "crypto";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import nodemailer from "nodemailer";
 import { db, usersTable, otpAttemptsTable, companiesTable, sessionBlocklistTable } from "@workspace/db";
 import { writeAuditEvent } from "./audit";
 
@@ -15,6 +16,40 @@ const JWT_EXPIRY = "8h";
 
 function sha256(data: string): string {
   return createHash("sha256").update(data).digest("hex");
+}
+
+function isSmtpConfigured(): boolean {
+  return !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+}
+
+async function sendOtpEmail(to: string, code: string): Promise<void> {
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST!,
+    port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587,
+    secure: process.env.SMTP_PORT === "465",
+    auth: {
+      user: process.env.SMTP_USER!,
+      pass: process.env.SMTP_PASS!,
+    },
+  });
+
+  const from = process.env.SMTP_FROM ?? process.env.SMTP_USER!;
+
+  await transporter.sendMail({
+    from,
+    to,
+    subject: "Your Ringside login code",
+    text: `Your one-time login code is: ${code}\n\nThis code expires in 10 minutes. Do not share it with anyone.`,
+    html: `
+      <div style="font-family:monospace;max-width:480px;margin:0 auto;padding:24px;background:#0a0a0a;color:#e5e5e5;border:1px solid #222;border-radius:4px;">
+        <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.15em;color:#666;margin:0 0 8px;">Inorganic Growth Command Center</p>
+        <h1 style="font-size:20px;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 24px;color:#fff;">Ringside</h1>
+        <p style="font-size:13px;color:#aaa;margin:0 0 16px;">Your one-time login code:</p>
+        <p style="font-size:36px;font-weight:700;letter-spacing:0.4em;color:#a78bfa;margin:0 0 24px;">${code}</p>
+        <p style="font-size:11px;color:#555;margin:0;">Expires in 10 minutes. Do not share this code with anyone.</p>
+      </div>
+    `,
+  });
 }
 
 function generateOtp(): string {
@@ -110,8 +145,19 @@ router.post("/otp/request", async (req, res) => {
 
   await db.insert(otpAttemptsTable).values({ email, codeHash, expiresAt, attempts: 0 });
 
-  // Return code in response (in-app display — no email delivery yet)
-  return res.json({ ok: true, code, message: "Code generated. Share with the user." });
+  if (isSmtpConfigured()) {
+    try {
+      await sendOtpEmail(email, code);
+    } catch (err) {
+      // Log but don't leak SMTP internals to the client
+      req.log?.error({ err }, "Failed to send OTP email");
+      return res.status(502).json({ error: "Could not send login code. Please try again or contact your administrator." });
+    }
+    return res.json({ ok: true, message: "A login code has been sent to your email address." });
+  }
+
+  // SMTP not configured — return code in response for dev/internal use
+  return res.json({ ok: true, code, message: "SMTP not configured. Code shown for development use only." });
 });
 
 // ── POST /api/auth/otp/verify ─────────────────────────────────────────────────
