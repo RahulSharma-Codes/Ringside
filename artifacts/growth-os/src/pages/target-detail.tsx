@@ -267,10 +267,12 @@ export default function TargetDetail() {
 
       {/* Mobile sticky bottom bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-sidebar/95 backdrop-blur-sm p-3 flex gap-2">
-        <Button variant="outline" size="sm" className="flex-1 rounded-sm font-mono text-[10px] uppercase border-border" onClick={() => setInteractionAddOpen(true)}>
+        <Button variant="outline" size="sm" className="flex-1 rounded-sm font-mono text-[10px] uppercase border-border"
+          onClick={() => { setActiveTab("interactions"); setInteractionAddOpen(true); }}>
           <MessageSquare size={13} className="mr-1" /> Log
         </Button>
-        <Button variant="outline" size="sm" className="flex-1 rounded-sm font-mono text-[10px] uppercase border-border" onClick={() => setActionAddOpen(true)}>
+        <Button variant="outline" size="sm" className="flex-1 rounded-sm font-mono text-[10px] uppercase border-border"
+          onClick={() => { setActiveTab("actions"); setActionAddOpen(true); }}>
           <Plus size={13} className="mr-1" /> Add Action
         </Button>
         {canEditDeal && (
