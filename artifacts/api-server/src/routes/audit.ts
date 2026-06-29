@@ -1,8 +1,10 @@
 import { Router } from "express";
 import { eq, desc, and } from "drizzle-orm";
 import { createHash } from "crypto";
-import { db } from "@workspace/db";
+import { db, getRequestCompanyId } from "@workspace/db";
 import { auditEventsTable } from "@workspace/db";
+
+const DEFAULT_COMPANY_ID = "00000000-0000-0000-0000-000000000001";
 
 const router = Router();
 
@@ -55,6 +57,7 @@ export async function writeAuditEvent(
     }
 
     await db.insert(auditEventsTable).values({
+      companyId: getRequestCompanyId() ?? DEFAULT_COMPANY_ID,
       eventType,
       targetId,
       userIdentifier: actor ?? null,

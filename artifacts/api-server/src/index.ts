@@ -42,7 +42,12 @@ async function runMigrationsWithRetry(): Promise<void> {
   }
 }
 
+const DEFAULT_COMPANY_ID = "00000000-0000-0000-0000-000000000001";
+
 async function applyMigrations(): Promise<void> {
+  // Set GUC so RLS-enabled tables remain accessible during migration runs
+  await db.execute(sql`SELECT set_config('app.company_id', ${DEFAULT_COMPANY_ID}, false)`);
+
   // Rename action_items → actions (idempotent)
   await db.execute(sql`
     DO $$
@@ -475,6 +480,83 @@ async function applyMigrations(): Promise<void> {
   await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS phase1_verdict_accuracy text`);
   await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS phase1_verdict_note text`);
   await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS close_miss_theme text`);
+
+  // Deal metadata columns added by later features
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS deal_type text`);
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS risk_penalty_score integer NOT NULL DEFAULT 0`);
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS is_confidential boolean NOT NULL DEFAULT true`);
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS financial_attractiveness_score integer NOT NULL DEFAULT 50`);
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS process_maturity_score integer NOT NULL DEFAULT 50`);
+
+  // ── Multi-tenancy: company_id on all core tables + RLS ───────────────────────
+
+  const CORE_TABLES = [
+    "targets", "actions", "interactions", "milestones", "deal_documents",
+    "ic_sessions", "ic_proposals", "ic_votes", "ic_cps",
+    "valuations", "deal_economics", "synergies",
+    "nda_records", "regulatory_clearances", "deal_advisors",
+    "audit_events", "notifications",
+  ] as const;
+
+  // Step 1: add company_id column (idempotent)
+  for (const table of CORE_TABLES) {
+    await db.execute(sql.raw(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS company_id uuid`));
+  }
+
+  // Step 2: backfill NULL rows to default company (before RLS enforcement)
+  for (const table of CORE_TABLES) {
+    await db.execute(sql.raw(
+      `UPDATE ${table} SET company_id = '${DEFAULT_COMPANY_ID}' WHERE company_id IS NULL`
+    ));
+  }
+
+  // Step 3: enforce schema constraints on company_id now that all rows are filled
+  for (const table of CORE_TABLES) {
+    // 3a: NOT NULL — safe after backfill; idempotent in Postgres
+    await db.execute(sql.raw(`ALTER TABLE ${table} ALTER COLUMN company_id SET NOT NULL`));
+
+    // 3b: GUC-based DEFAULT so inserts without an explicit company_id are automatically
+    //     scoped to the current tenant — makes existing INSERT routes RLS-compliant.
+    await db.execute(sql.raw(
+      `ALTER TABLE ${table} ALTER COLUMN company_id ` +
+      `SET DEFAULT (nullif(current_setting('app.company_id', true), '')::uuid)`
+    ));
+
+    // 3c: FK to companies — add idempotently via DO block
+    const fkName = `${table}_company_id_fkey`;
+    await db.execute(sql.raw(`
+      DO $fk$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT FROM information_schema.table_constraints
+          WHERE constraint_name = '${fkName}' AND table_name = '${table}'
+        ) THEN
+          ALTER TABLE ${table}
+            ADD CONSTRAINT ${fkName} FOREIGN KEY (company_id)
+            REFERENCES companies(id) ON DELETE CASCADE;
+        END IF;
+      END $fk$
+    `));
+  }
+
+  // Step 4: enable RLS (idempotent) and add isolation policy per table
+  for (const table of CORE_TABLES) {
+    await db.execute(sql.raw(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY`));
+    await db.execute(sql.raw(`ALTER TABLE ${table} FORCE ROW LEVEL SECURITY`));
+    await db.execute(sql.raw(`
+      DO $rls$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT FROM pg_policies
+          WHERE tablename = '${table}' AND policyname = 'company_isolation'
+        ) THEN
+          CREATE POLICY company_isolation ON ${table}
+            USING (company_id = nullif(current_setting('app.company_id', true), '')::uuid)
+            WITH CHECK (company_id = nullif(current_setting('app.company_id', true), '')::uuid);
+        END IF;
+      END $rls$
+    `));
+  }
 }
 
 app.listen(port, (err) => {

@@ -1,2 +1,4 @@
 - [Replit Postgres vs Supabase](replit-postgres-migration.md) — Supabase pooler ENOTFOUND even from async tasks; DB layer now uses PGHOST (Replit Postgres)
 - [Startup migrations pattern](startup-migrations.md) — idempotent DDL runs at server start; psql/drizzle-kit push can't reach DB from shell
+- [RLS pool.query intercept](rls-pool-intercept.md) — pool.query overridden to route through per-request PoolClient; Proxy on db object is unreliable for Drizzle
+- [Schema vs DB drift](schema-db-drift.md) — targets table missing deal_type; always add IF NOT EXISTS ALTER TABLE when adding Drizzle schema columns

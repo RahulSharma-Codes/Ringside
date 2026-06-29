@@ -338,6 +338,7 @@ export type RegulatoryClearance = typeof regulatoryClearancesTable.$inferSelect;
 
 export const auditEventsTable = pgTable("audit_events", {
   id: serial("id").primaryKey(),
+  companyId: uuid("company_id").notNull(),
   eventType: text("event_type").notNull(),
   targetId: integer("target_id"),
   userIdentifier: text("user_identifier"),
