@@ -25,6 +25,12 @@ const STAGES = [
 
 const TIERS = ["Must-Win", "Priority 1", "Priority 2", "Watchlist", "On Hold", "Dropped"];
 
+const NON_DEFAULT_DEAL_TYPES: Record<string, string> = {
+  "JV": "JV",
+  "Partnership": "Partner",
+  "Strategic Alliance": "Alliance",
+};
+
 const DEAL_TYPES = [
   "Acquisition",
   "Minority Investment",
@@ -418,6 +424,11 @@ export default function Pipeline() {
                             {/* Stage + Score row */}
                             <div className="flex flex-wrap gap-1.5 items-center">
                               <StageChip stage={target.currentStage ?? ""} size="xs" />
+                              {target.dealType && NON_DEFAULT_DEAL_TYPES[target.dealType] && (
+                                <Badge className="font-mono text-[9px] uppercase rounded-sm px-1.5 py-0 h-4 bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-500/30">
+                                  {NON_DEFAULT_DEAL_TYPES[target.dealType]}
+                                </Badge>
+                              )}
                               <Badge variant="outline" className="font-mono text-[10px] rounded-md border-border/60 text-muted-foreground">
                                 <Zap size={9} className="mr-1 text-primary/60" />{Math.round(target.priorityScore)}
                               </Badge>

@@ -43,6 +43,7 @@ interface KanbanTarget {
   needsAttention?: boolean | null;
   openActionCount?: number | null;
   overdueActionCount?: number | null;
+  dealType?: string | null;
 }
 
 interface PipelineKanbanProps {
@@ -52,6 +53,14 @@ interface PipelineKanbanProps {
   dealTypeFilter?: string;
   onRefresh?: () => void;
 }
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const NON_DEFAULT_DEAL_TYPES: Record<string, string> = {
+  "JV": "JV",
+  "Partnership": "Partner",
+  "Strategic Alliance": "Alliance",
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -135,6 +144,11 @@ function DraggableCard({
         <Badge className={`font-mono text-[9px] uppercase rounded-sm px-1.5 py-0 h-4 ${getTierBadgeColor(target.priorityTier)}`}>
           {target.priorityTier ?? "—"}
         </Badge>
+        {target.dealType && NON_DEFAULT_DEAL_TYPES[target.dealType] && (
+          <Badge className="font-mono text-[9px] uppercase rounded-sm px-1.5 py-0 h-4 bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-500/30">
+            {NON_DEFAULT_DEAL_TYPES[target.dealType]}
+          </Badge>
+        )}
         {target.priorityScore != null && (
           <span className="text-[9px] font-mono text-muted-foreground/60 flex items-center gap-0.5">
             <Zap size={8} className="text-primary/50" />
