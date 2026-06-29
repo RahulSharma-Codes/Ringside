@@ -5,7 +5,7 @@ import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/layout";
-import { AuthProvider } from "@/contexts/auth-context";
+import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -209,6 +209,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 // ── Router ────────────────────────────────────────────────────────────────────
 
 function Router() {
+  const { isAdmin } = useAuth();
   return (
     <Switch>
       <Route path="/">
@@ -251,7 +252,7 @@ function Router() {
         <Layout><Doctrine /></Layout>
       </Route>
       <Route path="/admin">
-        <Layout><AdminPage /></Layout>
+        {isAdmin ? <Layout><AdminPage /></Layout> : <Layout><NotFound /></Layout>}
       </Route>
       <Route path="*">
         <Layout><NotFound /></Layout>

@@ -22,6 +22,7 @@ import notificationsRouter from "./notifications";
 import auditRouter from "./audit";
 import adminRouter from "./admin";
 import doctrineRouter from "./doctrine";
+import { requireRole } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -46,7 +47,7 @@ router.use("/nda-records", ndaRecordsRouter);
 router.use("/regulatory-clearances", regulatoryClearancesRouter);
 router.use("/notifications", notificationsRouter);
 router.use("/audit", auditRouter);
-router.use("/admin", adminRouter);
+router.use("/admin", requireRole("Admin"), adminRouter);
 router.use("/doctrine", doctrineRouter);
 
 export default router;
