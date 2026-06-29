@@ -3,12 +3,13 @@ import { Link, useLocation } from "wouter";
 import {
   Target, ListTodo, Briefcase, Plus, BarChart3, Bot, CalendarCheck,
   ClipboardCheck, Upload, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu,
-  FolderOpen, LineChart, ShieldCheck, Lightbulb,
+  FolderOpen, LineChart, ShieldCheck, Lightbulb, LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NotificationBell } from "@/components/notification-bell";
+import { useAuth } from "@/contexts/auth-context";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,20 @@ function isActive(href: string, location: string) {
   return location.startsWith(href);
 }
 
+const AUTH_TOKEN_KEY = "ig_os_auth_token";
+
+function handleLogout() {
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+  if (token) {
+    fetch("/api/auth/logout", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {});
+  }
+  window.localStorage.removeItem(AUTH_TOKEN_KEY);
+  window.location.reload();
+}
+
 // ─── Sidebar Contents (shared between desktop + mobile drawer) ──────────────
 
 function SidebarNav({
@@ -43,13 +58,20 @@ function SidebarNav({
   openGroups,
   toggleGroup,
   onNavigate,
+  isAdmin,
 }: {
   location: string;
   collapsed: boolean;
   openGroups: Set<string>;
   toggleGroup: (g: string) => void;
   onNavigate?: () => void;
+  isAdmin: boolean;
 }) {
+  const visibleItems = NAV_ITEMS.filter((i) => i.group !== "Admin" || isAdmin);
+  const visibleGroups = NAV_GROUPS.filter(
+    (g) => g !== "Admin" || isAdmin,
+  );
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Brand */}
@@ -85,7 +107,7 @@ function SidebarNav({
         {collapsed ? (
           /* Icon-only mode — flat list with tooltips */
           <div className="space-y-0.5">
-            {NAV_ITEMS.map((item) => {
+            {visibleItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href, location);
               return (
@@ -111,8 +133,8 @@ function SidebarNav({
         ) : (
           /* Grouped accordion mode */
           <div className="space-y-0.5">
-            {NAV_GROUPS.map((group) => {
-              const items = NAV_ITEMS.filter((i) => i.group === group);
+            {visibleGroups.map((group) => {
+              const items = visibleItems.filter((i) => i.group === group);
               const isOpen = openGroups.has(group);
               const groupHasActive = items.some((i) => isActive(i.href, location));
               return (
@@ -162,14 +184,27 @@ function SidebarNav({
         )}
       </nav>
 
-      {/* Footer: live indicator + collapse toggle */}
+      {/* Footer: live indicator + logout */}
       <div className={`border-t border-sidebar-border/40 shrink-0 ${collapsed ? "px-2 py-2.5" : "px-4 py-2.5"}`}>
         {collapsed ? (
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center gap-2">
             <span className="relative flex h-1.5 w-1.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
             </span>
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleLogout}
+                  className="w-7 h-7 flex items-center justify-center rounded-md text-sidebar-foreground/30 hover:text-sidebar-foreground/70 hover:bg-white/6 transition-colors"
+                >
+                  <LogOut size={12} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={8}>
+                <span className="font-mono text-[11px]">Logout</span>
+              </TooltipContent>
+            </Tooltip>
           </div>
         ) : (
           <div className="flex items-center justify-between">
@@ -180,7 +215,14 @@ function SidebarNav({
               </span>
               Live
             </div>
-            <span className="text-[9px] font-mono text-sidebar-foreground/25 uppercase tracking-widest">M&amp;A</span>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1 text-[10px] font-mono text-sidebar-foreground/30 hover:text-sidebar-foreground/60 transition-colors rounded-sm px-1.5 py-1 hover:bg-white/5"
+              title="Logout"
+            >
+              <LogOut size={11} />
+              <span className="uppercase tracking-widest">Logout</span>
+            </button>
           </div>
         )}
       </div>
@@ -194,6 +236,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isAdmin } = useAuth();
 
   /* Groups default open; remember state across navigation */
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(NAV_GROUPS));
@@ -205,7 +248,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       return next;
     });
 
-  const navProps = { location, openGroups, toggleGroup };
+  const navProps = { location, openGroups, toggleGroup, isAdmin };
 
   return (
     /* Root: full-viewport, no outer scroll — prevents double scrollbar */

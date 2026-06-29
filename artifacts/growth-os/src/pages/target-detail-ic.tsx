@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useAuth } from "@/contexts/auth-context";
 import {
   useListIcProposals, getListIcProposalsQueryKey,
   useCreateIcProposal,
@@ -68,6 +69,7 @@ function formatDatetime(dt: string | null | undefined) {
 function ProposalCard({ proposal, targetId }: { proposal: IcProposal; targetId: number }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { canEditDeal, canVote } = useAuth();
   const [expanded, setExpanded] = useState(true);
   const [addVoterOpen, setAddVoterOpen] = useState(false);
   const [voterName, setVoterName] = useState("");
@@ -240,7 +242,7 @@ function ProposalCard({ proposal, targetId }: { proposal: IcProposal; targetId: 
               </span>
             )}
           </div>
-          {!isResolved && (
+          {!isResolved && canEditDeal && (
             <Button
               size="sm"
               variant="outline"
@@ -314,7 +316,7 @@ function ProposalCard({ proposal, targetId }: { proposal: IcProposal; targetId: 
                   <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
                     <Users size={11} /> Voting Panel
                   </span>
-                  {!isResolved && (
+                  {!isResolved && canEditDeal && (
                     <Button
                       size="sm"
                       variant="ghost"
@@ -360,7 +362,7 @@ function ProposalCard({ proposal, targetId }: { proposal: IcProposal; targetId: 
                             </div>
                           )}
                         </div>
-                        {!vote.castAt && !isResolved && (
+                        {!vote.castAt && !isResolved && canVote && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -649,6 +651,7 @@ function ProposalCard({ proposal, targetId }: { proposal: IcProposal; targetId: 
 export function IcTab({ targetId }: IcTabProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { canEditDeal: canEditDealForIcTab } = useAuth();
 
   // Proposals state
   const [proposalDialogOpen, setProposalDialogOpen] = useState(false);
@@ -770,14 +773,16 @@ export function IcTab({ targetId }: IcTabProps) {
             <Gavel size={12} />
             IC Proposals
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-sm font-mono text-[10px] uppercase border-border h-7 gap-1"
-            onClick={() => setProposalDialogOpen(true)}
-          >
-            <Plus size={11} /> Submit Proposal
-          </Button>
+          {canEditDealForIcTab && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-sm font-mono text-[10px] uppercase border-border h-7 gap-1"
+              onClick={() => setProposalDialogOpen(true)}
+            >
+              <Plus size={11} /> Submit Proposal
+            </Button>
+          )}
         </div>
 
         {loadingProposals ? (

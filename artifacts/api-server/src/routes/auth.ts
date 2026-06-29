@@ -31,19 +31,24 @@ async function getOrCreateDefaultCompany(): Promise<{ id: string }> {
   return existing ?? { id: "00000000-0000-0000-0000-000000000000" };
 }
 
-// ── POST /api/auth/login (legacy + password-based fallback) ───────────────────
+// ── POST /api/auth/login (legacy password — disabled by default) ───────────────
+// Enabled only when ALLOW_LEGACY_PASSWORD=true is explicitly set.
+// OTP is the primary auth flow; this route exists for emergency break-glass access only.
 
 router.post("/login", async (req, res) => {
+  if (process.env.ALLOW_LEGACY_PASSWORD !== "true") {
+    return res.status(403).json({ error: "Password login is disabled. Use email OTP to sign in." });
+  }
+
   const suppliedPassword = typeof req.body?.password === "string" ? req.body.password : "";
   const suppliedEmail    = typeof req.body?.email    === "string" ? req.body.email    : "";
   const expectedPassword = process.env.APP_PASSWORD;
 
-  // Legacy shared-password path — still supported for backward compat
+  // Legacy shared-password path
   if (!suppliedEmail && suppliedPassword && expectedPassword) {
     if (suppliedPassword !== expectedPassword) {
       return res.status(401).json({ error: "Invalid password." });
     }
-    // Issue a JWT for the default admin user
     const company = await getOrCreateDefaultCompany();
     const [user] = await db.select().from(usersTable)
       .where(and(eq(usersTable.companyId, company.id), eq(usersTable.role, "Admin")))
@@ -89,13 +94,18 @@ router.post("/otp/request", async (req, res) => {
   const code = generateOtp();
   const codeHash = sha256(code);
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
-
-  // Purge all expired OTPs + invalidate any prior code for this email
   const now2 = new Date();
-  await db.delete(otpAttemptsTable).where(
-    eq(otpAttemptsTable.email, email)
-  );
-  // Also clean up globally expired rows (opportunistic purge — no scheduled job needed)
+
+  // Honour active lockout — reject re-request so lock cannot be bypassed by requesting a new OTP
+  const [existingAttempt] = await db.select().from(otpAttemptsTable)
+    .where(and(eq(otpAttemptsTable.email, email), gt(otpAttemptsTable.expiresAt, now2)))
+    .limit(1);
+  if (existingAttempt?.lockedUntil && existingAttempt.lockedUntil > now2) {
+    return res.status(429).json({ error: "Account temporarily locked due to too many failed attempts. Try again later." });
+  }
+
+  // Purge prior OTPs for this email + expired rows globally
+  await db.delete(otpAttemptsTable).where(eq(otpAttemptsTable.email, email));
   await db.execute(sql`DELETE FROM otp_attempts WHERE expires_at < ${now2}`);
 
   await db.insert(otpAttemptsTable).values({ email, codeHash, expiresAt, attempts: 0 });
@@ -130,6 +140,9 @@ router.post("/otp/verify", async (req, res) => {
     await db.update(otpAttemptsTable)
       .set({ attempts: newAttempts, lockedUntil })
       .where(eq(otpAttemptsTable.id, attempt.id));
+    if (lockedUntil) {
+      await writeAuditEvent("otp_lockout", null, email, { email, attempts: newAttempts, lockedUntilIso: lockedUntil.toISOString() });
+    }
     return res.status(401).json({ error: "Invalid code.", attemptsLeft: Math.max(0, 3 - newAttempts) });
   }
 
@@ -150,12 +163,13 @@ router.post("/logout", async (req, res) => {
   if (header?.startsWith("Bearer ")) {
     const token = header.slice(7);
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as { jti?: string; exp?: number };
+      const decoded = jwt.verify(token, JWT_SECRET) as { jti?: string; exp?: number; email?: string; userId?: string };
       if (decoded.jti && decoded.exp) {
         await db.insert(sessionBlocklistTable).values({
           jti: decoded.jti,
           expiresAt: new Date(decoded.exp * 1000),
         }).onConflictDoNothing();
+        await writeAuditEvent("logout", null, decoded.email ?? null, { jti: decoded.jti, userId: decoded.userId ?? null });
       }
     } catch { /* invalid token — ignore */ }
   }
@@ -176,6 +190,27 @@ router.get("/oidc/config", (_req, res) => {
     issuer,
     authorizationEndpoint: `${issuer}/authorize`,
   });
+});
+
+// ── GET /api/auth/oidc/start — initiate OIDC authorization flow ───────────────
+
+router.get("/oidc/start", (req, res) => {
+  const clientId = process.env.OIDC_CLIENT_ID;
+  const issuer   = process.env.OIDC_ISSUER;
+  if (!clientId || !issuer) {
+    return res.status(501).json({ error: "OIDC SSO not yet configured. Contact your IT admin to complete the setup." });
+  }
+  const proto = req.headers["x-forwarded-proto"] ?? req.protocol ?? "https";
+  const host  = req.headers["x-forwarded-host"] ?? req.headers.host ?? "";
+  const redirectUri = `${proto}://${host}/api/auth/oidc/callback`;
+  const state = crypto.randomUUID();
+  const authUrl = new URL(`${issuer}/authorize`);
+  authUrl.searchParams.set("client_id", clientId);
+  authUrl.searchParams.set("redirect_uri", redirectUri);
+  authUrl.searchParams.set("response_type", "code");
+  authUrl.searchParams.set("scope", "openid email profile");
+  authUrl.searchParams.set("state", state);
+  return res.redirect(302, authUrl.toString());
 });
 
 // ── GET /api/auth/oidc/callback (stub) ───────────────────────────────────────

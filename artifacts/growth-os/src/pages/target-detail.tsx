@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { downloadAuthenticatedFile } from "@/lib/download";
+import { useAuth } from "@/contexts/auth-context";
 import {
   useGetTarget, getGetTargetQueryKey,
   useUpdateTargetStage,
@@ -124,6 +125,7 @@ export default function TargetDetail() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { canEditDeal } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
 
   const [stageOpen, setStageOpen] = useState(false);
@@ -660,9 +662,11 @@ export default function TargetDetail() {
                   <div className="text-[9px] font-mono text-muted-foreground/70 uppercase tracking-wider">Stage</div>
                   <div className="font-semibold text-sm font-mono">{target.currentStage}</div>
                 </div>
-                <Button size="sm" className="rounded-lg font-mono uppercase text-[10px] gap-1.5 tracking-wider h-8" onClick={() => setStageOpen(true)}>
-                  <TargetIcon size={12} /> Change Stage
-                </Button>
+                {canEditDeal && (
+                  <Button size="sm" className="rounded-lg font-mono uppercase text-[10px] gap-1.5 tracking-wider h-8" onClick={() => setStageOpen(true)}>
+                    <TargetIcon size={12} /> Change Stage
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -1010,9 +1014,11 @@ export default function TargetDetail() {
         <Button variant="outline" size="sm" className="flex-1 rounded-sm font-mono text-[10px] uppercase border-border" onClick={() => setActionOpen(true)}>
           <Plus size={13} className="mr-1" /> Add Action
         </Button>
-        <Button size="sm" className="flex-1 rounded-sm font-mono text-[10px] uppercase" onClick={() => setStageOpen(true)}>
-          <TargetIcon size={13} className="mr-1" /> Change Stage
-        </Button>
+        {canEditDeal && (
+          <Button size="sm" className="flex-1 rounded-sm font-mono text-[10px] uppercase" onClick={() => setStageOpen(true)}>
+            <TargetIcon size={13} className="mr-1" /> Change Stage
+          </Button>
+        )}
       </div>
 
       {/* ══ MODALS ══ */}

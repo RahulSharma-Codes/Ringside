@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/layout";
+import { AuthProvider } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,9 +35,9 @@ setAuthTokenGetter(() => {
   return window.localStorage.getItem(AUTH_TOKEN_KEY);
 });
 
-// ── Login screen with OTP + password support ───────────────────────────────────
+// ── Login screen — OTP only ────────────────────────────────────────────────────
 
-type LoginMode = "password" | "otp-email" | "otp-code";
+type LoginMode = "otp-email" | "otp-code";
 
 interface OtpState {
   email: string;
@@ -46,35 +47,18 @@ interface OtpState {
 }
 
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
-  const [mode, setMode] = useState<LoginMode>("password");
-  const [password, setPassword] = useState("");
+  const [mode, setMode] = useState<LoginMode>("otp-email");
   const [otp, setOtp] = useState<OtpState>({ email: "", code: "", serverCode: null });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [oidcConfig, setOidcConfig] = useState<{ configured: boolean; clientId?: string; issuer?: string; authorizationEndpoint?: string } | null>(null);
 
-  // ── Password login ──────────────────────────────────────────────────────────
-
-  const handlePasswordLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsSubmitting(true);
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-      if (!res.ok) { setError("Password not accepted."); return; }
-      const data = await res.json();
-      // Prefer JWT token; fall back to storing the raw password for legacy auth middleware
-      window.localStorage.setItem(AUTH_TOKEN_KEY, data.token ?? password);
-      onLogin();
-    } catch {
-      setError("Could not reach the server. Check the app is running.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  useEffect(() => {
+    fetch("/api/auth/oidc/config")
+      .then((r) => r.json())
+      .then((d) => setOidcConfig(d))
+      .catch(() => setOidcConfig({ configured: false }));
+  }, []);
 
   // ── OTP — step 1: request code ──────────────────────────────────────────────
 
@@ -139,37 +123,6 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
         </CardHeader>
         <CardContent className="space-y-4">
 
-          {/* ── Password mode ── */}
-          {mode === "password" && (
-            <form onSubmit={handlePasswordLogin} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                  Access Password
-                </label>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="rounded-sm bg-background/50"
-                  autoFocus
-                />
-              </div>
-              {error && <p className="text-sm text-destructive font-mono">{error}</p>}
-              <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]" disabled={!password || isSubmitting}>
-                {isSubmitting ? "Checking…" : "Login"}
-              </Button>
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => { setMode("otp-email"); setError(null); }}
-                  className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2 transition-colors"
-                >
-                  Sign in with one-time code instead
-                </button>
-              </div>
-            </form>
-          )}
-
           {/* ── OTP step 1: enter email ── */}
           {mode === "otp-email" && (
             <form onSubmit={handleOtpRequest} className="space-y-4">
@@ -193,12 +146,6 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
               <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]" disabled={!otp.email.trim() || isSubmitting}>
                 {isSubmitting ? "Generating…" : "Get Code"}
               </Button>
-              <div className="text-center">
-                <button type="button" onClick={() => { setMode("password"); setError(null); }}
-                  className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2">
-                  Use password instead
-                </button>
-              </div>
             </form>
           )}
 
@@ -236,12 +183,21 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2">
                   ← Back
                 </button>
-                <button type="button" onClick={() => { setMode("password"); setError(null); }}
-                  className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2">
-                  Use password instead
-                </button>
               </div>
             </form>
+          )}
+
+          {/* ── OIDC SSO button — shown on all modes when configured ── */}
+          {oidcConfig?.configured && (
+            <div className="pt-1 border-t border-border/40 space-y-2">
+              <p className="text-[10px] font-mono text-muted-foreground/40 text-center uppercase tracking-wider">or</p>
+              <a
+                href="/api/auth/oidc/start"
+                className="flex items-center justify-center w-full h-9 rounded-sm border border-border/60 bg-background/40 hover:bg-background/70 transition-colors font-mono text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
+              >
+                Sign in with Company SSO
+              </a>
+            </div>
           )}
 
         </CardContent>
@@ -316,9 +272,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         {isAuthenticated ? (
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
+          <AuthProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <Router />
+            </WouterRouter>
+          </AuthProvider>
         ) : (
           <LoginScreen onLogin={() => setIsAuthenticated(true)} />
         )}

@@ -5,6 +5,47 @@
  * Inorganic Growth OS API
  * OpenAPI spec version: 0.1.0
  */
+export interface AuthLoginBody {
+  password?: string;
+  email?: string;
+}
+
+export type AuthTokenResponseUser = {
+  id?: string;
+  email?: string;
+  role?: string;
+  displayName?: string | null;
+} | null;
+
+export interface AuthTokenResponse {
+  ok?: boolean;
+  token?: string | null;
+  user?: AuthTokenResponseUser;
+}
+
+export interface AuthOtpRequestBody {
+  email: string;
+}
+
+export interface AuthOtpRequestResponse {
+  ok?: boolean;
+  /** In-app display only — remove when SMTP is configured */
+  code?: string | null;
+  message?: string;
+}
+
+export interface AuthOtpVerifyBody {
+  email: string;
+  code: string;
+}
+
+export interface OidcConfigResponse {
+  configured?: boolean;
+  clientId?: string | null;
+  issuer?: string | null;
+  authorizationEndpoint?: string | null;
+}
+
 export interface HealthStatus {
   status: string;
 }

@@ -27,6 +27,11 @@ import type {
   AppNotification,
   AuditEvent,
   AuditVerifyResult,
+  AuthLoginBody,
+  AuthOtpRequestBody,
+  AuthOtpRequestResponse,
+  AuthOtpVerifyBody,
+  AuthTokenResponse,
   BriefResponse,
   CastIcVoteBody,
   CommandCenterAction,
@@ -82,6 +87,7 @@ import type {
   NdaRecord,
   NeedsAttentionTarget,
   NotificationGenerateResult,
+  OidcConfigResponse,
   OpportunityBriefRequest,
   OriginationChannelItem,
   RegulatoryClearance,
@@ -8317,6 +8323,556 @@ export function useGetDoctrineSummary<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetDoctrineSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Login with shared password (legacy) or email + password
+ */
+export const getAuthLoginUrl = () => {
+  return `/api/auth/login`;
+};
+
+export const authLogin = async (
+  authLoginBody: AuthLoginBody,
+  options?: RequestInit,
+): Promise<AuthTokenResponse> => {
+  return customFetch<AuthTokenResponse>(getAuthLoginUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(authLoginBody),
+  });
+};
+
+export const getAuthLoginMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authLogin>>,
+    TError,
+    { data: BodyType<AuthLoginBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authLogin>>,
+  TError,
+  { data: BodyType<AuthLoginBody> },
+  TContext
+> => {
+  const mutationKey = ["authLogin"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authLogin>>,
+    { data: BodyType<AuthLoginBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return authLogin(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthLoginMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authLogin>>
+>;
+export type AuthLoginMutationBody = BodyType<AuthLoginBody>;
+export type AuthLoginMutationError = ErrorType<void>;
+
+/**
+ * @summary Login with shared password (legacy) or email + password
+ */
+export const useAuthLogin = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authLogin>>,
+    TError,
+    { data: BodyType<AuthLoginBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof authLogin>>,
+  TError,
+  { data: BodyType<AuthLoginBody> },
+  TContext
+> => {
+  return useMutation(getAuthLoginMutationOptions(options));
+};
+
+/**
+ * @summary Request a 6-digit OTP for email-based login
+ */
+export const getAuthOtpRequestUrl = () => {
+  return `/api/auth/otp/request`;
+};
+
+export const authOtpRequest = async (
+  authOtpRequestBody: AuthOtpRequestBody,
+  options?: RequestInit,
+): Promise<AuthOtpRequestResponse> => {
+  return customFetch<AuthOtpRequestResponse>(getAuthOtpRequestUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(authOtpRequestBody),
+  });
+};
+
+export const getAuthOtpRequestMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authOtpRequest>>,
+    TError,
+    { data: BodyType<AuthOtpRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authOtpRequest>>,
+  TError,
+  { data: BodyType<AuthOtpRequestBody> },
+  TContext
+> => {
+  const mutationKey = ["authOtpRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authOtpRequest>>,
+    { data: BodyType<AuthOtpRequestBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return authOtpRequest(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthOtpRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authOtpRequest>>
+>;
+export type AuthOtpRequestMutationBody = BodyType<AuthOtpRequestBody>;
+export type AuthOtpRequestMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Request a 6-digit OTP for email-based login
+ */
+export const useAuthOtpRequest = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authOtpRequest>>,
+    TError,
+    { data: BodyType<AuthOtpRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof authOtpRequest>>,
+  TError,
+  { data: BodyType<AuthOtpRequestBody> },
+  TContext
+> => {
+  return useMutation(getAuthOtpRequestMutationOptions(options));
+};
+
+/**
+ * @summary Verify a 6-digit OTP and receive a JWT
+ */
+export const getAuthOtpVerifyUrl = () => {
+  return `/api/auth/otp/verify`;
+};
+
+export const authOtpVerify = async (
+  authOtpVerifyBody: AuthOtpVerifyBody,
+  options?: RequestInit,
+): Promise<AuthTokenResponse> => {
+  return customFetch<AuthTokenResponse>(getAuthOtpVerifyUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(authOtpVerifyBody),
+  });
+};
+
+export const getAuthOtpVerifyMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authOtpVerify>>,
+    TError,
+    { data: BodyType<AuthOtpVerifyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authOtpVerify>>,
+  TError,
+  { data: BodyType<AuthOtpVerifyBody> },
+  TContext
+> => {
+  const mutationKey = ["authOtpVerify"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authOtpVerify>>,
+    { data: BodyType<AuthOtpVerifyBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return authOtpVerify(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthOtpVerifyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authOtpVerify>>
+>;
+export type AuthOtpVerifyMutationBody = BodyType<AuthOtpVerifyBody>;
+export type AuthOtpVerifyMutationError = ErrorType<void>;
+
+/**
+ * @summary Verify a 6-digit OTP and receive a JWT
+ */
+export const useAuthOtpVerify = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authOtpVerify>>,
+    TError,
+    { data: BodyType<AuthOtpVerifyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof authOtpVerify>>,
+  TError,
+  { data: BodyType<AuthOtpVerifyBody> },
+  TContext
+> => {
+  return useMutation(getAuthOtpVerifyMutationOptions(options));
+};
+
+/**
+ * @summary Invalidate the current session (adds JWT to blocklist)
+ */
+export const getAuthLogoutUrl = () => {
+  return `/api/auth/logout`;
+};
+
+export const authLogout = async (options?: RequestInit): Promise<void> => {
+  return customFetch<void>(getAuthLogoutUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getAuthLogoutMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authLogout>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authLogout>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["authLogout"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authLogout>>,
+    void
+  > = () => {
+    return authLogout(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthLogoutMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authLogout>>
+>;
+
+export type AuthLogoutMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Invalidate the current session (adds JWT to blocklist)
+ */
+export const useAuthLogout = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authLogout>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof authLogout>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getAuthLogoutMutationOptions(options));
+};
+
+/**
+ * @summary Returns OIDC SSO configuration if the IdP env vars are set
+ */
+export const getGetOidcConfigUrl = () => {
+  return `/api/auth/oidc/config`;
+};
+
+export const getOidcConfig = async (
+  options?: RequestInit,
+): Promise<OidcConfigResponse> => {
+  return customFetch<OidcConfigResponse>(getGetOidcConfigUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetOidcConfigQueryKey = () => {
+  return [`/api/auth/oidc/config`] as const;
+};
+
+export const getGetOidcConfigQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOidcConfig>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getOidcConfig>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetOidcConfigQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getOidcConfig>>> = ({
+    signal,
+  }) => getOidcConfig({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getOidcConfig>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetOidcConfigQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOidcConfig>>
+>;
+export type GetOidcConfigQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Returns OIDC SSO configuration if the IdP env vars are set
+ */
+
+export function useGetOidcConfig<
+  TData = Awaited<ReturnType<typeof getOidcConfig>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getOidcConfig>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetOidcConfigQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Initiate OIDC authorization — redirects to IdP authorization endpoint
+ */
+export const getOidcStartUrl = () => {
+  return `/api/auth/oidc/start`;
+};
+
+export const oidcStart = async (options?: RequestInit): Promise<unknown> => {
+  return customFetch<unknown>(getOidcStartUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getOidcStartQueryKey = () => {
+  return [`/api/auth/oidc/start`] as const;
+};
+
+export const getOidcStartQueryOptions = <
+  TData = Awaited<ReturnType<typeof oidcStart>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof oidcStart>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getOidcStartQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof oidcStart>>> = ({
+    signal,
+  }) => oidcStart({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof oidcStart>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type OidcStartQueryResult = NonNullable<
+  Awaited<ReturnType<typeof oidcStart>>
+>;
+export type OidcStartQueryError = ErrorType<void>;
+
+/**
+ * @summary Initiate OIDC authorization — redirects to IdP authorization endpoint
+ */
+
+export function useOidcStart<
+  TData = Awaited<ReturnType<typeof oidcStart>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof oidcStart>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getOidcStartQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary OIDC callback stub — returns 501 until IdP is fully wired up
+ */
+export const getOidcCallbackUrl = () => {
+  return `/api/auth/oidc/callback`;
+};
+
+export const oidcCallback = async (options?: RequestInit): Promise<unknown> => {
+  return customFetch<unknown>(getOidcCallbackUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getOidcCallbackQueryKey = () => {
+  return [`/api/auth/oidc/callback`] as const;
+};
+
+export const getOidcCallbackQueryOptions = <
+  TData = Awaited<ReturnType<typeof oidcCallback>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof oidcCallback>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getOidcCallbackQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof oidcCallback>>> = ({
+    signal,
+  }) => oidcCallback({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof oidcCallback>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type OidcCallbackQueryResult = NonNullable<
+  Awaited<ReturnType<typeof oidcCallback>>
+>;
+export type OidcCallbackQueryError = ErrorType<void>;
+
+/**
+ * @summary OIDC callback stub — returns 501 until IdP is fully wired up
+ */
+
+export function useOidcCallback<
+  TData = Awaited<ReturnType<typeof oidcCallback>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof oidcCallback>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getOidcCallbackQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

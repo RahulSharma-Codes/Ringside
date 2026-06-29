@@ -2995,3 +2995,71 @@ export const GetDoctrineSummaryResponse = zod.object({
     )
     .describe("Phase 1 accuracy % bucketed by calendar month (chronological)"),
 });
+
+/**
+ * @summary Login with shared password (legacy) or email + password
+ */
+export const AuthLoginBody = zod.object({
+  password: zod.string().optional(),
+  email: zod.string().optional(),
+});
+
+export const AuthLoginResponse = zod.object({
+  ok: zod.boolean().optional(),
+  token: zod.string().nullish(),
+  user: zod
+    .object({
+      id: zod.string().optional(),
+      email: zod.string().optional(),
+      role: zod.string().optional(),
+      displayName: zod.string().nullish(),
+    })
+    .nullish(),
+});
+
+/**
+ * @summary Request a 6-digit OTP for email-based login
+ */
+export const AuthOtpRequestBody = zod.object({
+  email: zod.string(),
+});
+
+export const AuthOtpRequestResponse = zod.object({
+  ok: zod.boolean().optional(),
+  code: zod
+    .string()
+    .nullish()
+    .describe("In-app display only — remove when SMTP is configured"),
+  message: zod.string().optional(),
+});
+
+/**
+ * @summary Verify a 6-digit OTP and receive a JWT
+ */
+export const AuthOtpVerifyBody = zod.object({
+  email: zod.string(),
+  code: zod.string(),
+});
+
+export const AuthOtpVerifyResponse = zod.object({
+  ok: zod.boolean().optional(),
+  token: zod.string().nullish(),
+  user: zod
+    .object({
+      id: zod.string().optional(),
+      email: zod.string().optional(),
+      role: zod.string().optional(),
+      displayName: zod.string().nullish(),
+    })
+    .nullish(),
+});
+
+/**
+ * @summary Returns OIDC SSO configuration if the IdP env vars are set
+ */
+export const GetOidcConfigResponse = zod.object({
+  configured: zod.boolean().optional(),
+  clientId: zod.string().nullish(),
+  issuer: zod.string().nullish(),
+  authorizationEndpoint: zod.string().nullish(),
+});

@@ -28,6 +28,23 @@ function extractBearerToken(header: string | undefined): string | null {
   return header.slice(prefix.length);
 }
 
+/** Middleware factory — ensures the authenticated user has one of the allowed roles.
+ *  Must be used after requireAppPassword (which populates req.jwtClaims).
+ *  Legacy sessions without JWT claims are rejected unless allowLegacy is true. */
+export function requireRole(...roles: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const claims = req.jwtClaims;
+    if (!claims) {
+      // No JWT — reject; legacy APP_PASSWORD sessions cannot carry role info
+      return res.status(403).json({ error: "A signed-in account is required for this action." });
+    }
+    if (!roles.includes(claims.role)) {
+      return res.status(403).json({ error: `This action requires one of the following roles: ${roles.join(", ")}.` });
+    }
+    return next();
+  };
+}
+
 export async function requireAppPassword(req: Request, res: Response, next: NextFunction) {
   if (req.method === "OPTIONS") return next();
   if (req.path === "/healthz" || req.path.startsWith("/auth/")) return next();

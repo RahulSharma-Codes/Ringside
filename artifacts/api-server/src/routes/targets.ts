@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { requireRole } from "../middlewares/auth";
 import { eq, and, ilike, or, desc, inArray, isNull, isNotNull, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
@@ -954,9 +955,9 @@ router.get("/:id/stage-gate", async (req, res) => {
   return res.json({ newStage, gateItems });
 });
 
-// PUT /api/targets/:id/stage
-router.put("/:id/stage", async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+// PUT /api/targets/:id/stage — Admin or Deal Lead only
+router.put("/:id/stage", requireRole("Admin", "Deal Lead"), async (req, res) => {
+  const id = parseInt(req.params.id as string, 10);
   const parsed = UpdateTargetStageBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.flatten() });
@@ -1503,9 +1504,9 @@ router.get("/:id/ic-sessions", async (req, res) => {
   return res.json(sessions.map(formatIcSession));
 });
 
-// POST /api/targets/:id/ic-sessions
-router.post("/:id/ic-sessions", async (req, res) => {
-  const targetId = parseInt(req.params.id, 10);
+// POST /api/targets/:id/ic-sessions — Admin or Deal Lead only
+router.post("/:id/ic-sessions", requireRole("Admin", "Deal Lead"), async (req, res) => {
+  const targetId = parseInt(req.params.id as string, 10);
   const parsed = CreateIcSessionBodySchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.flatten() });

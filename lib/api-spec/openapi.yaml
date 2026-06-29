@@ -41,6 +41,8 @@ tags:
     description: Tamper-evident append-only audit log with hash-chain verification
   - name: doctrine
     description: Learning loop — deal closure verdicts and accuracy analysis
+  - name: auth
+    description: Authentication — Email OTP login, OIDC SSO stub, session logout
 paths:
   /healthz:
     get:
@@ -1955,8 +1957,182 @@ paths:
               schema:
                 $ref: "#/components/schemas/DoctrineSummary"
 
+  /auth/login:
+    post:
+      operationId: authLogin
+      tags: [auth]
+      summary: Login with shared password (legacy) or email + password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthLoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponse"
+        "401":
+          description: Invalid credentials
+
+  /auth/otp/request:
+    post:
+      operationId: authOtpRequest
+      tags: [auth]
+      summary: Request a 6-digit OTP for email-based login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthOtpRequestBody"
+      responses:
+        "200":
+          description: OTP generated (code returned in-app; email delivery is optional)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthOtpRequestResponse"
+
+  /auth/otp/verify:
+    post:
+      operationId: authOtpVerify
+      tags: [auth]
+      summary: Verify a 6-digit OTP and receive a JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthOtpVerifyBody"
+      responses:
+        "200":
+          description: OTP verified — JWT issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponse"
+        "401":
+          description: Invalid or expired code
+        "429":
+          description: Too many attempts — account temporarily locked
+
+  /auth/logout:
+    post:
+      operationId: authLogout
+      tags: [auth]
+      summary: Invalidate the current session (adds JWT to blocklist)
+      responses:
+        "200":
+          description: Logged out
+
+  /auth/oidc/config:
+    get:
+      operationId: getOidcConfig
+      tags: [auth]
+      summary: Returns OIDC SSO configuration if the IdP env vars are set
+      responses:
+        "200":
+          description: OIDC configuration status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OidcConfigResponse"
+
+  /auth/oidc/start:
+    get:
+      operationId: oidcStart
+      tags: [auth]
+      summary: Initiate OIDC authorization — redirects to IdP authorization endpoint
+      responses:
+        "302":
+          description: Redirect to IdP
+        "501":
+          description: OIDC not configured
+
+
+  /auth/oidc/callback:
+    get:
+      operationId: oidcCallback
+      tags: [auth]
+      summary: OIDC callback stub — returns 501 until IdP is fully wired up
+      responses:
+        "501":
+          description: SSO not yet configured
+
+
 components:
   schemas:
+    AuthLoginBody:
+      type: object
+      properties:
+        password:
+          type: string
+        email:
+          type: string
+    AuthTokenResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        token:
+          type: string
+          nullable: true
+        user:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            email:
+              type: string
+            role:
+              type: string
+            displayName:
+              type: string
+              nullable: true
+    AuthOtpRequestBody:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+    AuthOtpRequestResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        code:
+          type: string
+          nullable: true
+          description: In-app display only — remove when SMTP is configured
+        message:
+          type: string
+    AuthOtpVerifyBody:
+      type: object
+      required: [email, code]
+      properties:
+        email:
+          type: string
+        code:
+          type: string
+    OidcConfigResponse:
+      type: object
+      properties:
+        configured:
+          type: boolean
+        clientId:
+          type: string
+          nullable: true
+        issuer:
+          type: string
+          nullable: true
+        authorizationEndpoint:
+          type: string
+          nullable: true
     HealthStatus:
       type: object
       properties:
