@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { downloadAuthenticatedFile } from "@/lib/download";
 import {
   useListTargets, getListTargetsQueryKey,
   useGetTargetFilterOptions, getGetTargetFilterOptionsQueryKey,
@@ -11,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Plus, ChevronRight, AlertTriangle, Calendar, Zap, User, MapPin, Upload, Download, Sparkles, LayoutList, LayoutGrid } from "lucide-react";
+import { ExportDialog } from "@/components/export-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
 import { StageChip } from "@/components/stage-chip";
@@ -103,6 +103,7 @@ export default function Pipeline() {
     const dt = params.get("dealType");
     return dt && dt.trim().length > 0 ? dt.trim() : "all";
   });
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -203,18 +204,7 @@ export default function Pipeline() {
               size="sm"
               variant="outline"
               className="rounded-lg font-mono uppercase tracking-wider text-[10px] gap-1.5 border-border/60 h-7 px-2.5"
-              onClick={() => {
-                const p = new URLSearchParams();
-                if (stage !== "all")   p.set("stage", stage);
-                if (tier !== "all")    p.set("priorityTier", tier);
-                if (owner !== "all")   p.set("owner", owner);
-                if (country !== "all") p.set("country", country);
-                if (dealType !== "all") p.set("dealType", dealType);
-                downloadAuthenticatedFile(
-                  `/api/export/pipeline?${p.toString()}`,
-                  "pipeline-export.xlsx",
-                ).catch(() => {});
-              }}
+              onClick={() => setExportDialogOpen(true)}
             >
               <Download size={11} /> Export
             </Button>
@@ -475,6 +465,22 @@ export default function Pipeline() {
           )}
         </div>
       )}
+
+      {(() => {
+        const p = new URLSearchParams();
+        if (stage !== "all")    p.set("stage", stage);
+        if (tier !== "all")     p.set("priorityTier", tier);
+        if (owner !== "all")    p.set("owner", owner);
+        if (country !== "all")  p.set("country", country);
+        if (dealType !== "all") p.set("dealType", dealType);
+        return (
+          <ExportDialog
+            open={exportDialogOpen}
+            onOpenChange={setExportDialogOpen}
+            filterParams={p}
+          />
+        );
+      })()}
     </div>
   );
 }

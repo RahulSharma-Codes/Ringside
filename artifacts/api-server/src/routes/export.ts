@@ -14,10 +14,30 @@ import ExcelJS from "exceljs";
 
 const router = Router();
 
+// ── Column definitions ────────────────────────────────────────────────────
+export const PIPELINE_COLUMNS = [
+  { key: "targetCode",                   header: "Target Code",     width: 14 },
+  { key: "projectName",                  header: "Project Name",    width: 30 },
+  { key: "legalName",                    header: "Legal Name",      width: 28 },
+  { key: "sector",                       header: "Sector",          width: 16 },
+  { key: "country",                      header: "Country",         width: 14 },
+  { key: "dealType",                     header: "Deal Type",       width: 14 },
+  { key: "priorityTier",                 header: "Priority Tier",   width: 14 },
+  { key: "currentStage",                 header: "Current Stage",   width: 18 },
+  { key: "dealOwner",                    header: "Deal Owner",      width: 18 },
+  { key: "strategicFitScore",            header: "Strat Fit",       width: 10 },
+  { key: "financialAttractivenessScore", header: "Financial Score", width: 14 },
+  { key: "synergyScore",                 header: "Synergy Score",   width: 13 },
+  { key: "ndaStatus",                    header: "NDA Status",      width: 14 },
+  { key: "financialDdStatus",            header: "Financial DD",    width: 16 },
+  { key: "legalDdStatus",               header: "Legal DD",        width: 14 },
+  { key: "createdAt",                    header: "Created",         width: 12 },
+] as const;
+
 // ── XLSX: Pipeline Export ─────────────────────────────────────────────────
 // GET /api/export/pipeline
 router.get("/pipeline", async (req, res) => {
-  const { sector, priorityTier, stage, owner, country, dealType, isActive } = req.query as Record<string, string | undefined>;
+  const { sector, priorityTier, stage, owner, country, dealType, isActive, columns } = req.query as Record<string, string | undefined>;
 
   const conditions: ReturnType<typeof eq>[] = [];
   if (isActive === "false") conditions.push(eq(targetsTable.isActive, false));
@@ -36,29 +56,25 @@ router.get("/pipeline", async (req, res) => {
     .where(and(...conditions))
     .orderBy(desc(targetsTable.updatedAt));
 
+  const selectedKeys = columns
+    ? new Set(columns.split(",").map((c) => c.trim()).filter(Boolean))
+    : null;
+
+  const activeColumns = selectedKeys
+    ? PIPELINE_COLUMNS.filter((c) => selectedKeys.has(c.key))
+    : [...PIPELINE_COLUMNS];
+
+  if (activeColumns.length === 0) {
+    res.status(400).json({ error: "No valid columns selected" });
+    return;
+  }
+
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Ringside";
   workbook.created = new Date();
 
   const ws = workbook.addWorksheet("Pipeline");
-  ws.columns = [
-    { header: "Target Code",     key: "targetCode",                   width: 14 },
-    { header: "Project Name",    key: "projectName",                  width: 30 },
-    { header: "Legal Name",      key: "legalName",                    width: 28 },
-    { header: "Sector",          key: "sector",                       width: 16 },
-    { header: "Country",         key: "country",                      width: 14 },
-    { header: "Deal Type",       key: "dealType",                     width: 14 },
-    { header: "Priority Tier",   key: "priorityTier",                 width: 14 },
-    { header: "Current Stage",   key: "currentStage",                 width: 18 },
-    { header: "Deal Owner",      key: "dealOwner",                    width: 18 },
-    { header: "Strat Fit",       key: "strategicFitScore",            width: 10 },
-    { header: "Financial Score", key: "financialAttractivenessScore", width: 14 },
-    { header: "Synergy Score",   key: "synergyScore",                 width: 13 },
-    { header: "NDA Status",      key: "ndaStatus",                    width: 14 },
-    { header: "Financial DD",    key: "financialDdStatus",            width: 16 },
-    { header: "Legal DD",        key: "legalDdStatus",                width: 14 },
-    { header: "Created",         key: "createdAt",                    width: 12 },
-  ];
+  ws.columns = activeColumns.map((c) => ({ header: c.header, key: c.key, width: c.width }));
 
   const hdr = ws.getRow(1);
   hdr.font = { bold: true, color: { argb: "FFFFFFFF" } };
@@ -88,7 +104,8 @@ router.get("/pipeline", async (req, res) => {
   }
 
   ws.views = [{ state: "frozen", ySplit: 1 }];
-  ws.autoFilter = { from: "A1", to: "P1" };
+  const lastCol = String.fromCharCode(64 + activeColumns.length);
+  ws.autoFilter = { from: "A1", to: `${lastCol}1` };
 
   const filename = `pipeline-${new Date().toISOString().slice(0, 10)}.xlsx`;
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
