@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetCounterparty, getGetCounterpartyQueryKey, useUpdateCounterparty,
   useListAdvisors, getListAdvisorsQueryKey, useCreateAdvisor, useUpdateAdvisor, useDeleteAdvisor,
+  useListAdvisorConflictNotes, getListAdvisorConflictNotesQueryKey, useCreateAdvisorConflictNote,
   useListSponsors, getListSponsorsQueryKey, useCreateSponsor, useUpdateSponsor, useDeleteSponsor,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Users, Briefcase, Edit, Trash2, Plus, AlertTriangle, Building2, Shield,
+  ChevronDown, ChevronRight, FileText,
 } from "lucide-react";
 
 const ADVISOR_TYPES = [
@@ -185,6 +187,42 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
       notes: (a as any).notes ?? "",
     });
     setAdvisorEditOpen(true);
+  }
+
+  // ── Conflict resolution notes ────────────────────────────────────────────────
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  const [noteAdvisorId, setNoteAdvisorId] = useState<number | null>(null);
+  const [noteAdvisorStatus, setNoteAdvisorStatus] = useState<string>("Flagged");
+  const [noteForm, setNoteForm] = useState({ note: "", author: "" });
+  const [expandedAdvisorNotes, setExpandedAdvisorNotes] = useState<Set<number>>(new Set());
+
+  const createConflictNote = useCreateAdvisorConflictNote({
+    mutation: {
+      onSuccess: (_, vars) => {
+        qc.invalidateQueries({ queryKey: getListAdvisorConflictNotesQueryKey(vars.id) });
+        setNoteDialogOpen(false);
+        setNoteForm({ note: "", author: "" });
+        toast({ title: "Resolution note added" });
+        setExpandedAdvisorNotes((prev) => new Set([...prev, vars.id]));
+      },
+      onError: () => toast({ title: "Error", description: "Could not add note", variant: "destructive" }),
+    },
+  });
+
+  function openNoteDialog(advisorId: number, conflictsStatus: string) {
+    setNoteAdvisorId(advisorId);
+    setNoteAdvisorStatus(conflictsStatus);
+    setNoteForm({ note: "", author: "" });
+    setNoteDialogOpen(true);
+  }
+
+  function toggleAdvisorNotes(advisorId: number) {
+    setExpandedAdvisorNotes((prev) => {
+      const next = new Set(prev);
+      if (next.has(advisorId)) next.delete(advisorId);
+      else next.add(advisorId);
+      return next;
+    });
   }
 
   // ── Sponsors ────────────────────────────────────────────────────────────────
@@ -388,9 +426,17 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
               No advisors added
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-0">
               {visibleBuyAdvisors.map((a: any) => (
-                <AdvisorRow key={a.id} advisor={a} onEdit={() => openEditAdvisor(a.id)} onDelete={() => { setDeletingAdvisorId(a.id); setAdvisorDeleteOpen(true); }} />
+                <AdvisorRow
+                  key={a.id}
+                  advisor={a}
+                  onEdit={() => openEditAdvisor(a.id)}
+                  onDelete={() => { setDeletingAdvisorId(a.id); setAdvisorDeleteOpen(true); }}
+                  onAddNote={() => openNoteDialog(a.id, a.conflictsStatus)}
+                  notesExpanded={expandedAdvisorNotes.has(a.id)}
+                  onToggleNotes={() => toggleAdvisorNotes(a.id)}
+                />
               ))}
             </div>
           )}
@@ -419,9 +465,17 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
               No counterparty advisors tracked
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-0">
               {visibleSellAdvisors.map((a: any) => (
-                <AdvisorRow key={a.id} advisor={a} onEdit={() => openEditAdvisor(a.id)} onDelete={() => { setDeletingAdvisorId(a.id); setAdvisorDeleteOpen(true); }} />
+                <AdvisorRow
+                  key={a.id}
+                  advisor={a}
+                  onEdit={() => openEditAdvisor(a.id)}
+                  onDelete={() => { setDeletingAdvisorId(a.id); setAdvisorDeleteOpen(true); }}
+                  onAddNote={() => openNoteDialog(a.id, a.conflictsStatus)}
+                  notesExpanded={expandedAdvisorNotes.has(a.id)}
+                  onToggleNotes={() => toggleAdvisorNotes(a.id)}
+                />
               ))}
             </div>
           )}
@@ -593,6 +647,55 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* ── Add Resolution Note Dialog ── */}
+      <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-mono uppercase tracking-tight text-lg">Add Resolution Note</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-3 py-2">
+            <div className="flex items-center gap-2 rounded-sm border border-border/50 bg-muted/30 px-3 py-2">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Status at time:</span>
+              <span className="ml-1">{conflictsBadge(noteAdvisorStatus)}</span>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Author *</label>
+              <Input
+                value={noteForm.author}
+                onChange={(e) => setNoteForm((f) => ({ ...f, author: e.target.value }))}
+                className="h-8 text-sm font-mono"
+                placeholder="Your name"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Note *</label>
+              <Textarea
+                value={noteForm.note}
+                onChange={(e) => setNoteForm((f) => ({ ...f, note: e.target.value }))}
+                className="text-sm font-mono resize-none"
+                rows={4}
+                placeholder="Describe the investigation steps taken and how this conflict was resolved or is being managed…"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setNoteDialogOpen(false)}>Cancel</Button>
+            <Button
+              disabled={!noteForm.note.trim() || !noteForm.author.trim() || createConflictNote.isPending}
+              onClick={() => {
+                if (noteAdvisorId == null) return;
+                createConflictNote.mutate({
+                  id: noteAdvisorId,
+                  data: { note: noteForm.note, author: noteForm.author, statusAtTime: noteAdvisorStatus as any },
+                });
+              }}
+            >
+              Save Note
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Sponsor Add/Edit Dialog ── */}
       <Dialog open={sponsorAddOpen || sponsorEditOpen} onOpenChange={(open) => { if (!open) { setSponsorAddOpen(false); setSponsorEditOpen(false); } }}>
         <DialogContent className="max-w-md">
@@ -670,36 +773,110 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
   );
 }
 
-function AdvisorRow({ advisor, onEdit, onDelete }: { advisor: any; onEdit: () => void; onDelete: () => void }) {
+function AdvisorNotesList({ advisorId }: { advisorId: number }) {
+  const { data: notes = [], isLoading } = useListAdvisorConflictNotes(advisorId);
+  if (isLoading) return <div className="py-2 px-3"><Skeleton className="h-8 w-full" /></div>;
+  if (!(notes as any[]).length) {
+    return (
+      <div className="py-2 px-3 text-[11px] font-mono text-muted-foreground/50 italic">
+        No resolution notes yet
+      </div>
+    );
+  }
   return (
-    <div className="flex items-start justify-between gap-3 py-2 border-b border-border/40 last:border-0 group">
-      <div className="flex-1 min-w-0 space-y-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium">{advisor.firmName}</span>
-          <span className="text-[10px] font-mono text-muted-foreground/70 uppercase tracking-wide">{advisor.advisorType}</span>
-          {conflictsBadge(advisor.conflictsStatus)}
-        </div>
-        {advisor.contactName && (
-          <div className="text-xs text-muted-foreground">
-            {advisor.contactName}
-            {advisor.contactEmail && <span className="text-muted-foreground/60"> · {advisor.contactEmail}</span>}
+    <div className="space-y-0 border-t border-border/30 mt-1">
+      {(notes as any[]).map((n: any) => (
+        <div key={n.id} className="flex items-start gap-3 px-3 py-2 border-b border-border/20 last:border-0 bg-muted/20">
+          <div className="mt-0.5 shrink-0">
+            <FileText size={11} className="text-muted-foreground/50" />
           </div>
-        )}
-        {advisor.feeStructure && (
-          <div className="text-xs text-muted-foreground/70 italic">{advisor.feeStructure}</div>
-        )}
-        {advisor.notes && (
-          <div className="text-xs text-muted-foreground/60">{advisor.notes}</div>
-        )}
+          <div className="flex-1 min-w-0 space-y-0.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-mono font-semibold text-foreground/80">{n.author}</span>
+              <span className="text-[10px] font-mono text-muted-foreground/50">
+                {new Date(n.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+              </span>
+              {conflictsBadge(n.statusAtTime)}
+            </div>
+            <p className="text-xs text-muted-foreground whitespace-pre-wrap">{n.note}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AdvisorRow({
+  advisor,
+  onEdit,
+  onDelete,
+  onAddNote,
+  notesExpanded,
+  onToggleNotes,
+}: {
+  advisor: any;
+  onEdit: () => void;
+  onDelete: () => void;
+  onAddNote: () => void;
+  notesExpanded: boolean;
+  onToggleNotes: () => void;
+}) {
+  const showNoteControls = advisor.conflictsStatus === "Flagged" || advisor.conflictsStatus === "Cleared";
+  return (
+    <div className="border-b border-border/40 last:border-0">
+      <div className="flex items-start justify-between gap-3 py-2 group">
+        <div className="flex-1 min-w-0 space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium">{advisor.firmName}</span>
+            <span className="text-[10px] font-mono text-muted-foreground/70 uppercase tracking-wide">{advisor.advisorType}</span>
+            {conflictsBadge(advisor.conflictsStatus)}
+          </div>
+          {advisor.contactName && (
+            <div className="text-xs text-muted-foreground">
+              {advisor.contactName}
+              {advisor.contactEmail && <span className="text-muted-foreground/60"> · {advisor.contactEmail}</span>}
+            </div>
+          )}
+          {advisor.feeStructure && (
+            <div className="text-xs text-muted-foreground/70 italic">{advisor.feeStructure}</div>
+          )}
+          {advisor.notes && (
+            <div className="text-xs text-muted-foreground/60">{advisor.notes}</div>
+          )}
+          {showNoteControls && (
+            <div className="flex items-center gap-2 pt-0.5">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 px-2 font-mono text-[10px] uppercase text-muted-foreground hover:text-foreground"
+                onClick={onToggleNotes}
+              >
+                {notesExpanded ? <ChevronDown size={10} className="mr-1" /> : <ChevronRight size={10} className="mr-1" />}
+                Resolution Log
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 px-2 font-mono text-[10px] uppercase text-primary/80 hover:text-primary"
+                onClick={onAddNote}
+              >
+                <Plus size={10} className="mr-1" /> Add Note
+              </Button>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-1 shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onEdit}>
+            <Edit size={11} />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive/60 hover:text-destructive" onClick={onDelete}>
+            <Trash2 size={11} />
+          </Button>
+        </div>
       </div>
-      <div className="flex gap-1 shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onEdit}>
-          <Edit size={11} />
-        </Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive/60 hover:text-destructive" onClick={onDelete}>
-          <Trash2 size={11} />
-        </Button>
-      </div>
+      {showNoteControls && notesExpanded && (
+        <AdvisorNotesList advisorId={advisor.id} />
+      )}
     </div>
   );
 }

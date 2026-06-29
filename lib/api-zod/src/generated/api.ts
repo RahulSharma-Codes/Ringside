@@ -2554,6 +2554,38 @@ export const DeleteAdvisorParams = zod.object({
 });
 
 /**
+ * @summary List conflict resolution notes for an advisor
+ */
+export const ListAdvisorConflictNotesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListAdvisorConflictNotesResponseItem = zod.object({
+  id: zod.number(),
+  advisorId: zod.number(),
+  note: zod.string(),
+  author: zod.string(),
+  statusAtTime: zod.enum(["Pending", "Cleared", "Flagged"]),
+  createdAt: zod.coerce.date(),
+});
+export const ListAdvisorConflictNotesResponse = zod.array(
+  ListAdvisorConflictNotesResponseItem,
+);
+
+/**
+ * @summary Add a conflict resolution note to an advisor
+ */
+export const CreateAdvisorConflictNoteParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateAdvisorConflictNoteBody = zod.object({
+  note: zod.string(),
+  author: zod.string(),
+  statusAtTime: zod.enum(["Pending", "Cleared", "Flagged"]),
+});
+
+/**
  * @summary List internal sponsors for a target
  */
 export const ListSponsorsParams = zod.object({

@@ -306,6 +306,16 @@ export const dealAdvisorsTable = pgTable("deal_advisors", {
 });
 export type DealAdvisor = typeof dealAdvisorsTable.$inferSelect;
 
+export const advisorConflictNotesTable = pgTable("advisor_conflict_notes", {
+  id: serial("id").primaryKey(),
+  advisorId: integer("advisor_id").notNull().references(() => dealAdvisorsTable.id),
+  note: text("note").notNull(),
+  author: text("author").notNull(),
+  statusAtTime: text("status_at_time").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+export type AdvisorConflictNote = typeof advisorConflictNotesTable.$inferSelect;
+
 export const ndaRecordsTable = pgTable("nda_records", {
   id: serial("id").primaryKey(),
   targetId: integer("target_id").notNull().references(() => targetsTable.id),

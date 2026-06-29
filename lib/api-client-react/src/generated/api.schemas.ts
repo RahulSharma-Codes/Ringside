@@ -1424,6 +1424,39 @@ export interface UpdateAdvisorBody {
   notes?: string | null;
 }
 
+export type AdvisorConflictNoteStatusAtTime =
+  (typeof AdvisorConflictNoteStatusAtTime)[keyof typeof AdvisorConflictNoteStatusAtTime];
+
+export const AdvisorConflictNoteStatusAtTime = {
+  Pending: "Pending",
+  Cleared: "Cleared",
+  Flagged: "Flagged",
+} as const;
+
+export interface AdvisorConflictNote {
+  id: number;
+  advisorId: number;
+  note: string;
+  author: string;
+  statusAtTime: AdvisorConflictNoteStatusAtTime;
+  createdAt: string;
+}
+
+export type CreateAdvisorConflictNoteBodyStatusAtTime =
+  (typeof CreateAdvisorConflictNoteBodyStatusAtTime)[keyof typeof CreateAdvisorConflictNoteBodyStatusAtTime];
+
+export const CreateAdvisorConflictNoteBodyStatusAtTime = {
+  Pending: "Pending",
+  Cleared: "Cleared",
+  Flagged: "Flagged",
+} as const;
+
+export interface CreateAdvisorConflictNoteBody {
+  note: string;
+  author: string;
+  statusAtTime: CreateAdvisorConflictNoteBodyStatusAtTime;
+}
+
 export interface Sponsor {
   id: number;
   targetId: number;

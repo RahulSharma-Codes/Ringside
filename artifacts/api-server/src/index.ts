@@ -488,13 +488,26 @@ async function applyMigrations(): Promise<void> {
   await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS financial_attractiveness_score integer NOT NULL DEFAULT 50`);
   await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS process_maturity_score integer NOT NULL DEFAULT 50`);
 
+  // Advisor conflict resolution notes (Task 101)
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS advisor_conflict_notes (
+      id            serial PRIMARY KEY,
+      advisor_id    integer NOT NULL REFERENCES deal_advisors(id) ON DELETE CASCADE,
+      note          text NOT NULL,
+      author        text NOT NULL,
+      status_at_time text NOT NULL,
+      created_at    timestamp NOT NULL DEFAULT now()
+    )
+  `);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS advisor_conflict_notes_advisor_id_idx ON advisor_conflict_notes(advisor_id, created_at DESC)`);
+
   // ── Multi-tenancy: company_id on all core tables + RLS ───────────────────────
 
   const CORE_TABLES = [
     "targets", "actions", "interactions", "milestones", "deal_documents",
     "ic_sessions", "ic_proposals", "ic_votes", "ic_cps",
     "valuations", "deal_economics", "synergies",
-    "nda_records", "regulatory_clearances", "deal_advisors",
+    "nda_records", "regulatory_clearances", "deal_advisors", "advisor_conflict_notes",
     "audit_events", "notifications",
   ] as const;
 

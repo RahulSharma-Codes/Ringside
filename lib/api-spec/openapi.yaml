@@ -1577,6 +1577,50 @@ paths:
         "204":
           description: Deleted
 
+  /advisors/{id}/conflict-notes:
+    get:
+      summary: List conflict resolution notes for an advisor
+      operationId: listAdvisorConflictNotes
+      tags: [advisors]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of conflict notes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdvisorConflictNote"
+    post:
+      summary: Add a conflict resolution note to an advisor
+      operationId: createAdvisorConflictNote
+      tags: [advisors]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAdvisorConflictNoteBody"
+      responses:
+        "201":
+          description: Created note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdvisorConflictNote"
+
   /targets/{id}/sponsors:
     get:
       summary: List internal sponsors for a target
@@ -4723,6 +4767,37 @@ components:
         notes:
           type: string
           nullable: true
+
+    AdvisorConflictNote:
+      type: object
+      required: [id, advisorId, note, author, statusAtTime, createdAt]
+      properties:
+        id:
+          type: integer
+        advisorId:
+          type: integer
+        note:
+          type: string
+        author:
+          type: string
+        statusAtTime:
+          type: string
+          enum: [Pending, Cleared, Flagged]
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateAdvisorConflictNoteBody:
+      type: object
+      required: [note, author, statusAtTime]
+      properties:
+        note:
+          type: string
+        author:
+          type: string
+        statusAtTime:
+          type: string
+          enum: [Pending, Cleared, Flagged]
 
     Sponsor:
       type: object

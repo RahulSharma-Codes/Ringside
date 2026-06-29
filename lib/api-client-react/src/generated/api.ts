@@ -21,6 +21,7 @@ import type {
   ActivityFeedResponse,
   AddIcVoterBody,
   Advisor,
+  AdvisorConflictNote,
   AiAskRequest,
   AiAskResponse,
   AiStatusResponse,
@@ -38,6 +39,7 @@ import type {
   CounterpartyInfo,
   CreateActionBody,
   CreateAdvisorBody,
+  CreateAdvisorConflictNoteBody,
   CreateDiligenceItemBody,
   CreateDocumentBody,
   CreateIcProposalBody,
@@ -6636,6 +6638,186 @@ export const useDeleteAdvisor = <
   TContext
 > => {
   return useMutation(getDeleteAdvisorMutationOptions(options));
+};
+
+/**
+ * @summary List conflict resolution notes for an advisor
+ */
+export const getListAdvisorConflictNotesUrl = (id: number) => {
+  return `/api/advisors/${id}/conflict-notes`;
+};
+
+export const listAdvisorConflictNotes = async (
+  id: number,
+  options?: RequestInit,
+): Promise<AdvisorConflictNote[]> => {
+  return customFetch<AdvisorConflictNote[]>(
+    getListAdvisorConflictNotesUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListAdvisorConflictNotesQueryKey = (id: number) => {
+  return [`/api/advisors/${id}/conflict-notes`] as const;
+};
+
+export const getListAdvisorConflictNotesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdvisorConflictNotes>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAdvisorConflictNotes>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListAdvisorConflictNotesQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listAdvisorConflictNotes>>
+  > = ({ signal }) =>
+    listAdvisorConflictNotes(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdvisorConflictNotes>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdvisorConflictNotesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdvisorConflictNotes>>
+>;
+export type ListAdvisorConflictNotesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List conflict resolution notes for an advisor
+ */
+
+export function useListAdvisorConflictNotes<
+  TData = Awaited<ReturnType<typeof listAdvisorConflictNotes>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAdvisorConflictNotes>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdvisorConflictNotesQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a conflict resolution note to an advisor
+ */
+export const getCreateAdvisorConflictNoteUrl = (id: number) => {
+  return `/api/advisors/${id}/conflict-notes`;
+};
+
+export const createAdvisorConflictNote = async (
+  id: number,
+  createAdvisorConflictNoteBody: CreateAdvisorConflictNoteBody,
+  options?: RequestInit,
+): Promise<AdvisorConflictNote> => {
+  return customFetch<AdvisorConflictNote>(getCreateAdvisorConflictNoteUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createAdvisorConflictNoteBody),
+  });
+};
+
+export const getCreateAdvisorConflictNoteMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdvisorConflictNote>>,
+    TError,
+    { id: number; data: BodyType<CreateAdvisorConflictNoteBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createAdvisorConflictNote>>,
+  TError,
+  { id: number; data: BodyType<CreateAdvisorConflictNoteBody> },
+  TContext
+> => {
+  const mutationKey = ["createAdvisorConflictNote"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createAdvisorConflictNote>>,
+    { id: number; data: BodyType<CreateAdvisorConflictNoteBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createAdvisorConflictNote(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateAdvisorConflictNoteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createAdvisorConflictNote>>
+>;
+export type CreateAdvisorConflictNoteMutationBody =
+  BodyType<CreateAdvisorConflictNoteBody>;
+export type CreateAdvisorConflictNoteMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add a conflict resolution note to an advisor
+ */
+export const useCreateAdvisorConflictNote = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdvisorConflictNote>>,
+    TError,
+    { id: number; data: BodyType<CreateAdvisorConflictNoteBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createAdvisorConflictNote>>,
+  TError,
+  { id: number; data: BodyType<CreateAdvisorConflictNoteBody> },
+  TContext
+> => {
+  return useMutation(getCreateAdvisorConflictNoteMutationOptions(options));
 };
 
 /**
