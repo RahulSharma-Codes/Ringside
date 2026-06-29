@@ -11,8 +11,19 @@ export interface HealthScoreInputs {
   currentStage: string;
 }
 
-const LATE_STAGES = new Set(["Due Diligence", "SPA / Docs", "Closing"]);
-const MID_STAGES  = new Set(["LOI / NBO", "Exclusivity"]);
+// MID: non-binding/early negotiation — some diligence expected
+const MID_STAGES = new Set(["Non-Binding Offer"]);
+// LATE: binding stage onwards — substantial diligence expected
+const LATE_STAGES = new Set([
+  "Confirmatory Due Diligence",
+  "Binding Offer",
+  "SPA Negotiation",
+  "Integration Planning",
+  "Closing",
+  "Closed",
+  "Completed",
+  "Signed",
+]);
 
 export function computeHealthScore(inputs: HealthScoreInputs): HealthScore {
   const {

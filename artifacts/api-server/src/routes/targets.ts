@@ -2,7 +2,7 @@ import { Router } from "express";
 import { requireRole } from "../middlewares/auth";
 import interactionsSubRouter from "./target-interactions";
 import actionsSubRouter from "./target-actions";
-import { eq, and, ilike, or, desc, isNull } from "drizzle-orm";
+import { eq, and, ilike, or, desc, isNull, isNotNull } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   targetsTable, milestonesTable, interactionsTable, actionItemsTable, stageChangeLogTable,
@@ -16,6 +16,7 @@ import {
   toIso, formatTarget, formatInteraction, formatAction, formatStageChange,
   currentStage, calcPriorityScore, defaultMilestoneValues, enrichTargetRows,
 } from "./target-helpers";
+import { computeHealthScore } from "../lib/health-score";
 import {
   evaluateGates, fetchGateContext, nextPipelineStage,
 } from "./target-stage-gate-config";
@@ -267,14 +268,54 @@ router.get("/:id", async (req, res) => {
 
   if (!row) return res.status(404).json({ error: "Not found" });
 
-  const [interactions, actions, stageHistory] = await Promise.all([
+  const [interactions, actions, stageHistory, diligenceItems] = await Promise.all([
     db.select().from(interactionsTable).where(eq(interactionsTable.targetId, id)).orderBy(desc(interactionsTable.interactionDatetime)),
     db.select().from(actionItemsTable).where(eq(actionItemsTable.targetId, id)).orderBy(desc(actionItemsTable.createdAt)),
     db.select().from(stageChangeLogTable).where(eq(stageChangeLogTable.targetId, id)).orderBy(desc(stageChangeLogTable.changedAt)),
+    db.select({ status: actionItemsTable.status }).from(actionItemsTable)
+      .where(and(eq(actionItemsTable.targetId, id), isNotNull(actionItemsTable.workstream))),
   ]);
+
+  const now = new Date();
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+
+  const openActions = actions.filter(
+    (a) => isNull(a.workstream) && ["Open", "In Progress", "Blocked"].includes(a.status),
+  );
+  const overdueActions = openActions.filter((a) => a.dueDate && new Date(a.dueDate) < today);
+  const sortedInteractions = [...interactions].sort(
+    (a, b) => new Date(b.interactionDatetime).getTime() - new Date(a.interactionDatetime).getTime(),
+  );
+  const latestStageChange = stageHistory[0];
+  const stageDate = latestStageChange
+    ? new Date(latestStageChange.changedAt)
+    : row.milestone?.stageEnteredAt ? new Date(row.milestone.stageEnteredAt) : null;
+  const targetCreatedAt = row.target.createdAt ? new Date(row.target.createdAt) : null;
+
+  const diligenceTotal = diligenceItems.length;
+  const diligenceCompleted = diligenceItems.filter((i) => i.status === "Completed").length;
+
+  const healthScore = computeHealthScore({
+    daysSinceLastInteraction: sortedInteractions.length > 0
+      ? Math.floor((now.getTime() - new Date(sortedInteractions[0].interactionDatetime).getTime()) / 86_400_000)
+      : null,
+    targetAgeInDays: targetCreatedAt
+      ? Math.floor((now.getTime() - targetCreatedAt.getTime()) / 86_400_000)
+      : 0,
+    openActionCount: openActions.length,
+    overdueActionCount: overdueActions.length,
+    diligenceTotalItems: diligenceTotal,
+    diligenceCompletedItems: diligenceCompleted,
+    daysInCurrentStage: stageDate
+      ? Math.floor((now.getTime() - stageDate.getTime()) / 86_400_000)
+      : null,
+    currentStage: currentStage(row.milestone),
+  });
 
   return res.json({
     ...formatTarget(row.target, row.milestone),
+    healthScore,
     interactions: interactions.map(formatInteraction),
     actions: actions.map(formatAction),
     stageHistory: stageHistory.map(formatStageChange),
