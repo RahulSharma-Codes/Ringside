@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { db, sessionBlocklistTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, lt } from "drizzle-orm";
 
 const JWT_SECRET = process.env.SESSION_SECRET ?? "dev-secret-change-me";
 
@@ -65,6 +65,10 @@ export async function requireAppPassword(req: Request, res: Response, next: Next
         .limit(1);
       if (blocked) return res.status(401).json({ error: "Session has been revoked. Please log in again." });
       req.jwtClaims = claims;
+      // Opportunistic cleanup: prune expired blocklist rows (fire-and-forget, never blocks the request)
+      db.delete(sessionBlocklistTable)
+        .where(lt(sessionBlocklistTable.expiresAt, new Date()))
+        .catch(() => { /* ignore cleanup errors */ });
       return next();
     } catch {
       // Fall through to legacy check
