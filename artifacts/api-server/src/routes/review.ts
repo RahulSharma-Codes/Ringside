@@ -8,7 +8,7 @@ import {
   actionItemsTable,
   stageChangeLogTable,
 } from "@workspace/db";
-import { computeHealthScore } from "./target-helpers";
+import { computeHealthScore } from "../lib/health-score";
 
 const router = Router();
 
@@ -148,10 +148,12 @@ router.get("/weekly", async (req, res) => {
 
   // ── Build lookup maps ────────────────────────────────────────────────────
   const openActionCountByTarget = new Map<number, number>();
-  const overdueTargetIds = new Set<number>();
+  const overdueActionCountByTarget = new Map<number, number>();
   for (const a of allOpenActions) {
     openActionCountByTarget.set(a.targetId, (openActionCountByTarget.get(a.targetId) ?? 0) + 1);
-    if (a.dueDate && new Date(a.dueDate) < today) overdueTargetIds.add(a.targetId);
+    if (a.dueDate && new Date(a.dueDate) < today) {
+      overdueActionCountByTarget.set(a.targetId, (overdueActionCountByTarget.get(a.targetId) ?? 0) + 1);
+    }
   }
 
   const lastInteractionByTarget = new Map<number, Date>();
@@ -161,7 +163,17 @@ router.get("/weekly", async (req, res) => {
     if (!existing || d > existing) lastInteractionByTarget.set(i.targetId, d);
   }
 
-  // Compute attention flags per target (same logic as enrichTargetRows)
+  // Diligence stats per target (reused for health score + diligence health section)
+  const diligenceStatsByTarget = new Map<number, { total: number; completed: number; blocked: number }>();
+  for (const item of allDiligenceItems) {
+    const s = diligenceStatsByTarget.get(item.targetId) ?? { total: 0, completed: 0, blocked: 0 };
+    s.total++;
+    if (item.status === "Completed") s.completed++;
+    if (item.status === "Blocked") s.blocked++;
+    diligenceStatsByTarget.set(item.targetId, s);
+  }
+
+  // Compute attention flags per target (used for needsAttention filter)
   const flagsByTarget = new Map<number, string[]>();
   for (const t of targetsWithMilestones) {
     const flags: string[] = [];
@@ -169,7 +181,7 @@ router.get("/weekly", async (req, res) => {
     const lastInteraction = lastInteractionByTarget.get(t.id);
     const createdAt = t.createdAt ? new Date(t.createdAt) : null;
 
-    if (overdueTargetIds.has(t.id)) flags.push("overdue_action");
+    if ((overdueActionCountByTarget.get(t.id) ?? 0) > 0) flags.push("overdue_action");
     if (t.priorityTier === "Must-Win" && openCount === 0) flags.push("must_win_no_action");
     if (!lastInteraction) {
       if (createdAt && createdAt < thirtyDaysAgo) flags.push("no_recent_interaction");
@@ -178,7 +190,6 @@ router.get("/weekly", async (req, res) => {
     }
     const stageDate = t.stageEnteredAt ? new Date(t.stageEnteredAt) : null;
     if (stageDate && stageDate < fortyFiveDaysAgo) flags.push("stale_stage");
-
     flagsByTarget.set(t.id, flags);
   }
 
@@ -186,17 +197,38 @@ router.get("/weekly", async (req, res) => {
   type TargetRow = (typeof targetsWithMilestones)[number];
   type ActionRow = (typeof allOpenActions)[number];
 
-  const fmtTarget = (t: TargetRow, extra?: Record<string, unknown>) => ({
-    id: t.id,
-    targetCode: t.targetCode,
-    projectName: t.projectName,
-    priorityTier: t.priorityTier,
-    currentStage: t.currentStage ?? "Sourcing",
-    openActionCount: openActionCountByTarget.get(t.id) ?? 0,
-    lastInteractionDate: toIso(lastInteractionByTarget.get(t.id) ?? null),
-    healthScore: computeHealthScore(flagsByTarget.get(t.id) ?? []),
-    ...extra,
-  });
+  const fmtTarget = (t: TargetRow, extra?: Record<string, unknown>) => {
+    const lastInteraction = lastInteractionByTarget.get(t.id);
+    const createdAt = t.createdAt ? new Date(t.createdAt) : null;
+    const stageDate = t.stageEnteredAt ? new Date(t.stageEnteredAt) : null;
+    const diligenceStats = diligenceStatsByTarget.get(t.id) ?? { total: 0, completed: 0, blocked: 0 };
+    return {
+      id: t.id,
+      targetCode: t.targetCode,
+      projectName: t.projectName,
+      priorityTier: t.priorityTier,
+      currentStage: t.currentStage ?? "Sourcing",
+      openActionCount: openActionCountByTarget.get(t.id) ?? 0,
+      lastInteractionDate: toIso(lastInteraction ?? null),
+      healthScore: computeHealthScore({
+        daysSinceLastInteraction: lastInteraction
+          ? Math.floor((now.getTime() - lastInteraction.getTime()) / 86_400_000)
+          : null,
+        targetAgeInDays: createdAt
+          ? Math.floor((now.getTime() - createdAt.getTime()) / 86_400_000)
+          : 0,
+        openActionCount: openActionCountByTarget.get(t.id) ?? 0,
+        overdueActionCount: overdueActionCountByTarget.get(t.id) ?? 0,
+        diligenceTotalItems: diligenceStats.total,
+        diligenceCompletedItems: diligenceStats.completed,
+        daysInCurrentStage: stageDate
+          ? Math.floor((now.getTime() - stageDate.getTime()) / 86_400_000)
+          : null,
+        currentStage: t.currentStage ?? "Sourcing",
+      }),
+      ...extra,
+    };
+  };
 
   const fmtAction = (a: ActionRow) => ({
     id: a.id,
@@ -278,18 +310,6 @@ router.get("/weekly", async (req, res) => {
     .map((t) => fmtTarget(t));
 
   // ── 9. Diligence Health ──────────────────────────────────────────────────
-  // Per-target counts from diligence items (workstream-tagged actions)
-  const diligenceStatsByTarget = new Map<number, { total: number; completed: number; blocked: number }>();
-  for (const item of allDiligenceItems) {
-    if (!diligenceStatsByTarget.has(item.targetId)) {
-      diligenceStatsByTarget.set(item.targetId, { total: 0, completed: 0, blocked: 0 });
-    }
-    const stats = diligenceStatsByTarget.get(item.targetId)!;
-    stats.total += 1;
-    if (item.status === "Completed") stats.completed += 1;
-    if (item.status === "Blocked") stats.blocked += 1;
-  }
-
   const fmtDiligenceTarget = (t: (typeof targetsWithMilestones)[number]) => {
     const stats = diligenceStatsByTarget.get(t.id) ?? { total: 0, completed: 0, blocked: 0 };
     return {

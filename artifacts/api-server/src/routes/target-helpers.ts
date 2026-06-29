@@ -1,4 +1,5 @@
-import { eq, and, inArray, isNull, desc } from "drizzle-orm";
+import { eq, and, inArray, isNull, isNotNull, desc } from "drizzle-orm";
+import { computeHealthScore } from "../lib/health-score";
 import { db } from "@workspace/db";
 import {
   targetsTable,
@@ -15,16 +16,7 @@ export type InteractionRow = typeof interactionsTable.$inferSelect;
 export type StageChangeRow = typeof stageChangeLogTable.$inferSelect;
 export type DocumentRow = { id: number; targetId: number; title: string | null; documentType: string | null; status: string | null; [key: string]: unknown };
 
-export type HealthScore = "healthy" | "watch" | "at_risk";
-
-export function computeHealthScore(flags: string[]): HealthScore {
-  if (flags.length === 0) return "healthy";
-  if (
-    flags.length >= 2 ||
-    flags.includes("must_win_no_action")
-  ) return "at_risk";
-  return "watch";
-}
+export type { HealthScore } from "../lib/health-score";
 
 export function toIso(value: Date | string | null | undefined): string | null {
   if (!value) return null;
@@ -112,22 +104,27 @@ export async function enrichTargetRows(rows: { target: TargetRow; milestone: Mil
   if (rows.length === 0) return [];
 
   const targetIds = rows.map((r) => r.target.id);
-  const today = new Date();
+  const now = new Date();
+  const today = new Date(now);
   today.setHours(0, 0, 0, 0);
   const thirtyDaysAgo = new Date(today);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const fortyFiveDaysAgo = new Date(today);
   fortyFiveDaysAgo.setDate(fortyFiveDaysAgo.getDate() - 45);
 
-  const [allActions, allInteractions, allStageChanges] = await Promise.all([
+  const [allActions, allInteractions, allStageChanges, allDiligenceItems] = await Promise.all([
     db.select().from(actionItemsTable).where(and(inArray(actionItemsTable.targetId, targetIds), isNull(actionItemsTable.workstream))),
     db.select().from(interactionsTable).where(inArray(interactionsTable.targetId, targetIds)),
     db.select().from(stageChangeLogTable).where(inArray(stageChangeLogTable.targetId, targetIds)).orderBy(desc(stageChangeLogTable.changedAt)),
+    db.select({ targetId: actionItemsTable.targetId, status: actionItemsTable.status })
+      .from(actionItemsTable)
+      .where(and(inArray(actionItemsTable.targetId, targetIds), isNotNull(actionItemsTable.workstream))),
   ]);
 
   const actionsByTarget = new Map<number, ActionRow[]>();
   const interactionsByTarget = new Map<number, InteractionRow[]>();
   const latestStageChangeByTarget = new Map<number, StageChangeRow>();
+  const diligenceStatsByTarget = new Map<number, { total: number; completed: number }>();
 
   for (const action of allActions) {
     if (!actionsByTarget.has(action.targetId)) actionsByTarget.set(action.targetId, []);
@@ -142,11 +139,18 @@ export async function enrichTargetRows(rows: { target: TargetRow; milestone: Mil
       latestStageChangeByTarget.set(sc.targetId, sc);
     }
   }
+  for (const item of allDiligenceItems) {
+    const s = diligenceStatsByTarget.get(item.targetId) ?? { total: 0, completed: 0 };
+    s.total++;
+    if (item.status === "Completed") s.completed++;
+    diligenceStatsByTarget.set(item.targetId, s);
+  }
 
   return rows.map(({ target, milestone }) => {
     const actions = actionsByTarget.get(target.id) ?? [];
     const interactions = interactionsByTarget.get(target.id) ?? [];
     const latestStageChange = latestStageChangeByTarget.get(target.id);
+    const diligenceStats = diligenceStatsByTarget.get(target.id) ?? { total: 0, completed: 0 };
 
     const openActions = actions.filter((a) => ["Open", "In Progress", "Blocked"].includes(a.status));
     const overdueActions = openActions.filter((a) => a.dueDate && new Date(a.dueDate) < today);
@@ -156,24 +160,31 @@ export async function enrichTargetRows(rows: { target: TargetRow; milestone: Mil
     );
     const lastInteractionDate = sortedInteractions.length > 0 ? toIso(sortedInteractions[0].interactionDatetime) : null;
 
+    // Date-based health score inputs
+    const targetCreatedAt = target.createdAt ? new Date(target.createdAt) : null;
+    const targetAgeInDays = targetCreatedAt
+      ? Math.floor((now.getTime() - targetCreatedAt.getTime()) / 86_400_000)
+      : 0;
+    const daysSinceLastInteraction = sortedInteractions.length > 0
+      ? Math.floor((now.getTime() - new Date(sortedInteractions[0].interactionDatetime).getTime()) / 86_400_000)
+      : null;
+    const stageDate = latestStageChange
+      ? new Date(latestStageChange.changedAt)
+      : milestone?.stageEnteredAt ? new Date(milestone.stageEnteredAt) : null;
+    const daysInCurrentStage = stageDate
+      ? Math.floor((now.getTime() - stageDate.getTime()) / 86_400_000)
+      : null;
+
+    // Legacy attention flags (used for needsAttention and dashboard)
     const flags: string[] = [];
     if (overdueActions.length > 0) flags.push("overdue_action");
-
-    const targetCreatedAt = target.createdAt ? new Date(target.createdAt) : null;
-    if (interactions.length === 0) {
+    if (!sortedInteractions.length) {
       if (targetCreatedAt && targetCreatedAt < thirtyDaysAgo) flags.push("no_recent_interaction");
-    } else {
-      const latestInteractionDate = new Date(sortedInteractions[0].interactionDatetime);
-      if (latestInteractionDate < thirtyDaysAgo) flags.push("no_recent_interaction");
+    } else if (new Date(sortedInteractions[0].interactionDatetime) < thirtyDaysAgo) {
+      flags.push("no_recent_interaction");
     }
-
     if (target.priorityTier === "Must-Win" && openActions.length === 0) flags.push("must_win_no_action");
-
-    if (latestStageChange) {
-      if (new Date(latestStageChange.changedAt) < fortyFiveDaysAgo) flags.push("stale_stage");
-    } else if (milestone?.stageEnteredAt) {
-      if (new Date(milestone.stageEnteredAt) < fortyFiveDaysAgo) flags.push("stale_stage");
-    }
+    if (stageDate && stageDate < fortyFiveDaysAgo) flags.push("stale_stage");
 
     return {
       ...formatTarget(target, milestone),
@@ -182,7 +193,16 @@ export async function enrichTargetRows(rows: { target: TargetRow; milestone: Mil
       lastInteractionDate,
       needsAttention: flags.length > 0,
       flags,
-      healthScore: computeHealthScore(flags),
+      healthScore: computeHealthScore({
+        daysSinceLastInteraction,
+        targetAgeInDays,
+        openActionCount: openActions.length,
+        overdueActionCount: overdueActions.length,
+        diligenceTotalItems: diligenceStats.total,
+        diligenceCompletedItems: diligenceStats.completed,
+        daysInCurrentStage,
+        currentStage: currentStage(milestone),
+      }),
     };
   });
 }

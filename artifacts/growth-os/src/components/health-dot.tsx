@@ -17,7 +17,7 @@ interface HealthDotProps {
 export function HealthDot({ score, showLabel = false, size = "sm" }: HealthDotProps) {
   if (!score) return null;
   const c = CONFIG[score];
-  const dotSize = size === "md" ? "w-2.5 h-2.5" : "w-2 h-2";
+  const dotSize = size === "md" ? "w-3 h-3" : "w-2.5 h-2.5";
   return (
     <span className="inline-flex items-center gap-1 shrink-0">
       <span
