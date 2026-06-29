@@ -1,45 +1,39 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { downloadAuthenticatedFile } from "@/lib/download";
 import { useAuth } from "@/contexts/auth-context";
 import {
   useGetTarget, getGetTargetQueryKey,
   useUpdateTargetStage,
-  useListInteractions, getListInteractionsQueryKey,
-  useCreateInteraction,
-  useUpdateInteraction,
-  useDeleteInteraction,
-  useListActions, getListActionsQueryKey,
-  useCreateAction,
-  useUpdateAction,
-  useDeleteAction,
-  useGetStageHistory, getGetStageHistoryQueryKey,
   useDeleteTarget,
   useUpdateTarget,
-  useGetActivityFeed, getGetActivityFeedQueryKey,
+  useGetStageHistory, getGetStageHistoryQueryKey,
   useGetStageGate,
+  customFetch,
 } from "@workspace/api-client-react";
-import { LinkifiedText } from "@/components/linkified-text";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft, Target as TargetIcon, Plus, ShieldAlert, Edit, Trash2,
-  CheckCircle2, RotateCcw, Pencil, MessageSquare, ListChecks, GitBranch,
+  CheckCircle2, MessageSquare, ListChecks, GitBranch,
   LayoutGrid, ClipboardCheck, FolderOpen, Sparkles, Loader2, Copy, Check, Bot,
-  ChevronDown, ChevronRight, Activity as ActivityIcon, Scale, TrendingUp,
-  AlertTriangle, Download, Users, ShieldCheck, ClipboardList, Hash, Shield,
+  Activity as ActivityIcon, Scale, TrendingUp, AlertTriangle, Users,
+  ShieldCheck, ClipboardList,
 } from "lucide-react";
+import { differenceInDays, parseISO } from "date-fns";
 import {
-  formatScore, getScoreConfidence, countAssessedScores,
-  type ScoreField,
-} from "@/lib/score-utils";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { format, parseISO, differenceInDays, formatDistanceToNow } from "date-fns";
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import {
+  StageRail, PIPELINE_STAGE_ORDER, OFF_TRACK_STAGES, isDealTypeChangeSafe,
+} from "@/components/stage-rail";
+import { StageChip } from "@/components/stage-chip";
 import { DiligenceTab } from "@/pages/target-detail-diligence";
 import { DocumentsTab } from "@/pages/target-detail-documents";
 import { ValuationTab } from "@/pages/target-detail-valuation";
@@ -48,37 +42,16 @@ import { StakeholdersTab } from "@/pages/target-detail-stakeholders";
 import { ComplianceTab } from "@/pages/target-detail-compliance";
 import { AuditTrailTab } from "@/components/audit-trail-tab";
 import { IcTab } from "@/pages/target-detail-ic";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { StageRail, PIPELINE_STAGE_ORDER, ALL_KNOWN_STAGES, OFF_TRACK_STAGES, getStagesForDealType, isDealTypeChangeSafe } from "@/components/stage-rail";
-import { StageChip } from "@/components/stage-chip";
-import { AiMeetingNotesModal } from "@/components/ai-meeting-notes-modal";
-import { customFetch } from "@workspace/api-client-react";
+import { OverviewTab } from "@/pages/target-detail-overview";
+import { InteractionsTab } from "@/pages/target-detail-interactions";
+import { ActionsTab } from "@/pages/target-detail-actions";
+import { HistoryTab } from "@/pages/target-detail-history";
+import { ActivityTab } from "@/pages/target-detail-activity";
 
-const STAGES = [
-  "Sourcing", "Outreach", "Introductory Discussion", "NDA / CIM",
-  "Preliminary Due Diligence", "Management Meeting", "Non-Binding Offer",
-  "Confirmatory Due Diligence", "Binding Offer", "SPA Negotiation",
-  "Integration Planning", "Closed", "On Hold", "Dropped",
-];
-const INTERACTION_TYPES = ["Meeting", "Call", "Email", "Material Received", "Internal Review", "Site Visit", "Other"];
-const SENTIMENTS = ["Positive", "Neutral", "Negative"];
 const PRIORITY_TIERS = ["Must-Win", "Priority 1", "Priority 2", "Watchlist"];
-const ACTION_PRIORITIES = ["Critical", "High", "Medium", "Low"];
-const ACTION_STATUSES = ["Open", "In Progress", "Blocked", "Completed"];
-
 const DEAL_TYPES = [
-  "Acquisition",
-  "Minority Investment",
-  "Divestiture",
-  "JV",
-  "Partnership",
-  "Strategic Alliance",
-  "Other",
+  "Acquisition", "Minority Investment", "Divestiture", "JV",
+  "Partnership", "Strategic Alliance", "Other",
 ];
 
 type EditTargetData = {
@@ -100,25 +73,6 @@ type EditTargetData = {
   riskPenaltyScore: number;
 };
 
-type EditInterData = {
-  id: number;
-  interactionType: string;
-  summary: string;
-  participantsInternal: string;
-  participantsExternal: string;
-  sentiment: string;
-  valuationSignal: string;
-};
-
-type EditActionData = {
-  id: number;
-  description: string;
-  owner: string;
-  dueDate: string;
-  priority: string;
-  status: string;
-};
-
 export default function TargetDetail() {
   const { id } = useParams();
   const targetId = Number(id);
@@ -128,6 +82,7 @@ export default function TargetDetail() {
   const { canEditDeal } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
 
+  // Stage change state
   const [stageOpen, setStageOpen] = useState(false);
   const [stageVal, setStageVal] = useState("");
   const [stageReason, setStageReason] = useState("");
@@ -139,74 +94,23 @@ export default function TargetDetail() {
   const CLOSURE_VERDICT_STAGES = new Set(["Closed", "Dropped"]);
   const isClosureStage = CLOSURE_VERDICT_STAGES.has(stageVal);
 
-  const [interactionOpen, setInteractionOpen] = useState(false);
-  const [interType, setInterType] = useState("Meeting");
-  const [interSummary, setInterSummary] = useState("");
-  const [interParticipantsInternal, setInterParticipantsInternal] = useState("");
-  const [interParticipantsExternal, setInterParticipantsExternal] = useState("");
-  const [interSentiment, setInterSentiment] = useState("__none__");
-  const [interValuationSignal, setInterValuationSignal] = useState("");
-
-  const [editInterOpen, setEditInterOpen] = useState(false);
-  const [editInterData, setEditInterData] = useState<EditInterData>({
-    id: 0,
-    interactionType: "Meeting",
-    summary: "",
-    participantsInternal: "",
-    participantsExternal: "",
-    sentiment: "__none__",
-    valuationSignal: "",
-  });
-
-  const [actionOpen, setActionOpen] = useState(false);
-  const [actionDesc, setActionDesc] = useState("");
-  const [actionOwner, setActionOwner] = useState("");
-  const [actionDueDate, setActionDueDate] = useState("");
-  const [actionPriority, setActionPriority] = useState("Medium");
-
-  const [editActionOpen, setEditActionOpen] = useState(false);
-  const [editActionData, setEditActionData] = useState<EditActionData>({
-    id: 0,
-    description: "",
-    owner: "",
-    dueDate: "",
-    priority: "Medium",
-    status: "Open",
-  });
-
+  // Edit target state
   const [editOpen, setEditOpen] = useState(false);
   const [editData, setEditData] = useState<EditTargetData>({
-    projectName: "",
-    priorityTier: "",
-    dealType: "",
-    strategicRationale: "",
-    sector: "",
-    subsector: "",
-    geographyRegion: "",
-    country: "",
-    dealOwner: "",
-    dealChampion: "",
-    executiveSponsor: "",
-    strategicFitScore: 50,
-    synergyScore: 50,
-    financialAttractivenessScore: 50,
-    processMaturityScore: 50,
-    riskPenaltyScore: 0,
+    projectName: "", priorityTier: "", dealType: "", strategicRationale: "",
+    sector: "", subsector: "", geographyRegion: "", country: "",
+    dealOwner: "", dealChampion: "", executiveSponsor: "",
+    strategicFitScore: 50, synergyScore: 50, financialAttractivenessScore: 50,
+    processMaturityScore: 50, riskPenaltyScore: 0,
   });
   const [dealTypeWarning, setDealTypeWarning] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const [deleteInterOpen, setDeleteInterOpen] = useState(false);
-  const [deleteInterId, setDeleteInterId] = useState<number | null>(null);
+  // Mobile bar triggers for tab-managed dialogs
+  const [interactionAddOpen, setInteractionAddOpen] = useState(false);
+  const [actionAddOpen, setActionAddOpen] = useState(false);
 
-  const [deleteActionOpen, setDeleteActionOpen] = useState(false);
-  const [deleteActionId, setDeleteActionId] = useState<number | null>(null);
-
-
-  const [aiNotesOpen, setAiNotesOpen] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get("ai") === "meeting-notes";
-  });
+  // AI brief state
   const [aiBriefOpen, setAiBriefOpen] = useState(false);
   const [briefContent, setBriefContent] = useState<string | null>(null);
   const [briefLoading, setBriefLoading] = useState(false);
@@ -214,37 +118,26 @@ export default function TargetDetail() {
   const [briefBillingRequired, setBriefBillingRequired] = useState(false);
   const [briefCopied, setBriefCopied] = useState(false);
 
+  // Queries
   const { data: target, isLoading: loadingTarget } = useGetTarget(targetId, {
     query: { enabled: !!targetId, queryKey: getGetTargetQueryKey(targetId) },
   });
-  const { data: interactions, isLoading: loadingInteractions } = useListInteractions(targetId, {
-    query: { enabled: !!targetId, queryKey: getListInteractionsQueryKey(targetId) },
-  });
-  const { data: actions, isLoading: loadingActions } = useListActions(targetId, {
-    query: { enabled: !!targetId, queryKey: getListActionsQueryKey(targetId) },
-  });
-  const { data: history, isLoading: loadingHistory } = useGetStageHistory(targetId, {
+  const { data: history } = useGetStageHistory(targetId, {
     query: { enabled: !!targetId, queryKey: getGetStageHistoryQueryKey(targetId) },
   });
-  const { data: activityFeed, isLoading: loadingActivity } = useGetActivityFeed(targetId, {
-    query: { enabled: !!targetId && activeTab === "activity", queryKey: getGetActivityFeedQueryKey(targetId) },
-  });
-
   const { data: stageGateData, isFetching: loadingGate } = useGetStageGate(
     targetId,
     { newStage: stageVal },
     { query: { enabled: !!stageVal && stageOpen, queryKey: [`/api/targets/${targetId}/stage-gate`, { newStage: stageVal }] } },
   );
 
+  // Mutations
   const updateStage = useUpdateTargetStage();
-  const createInteraction = useCreateInteraction();
-  const updateInteraction = useUpdateInteraction();
-  const createAction = useCreateAction();
-  const updateAction = useUpdateAction();
   const updateTarget = useUpdateTarget();
   const deleteTarget = useDeleteTarget();
-  const deleteInteraction = useDeleteInteraction();
-  const deleteAction = useDeleteAction();
+
+  const invalidateTarget = () => queryClient.invalidateQueries({ queryKey: getGetTargetQueryKey(targetId) });
+  const invalidateHistory = () => queryClient.invalidateQueries({ queryKey: getGetStageHistoryQueryKey(targetId) });
 
   useEffect(() => {
     if (target) {
@@ -270,27 +163,7 @@ export default function TargetDetail() {
     }
   }, [target]);
 
-  const resetInterForm = () => {
-    setInterType("Meeting");
-    setInterSummary("");
-    setInterParticipantsInternal("");
-    setInterParticipantsExternal("");
-    setInterSentiment("__none__");
-    setInterValuationSignal("");
-  };
-  const resetActionForm = () => {
-    setActionDesc("");
-    setActionOwner("");
-    setActionDueDate("");
-    setActionPriority("Medium");
-  };
-
-  const invalidateTarget = () => queryClient.invalidateQueries({ queryKey: getGetTargetQueryKey(targetId) });
-  const invalidateInteractions = () => queryClient.invalidateQueries({ queryKey: getListInteractionsQueryKey(targetId) });
-  const invalidateActions = () => queryClient.invalidateQueries({ queryKey: getListActionsQueryKey(targetId) });
-  const invalidateHistory = () => queryClient.invalidateQueries({ queryKey: getGetStageHistoryQueryKey(targetId) });
-
-  // Auto-open brief when navigated here from Copilot with ?ai=opportunity-brief
+  // Auto-open brief when navigated here with ?ai=opportunity-brief
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("ai") === "opportunity-brief" && !isNaN(targetId)) {
@@ -356,137 +229,6 @@ export default function TargetDetail() {
     );
   };
 
-  const handleCreateInteraction = () => {
-    if (!interSummary) return;
-    createInteraction.mutate(
-      {
-        id: targetId,
-        data: {
-          interactionType: interType,
-          summary: interSummary,
-          participantsInternal: interParticipantsInternal || null,
-          participantsExternal: interParticipantsExternal || null,
-          sentiment: interSentiment === "__none__" ? null : interSentiment || null,
-          valuationSignal: interValuationSignal || null,
-        },
-      },
-      {
-        onSuccess: () => {
-          toast({ title: "Interaction Logged" });
-          setInteractionOpen(false); resetInterForm(); invalidateInteractions();
-        },
-        onError: () => toast({ title: "Error", description: "Could not log interaction", variant: "destructive" }),
-      }
-    );
-  };
-
-  const openEditInteraction = (inter: NonNullable<typeof interactions>[number]) => {
-    setEditInterData({
-      id: inter.id,
-      interactionType: inter.interactionType ?? "Meeting",
-      summary: inter.summary ?? "",
-      participantsInternal: inter.participantsInternal ?? "",
-      participantsExternal: inter.participantsExternal ?? "",
-      sentiment: inter.sentiment || "__none__",
-      valuationSignal: inter.valuationSignal ?? "",
-    });
-    setEditInterOpen(true);
-  };
-
-  const handleUpdateInteraction = () => {
-    if (!editInterData.summary) return;
-    updateInteraction.mutate(
-      {
-        id: editInterData.id,
-        data: {
-          interactionType: editInterData.interactionType || undefined,
-          summary: editInterData.summary || undefined,
-          participantsInternal: editInterData.participantsInternal || null,
-          participantsExternal: editInterData.participantsExternal || null,
-          sentiment: editInterData.sentiment === "__none__" ? null : editInterData.sentiment || null,
-          valuationSignal: editInterData.valuationSignal || null,
-        },
-      },
-      {
-        onSuccess: () => {
-          toast({ title: "Interaction Updated" });
-          setEditInterOpen(false); invalidateInteractions();
-        },
-        onError: () => toast({ title: "Error", description: "Could not update interaction", variant: "destructive" }),
-      }
-    );
-  };
-
-  const handleCreateAction = () => {
-    if (!actionDesc) return;
-    createAction.mutate(
-      {
-        id: targetId,
-        data: {
-          description: actionDesc,
-          priority: actionPriority,
-          owner: actionOwner || undefined,
-          dueDate: actionDueDate || undefined,
-        },
-      },
-      {
-        onSuccess: () => {
-          toast({ title: "Action Added" });
-          setActionOpen(false); resetActionForm(); invalidateActions();
-        },
-        onError: () => toast({ title: "Error", description: "Could not add action", variant: "destructive" }),
-      }
-    );
-  };
-
-  const openEditAction = (action: NonNullable<typeof actions>[number]) => {
-    setEditActionData({
-      id: action.id,
-      description: action.description ?? "",
-      owner: action.owner ?? "",
-      dueDate: action.dueDate ?? "",
-      priority: action.priority ?? "Medium",
-      status: action.status ?? "Open",
-    });
-    setEditActionOpen(true);
-  };
-
-  const handleUpdateAction = () => {
-    updateAction.mutate(
-      {
-        id: editActionData.id,
-        data: {
-          description: editActionData.description || undefined,
-          owner: editActionData.owner || null,
-          dueDate: editActionData.dueDate || null,
-          priority: editActionData.priority || undefined,
-          status: editActionData.status || undefined,
-        },
-      },
-      {
-        onSuccess: () => {
-          toast({ title: "Action Updated" });
-          setEditActionOpen(false); invalidateActions();
-        },
-        onError: () => toast({ title: "Error", description: "Could not update action", variant: "destructive" }),
-      }
-    );
-  };
-
-  const handleToggleActionComplete = (actionId: number, currentStatus: string) => {
-    const newStatus = currentStatus === "Completed" ? "Open" : "Completed";
-    updateAction.mutate(
-      { id: actionId, data: { status: newStatus } },
-      {
-        onSuccess: () => {
-          toast({ title: newStatus === "Completed" ? "Marked Complete" : "Reopened" });
-          invalidateActions();
-        },
-        onError: () => toast({ title: "Error", description: "Could not update action", variant: "destructive" }),
-      }
-    );
-  };
-
   const handleUpdateTarget = () => {
     updateTarget.mutate(
       {
@@ -533,38 +275,6 @@ export default function TargetDetail() {
     );
   };
 
-  const handleDeleteInteraction = () => {
-    if (!deleteInterId) return;
-    deleteInteraction.mutate(
-      { id: deleteInterId },
-      {
-        onSuccess: () => {
-          toast({ title: "Interaction Deleted" });
-          setDeleteInterOpen(false);
-          setDeleteInterId(null);
-          invalidateInteractions();
-        },
-        onError: () => toast({ title: "Error", description: "Could not delete interaction", variant: "destructive" }),
-      }
-    );
-  };
-
-  const handleDeleteAction = () => {
-    if (!deleteActionId) return;
-    deleteAction.mutate(
-      { id: deleteActionId },
-      {
-        onSuccess: () => {
-          toast({ title: "Action Deleted" });
-          setDeleteActionOpen(false);
-          setDeleteActionId(null);
-          invalidateActions();
-        },
-        onError: () => toast({ title: "Error", description: "Could not delete action", variant: "destructive" }),
-      }
-    );
-  };
-
   if (loadingTarget || !target) {
     return (
       <div className="p-8 space-y-6">
@@ -573,20 +283,6 @@ export default function TargetDetail() {
       </div>
     );
   }
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-emerald-500";
-    if (score >= 60) return "text-primary";
-    if (score >= 40) return "text-amber-500";
-    return "text-destructive";
-  };
-
-  const getStageBadgeClass = (stage: string) => {
-    if (stage === "Closed" || stage === "Completed" || stage === "Signed") return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
-    if (stage === "Dropped" || stage === "Rejected") return "bg-destructive/10 text-destructive border-destructive/20";
-    if (stage === "On Hold") return "bg-amber-500/10 text-amber-500 border-amber-500/20";
-    return "bg-muted/50 text-muted-foreground border-border/60";
-  };
 
   const daysInCurrentStage = (() => {
     if (!history || history.length === 0) return undefined;
@@ -598,9 +294,6 @@ export default function TargetDetail() {
       return undefined;
     }
   })();
-
-  const openActions = (actions ?? []).filter((a) => a.status !== "Completed");
-  const completedActions = (actions ?? []).filter((a) => a.status === "Completed");
 
   return (
     <div className="flex flex-col h-full overflow-hidden animate-in fade-in duration-500">
@@ -697,19 +390,19 @@ export default function TargetDetail() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="bg-transparent border-b border-border w-full justify-start rounded-none p-0 h-auto mb-6">
               {[
-                { value: "overview", label: "Overview", icon: <LayoutGrid size={13} /> },
-                { value: "interactions", label: "Log", icon: <MessageSquare size={13} /> },
-                { value: "actions", label: "Actions", icon: <ListChecks size={13} /> },
-                { value: "history", label: "Timeline", icon: <GitBranch size={13} /> },
-                { value: "diligence",  label: "Diligence",  icon: <ClipboardCheck size={13} /> },
-                { value: "documents",  label: "Documents",  icon: <FolderOpen size={13} /> },
-                { value: "valuation",  label: "Valuation",  icon: <TrendingUp size={13} /> },
-                { value: "synergies",  label: "Synergies",  icon: <Sparkles size={13} /> },
-                { value: "activity",   label: "Activity",   icon: <ActivityIcon size={13} /> },
-                { value: "ic",         label: "IC",         icon: <Scale size={13} /> },
-                { value: "stakeholders", label: "Stakeholders", icon: <Users size={13} /> },
-                { value: "compliance",   label: "Compliance",   icon: <ShieldCheck size={13} /> },
-                { value: "audit",        label: "Audit",        icon: <ClipboardList size={13} /> },
+                { value: "overview",      label: "Overview",      icon: <LayoutGrid size={13} /> },
+                { value: "interactions",  label: "Log",           icon: <MessageSquare size={13} /> },
+                { value: "actions",       label: "Actions",       icon: <ListChecks size={13} /> },
+                { value: "history",       label: "Timeline",      icon: <GitBranch size={13} /> },
+                { value: "diligence",     label: "Diligence",     icon: <ClipboardCheck size={13} /> },
+                { value: "documents",     label: "Documents",     icon: <FolderOpen size={13} /> },
+                { value: "valuation",     label: "Valuation",     icon: <TrendingUp size={13} /> },
+                { value: "synergies",     label: "Synergies",     icon: <Sparkles size={13} /> },
+                { value: "activity",      label: "Activity",      icon: <ActivityIcon size={13} /> },
+                { value: "ic",            label: "IC",            icon: <Scale size={13} /> },
+                { value: "stakeholders",  label: "Stakeholders",  icon: <Users size={13} /> },
+                { value: "compliance",    label: "Compliance",    icon: <ShieldCheck size={13} /> },
+                { value: "audit",         label: "Audit",         icon: <ClipboardList size={13} /> },
               ].map(({ value, label, icon }) => (
                 <TabsTrigger
                   key={value}
@@ -721,286 +414,64 @@ export default function TargetDetail() {
               ))}
             </TabsList>
 
-            {/* Overview */}
             <TabsContent value="overview" className="space-y-4 mt-0">
-              <div className="flex justify-end">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="rounded-sm font-mono text-[10px] uppercase border-border/60 h-7 px-2.5 gap-1.5"
-                  onClick={() => { downloadAuthenticatedFile(`/api/export/memo/${targetId}`, `deal-memo-${targetId}.pdf`).catch(() => {}); }}
-                >
-                  <Download size={11} /> Export Memo
-                </Button>
-              </div>
-              <OverviewSections target={target} actions={actions ?? []} />
+              <OverviewTab targetId={targetId} target={target} actions={[]} />
             </TabsContent>
 
-            {/* Interactions */}
             <TabsContent value="interactions" className="space-y-4 mt-0">
-              <div className="flex justify-end gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex rounded-sm font-mono text-[10px] uppercase border-primary/30 text-primary hover:bg-primary/5 gap-1"
-                  onClick={() => setAiNotesOpen(true)}
-                >
-                  <Sparkles size={11} /><span className="hidden sm:inline">Parse Notes with AI</span>
-                </Button>
-                <Button size="sm" variant="outline" className="hidden md:flex rounded-sm font-mono text-[10px] uppercase border-border" onClick={() => setInteractionOpen(true)}>
-                  <Plus size={13} className="mr-1" /> Log Interaction
-                </Button>
-              </div>
-              {loadingInteractions ? (
-                <Skeleton className="h-32 w-full" />
-              ) : !interactions?.length ? (
-                <div className="border border-dashed border-border rounded-sm py-16 text-center text-muted-foreground font-mono text-[11px] uppercase tracking-widest">
-                  No interactions logged yet
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {interactions.map((inter) => (
-                    <Card key={inter.id} className="bg-card/30 border-border rounded-sm group">
-                      <CardHeader className="pb-2 pt-4 px-4">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="outline" className="font-mono text-[10px] uppercase rounded-sm">{inter.interactionType}</Badge>
-                            {inter.sentiment && (
-                              <Badge variant="outline" className={`font-mono text-[10px] uppercase rounded-sm ${
-                                inter.sentiment === "Positive" ? "text-emerald-500 border-emerald-500/30" :
-                                inter.sentiment === "Negative" ? "text-destructive border-destructive/30" :
-                                inter.sentiment === "Neutral" ? "text-amber-500 border-amber-500/30" :
-                                "text-muted-foreground"
-                              }`}>
-                                {inter.sentiment}
-                              </Badge>
-                            )}
-                            <span className="text-[10px] font-mono text-muted-foreground">
-                              {inter.interactionDatetime ? format(parseISO(inter.interactionDatetime), "MMM d, yyyy · HH:mm") : "—"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground md:opacity-0 md:group-hover:opacity-100 transition-opacity" onClick={() => openEditInteraction(inter)}>
-                              <Pencil size={12} />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive/60 hover:text-destructive md:opacity-0 md:group-hover:opacity-100 transition-opacity" onClick={() => { setDeleteInterId(inter.id); setDeleteInterOpen(true); }}>
-                              <Trash2 size={12} />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="px-4 pb-4 space-y-2">
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                          <LinkifiedText text={inter.summary ?? ""} />
-                        </p>
-                        {(inter.participantsInternal || inter.participantsExternal) && (
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
-                            {inter.participantsInternal && (
-                              <div className="text-[10px] font-mono text-muted-foreground">
-                                <span className="uppercase tracking-wider">Internal: </span>{inter.participantsInternal}
-                              </div>
-                            )}
-                            {inter.participantsExternal && (
-                              <div className="text-[10px] font-mono text-muted-foreground">
-                                <span className="uppercase tracking-wider">External: </span>{inter.participantsExternal}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        {inter.valuationSignal && (
-                          <div className="text-[10px] font-mono text-muted-foreground">
-                            <span className="uppercase tracking-wider">Valuation Signal: </span>{inter.valuationSignal}
-                          </div>
-                        )}
-                        {inter.createdBy && (
-                          <div className="text-[10px] font-mono text-muted-foreground">
-                            <span className="uppercase tracking-wider">By: </span>{inter.createdBy}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+              <InteractionsTab
+                targetId={targetId}
+                addOpen={interactionAddOpen}
+                onAddOpenChange={setInteractionAddOpen}
+              />
             </TabsContent>
 
-            {/* Actions */}
             <TabsContent value="actions" className="space-y-4 mt-0">
-              <div className="flex justify-end">
-                <Button size="sm" variant="outline" className="hidden md:flex rounded-sm font-mono text-[10px] uppercase border-border" onClick={() => setActionOpen(true)}>
-                  <Plus size={13} className="mr-1" /> Add Action
-                </Button>
-              </div>
-              {loadingActions ? (
-                <Skeleton className="h-32 w-full" />
-              ) : !actions?.length ? (
-                <div className="border border-dashed border-border rounded-sm py-16 text-center text-muted-foreground font-mono text-[11px] uppercase tracking-widest">
-                  No actions yet
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {openActions.length > 0 && (
-                    <div>
-                      <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2">Open ({openActions.length})</div>
-                      <div className="space-y-2">
-                        {openActions.map((action) => (
-                          <ActionRow key={action.id} action={action} onEdit={() => openEditAction(action)} onToggle={() => handleToggleActionComplete(action.id, action.status)} onDelete={() => { setDeleteActionId(action.id); setDeleteActionOpen(true); }} isPending={updateAction.isPending} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {completedActions.length > 0 && (
-                    <div>
-                      <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2">Completed ({completedActions.length})</div>
-                      <div className="space-y-2 opacity-60">
-                        {completedActions.map((action) => (
-                          <ActionRow key={action.id} action={action} onEdit={() => openEditAction(action)} onToggle={() => handleToggleActionComplete(action.id, action.status)} onDelete={() => { setDeleteActionId(action.id); setDeleteActionOpen(true); }} isPending={updateAction.isPending} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+              <ActionsTab
+                targetId={targetId}
+                addOpen={actionAddOpen}
+                onAddOpenChange={setActionAddOpen}
+              />
             </TabsContent>
 
-            {/* Timeline */}
             <TabsContent value="history" className="mt-0">
-              {loadingHistory ? (
-                <Skeleton className="h-32 w-full" />
-              ) : !history?.length ? (
-                <div className="border border-dashed border-border rounded-sm py-16 text-center text-muted-foreground font-mono text-[11px] uppercase tracking-widest">
-                  No stage changes recorded
-                </div>
-              ) : (
-                <div className="relative">
-                  <div className="absolute left-4 top-0 bottom-0 w-px bg-border" />
-                  <div className="space-y-0">
-                    {history.map((entry, i) => (
-                      <div key={entry.id} className="relative pl-10 pb-6">
-                        <div className={`absolute left-[13px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-background ${i === 0 ? "bg-primary" : "bg-muted-foreground/40"}`} />
-                        <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-1">
-                          {entry.changedAt ? format(parseISO(entry.changedAt), "MMM d, yyyy · HH:mm") : "—"}
-                        </div>
-                        <div className="text-sm font-medium flex items-center gap-2 flex-wrap">
-                          {entry.previousStage && (
-                            <>
-                              <StageChip stage={entry.previousStage} size="xs" />
-                              <span className="text-muted-foreground text-xs">→</span>
-                            </>
-                          )}
-                          <StageChip stage={entry.newStage} size="xs" />
-                        </div>
-                        {entry.changeReason && (
-                          <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-                            <LinkifiedText text={entry.changeReason} />
-                          </p>
-                        )}
-                        {entry.changedBy && (
-                          <div className="text-[10px] font-mono text-muted-foreground mt-1">by {entry.changedBy}</div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <HistoryTab targetId={targetId} />
             </TabsContent>
 
-            {/* IC — Proposals + Session Log */}
             <TabsContent value="ic" className="mt-0">
               <IcTab targetId={targetId} />
             </TabsContent>
 
-            {/* Stakeholders */}
             <TabsContent value="stakeholders" className="mt-0">
               <StakeholdersTab targetId={targetId} />
             </TabsContent>
 
-            {/* Compliance */}
             <TabsContent value="compliance" className="mt-0">
               <ComplianceTab targetId={targetId} />
             </TabsContent>
 
-            {/* Audit Trail */}
             <TabsContent value="audit" className="mt-0">
               <AuditTrailTab targetId={targetId} />
             </TabsContent>
 
-            {/* Diligence */}
             <TabsContent value="diligence" className="space-y-4 mt-0">
               <DiligenceTab targetId={targetId} />
             </TabsContent>
 
-            {/* Documents */}
             <TabsContent value="documents" className="space-y-4 mt-0">
               <DocumentsTab targetId={targetId} />
             </TabsContent>
 
-            {/* Valuation */}
             <TabsContent value="valuation" className="mt-0">
               <ValuationTab targetId={targetId} currentStage={target.currentStage ?? undefined} />
             </TabsContent>
 
-            {/* Synergies */}
             <TabsContent value="synergies" className="mt-0">
               <SynergiesTab targetId={targetId} currentStage={target.currentStage ?? "Sourcing"} />
             </TabsContent>
 
-            {/* Activity Feed */}
             <TabsContent value="activity" className="mt-0">
-              {loadingActivity ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((n) => <Skeleton key={n} className="h-14 w-full" />)}
-                </div>
-              ) : !activityFeed?.length ? (
-                <div className="border border-dashed border-border rounded-sm py-16 text-center text-muted-foreground font-mono text-[11px] uppercase tracking-widest flex flex-col items-center gap-2">
-                  <ActivityIcon size={20} className="text-muted-foreground/40" />
-                  No activity recorded yet
-                </div>
-              ) : (
-                <div className="relative">
-                  <div className="absolute left-4 top-0 bottom-0 w-px bg-border/60" />
-                  <div className="space-y-0">
-                    {activityFeed.map((event, i) => {
-                      const Icon = event.type === "stage_changed" ? GitBranch
-                        : event.type === "interaction" ? MessageSquare
-                        : event.type === "action_created" ? ListChecks
-                        : event.type === "action_completed" ? CheckCircle2
-                        : event.type === "diligence_completed" ? ClipboardCheck
-                        : FolderOpen;
-                      const iconColor = event.type === "stage_changed" ? "text-primary"
-                        : event.type === "interaction" ? "text-blue-400"
-                        : event.type === "action_created" ? "text-muted-foreground"
-                        : event.type === "action_completed" ? "text-emerald-500"
-                        : event.type === "diligence_completed" ? "text-violet-400"
-                        : "text-amber-400";
-                      let relativeTime = "";
-                      try {
-                        relativeTime = formatDistanceToNow(new Date(event.timestamp), { addSuffix: true });
-                      } catch {
-                        relativeTime = "";
-                      }
-                      return (
-                        <div key={i} className="relative pl-10 pb-5">
-                          <div className="absolute left-[9px] top-1 w-5 h-5 rounded-full bg-background border border-border flex items-center justify-center">
-                            <Icon size={10} className={iconColor} />
-                          </div>
-                          <div className="flex items-start justify-between gap-2 flex-wrap">
-                            <div className="min-w-0">
-                              <div className="text-sm font-medium leading-snug">{event.title}</div>
-                              {event.detail && (
-                                <div className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">{event.detail}</div>
-                              )}
-                            </div>
-                            <div className="text-[10px] font-mono text-muted-foreground/60 shrink-0 mt-0.5" title={event.timestamp}>
-                              {relativeTime}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+              <ActivityTab targetId={targetId} isActive={activeTab === "activity"} />
             </TabsContent>
           </Tabs>
         </div>
@@ -1008,10 +479,10 @@ export default function TargetDetail() {
 
       {/* Mobile sticky bottom bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-sidebar/95 backdrop-blur-sm p-3 flex gap-2">
-        <Button variant="outline" size="sm" className="flex-1 rounded-sm font-mono text-[10px] uppercase border-border" onClick={() => setInteractionOpen(true)}>
+        <Button variant="outline" size="sm" className="flex-1 rounded-sm font-mono text-[10px] uppercase border-border" onClick={() => setInteractionAddOpen(true)}>
           <MessageSquare size={13} className="mr-1" /> Log
         </Button>
-        <Button variant="outline" size="sm" className="flex-1 rounded-sm font-mono text-[10px] uppercase border-border" onClick={() => setActionOpen(true)}>
+        <Button variant="outline" size="sm" className="flex-1 rounded-sm font-mono text-[10px] uppercase border-border" onClick={() => setActionAddOpen(true)}>
           <Plus size={13} className="mr-1" /> Add Action
         </Button>
         {canEditDeal && (
@@ -1031,9 +502,7 @@ export default function TargetDetail() {
           </DialogHeader>
           <div className="py-4 space-y-5">
             <div className="space-y-1.5">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2">
-                Current Stage
-              </div>
+              <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2">Current Stage</div>
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/40 text-primary font-mono text-[11px] px-2.5 py-1 rounded-lg">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
@@ -1053,7 +522,6 @@ export default function TargetDetail() {
                 onSelectStage={setStageVal}
                 selectedStage={stageVal}
               />
-              {/* Off-track stage options — always available regardless of current stage */}
               <div className="flex items-center gap-2 pt-1 border-t border-border/40">
                 <span className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-wider shrink-0">Off-track</span>
                 {OFF_TRACK_STAGES.filter((s) => s !== target.currentStage).map((s) => {
@@ -1132,7 +600,7 @@ export default function TargetDetail() {
                 className="rounded-sm bg-background/50 resize-none h-20"
                 placeholder={
                   stageVal === "Rejected"
-                    ? "Required — state the primary reason this deal is being dropped (e.g. Price mismatch, Owner unwilling to sell)"
+                    ? "Required — state the primary reason this deal is being dropped"
                     : stageVal === "On Hold"
                     ? "Required — explain why the deal is being put on hold"
                     : "Required — explain the reason for this stage change"
@@ -1143,7 +611,7 @@ export default function TargetDetail() {
               )}
             </div>
 
-            {/* Deal Close Verdict — required when closing or dropping a deal */}
+            {/* Deal Close Verdict */}
             {isClosureStage && (
               <div className="space-y-3 border border-amber-500/30 bg-amber-500/5 rounded-sm p-3">
                 <div className="text-[10px] font-mono uppercase tracking-wider text-amber-600 font-semibold flex items-center gap-1.5">
@@ -1158,9 +626,7 @@ export default function TargetDetail() {
                       Close Reason Code <span className="text-destructive">*</span>
                     </label>
                     <Select value={closeReasonCode} onValueChange={setCloseReasonCode}>
-                      <SelectTrigger className="rounded-sm bg-background/50 text-sm h-9">
-                        <SelectValue placeholder="Select reason…" />
-                      </SelectTrigger>
+                      <SelectTrigger className="rounded-sm bg-background/50 text-sm h-9"><SelectValue placeholder="Select reason…" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Price mismatch">Price mismatch</SelectItem>
                         <SelectItem value="Owner unwilling to sell">Owner unwilling to sell</SelectItem>
@@ -1184,9 +650,7 @@ export default function TargetDetail() {
                     Phase 1 AI Screen Accuracy <span className="text-destructive">*</span>
                   </label>
                   <Select value={phase1VerdictAccuracy} onValueChange={setPhase1VerdictAccuracy}>
-                    <SelectTrigger className="rounded-sm bg-background/50 text-sm h-9">
-                      <SelectValue placeholder="Was the Phase 1 AI screen correct?" />
-                    </SelectTrigger>
+                    <SelectTrigger className="rounded-sm bg-background/50 text-sm h-9"><SelectValue placeholder="Was the Phase 1 AI screen correct?" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Correct">Correct — AI assessment matched outcome</SelectItem>
                       <SelectItem value="Partially-correct">Partially-correct — some elements were wrong</SelectItem>
@@ -1214,12 +678,10 @@ export default function TargetDetail() {
 
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                    Miss Theme <span className="text-muted-foreground/50">(optional — helps pattern analysis)</span>
+                    Miss Theme <span className="text-muted-foreground/50">(optional)</span>
                   </label>
                   <Select value={closeMissTheme} onValueChange={setCloseMissTheme}>
-                    <SelectTrigger className="rounded-sm bg-background/50 text-sm h-9">
-                      <SelectValue placeholder="Tag a miss theme…" />
-                    </SelectTrigger>
+                    <SelectTrigger className="rounded-sm bg-background/50 text-sm h-9"><SelectValue placeholder="Tag a miss theme…" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Strategy mismatch">Strategy mismatch</SelectItem>
                       <SelectItem value="Valuation gap">Valuation gap</SelectItem>
@@ -1241,191 +703,6 @@ export default function TargetDetail() {
             <Button onClick={handleUpdateStage} disabled={!stageVal || !stageReason.trim() || verdictIncomplete || updateStage.isPending} className="rounded-sm font-mono uppercase text-[10px]">
               {stageVal ? `Move to ${stageVal}` : "Select a Stage"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Interaction */}
-      <Dialog open={interactionOpen} onOpenChange={(open) => { if (!open) resetInterForm(); setInteractionOpen(open); }}>
-        <DialogContent className="sm:max-w-[540px] border-border bg-sidebar rounded-sm max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg">Record Deal Activity</DialogTitle>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Type <span className="text-destructive">*</span></label>
-                <Select value={interType} onValueChange={setInterType}>
-                  <SelectTrigger className="rounded-sm bg-background/50"><SelectValue /></SelectTrigger>
-                  <SelectContent className="rounded-sm">{INTERACTION_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Sentiment</label>
-                <Select value={interSentiment} onValueChange={setInterSentiment}>
-                  <SelectTrigger className="rounded-sm bg-background/50"><SelectValue placeholder="Optional" /></SelectTrigger>
-                  <SelectContent className="rounded-sm">
-                    <SelectItem value="__none__">— None —</SelectItem>
-                    {SENTIMENTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Summary <span className="text-destructive">*</span></label>
-              <Textarea value={interSummary} onChange={(e) => setInterSummary(e.target.value)} className="rounded-sm bg-background/50 resize-none h-24" placeholder="Key takeaways, decisions, next steps…" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Internal Participants</label>
-                <Input value={interParticipantsInternal} onChange={(e) => setInterParticipantsInternal(e.target.value)} className="rounded-sm bg-background/50" placeholder="Alice, Bob…" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">External Participants</label>
-                <Input value={interParticipantsExternal} onChange={(e) => setInterParticipantsExternal(e.target.value)} className="rounded-sm bg-background/50" placeholder="CEO, CFO…" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Valuation Signal</label>
-              <Input value={interValuationSignal} onChange={(e) => setInterValuationSignal(e.target.value)} className="rounded-sm bg-background/50" placeholder="e.g. 8–10× EBITDA, seller wants ≥$200M…" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setInteractionOpen(false); resetInterForm(); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button onClick={handleCreateInteraction} disabled={!interSummary || createInteraction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Save Log</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Interaction */}
-      <Dialog open={editInterOpen} onOpenChange={setEditInterOpen}>
-        <DialogContent className="sm:max-w-[540px] border-border bg-sidebar rounded-sm max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg">Edit Interaction</DialogTitle>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Type</label>
-                <Select value={editInterData.interactionType} onValueChange={(v) => setEditInterData((d) => ({ ...d, interactionType: v }))}>
-                  <SelectTrigger className="rounded-sm bg-background/50"><SelectValue /></SelectTrigger>
-                  <SelectContent className="rounded-sm">{INTERACTION_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Sentiment</label>
-                <Select value={editInterData.sentiment} onValueChange={(v) => setEditInterData((d) => ({ ...d, sentiment: v }))}>
-                  <SelectTrigger className="rounded-sm bg-background/50"><SelectValue placeholder="None" /></SelectTrigger>
-                  <SelectContent className="rounded-sm">
-                    <SelectItem value="__none__">— None —</SelectItem>
-                    {SENTIMENTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Summary <span className="text-destructive">*</span></label>
-              <Textarea value={editInterData.summary} onChange={(e) => setEditInterData((d) => ({ ...d, summary: e.target.value }))} className="rounded-sm bg-background/50 resize-none h-24" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Internal Participants</label>
-                <Input value={editInterData.participantsInternal} onChange={(e) => setEditInterData((d) => ({ ...d, participantsInternal: e.target.value }))} className="rounded-sm bg-background/50" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">External Participants</label>
-                <Input value={editInterData.participantsExternal} onChange={(e) => setEditInterData((d) => ({ ...d, participantsExternal: e.target.value }))} className="rounded-sm bg-background/50" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Valuation Signal</label>
-              <Input value={editInterData.valuationSignal} onChange={(e) => setEditInterData((d) => ({ ...d, valuationSignal: e.target.value }))} className="rounded-sm bg-background/50" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditInterOpen(false)} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button onClick={handleUpdateInteraction} disabled={!editInterData.summary || updateInteraction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Action */}
-      <Dialog open={actionOpen} onOpenChange={(open) => { if (!open) resetActionForm(); setActionOpen(open); }}>
-        <DialogContent className="sm:max-w-[500px] border-border bg-sidebar rounded-sm">
-          <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg">Add Action Item</DialogTitle>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Description <span className="text-destructive">*</span></label>
-              <Textarea value={actionDesc} onChange={(e) => setActionDesc(e.target.value)} className="rounded-sm bg-background/50 resize-none h-20" placeholder="What needs to be done?" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Priority</label>
-                <Select value={actionPriority} onValueChange={setActionPriority}>
-                  <SelectTrigger className="rounded-sm bg-background/50"><SelectValue /></SelectTrigger>
-                  <SelectContent className="rounded-sm">{ACTION_PRIORITIES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Due Date</label>
-                <Input type="date" value={actionDueDate} onChange={(e) => setActionDueDate(e.target.value)} className="rounded-sm bg-background/50" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Owner</label>
-              <Input value={actionOwner} onChange={(e) => setActionOwner(e.target.value)} className="rounded-sm bg-background/50" placeholder="Who is responsible?" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setActionOpen(false); resetActionForm(); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button onClick={handleCreateAction} disabled={!actionDesc || createAction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Add Action</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Action */}
-      <Dialog open={editActionOpen} onOpenChange={setEditActionOpen}>
-        <DialogContent className="sm:max-w-[500px] border-border bg-sidebar rounded-sm">
-          <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg">Edit Action Item</DialogTitle>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Description <span className="text-destructive">*</span></label>
-              <Textarea value={editActionData.description} onChange={(e) => setEditActionData((d) => ({ ...d, description: e.target.value }))} className="rounded-sm bg-background/50 resize-none h-20" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Priority</label>
-                <Select value={editActionData.priority} onValueChange={(v) => setEditActionData((d) => ({ ...d, priority: v }))}>
-                  <SelectTrigger className="rounded-sm bg-background/50"><SelectValue /></SelectTrigger>
-                  <SelectContent className="rounded-sm">{ACTION_PRIORITIES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Status</label>
-                <Select value={editActionData.status} onValueChange={(v) => setEditActionData((d) => ({ ...d, status: v }))}>
-                  <SelectTrigger className="rounded-sm bg-background/50"><SelectValue /></SelectTrigger>
-                  <SelectContent className="rounded-sm">{ACTION_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Due Date</label>
-                <Input type="date" value={editActionData.dueDate} onChange={(e) => setEditActionData((d) => ({ ...d, dueDate: e.target.value }))} className="rounded-sm bg-background/50" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Owner</label>
-                <Input value={editActionData.owner} onChange={(e) => setEditActionData((d) => ({ ...d, owner: e.target.value }))} className="rounded-sm bg-background/50" />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditActionOpen(false)} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button onClick={handleUpdateAction} disabled={!editActionData.description || updateAction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1460,41 +737,24 @@ export default function TargetDetail() {
                       <>
                         <Select
                           value={editData.dealType || "__none__"}
-                          disabled={!isEarlyStage}
                           onValueChange={(v) => {
-                            const newType = v === "__none__" ? "" : v;
-                            if (newType && !isDealTypeChangeSafe(target.currentStage ?? "Sourcing", target.dealType ?? null, newType)) {
-                              setDealTypeWarning(
-                                `The current stage "${target.currentStage}" is not part of the ${newType} pipeline. ` +
-                                `The deal will remain in "${target.currentStage}" but future stage changes will use ${newType} stages.`
-                              );
+                            const newVal = v === "__none__" ? "" : v;
+                            if (!isEarlyStage && newVal !== (target.dealType ?? "")) {
+                              setDealTypeWarning("Deal type changes are only allowed in early stages (Sourcing through NDA/CIM).");
                             } else {
                               setDealTypeWarning(null);
                             }
-                            setEditData((d) => ({ ...d, dealType: newType }));
+                            setEditData((d) => ({ ...d, dealType: newVal }));
                           }}
                         >
-                          <SelectTrigger className="rounded-sm bg-background/50 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <SelectValue placeholder="— Not set —" />
-                          </SelectTrigger>
+                          <SelectTrigger className="rounded-sm bg-background/50"><SelectValue placeholder="Select deal type…" /></SelectTrigger>
                           <SelectContent className="rounded-sm">
-                            <SelectItem value="__none__">— Not set —</SelectItem>
+                            <SelectItem value="__none__">— None —</SelectItem>
                             {DEAL_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                           </SelectContent>
                         </Select>
-                        {!isEarlyStage && (
-                          <div className="flex items-start gap-2 rounded-sm border border-border/40 bg-muted/30 px-3 py-2">
-                            <Hash size={11} className="text-muted-foreground/50 shrink-0 mt-0.5" />
-                            <p className="text-[10px] font-mono text-muted-foreground/70 leading-snug">
-                              Deal type is locked once a deal progresses past NDA / CIM (current: {target.currentStage}).
-                            </p>
-                          </div>
-                        )}
-                        {isEarlyStage && dealTypeWarning && (
-                          <div className="flex items-start gap-2 rounded-sm border border-amber-500/30 bg-amber-500/10 px-3 py-2">
-                            <AlertTriangle size={13} className="text-amber-500 shrink-0 mt-0.5" />
-                            <p className="text-[11px] font-mono text-amber-500/90 leading-snug">{dealTypeWarning}</p>
-                          </div>
+                        {dealTypeWarning && (
+                          <p className="text-[10px] text-amber-500 font-mono">{dealTypeWarning}</p>
                         )}
                       </>
                     );
@@ -1540,21 +800,17 @@ export default function TargetDetail() {
             <div>
               <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-3 border-b border-border pb-1">Scores (0–100)</div>
               <div className="grid grid-cols-2 gap-4">
-                {(
-                  [
-                    { label: "Strategic Fit", key: "strategicFitScore" as const },
-                    { label: "Synergy Potential", key: "synergyScore" as const },
-                    { label: "Financial Attractiveness", key: "financialAttractivenessScore" as const },
-                    { label: "Process Maturity", key: "processMaturityScore" as const },
-                    { label: "Risk Penalty", key: "riskPenaltyScore" as const },
-                  ]
-                ).map(({ label, key }) => (
+                {([
+                  { label: "Strategic Fit", key: "strategicFitScore" as const },
+                  { label: "Synergy Potential", key: "synergyScore" as const },
+                  { label: "Financial Attractiveness", key: "financialAttractivenessScore" as const },
+                  { label: "Process Maturity", key: "processMaturityScore" as const },
+                  { label: "Risk Penalty", key: "riskPenaltyScore" as const },
+                ]).map(({ label, key }) => (
                   <div key={key} className="space-y-2">
                     <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{label}</label>
                     <Input
-                      type="number"
-                      min={0}
-                      max={100}
+                      type="number" min={0} max={100}
                       value={editData[key]}
                       onChange={(e) => setEditData((d) => ({ ...d, [key]: Math.max(0, Math.min(100, Number(e.target.value))) }))}
                       className="rounded-sm bg-background/50"
@@ -1572,42 +828,6 @@ export default function TargetDetail() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
             <Button onClick={handleUpdateTarget} disabled={updateTarget.isPending} className="rounded-sm font-mono uppercase text-[10px]">Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Interaction */}
-      <Dialog open={deleteInterOpen} onOpenChange={(open) => { if (!open) setDeleteInterId(null); setDeleteInterOpen(open); }}>
-        <DialogContent className="sm:max-w-[400px] border-destructive bg-sidebar rounded-sm">
-          <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg text-destructive">Delete Interaction</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              This will permanently remove the interaction log entry. This action cannot be undone.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setDeleteInterOpen(false); setDeleteInterId(null); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button variant="destructive" onClick={handleDeleteInteraction} disabled={deleteInteraction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Action */}
-      <Dialog open={deleteActionOpen} onOpenChange={(open) => { if (!open) setDeleteActionId(null); setDeleteActionOpen(open); }}>
-        <DialogContent className="sm:max-w-[400px] border-destructive bg-sidebar rounded-sm">
-          <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg text-destructive">Delete Action</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              This will permanently remove the action item. This action cannot be undone.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setDeleteActionOpen(false); setDeleteActionId(null); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button variant="destructive" onClick={handleDeleteAction} disabled={deleteAction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1677,8 +897,7 @@ export default function TargetDetail() {
           <DialogFooter className="shrink-0 border-t border-border/60 pt-3 mt-0">
             {briefContent && !briefSetupRequired && !briefBillingRequired && (
               <Button
-                variant="outline"
-                size="sm"
+                variant="outline" size="sm"
                 onClick={() => {
                   navigator.clipboard.writeText(briefContent ?? "").catch(() => {});
                   setBriefCopied(true);
@@ -1690,598 +909,15 @@ export default function TargetDetail() {
                 {briefCopied ? "Copied" : "Copy Brief"}
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGenerateBrief}
-              disabled={briefLoading}
-              className="rounded-sm font-mono text-[10px] uppercase gap-1"
-            >
+            <Button variant="outline" size="sm" onClick={handleGenerateBrief} disabled={briefLoading} className="rounded-sm font-mono text-[10px] uppercase gap-1">
               <Sparkles size={11} /> Regenerate
             </Button>
-            <Button
-              size="sm"
-              onClick={() => setAiBriefOpen(false)}
-              className="rounded-sm font-mono text-[10px] uppercase"
-            >
+            <Button size="sm" onClick={() => setAiBriefOpen(false)} className="rounded-sm font-mono text-[10px] uppercase">
               Close
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* AI Meeting Notes Modal */}
-      <AiMeetingNotesModal
-        targetId={targetId}
-        targetName={target?.projectName ?? ""}
-        isOpen={aiNotesOpen}
-        onClose={() => setAiNotesOpen(false)}
-        onApplied={() => {
-          invalidateInteractions();
-          invalidateActions();
-          invalidateHistory();
-          invalidateTarget();
-        }}
-      />
-    </div>
-  );
-}
-
-// ── Progressive Overview Sections ────────────────────────────────────────────
-
-type OverviewTarget = {
-  currentStage?: string | null;
-  projectName?: string | null;
-  targetCode?: string | null;
-  legalName?: string | null;
-  sector?: string | null;
-  subsector?: string | null;
-  country?: string | null;
-  geographyRegion?: string | null;
-  dealOwner?: string | null;
-  dealChampion?: string | null;
-  executiveSponsor?: string | null;
-  priorityTier?: string | null;
-  strategicRationale?: string | null;
-  businessUnit?: string | null;
-  createdAt?: string | null;
-  priorityScore: number;
-  strategicFitScore?: number | null;
-  synergyScore?: number | null;
-  financialAttractivenessScore?: number | null;
-  processMaturityScore?: number | null;
-  riskPenaltyScore?: number | null;
-  sourcingChannel?: string | null;
-  dealType?: string | null;
-  closeReasonCode?: string | null;
-  phase1VerdictAccuracy?: string | null;
-  phase1VerdictNote?: string | null;
-  closeMissTheme?: string | null;
-};
-
-type OverviewAction = {
-  id: number;
-  description: string;
-  status: string;
-  dueDate?: string | null;
-  owner?: string | null;
-};
-
-const SCREENING_STAGE = "NDA / CIM";
-const DILIGENCE_STAGE = "Preliminary Due Diligence";
-const OFFER_STAGE = "Binding Offer";
-
-function stageReached(current: string | null | undefined, gate: string): boolean {
-  const currentIdx = ALL_KNOWN_STAGES.indexOf(current ?? "");
-  const gateIdx = ALL_KNOWN_STAGES.indexOf(gate);
-  if (currentIdx < 0 || gateIdx < 0) return false;
-  return currentIdx >= gateIdx;
-}
-
-function OverviewSectionHeader({
-  label,
-  badge,
-  always,
-}: {
-  label: string;
-  badge?: React.ReactNode;
-  always?: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-2 px-1">
-      <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70 font-semibold">{label}</div>
-      {always && (
-        <div className="text-[9px] font-mono uppercase tracking-wide text-muted-foreground/40 border border-border/30 px-1.5 py-0.5 rounded">Always</div>
-      )}
-      {badge}
-    </div>
-  );
-}
-
-function ConfidenceBadge({ stage }: { stage: string | null | undefined }) {
-  const level = getScoreConfidence(stage);
-  const cls =
-    level === "Diligence-backed"
-      ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/25"
-      : level === "Under review"
-      ? "bg-primary/10 text-primary border-primary/25"
-      : "bg-muted/50 text-muted-foreground border-border/50";
-  return (
-    <Badge variant="outline" className={`font-mono text-[9px] uppercase ${cls}`}>
-      {level}
-    </Badge>
-  );
-}
-
-function ScoreRow({
-  label,
-  value,
-  field,
-  stage,
-  isRisk,
-  showConfidence,
-}: {
-  label: string;
-  value: number | null | undefined;
-  field: ScoreField;
-  stage: string | null | undefined;
-  isRisk?: boolean;
-  showConfidence?: boolean;
-}) {
-  const display = formatScore(value, field, stage);
-  const isAssessed = display !== "Not assessed";
-  const confidence = getScoreConfidence(stage);
-  const confidenceCls =
-    confidence === "Diligence-backed"
-      ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/25"
-      : confidence === "Under review"
-      ? "bg-primary/10 text-primary border-primary/25"
-      : "bg-muted/50 text-muted-foreground/60 border-border/40";
-
-  return (
-    <div
-      className={`p-3 flex items-center justify-between text-sm gap-2 ${
-        isRisk ? "bg-destructive/5" : ""
-      }`}
-    >
-      <span className={isRisk ? "text-destructive" : "text-muted-foreground"}>{label}</span>
-      <div className="flex items-center gap-2 shrink-0">
-        {showConfidence && (
-          <span className={`font-mono text-[8px] uppercase tracking-wide border px-1.5 py-0.5 rounded ${confidenceCls}`}>
-            {confidence}
-          </span>
-        )}
-        {isAssessed ? (
-          <span className={`font-mono font-medium ${isRisk ? "text-destructive" : ""}`}>
-            {isRisk ? `-${display}` : `${display}/100`}
-          </span>
-        ) : (
-          <span className="font-mono text-[10px] text-muted-foreground/50 italic">Not assessed</span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function OverviewSections({
-  target,
-  actions,
-}: {
-  target: OverviewTarget;
-  actions: OverviewAction[];
-}) {
-  const stage = target.currentStage;
-  const showScreening = stageReached(stage, SCREENING_STAGE);
-  const showDiligence = stageReached(stage, DILIGENCE_STAGE);
-  const showOffer = stageReached(stage, OFFER_STAGE);
-
-  const nextAction = actions.find((a) => a.status !== "Completed");
-  const assessedCount = countAssessedScores({
-    strategicFitScore: target.strategicFitScore,
-    synergyScore: target.synergyScore,
-    financialAttractivenessScore: target.financialAttractivenessScore,
-    processMaturityScore: target.processMaturityScore,
-    riskPenaltyScore: target.riskPenaltyScore,
-    currentStage: stage,
-  });
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-emerald-500";
-    if (score >= 60) return "text-primary";
-    if (score >= 40) return "text-amber-500";
-    return "text-destructive";
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* ── Section 1: Teaser / Origination Snapshot (always visible) ── */}
-      <div className="space-y-2">
-        <OverviewSectionHeader label="Teaser / Origination Snapshot" always />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="md:col-span-2 bg-card/40 border-border/70 rounded-xl">
-            <CardHeader className="border-b border-border/60 pb-3">
-              <CardTitle className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Strategic Rationale</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                {target.strategicRationale ? (
-                  <LinkifiedText text={target.strategicRationale} />
-                ) : (
-                  <span className="text-muted-foreground italic">No strategic rationale recorded.</span>
-                )}
-              </p>
-            </CardContent>
-          </Card>
-
-          <div className="space-y-4">
-            <Card className="bg-card/40 border-border/70 rounded-xl">
-              <CardContent className="pt-4 pb-4">
-                <div className="grid grid-cols-1 gap-y-3">
-                  {[
-                    { label: "Project Name", value: target.projectName },
-                    { label: "Target Code", value: target.targetCode },
-                    { label: "Legal Name", value: target.legalName },
-                    { label: "Deal Type", value: target.dealType },
-                    { label: "Sector", value: [target.sector, target.subsector].filter(Boolean).join(" › ") || null },
-                    { label: "Geography", value: [target.country, target.geographyRegion].filter(Boolean).join(" / ") || null },
-                    { label: "Sourcing Channel", value: target.sourcingChannel },
-                    { label: "Priority Tier", value: target.priorityTier },
-                    { label: "Deal Owner", value: target.dealOwner },
-                  ].map(({ label, value }) => (
-                    <div key={label}>
-                      <div className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider mb-0.5">{label}</div>
-                      <div className="text-sm font-medium">{value || "—"}</div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {nextAction && (
-              <Card className="bg-primary/5 border-primary/20 rounded-xl">
-                <CardContent className="pt-3 pb-3 px-4">
-                  <div className="text-[9px] font-mono text-primary/70 uppercase tracking-wider mb-1">Next Action</div>
-                  <div className="text-sm font-medium leading-snug truncate">{nextAction.description}</div>
-                  {nextAction.dueDate && (
-                    <div className="text-[10px] font-mono text-muted-foreground mt-0.5">
-                      Due {format(parseISO(nextAction.dueDate), "MMM d, yyyy")}
-                    </div>
-                  )}
-                  {nextAction.owner && (
-                    <div className="text-[10px] font-mono text-muted-foreground">{nextAction.owner}</div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Section 2: Screening View (NDA / CIM onward) ── */}
-      {showScreening && (
-        <div className="space-y-2">
-          <OverviewSectionHeader label="Screening View" />
-          <Card className="bg-card/40 border-border/70 rounded-xl">
-            <CardContent className="pt-4 pb-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4">
-                {[
-                  { label: "Deal Champion", value: target.dealChampion },
-                  { label: "Exec Sponsor", value: target.executiveSponsor },
-                  { label: "Business Unit", value: target.businessUnit },
-                  { label: "Added", value: target.createdAt ? format(parseISO(target.createdAt), "yyyy-MM-dd") : null },
-                ].map(({ label, value }) => (
-                  <div key={label}>
-                    <div className="text-[10px] font-mono text-muted-foreground uppercase mb-1">{label}</div>
-                    <div className="text-sm font-medium">{value || "—"}</div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* ── Section 3: Diligence Assessment (Non-Binding Offer onward) ── */}
-      {showDiligence && (
-        <div className="space-y-2">
-          <OverviewSectionHeader
-            label="Diligence Assessment"
-            badge={<ConfidenceBadge stage={stage} />}
-          />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-card/40 border-border/70 rounded-xl overflow-hidden md:col-span-2">
-              <div className="bg-muted/40 p-4 border-b border-border/60 flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Composite Score</div>
-                  <div className="flex items-center gap-2">
-                    <ConfidenceBadge stage={stage} />
-                    <span className="text-[10px] font-mono text-muted-foreground/60">
-                      {assessedCount}/5 scores assessed
-                    </span>
-                  </div>
-                </div>
-                <div className={`text-3xl font-mono font-bold ${getScoreColor(target.priorityScore)}`}>
-                  {Math.round(target.priorityScore)}
-                </div>
-              </div>
-              <CardContent className="p-0">
-                <div className="divide-y divide-border">
-                  <ScoreRow
-                    label="Strategic Fit"
-                    value={target.strategicFitScore}
-                    field="strategicFitScore"
-                    stage={stage}
-                    showConfidence
-                  />
-                  <ScoreRow
-                    label="Synergy Potential"
-                    value={target.synergyScore}
-                    field="synergyScore"
-                    stage={stage}
-                    showConfidence
-                  />
-                  <ScoreRow
-                    label="Financial Attractiveness"
-                    value={target.financialAttractivenessScore}
-                    field="financialAttractivenessScore"
-                    stage={stage}
-                    showConfidence
-                  />
-                  <ScoreRow
-                    label="Process Maturity"
-                    value={target.processMaturityScore}
-                    field="processMaturityScore"
-                    stage={stage}
-                    showConfidence
-                  />
-                  <ScoreRow
-                    label="Risk Penalty"
-                    value={target.riskPenaltyScore}
-                    field="riskPenaltyScore"
-                    stage={stage}
-                    isRisk
-                    showConfidence
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-card/40 border-border/70 rounded-xl flex flex-col justify-center">
-              <CardContent className="pt-6 pb-6 flex flex-col items-center justify-center gap-2 text-center">
-                <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1">Assessment Completeness</div>
-                <div className={`text-4xl font-bold font-mono ${assessedCount === 5 ? "text-emerald-500" : assessedCount >= 3 ? "text-primary" : "text-muted-foreground"}`}>
-                  {assessedCount}/5
-                </div>
-                <div className="w-full bg-muted/40 rounded-full h-1.5 mt-1">
-                  <div
-                    className={`h-1.5 rounded-full transition-all ${assessedCount === 5 ? "bg-emerald-500" : "bg-primary"}`}
-                    style={{ width: `${(assessedCount / 5) * 100}%` }}
-                  />
-                </div>
-                <div className="text-[10px] font-mono text-muted-foreground/60">
-                  {assessedCount === 5
-                    ? "All scores assessed"
-                    : assessedCount === 0
-                    ? "No scores assessed yet"
-                    : `${5 - assessedCount} score${5 - assessedCount > 1 ? "s" : ""} pending`}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
-
-      {/* ── Section 4: Offer / Integration Readiness (Binding Offer onward) ── */}
-      {showOffer && (
-        <div className="space-y-2">
-          <OverviewSectionHeader label="Offer / Integration Readiness" />
-          <Card className="bg-card/40 border-border/70 rounded-xl">
-            <CardContent className="pt-4 pb-4">
-              <p className="text-[11px] font-mono text-muted-foreground/70">
-                Deal has progressed to offer stage. Document key offer and integration milestones in the
-                Diligence tab and track actions below.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* ── Section 5: Deal Verdict (Closed / Dropped only) ── */}
-      {(stage === "Closed" || stage === "Dropped") && (
-        <div className="space-y-2">
-          <OverviewSectionHeader label="Deal Verdict" />
-          <Card className="bg-card/40 border-border/70 rounded-xl overflow-hidden">
-            {/* Accuracy banner */}
-            <div
-              className={`px-4 py-3 border-b border-border/60 flex items-center gap-3 ${
-                target.phase1VerdictAccuracy === "Correct"
-                  ? "bg-emerald-500/10"
-                  : target.phase1VerdictAccuracy === "Partially-correct"
-                  ? "bg-amber-500/10"
-                  : target.phase1VerdictAccuracy === "Wrong"
-                  ? "bg-destructive/10"
-                  : "bg-muted/30"
-              }`}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider mb-0.5">
-                  Phase 1 Screen Accuracy
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {target.phase1VerdictAccuracy ? (
-                    <span
-                      className={`status-chip font-mono text-[11px] ${
-                        target.phase1VerdictAccuracy === "Correct"
-                          ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
-                          : target.phase1VerdictAccuracy === "Partially-correct"
-                          ? "bg-amber-500/15 text-amber-600 border-amber-500/30"
-                          : "bg-destructive/15 text-destructive border-destructive/30"
-                      }`}
-                    >
-                      {target.phase1VerdictAccuracy}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-muted-foreground italic">Not recorded</span>
-                  )}
-                  {target.closeMissTheme && (
-                    <span className="metadata-label text-muted-foreground/70">{target.closeMissTheme}</span>
-                  )}
-                </div>
-              </div>
-              {target.closeReasonCode && (
-                <div className="text-right shrink-0">
-                  <div className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider mb-0.5">Close Reason</div>
-                  <div className="text-sm font-medium font-mono">{target.closeReasonCode}</div>
-                </div>
-              )}
-            </div>
-
-            {/* Accuracy note */}
-            {target.phase1VerdictNote && (
-              <CardContent className="pt-3 pb-3">
-                <div className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider mb-1">Accuracy Note</div>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
-                  {target.phase1VerdictNote}
-                </p>
-              </CardContent>
-            )}
-
-            {/* Empty state when no verdict was recorded */}
-            {!target.phase1VerdictAccuracy && !target.closeReasonCode && (
-              <CardContent className="pt-3 pb-3">
-                <p className="text-[11px] font-mono text-muted-foreground/50 italic">
-                  No verdict recorded — the deal was closed or dropped without a Phase 1 assessment.
-                </p>
-              </CardContent>
-            )}
-          </Card>
-        </div>
-      )}
-
-      {/* Scores section for early-stage targets (collapsed, in lieu of Diligence section) */}
-      {!showDiligence && (
-        <div className="space-y-2">
-          <OverviewSectionHeader label="Score Card (Early Stage)" />
-          <Collapsible>
-            <Card className="bg-card/40 border-border/70 rounded-xl overflow-hidden">
-              <CollapsibleTrigger asChild>
-                <div className="bg-muted/30 px-4 py-3 border-b border-border/60 flex items-center justify-between cursor-pointer hover:bg-muted/40 transition-colors">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Score Card</div>
-                    <ConfidenceBadge stage={stage} />
-                    <span className="text-[10px] font-mono text-muted-foreground/50">{assessedCount}/5 assessed</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className={`text-2xl font-mono font-bold ${getScoreColor(target.priorityScore)}`}>
-                      {Math.round(target.priorityScore)}
-                    </div>
-                    <ChevronDown size={14} className="text-muted-foreground" />
-                  </div>
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="p-0">
-                  <div className="divide-y divide-border">
-                    <ScoreRow label="Strategic Fit" value={target.strategicFitScore} field="strategicFitScore" stage={stage} showConfidence />
-                    <ScoreRow label="Synergy Potential" value={target.synergyScore} field="synergyScore" stage={stage} showConfidence />
-                    <ScoreRow label="Financial Attractiveness" value={target.financialAttractivenessScore} field="financialAttractivenessScore" stage={stage} showConfidence />
-                    <ScoreRow label="Process Maturity" value={target.processMaturityScore} field="processMaturityScore" stage={stage} showConfidence />
-                    <ScoreRow label="Risk Penalty" value={target.riskPenaltyScore} field="riskPenaltyScore" stage={stage} isRisk showConfidence />
-                  </div>
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
-        </div>
-      )}
-    </div>
-  );
-}
-
-type ActionRowProps = {
-  action: {
-    id: number;
-    description: string;
-    owner?: string | null;
-    dueDate?: string | null;
-    priority: string;
-    status: string;
-  };
-  onEdit: () => void;
-  onToggle: () => void;
-  onDelete: () => void;
-  isPending: boolean;
-};
-
-function ActionRow({ action, onEdit, onToggle, onDelete, isPending }: ActionRowProps) {
-  const isCompleted = action.status === "Completed";
-  const isOverdue =
-    !isCompleted && action.dueDate && new Date(action.dueDate) < new Date(new Date().toDateString());
-
-  return (
-    <div className="flex items-start gap-3 p-3 border border-border rounded-sm bg-card/20 group hover:bg-card/40 transition-colors">
-      <div className="flex-1 min-w-0">
-        <div className={`text-sm font-medium leading-snug ${isCompleted ? "line-through text-muted-foreground" : ""}`}>
-          <LinkifiedText text={action.description} />
-        </div>
-        <div className="flex items-center gap-3 mt-1 flex-wrap">
-          <span className={`text-[10px] font-mono uppercase ${
-            action.status === "In Progress" ? "text-primary" :
-            action.status === "Blocked" ? "text-destructive" :
-            action.status === "Completed" ? "text-emerald-500" : "text-muted-foreground"
-          }`}>{action.status}</span>
-          <span className={`text-[10px] font-mono uppercase ${
-            action.priority === "Critical" ? "text-destructive" :
-            action.priority === "High" ? "text-amber-500" : "text-muted-foreground"
-          }`}>{action.priority}</span>
-          {action.owner && <span className="text-[10px] font-mono text-muted-foreground">{action.owner}</span>}
-          {action.dueDate && (
-            <span className={`text-[10px] font-mono ${isOverdue ? "text-destructive font-bold" : "text-muted-foreground"}`}>
-              {isOverdue ? "⚠ " : ""}Due {format(parseISO(action.dueDate), "MMM d")}
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-7 w-7 text-muted-foreground md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-          onClick={onEdit}
-          title="Edit"
-        >
-          <Pencil size={12} />
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-7 w-7 text-destructive/60 hover:text-destructive md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-          onClick={onDelete}
-          title="Delete"
-        >
-          <Trash2 size={12} />
-        </Button>
-        {isCompleted ? (
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-[10px] font-mono uppercase rounded-sm border-border text-muted-foreground"
-            onClick={onToggle}
-            disabled={isPending}
-          >
-            <RotateCcw size={11} className="mr-1" /> Reopen
-          </Button>
-        ) : (
-          <Button
-            size="sm"
-            className="h-7 text-[10px] font-mono uppercase rounded-sm bg-emerald-600 hover:bg-emerald-700 text-white"
-            onClick={onToggle}
-            disabled={isPending}
-          >
-            <CheckCircle2 size={11} className="mr-1" /> Complete
-          </Button>
-        )}
-      </div>
     </div>
   );
 }

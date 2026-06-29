@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { requireRole } from "../middlewares/auth";
+import interactionsSubRouter from "./target-interactions";
+import actionsSubRouter from "./target-actions";
 import { eq, and, ilike, or, desc, inArray, isNull, isNotNull, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
@@ -1110,102 +1112,11 @@ router.get("/:id/stage-history", async (req, res) => {
   return res.json(history.map(formatStageChange));
 });
 
-// GET /api/targets/:id/interactions
-router.get("/:id/interactions", async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const interactions = await db
-    .select()
-    .from(interactionsTable)
-    .where(eq(interactionsTable.targetId, id))
-    .orderBy(desc(interactionsTable.interactionDatetime));
+// ── Interactions sub-router (GET /api/targets/:id/interactions, POST /api/targets/:id/interactions)
+router.use("/:id/interactions", interactionsSubRouter);
 
-  return res.json(interactions.map(formatInteraction));
-});
-
-// POST /api/targets/:id/interactions
-router.post("/:id/interactions", async (req, res) => {
-  const targetId = parseInt(req.params.id, 10);
-  const parsed = CreateInteractionBody.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: parsed.error.flatten() });
-  }
-  const d = parsed.data;
-  const now = new Date();
-  const [interaction] = await db
-    .insert(interactionsTable)
-    .values({
-      targetId,
-      interactionType: d.interactionType,
-      summary: d.summary,
-      participantsInternal: d.participantsInternal ?? null,
-      participantsExternal: d.participantsExternal ?? null,
-      sentiment: d.sentiment ?? null,
-      promoterWillingness: d.promoterWillingness ?? null,
-      valuationSignal: d.valuationSignal ?? null,
-      createdBy: d.createdBy ?? null,
-      interactionDatetime: d.interactionDatetime ? new Date(d.interactionDatetime) : now,
-      createdAt: now,
-    })
-    .returning();
-
-  await db
-    .update(targetsTable)
-    .set({ updatedAt: now })
-    .where(eq(targetsTable.id, targetId));
-
-  return res.status(201).json(formatInteraction(interaction));
-});
-
-// GET /api/targets/:id/actions — regular actions only (workstream IS NULL)
-router.get("/:id/actions", async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const actions = await db
-    .select()
-    .from(actionItemsTable)
-    .where(and(eq(actionItemsTable.targetId, id), isNull(actionItemsTable.workstream)))
-    .orderBy(desc(actionItemsTable.createdAt));
-
-  return res.json(actions.map(formatAction));
-});
-
-// POST /api/targets/:id/actions
-router.post("/:id/actions", async (req, res) => {
-  const targetId = parseInt(req.params.id, 10);
-  const parsed = CreateActionBody.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: parsed.error.flatten() });
-  }
-  const d = parsed.data;
-  const now = new Date();
-  const [action] = await db
-    .insert(actionItemsTable)
-    .values({
-      targetId,
-      interactionId: d.interactionId ?? null,
-      description: d.description,
-      owner: d.owner ?? null,
-      dueDate: d.dueDate ? d.dueDate.toISOString().split("T")[0] : null,
-      priority: d.priority ?? "Medium",
-      status: "Open",
-      workstream: null,
-      notes: d.notes ?? null,
-      createdAt: now,
-    })
-    .returning();
-
-  await db
-    .update(targetsTable)
-    .set({ updatedAt: now })
-    .where(eq(targetsTable.id, targetId));
-
-  await writeAuditEvent("action_created", targetId, d.owner ?? null, {
-    actionId: action.id,
-    description: action.description,
-    priority: action.priority,
-  });
-
-  return res.status(201).json(formatAction(action));
-});
+// ── Actions sub-router (GET /api/targets/:id/actions, POST /api/targets/:id/actions)
+router.use("/:id/actions", actionsSubRouter);
 
 // GET /api/targets/:id/diligence — per-target diligence tab data
 router.get("/:id/diligence", async (req, res) => {
