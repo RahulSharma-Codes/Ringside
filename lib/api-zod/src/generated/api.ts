@@ -62,6 +62,7 @@ export const ListTargetsResponseItem = zod.object({
   overdueActionCount: zod.number().nullish(),
   lastInteractionDate: zod.coerce.date().nullish(),
   needsAttention: zod.boolean().nullish(),
+  healthScore: zod.enum(["healthy", "watch", "at_risk"]).nullish(),
 });
 export const ListTargetsResponse = zod.array(ListTargetsResponseItem);
 
@@ -178,6 +179,7 @@ export const GetTopPriorityTargetsResponseItem = zod.object({
   overdueActionCount: zod.number().nullish(),
   lastInteractionDate: zod.coerce.date().nullish(),
   needsAttention: zod.boolean().nullish(),
+  healthScore: zod.enum(["healthy", "watch", "at_risk"]).nullish(),
 });
 export const GetTopPriorityTargetsResponse = zod.array(
   GetTopPriorityTargetsResponseItem,
@@ -230,6 +232,7 @@ export const GetTargetsNeedingAttentionResponseItem = zod
     overdueActionCount: zod.number().nullish(),
     lastInteractionDate: zod.coerce.date().nullish(),
     needsAttention: zod.boolean().nullish(),
+    healthScore: zod.enum(["healthy", "watch", "at_risk"]).nullish(),
   })
   .and(
     zod.object({
@@ -281,6 +284,7 @@ export const GetTargetResponse = zod
     overdueActionCount: zod.number().nullish(),
     lastInteractionDate: zod.coerce.date().nullish(),
     needsAttention: zod.boolean().nullish(),
+    healthScore: zod.enum(["healthy", "watch", "at_risk"]).nullish(),
   })
   .and(
     zod.object({
@@ -404,6 +408,7 @@ export const UpdateTargetResponse = zod.object({
   overdueActionCount: zod.number().nullish(),
   lastInteractionDate: zod.coerce.date().nullish(),
   needsAttention: zod.boolean().nullish(),
+  healthScore: zod.enum(["healthy", "watch", "at_risk"]).nullish(),
 });
 
 /**
@@ -486,6 +491,7 @@ export const UpdateTargetStageResponse = zod
     overdueActionCount: zod.number().nullish(),
     lastInteractionDate: zod.coerce.date().nullish(),
     needsAttention: zod.boolean().nullish(),
+    healthScore: zod.enum(["healthy", "watch", "at_risk"]).nullish(),
   })
   .and(
     zod.object({
@@ -1848,6 +1854,7 @@ export const GetWeeklyReviewResponse = zod.object({
       openActionCount: zod.number().optional(),
       lastInteractionDate: zod.string().nullish(),
       updatedAt: zod.string().nullish(),
+      healthScore: zod.enum(["healthy", "watch", "at_risk"]).nullish(),
     }),
   ),
   needsAttention: zod.array(
@@ -1860,6 +1867,7 @@ export const GetWeeklyReviewResponse = zod.object({
       openActionCount: zod.number().optional(),
       lastInteractionDate: zod.string().nullish(),
       updatedAt: zod.string().nullish(),
+      healthScore: zod.enum(["healthy", "watch", "at_risk"]).nullish(),
     }),
   ),
   overdueActions: zod.array(
@@ -1915,6 +1923,7 @@ export const GetWeeklyReviewResponse = zod.object({
       openActionCount: zod.number().optional(),
       lastInteractionDate: zod.string().nullish(),
       updatedAt: zod.string().nullish(),
+      healthScore: zod.enum(["healthy", "watch", "at_risk"]).nullish(),
     }),
   ),
   noOpenAction: zod.array(
@@ -1927,6 +1936,7 @@ export const GetWeeklyReviewResponse = zod.object({
       openActionCount: zod.number().optional(),
       lastInteractionDate: zod.string().nullish(),
       updatedAt: zod.string().nullish(),
+      healthScore: zod.enum(["healthy", "watch", "at_risk"]).nullish(),
     }),
   ),
   noRecentInteraction: zod.array(
@@ -1939,6 +1949,7 @@ export const GetWeeklyReviewResponse = zod.object({
       openActionCount: zod.number().optional(),
       lastInteractionDate: zod.string().nullish(),
       updatedAt: zod.string().nullish(),
+      healthScore: zod.enum(["healthy", "watch", "at_risk"]).nullish(),
     }),
   ),
   diligenceHealth: zod.object({

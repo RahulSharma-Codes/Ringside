@@ -15,6 +15,17 @@ export type InteractionRow = typeof interactionsTable.$inferSelect;
 export type StageChangeRow = typeof stageChangeLogTable.$inferSelect;
 export type DocumentRow = { id: number; targetId: number; title: string | null; documentType: string | null; status: string | null; [key: string]: unknown };
 
+export type HealthScore = "healthy" | "watch" | "at_risk";
+
+export function computeHealthScore(flags: string[]): HealthScore {
+  if (flags.length === 0) return "healthy";
+  if (
+    flags.length >= 2 ||
+    flags.includes("must_win_no_action")
+  ) return "at_risk";
+  return "watch";
+}
+
 export function toIso(value: Date | string | null | undefined): string | null {
   if (!value) return null;
   if (value instanceof Date) return value.toISOString();
@@ -171,6 +182,7 @@ export async function enrichTargetRows(rows: { target: TargetRow; milestone: Mil
       lastInteractionDate,
       needsAttention: flags.length > 0,
       flags,
+      healthScore: computeHealthScore(flags),
     };
   });
 }

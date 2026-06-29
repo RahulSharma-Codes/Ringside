@@ -19,6 +19,7 @@ import {
 import { format, parseISO, formatDistanceToNow } from "date-fns";
 import { StageRail, PIPELINE_STAGE_ORDER } from "@/components/stage-rail";
 import { StageChip } from "@/components/stage-chip";
+import { HealthDot } from "@/components/health-dot";
 
 const FLAG_LABELS: Record<string, { label: string; color: string }> = {
   overdue_action:       { label: "Overdue Action",       color: "text-destructive border-destructive/30" },
@@ -197,6 +198,39 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Pipeline Health tile — computed from allTargets */}
+        {!loadingRecent && (allTargets ?? []).length > 0 && (() => {
+          const healthy = (allTargets ?? []).filter((t) => (t as { healthScore?: string | null }).healthScore === "healthy").length;
+          const watch   = (allTargets ?? []).filter((t) => (t as { healthScore?: string | null }).healthScore === "watch").length;
+          const atRisk  = (allTargets ?? []).filter((t) => (t as { healthScore?: string | null }).healthScore === "at_risk").length;
+          return (
+            <Card className="rounded-xl bg-card border-border/80 overflow-hidden">
+              <CardHeader className="pb-1 flex flex-row items-center justify-between space-y-0 p-4 pt-4">
+                <CardTitle className="metadata-label">Pipeline Health</CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 pt-1">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1.5">
+                    <HealthDot score="healthy" />
+                    <span className="font-mono font-bold text-lg text-emerald-500">{healthy}</span>
+                    <span className="metadata-label">Healthy</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <HealthDot score="watch" />
+                    <span className="font-mono font-bold text-lg text-amber-400">{watch}</span>
+                    <span className="metadata-label">Watch</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <HealthDot score="at_risk" />
+                    <span className={`font-mono font-bold text-lg ${atRisk > 0 ? "text-destructive" : "text-muted-foreground"}`}>{atRisk}</span>
+                    <span className="metadata-label">At Risk</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Secondary KPI strip — compact 3-stat bar */}
         <div className="grid grid-cols-3 gap-2 md:gap-3">

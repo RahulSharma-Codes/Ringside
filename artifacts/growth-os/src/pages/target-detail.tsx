@@ -24,6 +24,7 @@ import { differenceInDays, parseISO } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button as Btn } from "@/components/ui/button";
 import { StageRail } from "@/components/stage-rail";
+import { HealthDot } from "@/components/health-dot";
 import { DiligenceTab } from "@/pages/target-detail-diligence";
 import { DocumentsTab } from "@/pages/target-detail-documents";
 import { ValuationTab } from "@/pages/target-detail-valuation";
@@ -147,6 +148,13 @@ export default function TargetDetail() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-lg md:text-xl font-bold font-mono tracking-tight truncate">{target.projectName}</h1>
+                  {(target as { healthScore?: string | null }).healthScore && (
+                    <HealthDot
+                      score={(target as { healthScore?: string | null }).healthScore as "healthy" | "watch" | "at_risk"}
+                      showLabel
+                      size="md"
+                    />
+                  )}
                   {target.isConfidential && (
                     <Badge variant="outline" className="font-mono text-[10px] uppercase bg-amber-500/10 text-amber-500 border-amber-500/25 shrink-0">
                       <ShieldAlert size={10} className="mr-1" /> Confidential

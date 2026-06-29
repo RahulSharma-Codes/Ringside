@@ -8,6 +8,7 @@ import {
   actionItemsTable,
   stageChangeLogTable,
 } from "@workspace/db";
+import { computeHealthScore } from "./target-helpers";
 
 const router = Router();
 
@@ -147,8 +148,10 @@ router.get("/weekly", async (req, res) => {
 
   // ── Build lookup maps ────────────────────────────────────────────────────
   const openActionCountByTarget = new Map<number, number>();
+  const overdueTargetIds = new Set<number>();
   for (const a of allOpenActions) {
     openActionCountByTarget.set(a.targetId, (openActionCountByTarget.get(a.targetId) ?? 0) + 1);
+    if (a.dueDate && new Date(a.dueDate) < today) overdueTargetIds.add(a.targetId);
   }
 
   const lastInteractionByTarget = new Map<number, Date>();
@@ -156,6 +159,27 @@ router.get("/weekly", async (req, res) => {
     const d = new Date(i.interactionDatetime);
     const existing = lastInteractionByTarget.get(i.targetId);
     if (!existing || d > existing) lastInteractionByTarget.set(i.targetId, d);
+  }
+
+  // Compute attention flags per target (same logic as enrichTargetRows)
+  const flagsByTarget = new Map<number, string[]>();
+  for (const t of targetsWithMilestones) {
+    const flags: string[] = [];
+    const openCount = openActionCountByTarget.get(t.id) ?? 0;
+    const lastInteraction = lastInteractionByTarget.get(t.id);
+    const createdAt = t.createdAt ? new Date(t.createdAt) : null;
+
+    if (overdueTargetIds.has(t.id)) flags.push("overdue_action");
+    if (t.priorityTier === "Must-Win" && openCount === 0) flags.push("must_win_no_action");
+    if (!lastInteraction) {
+      if (createdAt && createdAt < thirtyDaysAgo) flags.push("no_recent_interaction");
+    } else if (lastInteraction < thirtyDaysAgo) {
+      flags.push("no_recent_interaction");
+    }
+    const stageDate = t.stageEnteredAt ? new Date(t.stageEnteredAt) : null;
+    if (stageDate && stageDate < fortyFiveDaysAgo) flags.push("stale_stage");
+
+    flagsByTarget.set(t.id, flags);
   }
 
   // ── Format helpers ────────────────────────────────────────────────────────
@@ -170,6 +194,7 @@ router.get("/weekly", async (req, res) => {
     currentStage: t.currentStage ?? "Sourcing",
     openActionCount: openActionCountByTarget.get(t.id) ?? 0,
     lastInteractionDate: toIso(lastInteractionByTarget.get(t.id) ?? null),
+    healthScore: computeHealthScore(flagsByTarget.get(t.id) ?? []),
     ...extra,
   });
 
@@ -192,32 +217,12 @@ router.get("/weekly", async (req, res) => {
     .filter((t) => t.priorityTier === "Must-Win")
     .map((t) => fmtTarget(t));
 
-  // ── 2. Needs Attention ───────────────────────────────────────────────────
+  // ── 2. Needs Attention — sorted At Risk → Watch ──────────────────────────
+  const HEALTH_ORDER: Record<string, number> = { at_risk: 0, watch: 1, healthy: 2 };
   const needsAttention = targetsWithMilestones
-    .filter((t) => {
-      const openCount = openActionCountByTarget.get(t.id) ?? 0;
-      const lastInteraction = lastInteractionByTarget.get(t.id);
-      const createdAt = t.createdAt ? new Date(t.createdAt) : null;
-
-      if (allOpenActions.some((a) => a.targetId === t.id && a.dueDate && new Date(a.dueDate) < today)) {
-        return true;
-      }
-      if (t.priorityTier === "Must-Win" && openCount === 0) return true;
-
-      // No recent interaction guardrail (per Phase 4A spec):
-      // Only flag if created > 30d ago OR latest interaction > 30d ago.
-      if (!lastInteraction) {
-        if (createdAt && createdAt < thirtyDaysAgo) return true;
-      } else if (lastInteraction < thirtyDaysAgo) {
-        return true;
-      }
-
-      const stageDate = t.stageEnteredAt ? new Date(t.stageEnteredAt) : null;
-      if (stageDate && stageDate < fortyFiveDaysAgo) return true;
-
-      return false;
-    })
-    .map((t) => fmtTarget(t));
+    .filter((t) => (flagsByTarget.get(t.id) ?? []).length > 0)
+    .map((t) => fmtTarget(t))
+    .sort((a, b) => (HEALTH_ORDER[a.healthScore ?? "healthy"] ?? 2) - (HEALTH_ORDER[b.healthScore ?? "healthy"] ?? 2));
 
   // ── 3. Overdue actions ───────────────────────────────────────────────────
   const overdueActions = allOpenActions

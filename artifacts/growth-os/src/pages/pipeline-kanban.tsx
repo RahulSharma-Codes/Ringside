@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, User, Zap, ChevronDown, ChevronRight, X, Check, Loader2 } from "lucide-react";
+import { HealthDot } from "@/components/health-dot";
 import { StageChip } from "@/components/stage-chip";
 import { PIPELINE_STAGE_ORDER, OFF_TRACK_STAGES, getStagesForDealType } from "@/components/stage-rail";
 import { useToast } from "@/hooks/use-toast";
@@ -44,6 +45,7 @@ interface KanbanTarget {
   openActionCount?: number | null;
   overdueActionCount?: number | null;
   dealType?: string | null;
+  healthScore?: string | null;
 }
 
 interface PipelineKanbanProps {
@@ -138,9 +140,12 @@ function DraggableCard({
             {target.targetCode}
           </div>
         </div>
-        {target.needsAttention && (
-          <AlertTriangle size={11} className="text-destructive shrink-0 mt-0.5" />
-        )}
+        <div className="flex items-center gap-1 shrink-0 mt-0.5">
+          <HealthDot score={target.healthScore as "healthy" | "watch" | "at_risk" | null | undefined} />
+          {target.needsAttention && (
+            <AlertTriangle size={11} className="text-destructive" />
+          )}
+        </div>
       </div>
       <div className="flex items-center gap-1.5 flex-wrap">
         <Badge className={`font-mono text-[9px] uppercase rounded-sm px-1.5 py-0 h-4 ${getTierBadgeColor(target.priorityTier)}`}>

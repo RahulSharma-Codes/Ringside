@@ -2271,6 +2271,10 @@ components:
         needsAttention:
           type: boolean
           nullable: true
+        healthScore:
+          type: string
+          enum: [healthy, watch, at_risk]
+          nullable: true
       required:
         - id
         - targetCode
@@ -3060,6 +3064,10 @@ components:
           nullable: true
         updatedAt:
           type: string
+          nullable: true
+        healthScore:
+          type: string
+          enum: [healthy, watch, at_risk]
           nullable: true
       required: [id, targetCode, projectName, priorityTier, currentStage]
 

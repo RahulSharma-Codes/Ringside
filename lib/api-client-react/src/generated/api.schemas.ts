@@ -50,6 +50,16 @@ export interface HealthStatus {
   status: string;
 }
 
+export type TargetHealthScore =
+  | (typeof TargetHealthScore)[keyof typeof TargetHealthScore]
+  | null;
+
+export const TargetHealthScore = {
+  healthy: "healthy",
+  watch: "watch",
+  at_risk: "at_risk",
+} as const;
+
 export interface Target {
   id: number;
   targetCode: string;
@@ -83,6 +93,7 @@ export interface Target {
   overdueActionCount?: number | null;
   lastInteractionDate?: string | null;
   needsAttention?: boolean | null;
+  healthScore?: TargetHealthScore;
 }
 
 export interface Interaction {
@@ -411,6 +422,16 @@ export interface CommandCenterAction {
   currentStage: string;
 }
 
+export type WeeklyReviewTargetSummaryHealthScore =
+  | (typeof WeeklyReviewTargetSummaryHealthScore)[keyof typeof WeeklyReviewTargetSummaryHealthScore]
+  | null;
+
+export const WeeklyReviewTargetSummaryHealthScore = {
+  healthy: "healthy",
+  watch: "watch",
+  at_risk: "at_risk",
+} as const;
+
 export interface WeeklyReviewTargetSummary {
   id: number;
   targetCode: string;
@@ -420,6 +441,7 @@ export interface WeeklyReviewTargetSummary {
   openActionCount?: number;
   lastInteractionDate?: string | null;
   updatedAt?: string | null;
+  healthScore?: WeeklyReviewTargetSummaryHealthScore;
 }
 
 export interface WeeklyReviewActionSummary {

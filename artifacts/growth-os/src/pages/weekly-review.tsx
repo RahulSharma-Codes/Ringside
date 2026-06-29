@@ -17,6 +17,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { StageChip } from "@/components/stage-chip";
+import { HealthDot } from "@/components/health-dot";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -29,6 +30,7 @@ interface ReviewTarget {
   openActionCount?: number;
   lastInteractionDate?: string | null;
   updatedAt?: string | null;
+  healthScore?: "healthy" | "watch" | "at_risk" | null;
 }
 
 interface ReviewAction {
@@ -129,7 +131,10 @@ function TargetCard({ t, accent }: { t: ReviewTarget; accent?: "destructive" | "
       }`}>
         <CardContent className="p-3.5 flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{t.projectName}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{t.projectName}</p>
+              <HealthDot score={t.healthScore} />
+            </div>
             <div className="flex flex-wrap gap-1.5 mt-1.5 items-center">
               <span className="metadata-label">{t.targetCode}</span>
               <TierPill tier={t.priorityTier} />

@@ -14,6 +14,7 @@ import { ExportDialog } from "@/components/export-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
 import { StageChip } from "@/components/stage-chip";
+import { HealthDot } from "@/components/health-dot";
 import { PipelineKanban } from "@/pages/pipeline-kanban";
 
 const STAGES = [
@@ -388,6 +389,7 @@ export default function Pipeline() {
                 const overdueCount = (target as { overdueActionCount?: number | null }).overdueActionCount ?? 0;
                 const lastInteraction = (target as { lastInteractionDate?: string | null }).lastInteractionDate;
                 const tierCardClass = getTierCardClass(target.priorityTier);
+                const healthScore = (target as { healthScore?: string | null }).healthScore as "healthy" | "watch" | "at_risk" | null | undefined;
 
                 const targetHref = aiMode
                   ? `/targets/${target.id}?ai=${aiMode}`
@@ -410,6 +412,7 @@ export default function Pipeline() {
                                 </div>
                               </div>
                               <div className="flex items-center gap-1.5 shrink-0">
+                                <HealthDot score={healthScore} />
                                 {isNeedsAttention && (
                                   <Badge className="font-mono text-[9px] uppercase rounded-md bg-destructive text-destructive-foreground border-0">
                                     <AlertTriangle size={8} className="mr-1" /> Attn
