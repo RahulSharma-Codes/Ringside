@@ -32,4 +32,4 @@ NOT `req.params.id as string` — the property access fails before the cast.
 - `target-detail-stakeholders.tsx` — 3 hooks missing from @workspace/api-client-react
 
 ## OverviewTab action data gap
-After extraction, OverviewTab receives `actions={[]}` from the shell. Task #164 tracks fixing this — OverviewTab should call `useListActions(targetId)` directly so React Query deduplicates with ActionsTab's cache.
+After extraction, OverviewTab should call `useListActions(targetId)` directly with `getListActionsQueryKey(targetId)` so React Query deduplicates with ActionsTab's cache. Do not pass `actions={[]}` from the shell.

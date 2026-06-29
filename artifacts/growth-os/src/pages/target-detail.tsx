@@ -415,7 +415,7 @@ export default function TargetDetail() {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4 mt-0">
-              <OverviewTab targetId={targetId} target={target} actions={[]} />
+              <OverviewTab targetId={targetId} target={target} />
             </TabsContent>
 
             <TabsContent value="interactions" className="space-y-4 mt-0">
@@ -736,14 +736,11 @@ export default function TargetDetail() {
                     return (
                       <>
                         <Select
+                          disabled={!isEarlyStage}
                           value={editData.dealType || "__none__"}
                           onValueChange={(v) => {
                             const newVal = v === "__none__" ? "" : v;
-                            if (!isEarlyStage && newVal !== (target.dealType ?? "")) {
-                              setDealTypeWarning("Deal type changes are only allowed in early stages (Sourcing through NDA/CIM).");
-                            } else {
-                              setDealTypeWarning(null);
-                            }
+                            setDealTypeWarning(null);
                             setEditData((d) => ({ ...d, dealType: newVal }));
                           }}
                         >

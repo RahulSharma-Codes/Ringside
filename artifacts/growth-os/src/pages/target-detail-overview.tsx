@@ -1,4 +1,5 @@
 import React from "react";
+import { useListActions, getListActionsQueryKey } from "@workspace/api-client-react";
 import { downloadAuthenticatedFile } from "@/lib/download";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -442,10 +443,13 @@ function OverviewSections({ target, actions }: { target: OverviewTarget; actions
 interface OverviewTabProps {
   targetId: number;
   target: OverviewTarget;
-  actions: OverviewAction[];
 }
 
-export function OverviewTab({ targetId, target, actions }: OverviewTabProps) {
+export function OverviewTab({ targetId, target }: OverviewTabProps) {
+  const { data: actions = [] } = useListActions(targetId, {
+    query: { enabled: !!targetId, queryKey: getListActionsQueryKey(targetId) },
+  });
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
