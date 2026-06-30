@@ -31,7 +31,7 @@ router.get("/", async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.flatten() });
   }
-  const { sector, priorityTier, stage, search, isActive, owner, country, needsAttention, dealType } =
+  const { sector, priorityTier, stage, search, isActive, owner, country, needsAttention, dealType, myDeals } =
     parsed.data;
 
   const conditions = [];
@@ -40,7 +40,11 @@ router.get("/", async (req, res) => {
   if (sector) conditions.push(eq(targetsTable.sector, sector));
   if (priorityTier) conditions.push(eq(targetsTable.priorityTier, priorityTier));
   if (stage) conditions.push(eq(milestonesTable.currentStage, stage));
-  if (owner) conditions.push(eq(targetsTable.dealOwner, owner));
+  if (myDeals && req.jwtClaims?.email) {
+    conditions.push(ilike(targetsTable.dealOwner, req.jwtClaims.email));
+  } else if (owner) {
+    conditions.push(eq(targetsTable.dealOwner, owner));
+  }
   if (country) conditions.push(eq(targetsTable.country, country));
   if (dealType) conditions.push(eq(targetsTable.dealType, dealType));
   if (search) {

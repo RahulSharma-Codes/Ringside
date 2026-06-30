@@ -59,8 +59,11 @@ router.get("/open", async (_req, res) => {
 // GET /api/actions/command-center
 // Returns open/blocked/in-progress regular actions + recently completed (last 14 days).
 // Excludes diligence items (workstream IS NOT NULL) — those appear in the Diligence tab.
-router.get("/command-center", async (_req, res) => {
+router.get("/command-center", async (req, res) => {
   const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+  const mineParam = req.query.mine;
+  const mineOnly = (mineParam === "true" || mineParam === "1") && !!req.jwtClaims?.email;
+  const userEmail = mineOnly ? req.jwtClaims!.email.toLowerCase() : null;
 
   const rows = await db
     .select({
@@ -98,8 +101,12 @@ router.get("/command-center", async (_req, res) => {
     )
     .limit(200);
 
+  const filtered = userEmail
+    ? rows.filter((r) => (r.owner ?? "").toLowerCase() === userEmail)
+    : rows;
+
   return res.json(
-    rows.map((a) => ({
+    filtered.map((a) => ({
       ...a,
       dueDate: toDateString(a.dueDate),
       createdAt: toIso(a.createdAt),

@@ -1,11 +1,13 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import {
   useGetDashboardSummary, getGetDashboardSummaryQueryKey,
   useGetTargetsByStage, getGetTargetsByStageQueryKey,
   useGetTopPriorityTargets, getGetTopPriorityTargetsQueryKey,
   useGetTargetsNeedingAttention, getGetTargetsNeedingAttentionQueryKey,
   useListTargets, getListTargetsQueryKey,
+  customFetch,
 } from "@workspace/api-client-react";
 import { computeAvgAssessedScore } from "@/lib/score-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,12 +16,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   AlertCircle, Target, TrendingUp, AlertOctagon, CheckCircle2,
-  XCircle, ArrowRight, AlertTriangle, Clock, Zap, RefreshCw, GitBranch,
+  XCircle, ArrowRight, AlertTriangle, Clock, Zap, RefreshCw, GitBranch, ListTodo,
 } from "lucide-react";
 import { format, parseISO, formatDistanceToNow } from "date-fns";
 import { StageRail, PIPELINE_STAGE_ORDER } from "@/components/stage-rail";
 import { StageChip } from "@/components/stage-chip";
 import { HealthDot } from "@/components/health-dot";
+import { useAuth } from "@/contexts/auth-context";
 
 const FLAG_LABELS: Record<string, { label: string; color: string }> = {
   overdue_action:       { label: "Overdue Action",       color: "text-destructive border-destructive/30" },
@@ -47,8 +50,53 @@ function SectionLabel({ icon, label, children }: { icon: React.ReactNode; label:
   );
 }
 
+interface CommandCenterAction {
+  id: number;
+  targetId: number;
+  description: string;
+  owner: string | null;
+  dueDate: string | null;
+  priority: string;
+  status: string;
+  targetName: string;
+  targetCode: string | null;
+  priorityTier: string | null;
+  currentStage: string;
+}
+
 export default function Dashboard() {
   const [, navigate] = useLocation();
+  const { user } = useAuth();
+
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const weekEndStr = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().slice(0, 10);
+  }, []);
+
+  const { data: myActions } = useQuery({
+    queryKey: ["my-open-actions-dashboard", user?.email],
+    queryFn: () => customFetch<CommandCenterAction[]>("/api/actions/command-center?mine=true"),
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const myUrgentActions = useMemo(() => {
+    if (!myActions) return [];
+    return myActions
+      .filter((a) => a.status !== "Completed" && (
+        (a.dueDate && a.dueDate < todayStr) ||
+        (a.dueDate && a.dueDate <= weekEndStr)
+      ))
+      .sort((a, b) => {
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return a.dueDate.localeCompare(b.dueDate);
+      })
+      .slice(0, 5);
+  }, [myActions, todayStr, weekEndStr]);
 
   const { data: summary, isLoading: loadingSummary } = useGetDashboardSummary({
     query: { queryKey: getGetDashboardSummaryQueryKey() },
@@ -198,6 +246,54 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* My Open Actions — personalized urgency strip */}
+        {user && myUrgentActions.length > 0 && (
+          <Card className="rounded-xl bg-card border-border/80 overflow-hidden">
+            <CardHeader className="p-4 pb-2 border-b border-border/40">
+              <CardTitle className="text-[11px] font-medium text-muted-foreground uppercase font-mono tracking-wider flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <ListTodo size={13} className="text-amber-500" />
+                  My Open Actions
+                </span>
+                <Link href="/actions">
+                  <span className="text-[10px] font-mono text-primary hover:underline flex items-center gap-1 cursor-pointer">
+                    See all <ArrowRight size={10} />
+                  </span>
+                </Link>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 divide-y divide-border/40">
+              {myUrgentActions.map((action) => {
+                const isOverdue = action.dueDate && action.dueDate < todayStr;
+                return (
+                  <Link key={action.id} href={`/targets/${action.targetId}`}>
+                    <div className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors group cursor-pointer ${isOverdue ? "bg-destructive/3" : ""}`}>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium truncate group-hover:text-primary transition-colors leading-snug">
+                          {action.description}
+                        </div>
+                        <div className="metadata-label mt-0.5 flex items-center gap-1.5">
+                          <span>{action.targetName}</span>
+                          {action.targetCode && <><span className="w-1 h-1 bg-border rounded-full" /><span className="font-mono text-muted-foreground/50">{action.targetCode}</span></>}
+                        </div>
+                      </div>
+                      <div className="shrink-0 flex items-center gap-2">
+                        {action.dueDate && (
+                          <span className={`text-[10px] font-mono flex items-center gap-1 ${isOverdue ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
+                            {isOverdue && <AlertTriangle size={10} />}
+                            <Clock size={10} />
+                            {format(parseISO(action.dueDate), "MMM d")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Pipeline Health tile — computed from allTargets */}
         {!loadingRecent && (allTargets ?? []).length > 0 && (() => {

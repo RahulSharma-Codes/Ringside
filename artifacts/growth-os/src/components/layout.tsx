@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import {
   Target, ListTodo, Briefcase, Plus, BarChart3, Bot, CalendarCheck,
   ClipboardCheck, Upload, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu,
@@ -10,6 +11,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NotificationBell } from "@/components/notification-bell";
 import { useAuth } from "@/contexts/auth-context";
+import { customFetch } from "@workspace/api-client-react";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -59,6 +61,7 @@ function SidebarNav({
   toggleGroup,
   onNavigate,
   isAdmin,
+  overdueCount,
 }: {
   location: string;
   collapsed: boolean;
@@ -66,6 +69,7 @@ function SidebarNav({
   toggleGroup: (g: string) => void;
   onNavigate?: () => void;
   isAdmin: boolean;
+  overdueCount: number;
 }) {
   const visibleItems = NAV_ITEMS.filter((i) => i.group !== "Admin" || isAdmin);
   const visibleGroups = NAV_GROUPS.filter(
@@ -110,16 +114,22 @@ function SidebarNav({
             {visibleItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href, location);
+              const showBadge = item.href === "/actions" && overdueCount > 0;
               return (
                 <Tooltip key={item.href} delayDuration={0}>
                   <TooltipTrigger asChild>
                     <Link href={item.href} onClick={onNavigate}>
-                      <div className={`flex items-center justify-center w-9 h-9 rounded-lg mx-auto transition-all duration-150 cursor-pointer ${
+                      <div className={`relative flex items-center justify-center w-9 h-9 rounded-lg mx-auto transition-all duration-150 cursor-pointer ${
                         active
                           ? "bg-primary/15 text-primary"
                           : "text-sidebar-foreground/45 hover:text-sidebar-foreground hover:bg-white/6"
                       }`}>
                         <Icon size={15} />
+                        {showBadge && (
+                          <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 rounded-full bg-destructive text-white text-[8px] font-mono font-bold flex items-center justify-center px-0.5">
+                            {overdueCount > 9 ? "9+" : overdueCount}
+                          </span>
+                        )}
                       </div>
                     </Link>
                   </TooltipTrigger>
@@ -159,6 +169,7 @@ function SidebarNav({
                       {items.map((item) => {
                         const Icon = item.icon;
                         const active = isActive(item.href, location);
+                        const showBadge = item.href === "/actions" && overdueCount > 0;
                         return (
                           <Link key={item.href} href={item.href} onClick={onNavigate}>
                             <div className={`relative flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all duration-150 cursor-pointer ${
@@ -170,7 +181,12 @@ function SidebarNav({
                                 <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-primary rounded-r-full" />
                               )}
                               <Icon size={14} className="shrink-0 ml-0.5" />
-                              <span className="truncate">{item.label}</span>
+                              <span className="truncate flex-1">{item.label}</span>
+                              {showBadge && (
+                                <span className="min-w-[18px] h-4 rounded-full bg-destructive text-white text-[9px] font-mono font-bold flex items-center justify-center px-1 shrink-0">
+                                  {overdueCount > 9 ? "9+" : overdueCount}
+                                </span>
+                              )}
                             </div>
                           </Link>
                         );
@@ -232,11 +248,18 @@ function SidebarNav({
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
 
+interface CommandCenterAction {
+  id: number;
+  dueDate: string | null;
+  status: string;
+  owner: string | null;
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
 
   /* Groups default open; remember state across navigation */
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(NAV_GROUPS));
@@ -248,7 +271,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
       return next;
     });
 
-  const navProps = { location, openGroups, toggleGroup, isAdmin };
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  const { data: myActions } = useQuery({
+    queryKey: ["sidebar-overdue-count", user?.email],
+    queryFn: () => customFetch<CommandCenterAction[]>("/api/actions/command-center?mine=true"),
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+    select: (data) => data.filter((a) => a.status !== "Completed" && a.dueDate && a.dueDate < todayStr).length,
+  });
+
+  const overdueCount = myActions ?? 0;
+
+  const navProps = { location, openGroups, toggleGroup, isAdmin, overdueCount };
 
   return (
     /* Root: full-viewport, no outer scroll — prevents double scrollbar */

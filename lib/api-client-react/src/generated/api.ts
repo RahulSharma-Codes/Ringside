@@ -84,6 +84,7 @@ import type {
   Interaction,
   KanbanReorderBody,
   KanbanReorderResult,
+  ListCommandCenterActionsParams,
   ListTargetsParams,
   MarkAllNotificationsRead200,
   MarkNotificationRead200,
@@ -2187,42 +2188,66 @@ export function useListOpenActions<
 /**
  * @summary List all actions for the Action Command Center (open/blocked/in-progress + recently completed 14d)
  */
-export const getListCommandCenterActionsUrl = () => {
-  return `/api/actions/command-center`;
+export const getListCommandCenterActionsUrl = (
+  params?: ListCommandCenterActionsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/actions/command-center?${stringifiedParams}`
+    : `/api/actions/command-center`;
 };
 
 export const listCommandCenterActions = async (
+  params?: ListCommandCenterActionsParams,
   options?: RequestInit,
 ): Promise<CommandCenterAction[]> => {
-  return customFetch<CommandCenterAction[]>(getListCommandCenterActionsUrl(), {
-    ...options,
-    method: "GET",
-  });
+  return customFetch<CommandCenterAction[]>(
+    getListCommandCenterActionsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
 };
 
-export const getListCommandCenterActionsQueryKey = () => {
-  return [`/api/actions/command-center`] as const;
+export const getListCommandCenterActionsQueryKey = (
+  params?: ListCommandCenterActionsParams,
+) => {
+  return [`/api/actions/command-center`, ...(params ? [params] : [])] as const;
 };
 
 export const getListCommandCenterActionsQueryOptions = <
   TData = Awaited<ReturnType<typeof listCommandCenterActions>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listCommandCenterActions>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: ListCommandCenterActionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCommandCenterActions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getListCommandCenterActionsQueryKey();
+    queryOptions?.queryKey ?? getListCommandCenterActionsQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof listCommandCenterActions>>
-  > = ({ signal }) => listCommandCenterActions({ signal, ...requestOptions });
+  > = ({ signal }) =>
+    listCommandCenterActions(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listCommandCenterActions>>,
@@ -2243,15 +2268,18 @@ export type ListCommandCenterActionsQueryError = ErrorType<unknown>;
 export function useListCommandCenterActions<
   TData = Awaited<ReturnType<typeof listCommandCenterActions>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listCommandCenterActions>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListCommandCenterActionsQueryOptions(options);
+>(
+  params?: ListCommandCenterActionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCommandCenterActions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCommandCenterActionsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

@@ -99,6 +99,10 @@ paths:
           in: query
           schema:
             type: string
+        - name: myDeals
+          in: query
+          schema:
+            type: boolean
       responses:
         "200":
           description: List of targets
@@ -539,6 +543,11 @@ paths:
       operationId: listCommandCenterActions
       tags: [actions]
       summary: List all actions for the Action Command Center (open/blocked/in-progress + recently completed 14d)
+      parameters:
+        - name: mine
+          in: query
+          schema:
+            type: boolean
       responses:
         "200":
           description: Command center actions

@@ -27,6 +27,7 @@ export const ListTargetsQueryParams = zod.object({
   country: zod.coerce.string().optional(),
   needsAttention: zod.coerce.boolean().optional(),
   dealType: zod.coerce.string().optional(),
+  myDeals: zod.coerce.boolean().optional(),
 });
 
 export const ListTargetsResponseItem = zod.object({
@@ -763,6 +764,10 @@ export const ListOpenActionsResponse = zod.array(ListOpenActionsResponseItem);
 /**
  * @summary List all actions for the Action Command Center (open/blocked/in-progress + recently completed 14d)
  */
+export const ListCommandCenterActionsQueryParams = zod.object({
+  mine: zod.coerce.boolean().optional(),
+});
+
 export const ListCommandCenterActionsResponseItem = zod.object({
   id: zod.number(),
   targetId: zod.number(),

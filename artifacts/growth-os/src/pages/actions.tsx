@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUpdateAction, customFetch } from "@workspace/api-client-react";
 import { Link } from "wouter";
+import { useAuth } from "@/contexts/auth-context";
 import { format, parseISO } from "date-fns";
 import {
   CheckCircle2, RotateCcw, AlertTriangle, Clock,
@@ -227,15 +228,17 @@ function GroupSection({
 export default function Actions() {
   const { toast }      = useToast();
   const queryClient    = useQueryClient();
+  const { user }       = useAuth();
   const [ownerFilter, setOwnerFilter]       = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [mustWinOnly, setMustWinOnly]       = useState(false);
   const [overdueOnly, setOverdueOnly]       = useState(false);
+  const [mineOnly, setMineOnly]             = useState(false);
   const [search, setSearch]                 = useState("");
 
   const { data: actions, isLoading } = useQuery({
-    queryKey: ["actions-command-center"],
-    queryFn: () => customFetch<CommandCenterAction[]>("/api/actions/command-center"),
+    queryKey: ["actions-command-center", mineOnly],
+    queryFn: () => customFetch<CommandCenterAction[]>(`/api/actions/command-center${mineOnly ? "?mine=true" : ""}`),
   });
 
   const updateAction = useUpdateAction();
@@ -322,6 +325,28 @@ export default function Actions() {
             <p className="text-[11px] text-muted-foreground mt-0.5 hidden md:block">Manage overdue, blocked, and upcoming execution items across the full inorganic growth pipeline.</p>
           </div>
         </div>
+
+        {/* My Actions toggle */}
+        {user && (
+          <div className="flex items-center border border-border/60 rounded-lg overflow-hidden h-7 mb-1.5">
+            <button
+              onClick={() => setMineOnly(false)}
+              className={`px-3 h-7 text-[11px] font-mono transition-colors ${
+                !mineOnly ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/60"
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setMineOnly(true)}
+              className={`px-3 h-7 text-[11px] font-mono transition-colors ${
+                mineOnly ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/60"
+              }`}
+            >
+              Mine
+            </button>
+          </div>
+        )}
 
         {/* Filter bar */}
         <div className="flex flex-wrap gap-1.5 items-center">

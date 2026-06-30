@@ -18,6 +18,7 @@ import { StageChip } from "@/components/stage-chip";
 import { HealthDot } from "@/components/health-dot";
 import { PIPELINE_STAGE_ORDER } from "@/components/stage-rail";
 import { PipelineKanban } from "@/pages/pipeline-kanban";
+import { useAuth } from "@/contexts/auth-context";
 
 const STAGES = [
   "Sourcing", "Outreach", "Introductory Discussion", "NDA / CIM",
@@ -45,6 +46,7 @@ const DEAL_TYPES = [
 ];
 
 const VIEW_STORAGE_KEY = "ringside_pipeline_view";
+const MY_DEALS_STORAGE_KEY = "pipeline_my_deals";
 
 function getTierBadgeColor(tier: string) {
   switch (tier) {
@@ -69,6 +71,7 @@ type PipelineView = "list" | "board";
 
 export default function Pipeline() {
   const [, navigate] = useLocation();
+  const { user } = useAuth();
 
   const [view, setView] = useState<PipelineView>(() => {
     try {
@@ -78,6 +81,19 @@ export default function Pipeline() {
       return "list";
     }
   });
+
+  const [myDeals, setMyDeals] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(MY_DEALS_STORAGE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  const handleMyDealsToggle = (next: boolean) => {
+    setMyDeals(next);
+    try { localStorage.setItem(MY_DEALS_STORAGE_KEY, next ? "1" : "0"); } catch { /* ignore */ }
+  };
 
   const [search, setSearch]               = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -142,20 +158,21 @@ export default function Pipeline() {
       search:         search || undefined,
       stage:          stage !== "all" ? stage : undefined,
       priorityTier:   tier !== "all" ? tier : undefined,
-      owner:          owner !== "all" ? owner : undefined,
+      owner:          (!myDeals && owner !== "all") ? owner : undefined,
       country:        country !== "all" ? country : undefined,
       needsAttention: attentionOnly ? true : undefined,
       dealType:       dealType !== "all" ? dealType : undefined,
       isActive:       stage !== "Closed" && stage !== "Dropped" ? true : undefined,
+      myDeals:        myDeals ? true : undefined,
     },
     {
       query: {
-        queryKey: getListTargetsQueryKey({ search, stage, priorityTier: tier, owner, country, needsAttention: attentionOnly, dealType }),
+        queryKey: getListTargetsQueryKey({ search, stage, priorityTier: tier, owner, country, needsAttention: attentionOnly, dealType, myDeals }),
       },
     },
   );
 
-  const hasActiveFilters = search || stage !== "all" || tier !== "all" || owner !== "all" || country !== "all" || attentionOnly || dealType !== "all";
+  const hasActiveFilters = search || stage !== "all" || tier !== "all" || owner !== "all" || country !== "all" || attentionOnly || dealType !== "all" || myDeals;
 
   const aiMode = (() => {
     const params = new URLSearchParams(window.location.search);
@@ -163,7 +180,7 @@ export default function Pipeline() {
   })();
 
   function clearFilters() {
-    setSearch(""); setStage("all"); setTier("all"); setOwner("all"); setCountry("all"); setAttentionOnly(false); setDealType("all");
+    setSearch(""); setStage("all"); setTier("all"); setOwner("all"); setCountry("all"); setAttentionOnly(false); setDealType("all"); handleMyDealsToggle(false);
   }
 
   return (
@@ -232,6 +249,28 @@ export default function Pipeline() {
             </Link>
           </div>
         </div>
+
+        {/* My Deals / All Deals toggle */}
+        {user && (
+          <div className="flex items-center border border-border/60 rounded-lg overflow-hidden h-7 self-start">
+            <button
+              onClick={() => handleMyDealsToggle(false)}
+              className={`px-3 h-7 text-[11px] font-mono transition-colors ${
+                !myDeals ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/60"
+              }`}
+            >
+              All Deals
+            </button>
+            <button
+              onClick={() => handleMyDealsToggle(true)}
+              className={`px-3 h-7 text-[11px] font-mono transition-colors ${
+                myDeals ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/60"
+              }`}
+            >
+              My Deals
+            </button>
+          </div>
+        )}
 
         {/* Single-row filter bar */}
         <div className="flex items-center gap-2 flex-wrap">

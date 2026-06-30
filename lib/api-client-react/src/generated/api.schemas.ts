@@ -1882,6 +1882,7 @@ export type ListTargetsParams = {
   country?: string;
   needsAttention?: boolean;
   dealType?: string;
+  myDeals?: boolean;
 };
 
 export type GetTopPriorityTargetsParams = {
@@ -1890,6 +1891,10 @@ export type GetTopPriorityTargetsParams = {
 
 export type GetStageGateParams = {
   newStage: string;
+};
+
+export type ListCommandCenterActionsParams = {
+  mine?: boolean;
 };
 
 export type GetDiligenceReviewParams = {
