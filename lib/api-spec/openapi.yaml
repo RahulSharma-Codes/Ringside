@@ -1115,6 +1115,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/DealEconomics"
 
+  /targets/{id}/ic-brief:
+    get:
+      operationId: getIcBrief
+      tags: [ic]
+      summary: Aggregate IC briefing pack for a target (all deal data in one round-trip)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: IC brief aggregate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IcBriefResponse"
+        "404":
+          description: Not found
+
   /targets/{id}/activity:
     get:
       operationId: getActivityFeed
@@ -3997,6 +4018,122 @@ components:
           type: string
           nullable: true
       required: [sessionDate, outcome]
+
+    IcBriefTarget:
+      type: object
+      properties:
+        id:
+          type: integer
+        targetCode:
+          type: string
+        legalName:
+          type: string
+        sector:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        priorityTier:
+          type: string
+          nullable: true
+        currentStage:
+          type: string
+        priorityScore:
+          type: number
+        healthScore:
+          type: string
+          enum: [healthy, watch, at_risk]
+        daysInCurrentStage:
+          type: integer
+          nullable: true
+        openActionCount:
+          type: integer
+        overdueActionCount:
+          type: integer
+        daysSinceLastInteraction:
+          type: integer
+          nullable: true
+        strategicFitScore:
+          type: number
+        synergyScore:
+          type: number
+        financialAttractivenessScore:
+          type: number
+        processMaturityScore:
+          type: number
+        riskPenaltyScore:
+          type: number
+        description:
+          type: string
+          nullable: true
+        ownerName:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+          nullable: true
+      required: [id, targetCode, legalName, currentStage, priorityScore, healthScore, openActionCount, overdueActionCount]
+
+    IcBriefDiligence:
+      type: object
+      properties:
+        total:
+          type: integer
+        completed:
+          type: integer
+        blocked:
+          type: integer
+        overdue:
+          type: integer
+        pct:
+          type: integer
+        missingWorkstreams:
+          type: array
+          items:
+            type: string
+      required: [total, completed, blocked, overdue, pct, missingWorkstreams]
+
+    IcBriefResponse:
+      type: object
+      properties:
+        target:
+          $ref: "#/components/schemas/IcBriefTarget"
+        diligence:
+          $ref: "#/components/schemas/IcBriefDiligence"
+        icSessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/IcSession"
+        recentInteractions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Interaction"
+        openActions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActionItem"
+        advisors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Advisor"
+        valuations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Valuation"
+        economics:
+          $ref: "#/components/schemas/DealEconomics"
+          nullable: true
+        synergies:
+          type: array
+          items:
+            $ref: "#/components/schemas/SynergyEntry"
+        generatedAt:
+          type: string
+      required: [target, diligence, icSessions, recentInteractions, openActions, advisors, valuations, synergies, generatedAt]
 
     SynergyEntry:
       type: object

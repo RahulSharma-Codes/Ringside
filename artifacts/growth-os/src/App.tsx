@@ -25,6 +25,7 @@ import Doctrine from "@/pages/doctrine";
 import AdminPage from "@/pages/admin";
 import AccessDenied from "@/pages/access-denied";
 import NotFound from "@/pages/not-found";
+import IcBriefPage from "@/pages/ic-brief";
 
 const queryClient = new QueryClient();
 
@@ -240,6 +241,9 @@ function Router() {
       </Route>
       <Route path="/targets/new">
         <Layout><NewTarget /></Layout>
+      </Route>
+      <Route path="/targets/:id/ic-brief">
+        <IcBriefPage />
       </Route>
       <Route path="/targets/:id">
         <Layout><TargetDetail /></Layout>

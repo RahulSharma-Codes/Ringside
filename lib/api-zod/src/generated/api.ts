@@ -1559,6 +1559,188 @@ export const UpsertDealEconomicsResponse = zod.object({
 });
 
 /**
+ * @summary Aggregate IC briefing pack for a target (all deal data in one round-trip)
+ */
+export const GetIcBriefParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetIcBriefResponse = zod.object({
+  target: zod.object({
+    id: zod.number(),
+    targetCode: zod.string(),
+    legalName: zod.string(),
+    sector: zod.string().nullish(),
+    country: zod.string().nullish(),
+    priorityTier: zod.string().nullish(),
+    currentStage: zod.string(),
+    priorityScore: zod.number(),
+    healthScore: zod.enum(["healthy", "watch", "at_risk"]),
+    daysInCurrentStage: zod.number().nullish(),
+    openActionCount: zod.number(),
+    overdueActionCount: zod.number(),
+    daysSinceLastInteraction: zod.number().nullish(),
+    strategicFitScore: zod.number().optional(),
+    synergyScore: zod.number().optional(),
+    financialAttractivenessScore: zod.number().optional(),
+    processMaturityScore: zod.number().optional(),
+    riskPenaltyScore: zod.number().optional(),
+    description: zod.string().nullish(),
+    ownerName: zod.string().nullish(),
+    createdAt: zod.string().nullish(),
+    updatedAt: zod.string().nullish(),
+  }),
+  diligence: zod.object({
+    total: zod.number(),
+    completed: zod.number(),
+    blocked: zod.number(),
+    overdue: zod.number(),
+    pct: zod.number(),
+    missingWorkstreams: zod.array(zod.string()),
+  }),
+  icSessions: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetId: zod.number(),
+      sessionDate: zod.coerce.date(),
+      attendees: zod.string().nullish(),
+      outcome: zod.enum(["Approved", "Conditional", "Rejected", "Deferred"]),
+      conditions: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      createdAt: zod.coerce.date().nullish(),
+    }),
+  ),
+  recentInteractions: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetId: zod.number(),
+      interactionType: zod.string(),
+      interactionDatetime: zod.coerce.date(),
+      participantsInternal: zod.string().nullish(),
+      participantsExternal: zod.string().nullish(),
+      summary: zod.string(),
+      sentiment: zod.string().nullish(),
+      promoterWillingness: zod.string().nullish(),
+      valuationSignal: zod.string().nullish(),
+      createdBy: zod.string().nullish(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+  openActions: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetId: zod.number(),
+      interactionId: zod.number().nullish(),
+      description: zod.string(),
+      owner: zod.string().nullish(),
+      dueDate: zod.coerce.date().nullish(),
+      priority: zod.string(),
+      status: zod.string(),
+      targetName: zod.string().nullish(),
+      createdAt: zod.coerce.date(),
+      completedAt: zod.coerce.date().nullish(),
+      workstream: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      evidenceLinks: zod
+        .array(
+          zod.object({
+            label: zod.string(),
+            url: zod.string(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+  advisors: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetId: zod.number(),
+      side: zod.enum(["buy-side", "sell-side"]),
+      advisorType: zod.enum([
+        "Buy-side Banker",
+        "Sell-side Banker",
+        "Legal Counsel",
+        "Tax Advisor",
+        "Commercial DD",
+        "ESG Advisor",
+        "Cyber DD",
+        "Integration Advisor",
+        "Other",
+      ]),
+      firmName: zod.string(),
+      contactName: zod.string().nullish(),
+      contactEmail: zod.string().nullish(),
+      engagementDate: zod.string().nullish(),
+      feeStructure: zod.string().nullish(),
+      conflictsStatus: zod.enum(["Pending", "Cleared", "Flagged"]),
+      notes: zod.string().nullish(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+  valuations: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetId: zod.number(),
+      version: zod.number(),
+      stageAtRecord: zod.string().nullish(),
+      methodology: zod.string(),
+      valueLow: zod.string().nullish(),
+      valuePoint: zod.string().nullish(),
+      valueHigh: zod.string().nullish(),
+      currency: zod.string(),
+      notes: zod.string().nullish(),
+      recordedBy: zod.string().nullish(),
+      recordedAt: zod.coerce.date().nullish(),
+    }),
+  ),
+  economics: zod
+    .object({
+      id: zod.number(),
+      targetId: zod.number(),
+      cashPct: zod.string().nullish(),
+      equityPct: zod.string().nullish(),
+      earnoutPct: zod.string().nullish(),
+      deferredPct: zod.string().nullish(),
+      escrowPct: zod.string().nullish(),
+      totalEv: zod.string().nullish(),
+      totalEquityValue: zod.string().nullish(),
+      irrBase: zod.string().nullish(),
+      irrUpside: zod.string().nullish(),
+      irrDownside: zod.string().nullish(),
+      moicBase: zod.string().nullish(),
+      moicUpside: zod.string().nullish(),
+      moicDownside: zod.string().nullish(),
+      paybackYears: zod.string().nullish(),
+      updatedAt: zod.coerce.date().nullish(),
+    })
+    .nullish(),
+  synergies: zod.array(
+    zod.object({
+      id: zod.number(),
+      targetId: zod.number(),
+      type: zod.string().describe("Revenue | Cost | Capital | Tax"),
+      description: zod.string(),
+      fy1: zod.string().nullish(),
+      fy2: zod.string().nullish(),
+      fy3: zod.string().nullish(),
+      fy4: zod.string().nullish(),
+      fy5: zod.string().nullish(),
+      oneTimeCost: zod.string().nullish(),
+      confidence: zod.string().describe("Probable | Possible | Aspirational"),
+      ownerName: zod.string().nullish(),
+      realisationStartMonth: zod.string().nullish(),
+      realisationStatus: zod
+        .string()
+        .describe("Not Started | On Track | Slipping | Realised"),
+      isDisynergy: zod.boolean(),
+      createdAt: zod.coerce.date().optional(),
+      updatedAt: zod.coerce.date().optional(),
+    }),
+  ),
+  generatedAt: zod.string(),
+});
+
+/**
  * @summary Unified activity feed for a target (stage changes, interactions, completed actions, diligence, documents)
  */
 export const GetActivityFeedParams = zod.object({

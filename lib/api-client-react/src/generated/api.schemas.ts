@@ -929,6 +929,130 @@ export interface CreateIcSessionBody {
   notes?: string | null;
 }
 
+export type IcBriefTargetHealthScore =
+  (typeof IcBriefTargetHealthScore)[keyof typeof IcBriefTargetHealthScore];
+
+export const IcBriefTargetHealthScore = {
+  healthy: "healthy",
+  watch: "watch",
+  at_risk: "at_risk",
+} as const;
+
+export interface IcBriefTarget {
+  id: number;
+  targetCode: string;
+  legalName: string;
+  sector?: string | null;
+  country?: string | null;
+  priorityTier?: string | null;
+  currentStage: string;
+  priorityScore: number;
+  healthScore: IcBriefTargetHealthScore;
+  daysInCurrentStage?: number | null;
+  openActionCount: number;
+  overdueActionCount: number;
+  daysSinceLastInteraction?: number | null;
+  strategicFitScore?: number;
+  synergyScore?: number;
+  financialAttractivenessScore?: number;
+  processMaturityScore?: number;
+  riskPenaltyScore?: number;
+  description?: string | null;
+  ownerName?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface IcBriefDiligence {
+  total: number;
+  completed: number;
+  blocked: number;
+  overdue: number;
+  pct: number;
+  missingWorkstreams: string[];
+}
+
+export type AdvisorSide = (typeof AdvisorSide)[keyof typeof AdvisorSide];
+
+export const AdvisorSide = {
+  "buy-side": "buy-side",
+  "sell-side": "sell-side",
+} as const;
+
+export type AdvisorAdvisorType =
+  (typeof AdvisorAdvisorType)[keyof typeof AdvisorAdvisorType];
+
+export const AdvisorAdvisorType = {
+  "Buy-side_Banker": "Buy-side Banker",
+  "Sell-side_Banker": "Sell-side Banker",
+  Legal_Counsel: "Legal Counsel",
+  Tax_Advisor: "Tax Advisor",
+  Commercial_DD: "Commercial DD",
+  ESG_Advisor: "ESG Advisor",
+  Cyber_DD: "Cyber DD",
+  Integration_Advisor: "Integration Advisor",
+  Other: "Other",
+} as const;
+
+export type AdvisorConflictsStatus =
+  (typeof AdvisorConflictsStatus)[keyof typeof AdvisorConflictsStatus];
+
+export const AdvisorConflictsStatus = {
+  Pending: "Pending",
+  Cleared: "Cleared",
+  Flagged: "Flagged",
+} as const;
+
+export interface Advisor {
+  id: number;
+  targetId: number;
+  side: AdvisorSide;
+  advisorType: AdvisorAdvisorType;
+  firmName: string;
+  contactName?: string | null;
+  contactEmail?: string | null;
+  engagementDate?: string | null;
+  feeStructure?: string | null;
+  conflictsStatus: AdvisorConflictsStatus;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface Valuation {
+  id: number;
+  targetId: number;
+  version: number;
+  stageAtRecord?: string | null;
+  methodology: string;
+  valueLow?: string | null;
+  valuePoint?: string | null;
+  valueHigh?: string | null;
+  currency: string;
+  notes?: string | null;
+  recordedBy?: string | null;
+  recordedAt?: string | null;
+}
+
+export interface DealEconomics {
+  id: number;
+  targetId: number;
+  cashPct?: string | null;
+  equityPct?: string | null;
+  earnoutPct?: string | null;
+  deferredPct?: string | null;
+  escrowPct?: string | null;
+  totalEv?: string | null;
+  totalEquityValue?: string | null;
+  irrBase?: string | null;
+  irrUpside?: string | null;
+  irrDownside?: string | null;
+  moicBase?: string | null;
+  moicUpside?: string | null;
+  moicDownside?: string | null;
+  paybackYears?: string | null;
+  updatedAt?: string | null;
+}
+
 export interface SynergyEntry {
   id: number;
   targetId: number;
@@ -952,19 +1076,17 @@ export interface SynergyEntry {
   updatedAt?: string;
 }
 
-export interface Valuation {
-  id: number;
-  targetId: number;
-  version: number;
-  stageAtRecord?: string | null;
-  methodology: string;
-  valueLow?: string | null;
-  valuePoint?: string | null;
-  valueHigh?: string | null;
-  currency: string;
-  notes?: string | null;
-  recordedBy?: string | null;
-  recordedAt?: string | null;
+export interface IcBriefResponse {
+  target: IcBriefTarget;
+  diligence: IcBriefDiligence;
+  icSessions: IcSession[];
+  recentInteractions: Interaction[];
+  openActions: ActionItem[];
+  advisors: Advisor[];
+  valuations: Valuation[];
+  economics?: DealEconomics | null;
+  synergies: SynergyEntry[];
+  generatedAt: string;
 }
 
 export interface CreateValuationBody {
@@ -976,26 +1098,6 @@ export interface CreateValuationBody {
   stageAtRecord?: string | null;
   notes?: string | null;
   recordedBy?: string | null;
-}
-
-export interface DealEconomics {
-  id: number;
-  targetId: number;
-  cashPct?: string | null;
-  equityPct?: string | null;
-  earnoutPct?: string | null;
-  deferredPct?: string | null;
-  escrowPct?: string | null;
-  totalEv?: string | null;
-  totalEquityValue?: string | null;
-  irrBase?: string | null;
-  irrUpside?: string | null;
-  irrDownside?: string | null;
-  moicBase?: string | null;
-  moicUpside?: string | null;
-  moicDownside?: string | null;
-  paybackYears?: string | null;
-  updatedAt?: string | null;
 }
 
 export interface UpsertEconomicsBody {
@@ -1307,52 +1409,6 @@ export interface UpdateCounterpartyBody {
   cpControllingShareholderS?: string | null;
   cpWebsite?: string | null;
   cpNotes?: string | null;
-}
-
-export type AdvisorSide = (typeof AdvisorSide)[keyof typeof AdvisorSide];
-
-export const AdvisorSide = {
-  "buy-side": "buy-side",
-  "sell-side": "sell-side",
-} as const;
-
-export type AdvisorAdvisorType =
-  (typeof AdvisorAdvisorType)[keyof typeof AdvisorAdvisorType];
-
-export const AdvisorAdvisorType = {
-  "Buy-side_Banker": "Buy-side Banker",
-  "Sell-side_Banker": "Sell-side Banker",
-  Legal_Counsel: "Legal Counsel",
-  Tax_Advisor: "Tax Advisor",
-  Commercial_DD: "Commercial DD",
-  ESG_Advisor: "ESG Advisor",
-  Cyber_DD: "Cyber DD",
-  Integration_Advisor: "Integration Advisor",
-  Other: "Other",
-} as const;
-
-export type AdvisorConflictsStatus =
-  (typeof AdvisorConflictsStatus)[keyof typeof AdvisorConflictsStatus];
-
-export const AdvisorConflictsStatus = {
-  Pending: "Pending",
-  Cleared: "Cleared",
-  Flagged: "Flagged",
-} as const;
-
-export interface Advisor {
-  id: number;
-  targetId: number;
-  side: AdvisorSide;
-  advisorType: AdvisorAdvisorType;
-  firmName: string;
-  contactName?: string | null;
-  contactEmail?: string | null;
-  engagementDate?: string | null;
-  feeStructure?: string | null;
-  conflictsStatus: AdvisorConflictsStatus;
-  notes?: string | null;
-  createdAt: string;
 }
 
 export type CreateAdvisorBodySide =

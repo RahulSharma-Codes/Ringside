@@ -18,7 +18,7 @@ import {
   MessageSquare, ListChecks, GitBranch,
   LayoutGrid, ClipboardCheck, FolderOpen, Sparkles, Loader2, Copy, Check, Bot,
   Activity as ActivityIcon, Scale, TrendingUp, AlertTriangle, Users,
-  ShieldCheck, ClipboardList,
+  ShieldCheck, ClipboardList, Printer,
 } from "lucide-react";
 import { differenceInDays, parseISO } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -174,6 +174,13 @@ export default function TargetDetail() {
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              <Button size="sm" variant="outline"
+                className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-8 gap-1.5 flex"
+                onClick={() => window.open(`/targets/${targetId}/ic-brief`, "_blank")}
+              >
+                <Printer size={11} className="text-muted-foreground" />
+                IC Brief
+              </Button>
               <Button size="sm" variant="outline"
                 className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-8 gap-1.5 flex"
                 onClick={handleGenerateBrief} disabled={briefLoading}

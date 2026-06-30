@@ -23,6 +23,7 @@ import notificationsRouter from "./notifications";
 import auditRouter from "./audit";
 import adminRouter from "./admin";
 import doctrineRouter from "./doctrine";
+import icBriefRouter from "./ic-brief";
 import { requireRole } from "../middlewares/auth";
 
 const router: IRouter = Router();
@@ -51,6 +52,7 @@ router.use("/notifications", notificationsRouter);
 router.use("/audit", auditRouter);
 router.use("/admin", requireRole("Admin"), adminRouter);
 router.use("/doctrine", doctrineRouter);
+router.use("/targets", icBriefRouter);
 
 export default router;
 

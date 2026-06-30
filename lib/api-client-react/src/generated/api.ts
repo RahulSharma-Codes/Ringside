@@ -71,6 +71,7 @@ import type {
   GetTopPriorityTargetsParams,
   GetWeeklyReviewParams,
   HealthStatus,
+  IcBriefResponse,
   IcCp,
   IcProposal,
   IcProposalDetail,
@@ -4574,6 +4575,93 @@ export const useUpsertDealEconomics = <
 > => {
   return useMutation(getUpsertDealEconomicsMutationOptions(options));
 };
+
+/**
+ * @summary Aggregate IC briefing pack for a target (all deal data in one round-trip)
+ */
+export const getGetIcBriefUrl = (id: number) => {
+  return `/api/targets/${id}/ic-brief`;
+};
+
+export const getIcBrief = async (
+  id: number,
+  options?: RequestInit,
+): Promise<IcBriefResponse> => {
+  return customFetch<IcBriefResponse>(getGetIcBriefUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetIcBriefQueryKey = (id: number) => {
+  return [`/api/targets/${id}/ic-brief`] as const;
+};
+
+export const getGetIcBriefQueryOptions = <
+  TData = Awaited<ReturnType<typeof getIcBrief>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getIcBrief>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetIcBriefQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getIcBrief>>> = ({
+    signal,
+  }) => getIcBrief(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getIcBrief>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetIcBriefQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getIcBrief>>
+>;
+export type GetIcBriefQueryError = ErrorType<void>;
+
+/**
+ * @summary Aggregate IC briefing pack for a target (all deal data in one round-trip)
+ */
+
+export function useGetIcBrief<
+  TData = Awaited<ReturnType<typeof getIcBrief>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getIcBrief>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetIcBriefQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Unified activity feed for a target (stage changes, interactions, completed actions, diligence, documents)
