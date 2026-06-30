@@ -942,6 +942,7 @@ export interface IcBriefTarget {
   id: number;
   targetCode: string;
   legalName: string;
+  dealType?: string | null;
   sector?: string | null;
   country?: string | null;
   priorityTier?: string | null;

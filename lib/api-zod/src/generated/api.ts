@@ -1570,6 +1570,7 @@ export const GetIcBriefResponse = zod.object({
     id: zod.number(),
     targetCode: zod.string(),
     legalName: zod.string(),
+    dealType: zod.string().nullish(),
     sector: zod.string().nullish(),
     country: zod.string().nullish(),
     priorityTier: zod.string().nullish(),
