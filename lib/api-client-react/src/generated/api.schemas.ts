@@ -51,8 +51,7 @@ export interface HealthStatus {
 }
 
 export type TargetHealthScore =
-  | (typeof TargetHealthScore)[keyof typeof TargetHealthScore]
-  | null;
+  (typeof TargetHealthScore)[keyof typeof TargetHealthScore];
 
 export const TargetHealthScore = {
   healthy: "healthy",
@@ -94,6 +93,7 @@ export interface Target {
   lastInteractionDate?: string | null;
   needsAttention?: boolean | null;
   healthScore?: TargetHealthScore;
+  kanbanSortOrder?: number | null;
 }
 
 export interface Interaction {
@@ -1857,6 +1857,19 @@ export interface DoctrineSummary {
   accuracyByQuarter: AccuracyByPeriod[];
   /** Phase 1 accuracy % bucketed by calendar month (chronological) */
   accuracyByMonth: AccuracyByPeriod[];
+}
+
+export type KanbanReorderBodyOrdersItem = {
+  id: number;
+  sortOrder: number;
+};
+
+export interface KanbanReorderBody {
+  orders: KanbanReorderBodyOrdersItem[];
+}
+
+export interface KanbanReorderResult {
+  updated: number;
 }
 
 export type ListTargetsParams = {

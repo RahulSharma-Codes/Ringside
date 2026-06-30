@@ -203,6 +203,25 @@ paths:
                 items:
                   $ref: "#/components/schemas/NeedsAttentionTarget"
 
+  /targets/reorder:
+    put:
+      operationId: reorderTargets
+      tags: [targets]
+      summary: Batch-update kanban sort order within a stage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KanbanReorderBody"
+      responses:
+        "200":
+          description: Number of targets updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KanbanReorderResult"
+
   /targets/{id}:
     get:
       operationId: getTarget
@@ -2295,6 +2314,8 @@ components:
         healthScore:
           type: string
           enum: [healthy, watch, at_risk]
+        kanbanSortOrder:
+          type: integer
           nullable: true
       required:
         - id
@@ -5387,3 +5408,25 @@ components:
           items:
             $ref: "#/components/schemas/AccuracyByPeriod"
           description: Phase 1 accuracy % bucketed by calendar month (chronological)
+
+    KanbanReorderBody:
+      type: object
+      required: [orders]
+      properties:
+        orders:
+          type: array
+          items:
+            type: object
+            required: [id, sortOrder]
+            properties:
+              id:
+                type: integer
+              sortOrder:
+                type: integer
+
+    KanbanReorderResult:
+      type: object
+      required: [updated]
+      properties:
+        updated:
+          type: integer

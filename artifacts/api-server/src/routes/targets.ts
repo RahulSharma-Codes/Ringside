@@ -10,6 +10,7 @@ import {
 import {
   CreateTargetBody, UpdateTargetBody, UpdateTargetStageBody, ListTargetsQueryParams,
 } from "@workspace/api-zod";
+import { z } from "zod";
 import { TERMINAL_STAGES, PIPELINE_STAGE_ORDER } from "../constants";
 import { writeAuditEvent } from "./audit";
 import {
@@ -64,6 +65,35 @@ router.get("/", async (req, res) => {
   let enriched = await enrichTargetRows(rows);
   if (needsAttention) enriched = enriched.filter((t) => t.needsAttention);
   return res.json(enriched);
+});
+
+// ── PUT /api/targets/reorder — batch-update kanban_sort_order within a stage ──
+
+router.put("/reorder", async (req, res) => {
+  const parsed = z
+    .object({
+      orders: z.array(
+        z.object({ id: z.number().int(), sortOrder: z.number().int() }),
+      ),
+    })
+    .safeParse(req.body);
+  if (!parsed.success)
+    return res.status(400).json({ error: parsed.error.flatten() });
+
+  const { orders } = parsed.data;
+  if (orders.length === 0) return res.json({ updated: 0 });
+
+  // Run all updates in a single transaction so a partial failure leaves no mixed state
+  await db.transaction(async (tx) => {
+    for (const { id, sortOrder } of orders) {
+      await tx
+        .update(targetsTable)
+        .set({ kanbanSortOrder: sortOrder })
+        .where(eq(targetsTable.id, id));
+    }
+  });
+
+  return res.json({ updated: orders.length });
 });
 
 // ── POST /api/targets ─────────────────────────────────────────────────────────

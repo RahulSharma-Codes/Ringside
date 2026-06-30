@@ -488,6 +488,9 @@ async function applyMigrations(): Promise<void> {
   await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS financial_attractiveness_score integer NOT NULL DEFAULT 50`);
   await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS process_maturity_score integer NOT NULL DEFAULT 50`);
 
+  // kanban_sort_order — within-stage drag ordering
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS kanban_sort_order integer NOT NULL DEFAULT 0`);
+
   // Advisor conflict resolution notes (Task 101)
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS advisor_conflict_notes (

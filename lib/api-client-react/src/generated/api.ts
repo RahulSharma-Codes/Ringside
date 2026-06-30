@@ -82,6 +82,8 @@ import type {
   ImportValidateRequest,
   ImportValidateResult,
   Interaction,
+  KanbanReorderBody,
+  KanbanReorderResult,
   ListTargetsParams,
   MarkAllNotificationsRead200,
   MarkNotificationRead200,
@@ -791,6 +793,92 @@ export function useGetTargetsNeedingAttention<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Batch-update kanban sort order within a stage
+ */
+export const getReorderTargetsUrl = () => {
+  return `/api/targets/reorder`;
+};
+
+export const reorderTargets = async (
+  kanbanReorderBody: KanbanReorderBody,
+  options?: RequestInit,
+): Promise<KanbanReorderResult> => {
+  return customFetch<KanbanReorderResult>(getReorderTargetsUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(kanbanReorderBody),
+  });
+};
+
+export const getReorderTargetsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reorderTargets>>,
+    TError,
+    { data: BodyType<KanbanReorderBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reorderTargets>>,
+  TError,
+  { data: BodyType<KanbanReorderBody> },
+  TContext
+> => {
+  const mutationKey = ["reorderTargets"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reorderTargets>>,
+    { data: BodyType<KanbanReorderBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return reorderTargets(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReorderTargetsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reorderTargets>>
+>;
+export type ReorderTargetsMutationBody = BodyType<KanbanReorderBody>;
+export type ReorderTargetsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Batch-update kanban sort order within a stage
+ */
+export const useReorderTargets = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reorderTargets>>,
+    TError,
+    { data: BodyType<KanbanReorderBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reorderTargets>>,
+  TError,
+  { data: BodyType<KanbanReorderBody> },
+  TContext
+> => {
+  return useMutation(getReorderTargetsMutationOptions(options));
+};
 
 /**
  * @summary Get a single target

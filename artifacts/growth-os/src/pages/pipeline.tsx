@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
 import { StageChip } from "@/components/stage-chip";
 import { HealthDot } from "@/components/health-dot";
+import { PIPELINE_STAGE_ORDER } from "@/components/stage-rail";
 import { PipelineKanban } from "@/pages/pipeline-kanban";
 
 const STAGES = [
@@ -383,7 +384,16 @@ export default function Pipeline() {
             </Card>
           ) : (
             <div className="space-y-2">
-              {targets?.map((target) => {
+              {[...(targets ?? [])].sort((a, b) => {
+                const ai = PIPELINE_STAGE_ORDER.indexOf(a.currentStage ?? "");
+                const bi = PIPELINE_STAGE_ORDER.indexOf(b.currentStage ?? "");
+                const stageA = ai === -1 ? 999 : ai;
+                const stageB = bi === -1 ? 999 : bi;
+                if (stageA !== stageB) return stageA - stageB;
+                const ka = (a as { kanbanSortOrder?: number | null }).kanbanSortOrder ?? 0;
+                const kb = (b as { kanbanSortOrder?: number | null }).kanbanSortOrder ?? 0;
+                return ka - kb;
+              }).map((target) => {
                 const isNeedsAttention = (target as { needsAttention?: boolean | null }).needsAttention;
                 const openCount    = (target as { openActionCount?: number | null }).openActionCount ?? 0;
                 const overdueCount = (target as { overdueActionCount?: number | null }).overdueActionCount ?? 0;

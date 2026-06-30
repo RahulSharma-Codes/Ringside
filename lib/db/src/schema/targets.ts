@@ -73,6 +73,7 @@ export const targetsTable = pgTable("targets", {
   closeMissTheme: text("close_miss_theme"),
   isActive: boolean("is_active").notNull().default(true),
   isConfidential: boolean("is_confidential").notNull().default(true),
+  kanbanSortOrder: integer("kanban_sort_order").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

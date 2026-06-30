@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,14 +10,20 @@ import { useToast } from "@/hooks/use-toast";
 import {
   DndContext,
   DragEndEvent,
+  DragOverEvent,
   DragOverlay,
   DragStartEvent,
   PointerSensor,
   useSensor,
   useSensors,
   useDroppable,
-  useDraggable,
 } from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
   Dialog,
@@ -29,7 +35,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useUpdateTargetStage } from "@workspace/api-client-react";
+import { useUpdateTargetStage, useReorderTargets } from "@workspace/api-client-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -46,6 +52,7 @@ interface KanbanTarget {
   overdueActionCount?: number | null;
   dealType?: string | null;
   healthScore?: string | null;
+  kanbanSortOrder?: number | null;
 }
 
 interface PipelineKanbanProps {
@@ -101,35 +108,52 @@ const STAGE_CHANGE_REASONS = [
   "Other",
 ];
 
-// ── Draggable Card ─────────────────────────────────────────────────────────────
+// ── Sortable Card ─────────────────────────────────────────────────────────────
 
-function DraggableCard({
+function SortableCard({
   target,
   isDragging = false,
   isOffTrack = false,
   isSaving = false,
+  isOver = false,
 }: {
   target: KanbanTarget;
   isDragging?: boolean;
   isOffTrack?: boolean;
   isSaving?: boolean;
+  isOver?: boolean;
 }) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({
     id: `card-${target.id}`,
     data: { target },
     disabled: isOffTrack || isSaving,
   });
 
-  const style = transform
-    ? { transform: CSS.Translate.toString(transform) }
-    : undefined;
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
   const overdueCount = target.overdueActionCount ?? 0;
   const openCount = target.openActionCount ?? 0;
 
   const cardContent = (
     <div
-      className={`group/card bg-card border border-border/70 border-l-2 ${getTierCardAccent(target.priorityTier)} rounded-lg p-3 space-y-2 ${isDragging ? "shadow-xl opacity-90 rotate-1" : isSaving ? "opacity-60" : "hover:shadow-md hover:border-border"} transition-all duration-150`}
+      className={`group/card bg-card border border-border/70 border-l-2 ${getTierCardAccent(target.priorityTier)} rounded-lg p-3 space-y-2 ${
+        isDragging
+          ? "shadow-xl opacity-90 rotate-1"
+          : isSaving
+            ? "opacity-60"
+            : isOver
+              ? "border-primary/40 bg-primary/5"
+              : "hover:shadow-md hover:border-border"
+      } transition-all duration-150`}
     >
       <div className="flex items-start justify-between gap-1.5">
         <div className="min-w-0 flex-1">
@@ -177,10 +201,12 @@ function DraggableCard({
         )}
       </div>
       {!isOffTrack && (
-        <div className={`text-[9px] font-mono text-center border-t border-border/30 pt-1.5 mt-0.5 transition-opacity duration-150 flex items-center justify-center gap-1 ${isSaving ? "opacity-100 text-primary/60" : "opacity-0 group-hover/card:opacity-100 text-muted-foreground/40"}`}>
+        <div className={`text-[9px] font-mono text-center border-t border-border/30 pt-1.5 mt-0.5 transition-opacity duration-150 flex items-center justify-center gap-1 ${
+          isSaving ? "opacity-100 text-primary/60" : "opacity-0 group-hover/card:opacity-100 text-muted-foreground/40"
+        }`}>
           {isSaving
             ? <><Loader2 size={8} className="animate-spin" /> saving…</>
-            : "drag to move stage"}
+            : "drag to reorder or move stage"}
         </div>
       )}
     </div>
@@ -195,7 +221,13 @@ function DraggableCard({
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing touch-none select-none">
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className="cursor-grab active:cursor-grabbing touch-none select-none"
+    >
       <Link href={`/targets/${target.id}`}>
         <div>{cardContent}</div>
       </Link>
@@ -203,7 +235,7 @@ function DraggableCard({
   );
 }
 
-// ── Droppable Column ───────────────────────────────────────────────────────────
+// ── Droppable + Sortable Column ────────────────────────────────────────────────
 
 function DroppableColumn({
   stage,
@@ -212,6 +244,7 @@ function DroppableColumn({
   isOffTrack = false,
   isOver = false,
   savingIds,
+  overCardId,
 }: {
   stage: string;
   targets: KanbanTarget[];
@@ -219,9 +252,11 @@ function DroppableColumn({
   isOffTrack?: boolean;
   isOver?: boolean;
   savingIds?: Set<number>;
+  overCardId?: number | null;
 }) {
   const { setNodeRef } = useDroppable({ id: `col-${stage}`, disabled: isOffTrack });
   const count = targets.length;
+  const sortableIds = targets.map(t => `card-${t.id}`);
 
   return (
     <div
@@ -241,16 +276,24 @@ function DroppableColumn({
           </Badge>
         )}
       </div>
-      <div className={`flex flex-col gap-2 min-h-[80px] p-2 rounded-xl border ${isOver ? "border-primary/30 bg-primary/5" : "border-transparent"} transition-colors`}>
-        {count === 0 && (
-          <div className="flex items-center justify-center h-16 text-[10px] font-mono text-muted-foreground/30">
-            0 deals
-          </div>
-        )}
-        {targets.map(t => (
-          <DraggableCard key={t.id} target={t} isOffTrack={isOffTrack} isSaving={savingIds?.has(t.id)} />
-        ))}
-      </div>
+      <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+        <div className={`flex flex-col gap-2 min-h-[80px] p-2 rounded-xl border ${isOver ? "border-primary/30 bg-primary/5" : "border-transparent"} transition-colors`}>
+          {count === 0 && (
+            <div className="flex items-center justify-center h-16 text-[10px] font-mono text-muted-foreground/30">
+              0 deals
+            </div>
+          )}
+          {targets.map(t => (
+            <SortableCard
+              key={t.id}
+              target={t}
+              isOffTrack={isOffTrack}
+              isSaving={savingIds?.has(t.id)}
+              isOver={overCardId === t.id}
+            />
+          ))}
+        </div>
+      </SortableContext>
     </div>
   );
 }
@@ -463,57 +506,242 @@ export function PipelineKanban({
 
   // Optimistic stage overrides: id → new stage while the API call is in-flight
   const [optimisticStages, setOptimisticStages] = useState<Map<number, string>>(new Map);
-  // Track which target ids have a save in-flight so we can show the spinner
   const [savingIds, setSavingIds] = useState<Set<number>>(new Set);
 
+  // Local ordering state: stage → ordered array of target IDs
+  // This is the source of truth for card order within each column
+  const [localOrders, setLocalOrders] = useState<Record<string, number[]>>({});
+
+  // Snapshot of the stage's order at drag-start — used to rollback on cancel/failure
+  const preDragOrderRef = useRef<{ stage: string; order: number[] } | null>(null);
+
   const changeStage = useUpdateTargetStage();
+  const reorderMutation = useReorderTargets();
 
-  // When a deal-type filter is active, only show columns applicable to that deal type
-  const dealTypeStages = dealTypeFilter && dealTypeFilter !== "all"
-    ? getStagesForDealType(dealTypeFilter).filter(s => !OFF_TRACK_STAGES.includes(s))
-    : ALL_ACTIVE_STAGES;
+  // Initialise / sync localOrders whenever the targets prop changes
+  useEffect(() => {
+    setLocalOrders(prev => {
+      const next: Record<string, number[]> = {};
 
-  // Group targets by stage, applying any in-flight optimistic overrides
+      // Group targets by stage, sorted by kanbanSortOrder
+      const byStage: Record<string, KanbanTarget[]> = {};
+      for (const t of targets) {
+        const stage = t.currentStage ?? "Unknown";
+        if (!byStage[stage]) byStage[stage] = [];
+        byStage[stage].push(t);
+      }
+      for (const stage of Object.keys(byStage)) {
+        byStage[stage].sort(
+          (a, b) => (a.kanbanSortOrder ?? 0) - (b.kanbanSortOrder ?? 0),
+        );
+      }
+
+      for (const [stage, cards] of Object.entries(byStage)) {
+        const incomingIds = cards.map(c => c.id);
+        const prevIds = prev[stage] ?? [];
+
+        // Keep the existing user-defined order from localOrders if the set of
+        // IDs for this stage is unchanged — this avoids the order resetting
+        // mid-session after every query invalidation.
+        const prevSet = new Set(prevIds);
+        const incomingSet = new Set(incomingIds);
+        const same =
+          prevIds.length === incomingIds.length &&
+          incomingIds.every(id => prevSet.has(id));
+
+        if (same) {
+          next[stage] = prevIds;
+        } else {
+          // New IDs arrived (after a stage move etc.) — rebuild order:
+          // keep existing order for IDs still present, append new ones at end
+          const kept = prevIds.filter(id => incomingSet.has(id));
+          const added = incomingIds.filter(id => !prevSet.has(id));
+          next[stage] = [...kept, ...added];
+        }
+      }
+
+      return next;
+    });
+  }, [targets]);
+
+  // Apply optimistic stage overrides
   const targetsWithOverrides = targets.map(t =>
     optimisticStages.has(t.id)
       ? { ...t, currentStage: optimisticStages.get(t.id) }
       : t
   );
 
-  const filtered = stageFilter && stageFilter !== "all"
-    ? targetsWithOverrides.filter(t => t.currentStage === stageFilter)
-    : targetsWithOverrides;
-
-  const byStage: Record<string, KanbanTarget[]> = {};
-  for (const t of filtered) {
+  // Build stage → ordered KanbanTarget[] using localOrders
+  const byStageRaw: Record<string, KanbanTarget[]> = {};
+  for (const t of targetsWithOverrides) {
     const s = t.currentStage ?? "Unknown";
-    if (!byStage[s]) byStage[s] = [];
-    byStage[s].push(t);
+    if (!byStageRaw[s]) byStageRaw[s] = [];
+    byStageRaw[s].push(t);
   }
 
-  const activeStages = dealTypeStages.filter(s => !stageFilter || stageFilter === "all" || stageFilter === s);
+  const byStage: Record<string, KanbanTarget[]> = {};
+  for (const [stage, cards] of Object.entries(byStageRaw)) {
+    const order = localOrders[stage];
+    if (order && order.length > 0) {
+      const cardMap = new Map(cards.map(c => [c.id, c]));
+      const ordered = order.flatMap(id => {
+        const c = cardMap.get(id);
+        return c ? [c] : [];
+      });
+      const unordered = cards.filter(c => !order.includes(c.id));
+      byStage[stage] = [...ordered, ...unordered];
+    } else {
+      byStage[stage] = cards;
+    }
+  }
+
+  // Apply stage + deal-type filters
+  const dealTypeStages = dealTypeFilter && dealTypeFilter !== "all"
+    ? getStagesForDealType(dealTypeFilter).filter(s => !OFF_TRACK_STAGES.includes(s))
+    : ALL_ACTIVE_STAGES;
+
+  const filtered: Record<string, KanbanTarget[]> = {};
+  if (stageFilter && stageFilter !== "all") {
+    if (byStage[stageFilter]) filtered[stageFilter] = byStage[stageFilter];
+  } else {
+    for (const [stage, cards] of Object.entries(byStage)) {
+      filtered[stage] = cards;
+    }
+  }
+
+  const activeStages = dealTypeStages.filter(
+    s => !stageFilter || stageFilter === "all" || stageFilter === s,
+  );
   const offTrackTargets = OFF_TRACK.flatMap(s => byStage[s] ?? []);
+
+  // Helper: find which stage a target ID currently lives in (post-overrides)
+  const getTargetStage = useCallback(
+    (id: number): string | null => {
+      const t = targetsWithOverrides.find(x => x.id === id);
+      return t?.currentStage ?? null;
+    },
+    [targetsWithOverrides],
+  );
+
+  // Derive the hovered column stage from the current overId
+  const hoverStage = overId?.startsWith("col-")
+    ? overId.replace("col-", "")
+    : overId?.startsWith("card-")
+      ? getTargetStage(Number(overId.replace("card-", "")))
+      : null;
+
+  // The card ID being hovered (for per-card highlight)
+  const overCardId = overId?.startsWith("card-")
+    ? Number(overId.replace("card-", ""))
+    : null;
 
   function handleDragStart(e: DragStartEvent) {
     const card = (e.active.data.current as { target: KanbanTarget })?.target;
-    if (card) setActiveCard(card);
+    if (card) {
+      setActiveCard(card);
+      // Snapshot the current order for this card's stage so we can roll back
+      const stage = getTargetStage(card.id) ?? card.currentStage ?? "";
+      preDragOrderRef.current = {
+        stage,
+        order: [...(localOrders[stage] ?? [])],
+      };
+    }
   }
 
-  function handleDragOver(e: { over: { id: string } | null }) {
-    setOverId(e.over?.id ?? null);
+  function handleDragOver(e: DragOverEvent) {
+    const overIdStr = e.over?.id as string | null;
+    setOverId(overIdStr ?? null);
+
+    if (!overIdStr || !overIdStr.startsWith("card-")) return;
+    if (!activeCard) return;
+
+    const activeTargetId = activeCard.id;
+    const overTargetId = Number(overIdStr.replace("card-", ""));
+    if (activeTargetId === overTargetId) return;
+
+    const activeStage = getTargetStage(activeTargetId);
+    const overStage = getTargetStage(overTargetId);
+
+    // Only reorder within the same stage
+    if (!activeStage || !overStage || activeStage !== overStage) return;
+
+    setLocalOrders(prev => {
+      const stageOrder = prev[activeStage] ? [...prev[activeStage]] : [];
+      const oldIdx = stageOrder.indexOf(activeTargetId);
+      const newIdx = stageOrder.indexOf(overTargetId);
+      if (oldIdx === -1 || newIdx === -1 || oldIdx === newIdx) return prev;
+      return { ...prev, [activeStage]: arrayMove(stageOrder, oldIdx, newIdx) };
+    });
+  }
+
+  function restorePreDragOrder() {
+    const snap = preDragOrderRef.current;
+    if (snap) {
+      setLocalOrders(prev => ({ ...prev, [snap.stage]: snap.order }));
+    }
+    preDragOrderRef.current = null;
   }
 
   function handleDragEnd(e: DragEndEvent) {
+    const card = (e.active.data.current as { target: KanbanTarget })?.target;
     setActiveCard(null);
     setOverId(null);
 
-    const card = (e.active.data.current as { target: KanbanTarget })?.target;
-    if (!card || !e.over) return;
+    if (!card || !e.over) {
+      // Drag was cancelled or dropped outside — restore pre-drag order
+      restorePreDragOrder();
+      return;
+    }
 
-    const newStage = (e.over.id as string).replace("col-", "");
-    if (newStage === card.currentStage) return;
-    if (OFF_TRACK.includes(newStage)) return; // can't drag to off-track
+    const overIdStr = e.over.id as string;
 
+    // Determine which stage the card was dropped into
+    let newStage: string;
+    if (overIdStr.startsWith("col-")) {
+      newStage = overIdStr.replace("col-", "");
+    } else if (overIdStr.startsWith("card-")) {
+      const overTargetId = Number(overIdStr.replace("card-", ""));
+      newStage = getTargetStage(overTargetId) ?? card.currentStage ?? "";
+    } else {
+      return;
+    }
+
+    const currentStageForCard = optimisticStages.get(card.id) ?? card.currentStage;
+
+    if (newStage === currentStageForCard) {
+      // ── Within-column drop: persist the new order ──────────────────────────
+      const order = localOrders[newStage];
+      // preDragOrderRef holds the pre-drag order captured in handleDragStart
+      const rollbackSnapshot = preDragOrderRef.current;
+      preDragOrderRef.current = null;
+
+      if (order && order.length > 1) {
+        const updates = order.map((id, idx) => ({ id, sortOrder: idx + 1 }));
+        reorderMutation.mutate(
+          { data: { orders: updates } },
+          {
+            onError: () => {
+              // Snap back to pre-drag order if the API call fails
+              if (rollbackSnapshot) {
+                setLocalOrders(prev => ({
+                  ...prev,
+                  [rollbackSnapshot.stage]: rollbackSnapshot.order,
+                }));
+              }
+              toast({
+                title: "Reorder failed",
+                description: "Could not save the new card order.",
+                variant: "destructive",
+              });
+            },
+          },
+        );
+      }
+      return;
+    }
+
+    // ── Cross-column drop: open stage-change dialog ────────────────────────
+    if (OFF_TRACK.includes(newStage)) return;
     setPending({ target: card, newStage });
   }
 
@@ -523,11 +751,20 @@ export function PipelineKanban({
     const targetId = pending.target.id;
     const newStage = pending.newStage;
 
-    // Optimistically move the card now, before the API call completes
     setOptimisticStages(prev => new Map(prev).set(targetId, newStage));
     setSavingIds(prev => new Set(prev).add(targetId));
     setIsSaving(true);
     setPending(null);
+
+    // Also update localOrders: remove from old stage, append to new stage
+    const oldStage = pending.target.currentStage ?? "";
+    setLocalOrders(prev => {
+      const next = { ...prev };
+      if (next[oldStage]) next[oldStage] = next[oldStage].filter(id => id !== targetId);
+      if (!next[newStage]) next[newStage] = [];
+      next[newStage] = [...next[newStage], targetId];
+      return next;
+    });
 
     try {
       await changeStage.mutateAsync({
@@ -540,7 +777,6 @@ export function PipelineKanban({
       });
       onRefresh?.();
     } catch {
-      // Snap back to original stage on error
       setOptimisticStages(prev => {
         const next = new Map(prev);
         next.delete(targetId);
@@ -568,7 +804,7 @@ export function PipelineKanban({
       <DndContext
         sensors={sensors}
         onDragStart={handleDragStart}
-        onDragOver={handleDragOver as never}
+        onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
         <div className="flex gap-3 overflow-x-auto pb-4 pt-1 min-h-[400px]">
@@ -577,10 +813,11 @@ export function PipelineKanban({
             <DroppableColumn
               key={stage}
               stage={stage}
-              targets={byStage[stage] ?? []}
+              targets={filtered[stage] ?? []}
               aiMode={aiMode}
-              isOver={overId === `col-${stage}`}
+              isOver={hoverStage === stage}
               savingIds={savingIds}
+              overCardId={overCardId}
             />
           ))}
 
@@ -606,7 +843,7 @@ export function PipelineKanban({
               {offTrackOpen && (
                 <div className="flex flex-col gap-2 p-2 rounded-xl border border-border/40 bg-muted/20">
                   {offTrackTargets.map(t => (
-                    <DraggableCard key={t.id} target={t} isOffTrack />
+                    <SortableCard key={t.id} target={t} isOffTrack />
                   ))}
                 </div>
               )}
@@ -618,7 +855,7 @@ export function PipelineKanban({
         <DragOverlay dropAnimation={null}>
           {activeCard && (
             <div className="w-[220px] pointer-events-none">
-              <DraggableCard target={activeCard} isDragging />
+              <SortableCard target={activeCard} isDragging />
             </div>
           )}
         </DragOverlay>

@@ -62,7 +62,8 @@ export const ListTargetsResponseItem = zod.object({
   overdueActionCount: zod.number().nullish(),
   lastInteractionDate: zod.coerce.date().nullish(),
   needsAttention: zod.boolean().nullish(),
-  healthScore: zod.enum(["healthy", "watch", "at_risk"]).nullish(),
+  healthScore: zod.enum(["healthy", "watch", "at_risk"]).optional(),
+  kanbanSortOrder: zod.number().nullish(),
 });
 export const ListTargetsResponse = zod.array(ListTargetsResponseItem);
 
@@ -179,7 +180,8 @@ export const GetTopPriorityTargetsResponseItem = zod.object({
   overdueActionCount: zod.number().nullish(),
   lastInteractionDate: zod.coerce.date().nullish(),
   needsAttention: zod.boolean().nullish(),
-  healthScore: zod.enum(["healthy", "watch", "at_risk"]).nullish(),
+  healthScore: zod.enum(["healthy", "watch", "at_risk"]).optional(),
+  kanbanSortOrder: zod.number().nullish(),
 });
 export const GetTopPriorityTargetsResponse = zod.array(
   GetTopPriorityTargetsResponseItem,
@@ -232,7 +234,8 @@ export const GetTargetsNeedingAttentionResponseItem = zod
     overdueActionCount: zod.number().nullish(),
     lastInteractionDate: zod.coerce.date().nullish(),
     needsAttention: zod.boolean().nullish(),
-    healthScore: zod.enum(["healthy", "watch", "at_risk"]).nullish(),
+    healthScore: zod.enum(["healthy", "watch", "at_risk"]).optional(),
+    kanbanSortOrder: zod.number().nullish(),
   })
   .and(
     zod.object({
@@ -242,6 +245,22 @@ export const GetTargetsNeedingAttentionResponseItem = zod
 export const GetTargetsNeedingAttentionResponse = zod.array(
   GetTargetsNeedingAttentionResponseItem,
 );
+
+/**
+ * @summary Batch-update kanban sort order within a stage
+ */
+export const ReorderTargetsBody = zod.object({
+  orders: zod.array(
+    zod.object({
+      id: zod.number(),
+      sortOrder: zod.number(),
+    }),
+  ),
+});
+
+export const ReorderTargetsResponse = zod.object({
+  updated: zod.number(),
+});
 
 /**
  * @summary Get a single target
@@ -284,7 +303,8 @@ export const GetTargetResponse = zod
     overdueActionCount: zod.number().nullish(),
     lastInteractionDate: zod.coerce.date().nullish(),
     needsAttention: zod.boolean().nullish(),
-    healthScore: zod.enum(["healthy", "watch", "at_risk"]).nullish(),
+    healthScore: zod.enum(["healthy", "watch", "at_risk"]).optional(),
+    kanbanSortOrder: zod.number().nullish(),
   })
   .and(
     zod.object({
@@ -408,7 +428,8 @@ export const UpdateTargetResponse = zod.object({
   overdueActionCount: zod.number().nullish(),
   lastInteractionDate: zod.coerce.date().nullish(),
   needsAttention: zod.boolean().nullish(),
-  healthScore: zod.enum(["healthy", "watch", "at_risk"]).nullish(),
+  healthScore: zod.enum(["healthy", "watch", "at_risk"]).optional(),
+  kanbanSortOrder: zod.number().nullish(),
 });
 
 /**
@@ -491,7 +512,8 @@ export const UpdateTargetStageResponse = zod
     overdueActionCount: zod.number().nullish(),
     lastInteractionDate: zod.coerce.date().nullish(),
     needsAttention: zod.boolean().nullish(),
-    healthScore: zod.enum(["healthy", "watch", "at_risk"]).nullish(),
+    healthScore: zod.enum(["healthy", "watch", "at_risk"]).optional(),
+    kanbanSortOrder: zod.number().nullish(),
   })
   .and(
     zod.object({
