@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Plus, ChevronRight, AlertTriangle, Calendar, Zap, User, MapPin, Upload, Download, Sparkles, LayoutList, LayoutGrid } from "lucide-react";
 import { ExportDialog } from "@/components/export-dialog";
+import { QuickLogInteractionPopover } from "@/components/quick-log-interaction-popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
 import { StageChip } from "@/components/stage-chip";
@@ -460,7 +461,7 @@ export default function Pipeline() {
                               )}
                             </div>
 
-                            {/* Action counts */}
+                            {/* Action counts + quick-log */}
                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                               {openCount > 0 ? (
                                 <span className={`text-[10px] font-mono font-medium ${overdueCount > 0 ? "text-destructive" : "text-amber-500"}`}>
@@ -475,6 +476,10 @@ export default function Pipeline() {
                                   Last contact {format(parseISO(lastInteraction), "MMM d, yyyy")}
                                 </span>
                               )}
+                              <QuickLogInteractionPopover
+                                targetId={target.id}
+                                targetName={target.projectName ?? target.targetCode ?? ""}
+                              />
                             </div>
                           </div>
 

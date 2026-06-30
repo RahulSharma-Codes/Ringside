@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, User, Zap, ChevronDown, ChevronRight, X, Check, Loader2 } from "lucide-react";
+import { QuickLogInteractionPopover } from "@/components/quick-log-interaction-popover";
 import { HealthDot } from "@/components/health-dot";
 import { StageChip } from "@/components/stage-chip";
 import { PIPELINE_STAGE_ORDER, OFF_TRACK_STAGES, getStagesForDealType } from "@/components/stage-rail";
@@ -194,11 +195,17 @@ function SortableCard({
             <span className="truncate">{target.dealOwner}</span>
           </span>
         ) : <span />}
-        {openCount > 0 && (
-          <span className={`text-[9px] font-mono shrink-0 ${overdueCount > 0 ? "text-destructive" : "text-amber-500"}`}>
-            {openCount} action{openCount !== 1 ? "s" : ""}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {openCount > 0 && (
+            <span className={`text-[9px] font-mono ${overdueCount > 0 ? "text-destructive" : "text-amber-500"}`}>
+              {openCount} action{openCount !== 1 ? "s" : ""}
+            </span>
+          )}
+          <QuickLogInteractionPopover
+            targetId={target.id}
+            targetName={target.projectName ?? target.targetCode ?? ""}
+          />
+        </div>
       </div>
       {!isOffTrack && (
         <div className={`text-[9px] font-mono text-center border-t border-border/30 pt-1.5 mt-0.5 transition-opacity duration-150 flex items-center justify-center gap-1 ${
