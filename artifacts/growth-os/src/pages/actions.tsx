@@ -233,7 +233,13 @@ export default function Actions() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [mustWinOnly, setMustWinOnly]       = useState(false);
   const [overdueOnly, setOverdueOnly]       = useState(false);
-  const [mineOnly, setMineOnly]             = useState(false);
+  const [mineOnly, setMineOnly]             = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get("mine") === "true";
+    } catch {
+      return false;
+    }
+  });
   const [search, setSearch]                 = useState("");
 
   const { data: actions, isLoading } = useQuery({

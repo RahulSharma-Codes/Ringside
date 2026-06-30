@@ -256,7 +256,7 @@ export default function Dashboard() {
                   <ListTodo size={13} className="text-amber-500" />
                   My Open Actions
                 </span>
-                <Link href="/actions">
+                <Link href="/actions?mine=true">
                   <span className="text-[10px] font-mono text-primary hover:underline flex items-center gap-1 cursor-pointer">
                     See all <ArrowRight size={10} />
                   </span>

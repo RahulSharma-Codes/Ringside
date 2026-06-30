@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { eq, inArray, and, or, gte, isNotNull, isNull } from "drizzle-orm";
+import { eq, inArray, and, or, gte, isNotNull, isNull, ilike } from "drizzle-orm";
 import { db } from "@workspace/db";
-import { actionItemsTable, targetsTable, milestonesTable } from "@workspace/db";
+import { actionItemsTable, targetsTable, milestonesTable, usersTable } from "@workspace/db";
 import { UpdateActionBody } from "@workspace/api-zod";
 import { writeAuditEvent } from "./audit";
 
@@ -63,7 +63,34 @@ router.get("/command-center", async (req, res) => {
   const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
   const mineParam = req.query.mine;
   const mineOnly = (mineParam === "true" || mineParam === "1") && !!req.jwtClaims?.email;
-  const userEmail = mineOnly ? req.jwtClaims!.email.toLowerCase() : null;
+
+  // Build mine condition: match owner against user's email OR displayName (both case-insensitive)
+  let mineCondition: ReturnType<typeof ilike> | ReturnType<typeof or> | undefined;
+  if (mineOnly) {
+    const email = req.jwtClaims!.email.toLowerCase();
+    const [userRow] = await db
+      .select({ displayName: usersTable.displayName })
+      .from(usersTable)
+      .where(eq(usersTable.email, email))
+      .limit(1);
+    const displayName = userRow?.displayName?.trim();
+    mineCondition = displayName
+      ? or(ilike(actionItemsTable.owner, email), ilike(actionItemsTable.owner, displayName))
+      : ilike(actionItemsTable.owner, email);
+  }
+
+  const conditions = [
+    isNull(actionItemsTable.workstream),
+    ...(mineCondition ? [mineCondition] : []),
+    or(
+      inArray(actionItemsTable.status, ["Open", "In Progress", "Blocked"]),
+      and(
+        eq(actionItemsTable.status, "Completed"),
+        isNotNull(actionItemsTable.completedAt),
+        gte(actionItemsTable.completedAt, fourteenDaysAgo),
+      ),
+    ),
+  ];
 
   const rows = await db
     .select({
@@ -86,27 +113,11 @@ router.get("/command-center", async (req, res) => {
     .from(actionItemsTable)
     .leftJoin(targetsTable, eq(actionItemsTable.targetId, targetsTable.id))
     .leftJoin(milestonesTable, eq(milestonesTable.targetId, actionItemsTable.targetId))
-    .where(
-      and(
-        isNull(actionItemsTable.workstream),
-        or(
-          inArray(actionItemsTable.status, ["Open", "In Progress", "Blocked"]),
-          and(
-            eq(actionItemsTable.status, "Completed"),
-            isNotNull(actionItemsTable.completedAt),
-            gte(actionItemsTable.completedAt, fourteenDaysAgo),
-          ),
-        ),
-      ),
-    )
+    .where(and(...conditions))
     .limit(200);
 
-  const filtered = userEmail
-    ? rows.filter((r) => (r.owner ?? "").toLowerCase() === userEmail)
-    : rows;
-
   return res.json(
-    filtered.map((a) => ({
+    rows.map((a) => ({
       ...a,
       dueDate: toDateString(a.dueDate),
       createdAt: toIso(a.createdAt),

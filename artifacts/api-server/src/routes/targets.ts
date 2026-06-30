@@ -5,7 +5,7 @@ import actionsSubRouter from "./target-actions";
 import { eq, and, ilike, or, desc, isNull, isNotNull } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
-  targetsTable, milestonesTable, interactionsTable, actionItemsTable, stageChangeLogTable,
+  targetsTable, milestonesTable, interactionsTable, actionItemsTable, stageChangeLogTable, usersTable,
 } from "@workspace/db";
 import {
   CreateTargetBody, UpdateTargetBody, UpdateTargetStageBody, ListTargetsQueryParams,
@@ -41,7 +41,18 @@ router.get("/", async (req, res) => {
   if (priorityTier) conditions.push(eq(targetsTable.priorityTier, priorityTier));
   if (stage) conditions.push(eq(milestonesTable.currentStage, stage));
   if (myDeals && req.jwtClaims?.email) {
-    conditions.push(ilike(targetsTable.dealOwner, req.jwtClaims.email));
+    const email = req.jwtClaims.email.toLowerCase();
+    const [userRow] = await db
+      .select({ displayName: usersTable.displayName })
+      .from(usersTable)
+      .where(eq(usersTable.email, email))
+      .limit(1);
+    const displayName = userRow?.displayName?.trim();
+    conditions.push(
+      displayName
+        ? or(ilike(targetsTable.dealOwner, email), ilike(targetsTable.dealOwner, displayName))!
+        : ilike(targetsTable.dealOwner, email),
+    );
   } else if (owner) {
     conditions.push(eq(targetsTable.dealOwner, owner));
   }
