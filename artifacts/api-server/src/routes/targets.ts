@@ -281,7 +281,7 @@ router.get("/:id", async (req, res) => {
   today.setHours(0, 0, 0, 0);
 
   const openActions = actions.filter(
-    (a) => isNull(a.workstream) && ["Open", "In Progress", "Blocked"].includes(a.status),
+    (a) => a.workstream === null && ["Open", "In Progress", "Blocked"].includes(a.status),
   );
   const overdueActions = openActions.filter((a) => a.dueDate && new Date(a.dueDate) < today);
   const sortedInteractions = [...interactions].sort(
