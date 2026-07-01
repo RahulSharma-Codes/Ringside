@@ -221,7 +221,34 @@ router.get("/summary", async (_req, res) => {
     avgPriorityScore: Math.round(avgScore),
     needsAttentionCount: enriched.filter((t) => t.needsAttention).length,
     recentlyUpdatedCount,
+    newDealsThisWeek: rows.filter((row) => row.target.createdAt && new Date(row.target.createdAt) >= sevenDaysAgo).length,
+    newMustWinThisWeek: rows.filter((row) => row.target.createdAt && new Date(row.target.createdAt) >= sevenDaysAgo && row.target.priorityTier === "Must-Win").length,
   });
+});
+
+// ── GET /api/targets/velocity — new-deals per week, last 8 weeks ─────────────
+
+router.get("/velocity", async (_req, res) => {
+  const rows = await db.select({ createdAt: targetsTable.createdAt }).from(targetsTable);
+  const now = new Date();
+  const weeks: { weekLabel: string; count: number }[] = [];
+  for (let i = 7; i >= 0; i--) {
+    const weekStart = new Date(now);
+    weekStart.setDate(weekStart.getDate() - i * 7);
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    const mo = weekStart.toISOString().slice(5, 7);
+    const dy = weekStart.toISOString().slice(8, 10);
+    const label = `${mo}/${dy}`;
+    const count = rows.filter((r) => {
+      if (!r.createdAt) return false;
+      const d = new Date(r.createdAt);
+      return d >= weekStart && d < weekEnd;
+    }).length;
+    weeks.push({ weekLabel: label, count });
+  }
+  return res.json(weeks);
 });
 
 // ── GET /api/targets/by-stage — must come before /:id ────────────────────────
@@ -262,12 +289,18 @@ router.get("/top-priority", async (req, res) => {
     .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id))
     .where(eq(targetsTable.isActive, true));
 
+  const nowTs = Date.now();
   const ranked = rows
     .filter((row) => !TERMINAL_STAGES.has(currentStage(row.milestone)))
     .map((row) => ({ target: row.target, milestone: row.milestone, priorityScore: calcPriorityScore(row.target) }))
     .sort((a, b) => b.priorityScore - a.priorityScore)
     .slice(0, limit)
-    .map((row) => formatTarget(row.target, row.milestone));
+    .map((row) => ({
+      ...formatTarget(row.target, row.milestone),
+      daysInCurrentStage: row.milestone?.stageEnteredAt
+        ? Math.floor((nowTs - new Date(row.milestone.stageEnteredAt).getTime()) / 86_400_000)
+        : null,
+    }));
 
   return res.json(ranked);
 });

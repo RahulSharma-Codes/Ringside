@@ -122,6 +122,7 @@ import type {
   UpsertEconomicsBody,
   Valuation,
   ValuationSanityResponse,
+  VelocityWeek,
   WeeklyReviewResponse,
   WinLossResponse,
 } from "./api.schemas";
@@ -457,6 +458,81 @@ export function useGetDashboardSummary<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetDashboardSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary New deal counts per week for the last 8 weeks
+ */
+export const getGetDashboardVelocityUrl = () => {
+  return `/api/targets/velocity`;
+};
+
+export const getDashboardVelocity = async (
+  options?: RequestInit,
+): Promise<VelocityWeek[]> => {
+  return customFetch<VelocityWeek[]>(getGetDashboardVelocityUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDashboardVelocityQueryKey = () => {
+  return [`/api/targets/velocity`] as const;
+};
+
+export const getGetDashboardVelocityQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDashboardVelocity>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDashboardVelocity>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDashboardVelocityQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDashboardVelocity>>
+  > = ({ signal }) => getDashboardVelocity({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDashboardVelocity>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDashboardVelocityQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDashboardVelocity>>
+>;
+export type GetDashboardVelocityQueryError = ErrorType<unknown>;
+
+/**
+ * @summary New deal counts per week for the last 8 weeks
+ */
+
+export function useGetDashboardVelocity<
+  TData = Awaited<ReturnType<typeof getDashboardVelocity>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDashboardVelocity>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDashboardVelocityQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

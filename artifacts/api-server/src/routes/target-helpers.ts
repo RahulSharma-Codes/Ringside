@@ -191,6 +191,10 @@ export async function enrichTargetRows(rows: { target: TargetRow; milestone: Mil
       openActionCount: openActions.length,
       overdueActionCount: overdueActions.length,
       lastInteractionDate,
+      daysInCurrentStage,
+      diligencePct: diligenceStats.total > 0
+        ? Math.round((diligenceStats.completed / diligenceStats.total) * 100)
+        : null,
       needsAttention: flags.length > 0,
       flags,
       healthScore: computeHealthScore({

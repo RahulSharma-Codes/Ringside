@@ -264,6 +264,13 @@ export interface DashboardSummary {
   avgPriorityScore: number;
   needsAttentionCount: number;
   recentlyUpdatedCount: number;
+  newDealsThisWeek: number;
+  newMustWinThisWeek: number;
+}
+
+export interface VelocityWeek {
+  weekLabel: string;
+  count: number;
 }
 
 export interface StageCount {

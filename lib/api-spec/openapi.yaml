@@ -143,6 +143,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/DashboardSummary"
 
+  /targets/velocity:
+    get:
+      operationId: getDashboardVelocity
+      tags: [dashboard]
+      summary: New deal counts per week for the last 8 weeks
+      responses:
+        "200":
+          description: Velocity data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VelocityWeek"
+
   /targets/by-stage:
     get:
       operationId: getTargetsByStage
@@ -2767,6 +2782,10 @@ components:
           type: integer
         recentlyUpdatedCount:
           type: integer
+        newDealsThisWeek:
+          type: integer
+        newMustWinThisWeek:
+          type: integer
       required:
         - activeTargets
         - mustWinCount
@@ -2778,6 +2797,17 @@ components:
         - avgPriorityScore
         - needsAttentionCount
         - recentlyUpdatedCount
+        - newDealsThisWeek
+        - newMustWinThisWeek
+
+    VelocityWeek:
+      type: object
+      properties:
+        weekLabel:
+          type: string
+        count:
+          type: integer
+      required: [weekLabel, count]
 
     StageCount:
       type: object

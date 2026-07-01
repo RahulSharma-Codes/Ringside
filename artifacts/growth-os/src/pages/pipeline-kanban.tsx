@@ -54,6 +54,8 @@ interface KanbanTarget {
   dealType?: string | null;
   healthScore?: string | null;
   kanbanSortOrder?: number | null;
+  daysInCurrentStage?: number | null;
+  diligencePct?: number | null;
 }
 
 interface PipelineKanbanProps {
@@ -188,11 +190,29 @@ function SortableCard({
           </span>
         )}
       </div>
+      {/* Days in stage + diligence bar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {target.daysInCurrentStage != null && (
+          <span className="text-[9px] font-mono text-muted-foreground/50 bg-muted/60 px-1.5 py-0 rounded-sm leading-4">
+            {target.daysInCurrentStage}d
+          </span>
+        )}
+        {target.diligencePct != null && target.diligencePct > 0 && (
+          <span className="inline-flex items-center gap-1">
+            <div className="w-8 h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className="h-full rounded-full bg-primary/60" style={{ width: `${target.diligencePct}%` }} />
+            </div>
+            <span className="text-[9px] font-mono text-muted-foreground/50">{target.diligencePct}%</span>
+          </span>
+        )}
+      </div>
       <div className="flex items-center justify-between gap-1.5">
         {target.dealOwner ? (
-          <span className="text-[9px] font-mono text-muted-foreground/60 flex items-center gap-0.5 min-w-0 truncate">
-            <User size={8} className="shrink-0" />
-            <span className="truncate">{target.dealOwner}</span>
+          <span
+            className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/15 text-primary text-[8px] font-mono font-bold uppercase shrink-0"
+            title={target.dealOwner}
+          >
+            {target.dealOwner.slice(0, 2)}
           </span>
         ) : <span />}
         <div className="flex items-center gap-1.5 shrink-0">

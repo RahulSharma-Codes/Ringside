@@ -174,11 +174,11 @@ function SidebarNav({
                           <Link key={item.href} href={item.href} onClick={onNavigate}>
                             <div className={`relative flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all duration-150 cursor-pointer ${
                               active
-                                ? "bg-primary/12 text-primary"
+                                ? "bg-primary/15 text-primary font-semibold"
                                 : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-white/5"
                             }`}>
                               {active && (
-                                <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-primary rounded-r-full" />
+                                <span className="absolute left-0 top-1 bottom-1 w-1 bg-primary rounded-r-full" />
                               )}
                               <Icon size={14} className="shrink-0 ml-0.5" />
                               <span className="truncate flex-1">{item.label}</span>

@@ -126,7 +126,20 @@ export const GetDashboardSummaryResponse = zod.object({
   avgPriorityScore: zod.number(),
   needsAttentionCount: zod.number(),
   recentlyUpdatedCount: zod.number(),
+  newDealsThisWeek: zod.number(),
+  newMustWinThisWeek: zod.number(),
 });
+
+/**
+ * @summary New deal counts per week for the last 8 weeks
+ */
+export const GetDashboardVelocityResponseItem = zod.object({
+  weekLabel: zod.string(),
+  count: zod.number(),
+});
+export const GetDashboardVelocityResponse = zod.array(
+  GetDashboardVelocityResponseItem,
+);
 
 /**
  * @summary Targets grouped by pipeline stage

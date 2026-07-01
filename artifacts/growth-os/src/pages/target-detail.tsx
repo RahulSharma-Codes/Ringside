@@ -24,6 +24,7 @@ import { differenceInDays, parseISO } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button as Btn } from "@/components/ui/button";
 import { StageRail } from "@/components/stage-rail";
+import { StageChip } from "@/components/stage-chip";
 import { HealthDot } from "@/components/health-dot";
 import { DiligenceTab } from "@/pages/target-detail-diligence";
 import { DocumentsTab } from "@/pages/target-detail-documents";
@@ -135,9 +136,9 @@ export default function TargetDetail() {
   return (
     <div className="flex flex-col h-full overflow-hidden animate-in fade-in duration-500">
 
-      {/* Header */}
-      <div className="border-b border-border/60 bg-background/80 backdrop-blur-sm p-4 md:p-5 shrink-0">
-        <div className="max-w-6xl mx-auto">
+      {/* Header — Row 1: nav + name + action buttons */}
+      <div className="border-b border-border/60 bg-background/80 backdrop-blur-sm shrink-0">
+        <div className="max-w-6xl mx-auto px-4 md:px-5 pt-4 pb-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
               <Link href="/pipeline">
@@ -146,66 +147,106 @@ export default function TargetDetail() {
                 </Button>
               </Link>
               <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-lg md:text-xl font-bold font-mono tracking-tight truncate">{target.projectName}</h1>
-                  {(target as { healthScore?: string | null }).healthScore && (
-                    <HealthDot
-                      score={(target as { healthScore?: string | null }).healthScore as "healthy" | "watch" | "at_risk"}
-                      showLabel
-                      size="md"
-                    />
-                  )}
-                  {target.isConfidential && (
-                    <Badge variant="outline" className="font-mono text-[10px] uppercase bg-amber-500/10 text-amber-500 border-amber-500/25 shrink-0">
-                      <ShieldAlert size={10} className="mr-1" /> Confidential
-                    </Badge>
-                  )}
-                </div>
-                <div className="text-[10px] font-mono text-muted-foreground uppercase flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span className="text-muted-foreground/70">{target.targetCode}</span>
-                  <span className="w-1 h-1 bg-border rounded-full" />
-                  <span>{target.sector || "Uncategorized"}</span>
-                  <span className="w-1 h-1 bg-border rounded-full" />
-                  <span className={`font-bold ${
-                    target.priorityTier === "Must-Win"   ? "text-destructive" :
-                    target.priorityTier === "Priority 1" ? "text-amber-500" : "text-primary"
-                  }`}>{target.priorityTier}</span>
+                <h1 className="text-lg md:text-xl font-bold font-mono tracking-tight truncate leading-tight">
+                  {target.projectName}
+                </h1>
+                <div className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-wider mt-0.5">
+                  {target.targetCode}
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               <Button size="sm" variant="outline"
-                className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-8 gap-1.5 flex"
+                className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-8 gap-1.5 hidden sm:flex"
                 onClick={() => window.open(`/targets/${targetId}/ic-brief`, "_blank")}
               >
                 <Printer size={11} className="text-muted-foreground" />
                 IC Brief
               </Button>
               <Button size="sm" variant="outline"
-                className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-8 gap-1.5 flex"
+                className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-8 gap-1.5 hidden sm:flex"
                 onClick={handleGenerateBrief} disabled={briefLoading}
               >
                 {briefLoading ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} className="text-primary" />}
-                Generate AI Brief
+                AI Brief
               </Button>
-              <Button size="icon" variant="outline" className="rounded-lg border-border/70 text-muted-foreground h-8 w-8" onClick={() => setEditOpen(true)}>
-                <Edit size={13} />
-              </Button>
-              <Button size="icon" variant="outline" className="rounded-lg border-border/70 text-destructive hover:bg-destructive/10 h-8 w-8" onClick={() => setDeleteOpen(true)}>
-                <Trash2 size={13} />
-              </Button>
-              <div className="hidden md:flex items-center gap-3 border-l border-border/60 pl-3">
-                <div className="text-right">
-                  <div className="text-[9px] font-mono text-muted-foreground/70 uppercase tracking-wider">Stage</div>
-                  <div className="font-semibold text-sm font-mono">{target.currentStage}</div>
-                </div>
-                {canEditDeal && (
-                  <Button size="sm" className="rounded-lg font-mono uppercase text-[10px] gap-1.5 tracking-wider h-8" onClick={() => setStageOpen(true)}>
-                    <TargetIcon size={12} /> Change Stage
-                  </Button>
-                )}
-              </div>
+              {canEditDeal && (
+                <Button size="sm" variant="outline" className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-8 gap-1.5" onClick={() => setEditOpen(true)}>
+                  <Edit size={11} />
+                  <span className="hidden sm:inline">Edit</span>
+                </Button>
+              )}
+              {canEditDeal && (
+                <Button size="sm" className="rounded-lg font-mono uppercase text-[10px] gap-1.5 tracking-wider h-8" onClick={() => setStageOpen(true)}>
+                  <TargetIcon size={12} /> Stage
+                </Button>
+              )}
             </div>
+          </div>
+
+          {/* Row 2: stat strip */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-3 pt-3 border-t border-border/30">
+            {target.currentStage && (
+              <StageChip stage={target.currentStage} size="xs" />
+            )}
+            {(target as { healthScore?: string | null }).healthScore && (
+              <HealthDot
+                score={(target as { healthScore?: string | null }).healthScore as "healthy" | "watch" | "at_risk"}
+                showLabel
+                size="sm"
+              />
+            )}
+            {target.priorityTier && (
+              <span className={`text-[10px] font-mono font-semibold ${
+                target.priorityTier === "Must-Win"   ? "text-destructive" :
+                target.priorityTier === "Priority 1" ? "text-amber-500" : "text-primary"
+              }`}>
+                {target.priorityTier}
+              </span>
+            )}
+            {target.sector && (
+              <>
+                <span className="w-1 h-1 bg-border/60 rounded-full shrink-0" />
+                <span className="text-[10px] font-mono text-muted-foreground uppercase">{target.sector}</span>
+              </>
+            )}
+            {target.country && (
+              <>
+                <span className="w-1 h-1 bg-border/60 rounded-full shrink-0" />
+                <span className="text-[10px] font-mono text-muted-foreground">{target.country}</span>
+              </>
+            )}
+            {daysInCurrentStage !== undefined && (
+              <>
+                <span className="w-1 h-1 bg-border/60 rounded-full shrink-0" />
+                <span className="text-[10px] font-mono text-muted-foreground/70 flex items-center gap-1">
+                  <TrendingUp size={9} className="text-muted-foreground/50" />{daysInCurrentStage}d in stage
+                </span>
+              </>
+            )}
+            {(target as { diligencePct?: number | null }).diligencePct != null && (
+              <>
+                <span className="w-1 h-1 bg-border/60 rounded-full shrink-0" />
+                <span className="text-[10px] font-mono text-muted-foreground/70 flex items-center gap-1.5">
+                  <ClipboardList size={9} className="text-muted-foreground/50" />
+                  <span>{(target as { diligencePct?: number | null }).diligencePct}% diligence</span>
+                  <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary/60"
+                      style={{ width: `${(target as { diligencePct?: number | null }).diligencePct}%` }}
+                    />
+                  </div>
+                </span>
+              </>
+            )}
+            {target.isConfidential && (
+              <>
+                <span className="w-1 h-1 bg-border/60 rounded-full shrink-0" />
+                <Badge variant="outline" className="font-mono text-[9px] uppercase bg-amber-500/10 text-amber-500 border-amber-500/25 h-4 px-1.5">
+                  <ShieldAlert size={8} className="mr-1" />Confidential
+                </Badge>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -493,9 +493,31 @@ export default function Pipeline() {
                                   <MapPin size={9} />{target.country}
                                 </span>
                               )}
+                              {(() => {
+                                const daysStg = (target as { daysInCurrentStage?: number | null }).daysInCurrentStage;
+                                return daysStg != null ? (
+                                  <span className="text-[10px] font-mono text-muted-foreground/50 bg-muted/60 px-1.5 py-0 rounded-sm leading-4 inline-flex items-center">
+                                    {daysStg}d
+                                  </span>
+                                ) : null;
+                              })()}
+                              {(() => {
+                                const pct = (target as { diligencePct?: number | null }).diligencePct;
+                                return pct != null && pct > 0 ? (
+                                  <span className="inline-flex items-center gap-1">
+                                    <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden">
+                                      <div className="h-full rounded-full bg-primary/60" style={{ width: `${pct}%` }} />
+                                    </div>
+                                    <span className="text-[9px] font-mono text-muted-foreground/50">{pct}%</span>
+                                  </span>
+                                ) : null;
+                              })()}
                               {target.dealOwner && (
-                                <span className="text-[10px] font-mono text-muted-foreground/70 flex items-center gap-1">
-                                  <User size={9} />{target.dealOwner}
+                                <span
+                                  className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/15 text-primary text-[9px] font-mono font-bold uppercase shrink-0"
+                                  title={target.dealOwner}
+                                >
+                                  {target.dealOwner.slice(0, 2)}
                                 </span>
                               )}
                             </div>
