@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUpdateAction, customFetch } from "@workspace/api-client-react";
 import { Link } from "wouter";
@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { format, parseISO } from "date-fns";
 import {
   CheckCircle2, RotateCcw, AlertTriangle, Clock,
-  ChevronDown, ChevronRight, Search, SlidersHorizontal,
+  ChevronDown, ChevronRight, Search, SlidersHorizontal, Filter, X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,23 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+
+interface FiltersData {
+  dealTypes: string[];
+}
+
+// ── URL query string helpers ───────────────────────────────────────────────
+function getUrlParam(key: string): string {
+  try { return new URLSearchParams(window.location.search).get(key) ?? ""; } catch { return ""; }
+}
+function setUrlParam(key: string, value: string) {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (value) { params.set(key, value); } else { params.delete(key); }
+    const newUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+    window.history.replaceState(null, "", newUrl);
+  } catch { /* ignore */ }
+}
 
 interface CommandCenterAction {
   id: number;
@@ -233,19 +250,35 @@ export default function Actions() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [mustWinOnly, setMustWinOnly]       = useState(false);
   const [overdueOnly, setOverdueOnly]       = useState(false);
-  const [mineOnly, setMineOnly]             = useState(() => {
-    try {
-      return new URLSearchParams(window.location.search).get("mine") === "true";
-    } catch {
-      return false;
-    }
-  });
+  const [mineOnly, setMineOnly]             = useState(() => getUrlParam("mine") === "true");
+  const [dealTypeFilter, setDealTypeFilter] = useState(() => getUrlParam("dealType"));
   const [search, setSearch]                 = useState("");
 
+  // Sync dealType filter to URL
+  useEffect(() => {
+    setUrlParam("dealType", dealTypeFilter);
+  }, [dealTypeFilter]);
+
+  const commandCenterUrl = useMemo(() => {
+    const params = new URLSearchParams();
+    if (mineOnly) params.set("mine", "true");
+    if (dealTypeFilter) params.set("dealType", dealTypeFilter);
+    const qs = params.toString();
+    return `/api/actions/command-center${qs ? `?${qs}` : ""}`;
+  }, [mineOnly, dealTypeFilter]);
+
   const { data: actions, isLoading } = useQuery({
-    queryKey: ["actions-command-center", mineOnly],
-    queryFn: () => customFetch<CommandCenterAction[]>(`/api/actions/command-center${mineOnly ? "?mine=true" : ""}`),
+    queryKey: ["actions-command-center", mineOnly, dealTypeFilter],
+    queryFn: () => customFetch<CommandCenterAction[]>(commandCenterUrl),
   });
+
+  // Fetch available deal types for the filter dropdown
+  const { data: filtersData } = useQuery({
+    queryKey: ["targets-filters"],
+    queryFn: () => customFetch<FiltersData>("/api/targets/filters"),
+    staleTime: 5 * 60 * 1000,
+  });
+  const availableDealTypes = filtersData?.dealTypes ?? [];
 
   const updateAction = useUpdateAction();
 
@@ -412,6 +445,33 @@ export default function Actions() {
             Overdue Only
           </button>
         </div>
+
+        {/* Deal-type filter bar */}
+        {availableDealTypes.length > 0 && (
+          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/40">
+            <Filter size={11} className="text-muted-foreground/50 shrink-0" />
+            <span className="text-[10px] font-mono text-muted-foreground/50 uppercase tracking-wider shrink-0">Deal Type</span>
+            <Select value={dealTypeFilter || "_all"} onValueChange={(v) => setDealTypeFilter(v === "_all" ? "" : v)}>
+              <SelectTrigger className="h-6 text-[10px] font-mono rounded-md border-border/60 bg-background w-[160px] px-2">
+                <SelectValue placeholder="All deal types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all" className="text-[11px] font-mono">All deal types</SelectItem>
+                {availableDealTypes.map((dt) => (
+                  <SelectItem key={dt} value={dt} className="text-[11px] font-mono">{dt}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {dealTypeFilter && (
+              <button
+                onClick={() => setDealTypeFilter("")}
+                className="text-[10px] font-mono text-muted-foreground/60 hover:text-muted-foreground transition-colors flex items-center gap-1"
+              >
+                <X size={10} /> Clear
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-auto p-4 md:p-6 space-y-2.5">

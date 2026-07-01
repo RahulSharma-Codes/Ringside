@@ -59,10 +59,12 @@ router.get("/open", async (_req, res) => {
 // GET /api/actions/command-center
 // Returns open/blocked/in-progress regular actions + recently completed (last 14 days).
 // Excludes diligence items (workstream IS NOT NULL) — those appear in the Diligence tab.
+// Optional query params: ?mine=true, ?dealType=<value>
 router.get("/command-center", async (req, res) => {
   const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
   const mineParam = req.query.mine;
   const mineOnly = (mineParam === "true" || mineParam === "1") && !!req.jwtClaims?.email;
+  const dealType = (req.query.dealType as string | undefined) || undefined;
 
   // Build mine condition: match owner against user's email OR displayName (both case-insensitive)
   let mineCondition: ReturnType<typeof ilike> | ReturnType<typeof or> | undefined;
@@ -82,6 +84,7 @@ router.get("/command-center", async (req, res) => {
   const conditions = [
     isNull(actionItemsTable.workstream),
     ...(mineCondition ? [mineCondition] : []),
+    ...(dealType ? [eq(targetsTable.dealType, dealType)] : []),
     or(
       inArray(actionItemsTable.status, ["Open", "In Progress", "Blocked"]),
       and(

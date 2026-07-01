@@ -307,17 +307,25 @@ router.get("/top-priority", async (req, res) => {
 
 // ── GET /api/targets/filter-options — must come before /:id ──────────────────
 
-router.get("/filter-options", async (_req, res) => {
+async function getFilterOptions() {
   const rows = await db
     .select({ dealOwner: targetsTable.dealOwner, country: targetsTable.country, sector: targetsTable.sector, dealType: targetsTable.dealType })
     .from(targetsTable);
-
-  return res.json({
+  return {
     owners: [...new Set(rows.map((r) => r.dealOwner).filter((v): v is string => v !== null))].sort(),
     countries: [...new Set(rows.map((r) => r.country).filter((v): v is string => v !== null))].sort(),
     sectors: [...new Set(rows.map((r) => r.sector).filter((v): v is string => v !== null))].sort(),
     dealTypes: [...new Set(rows.map((r) => r.dealType).filter((v): v is string => v !== null))].sort(),
-  });
+  };
+}
+
+router.get("/filter-options", async (_req, res) => {
+  return res.json(await getFilterOptions());
+});
+
+// Alias used by review pages
+router.get("/filters", async (_req, res) => {
+  return res.json(await getFilterOptions());
 });
 
 // ── GET /api/targets/needs-attention — must come before /:id ─────────────────
