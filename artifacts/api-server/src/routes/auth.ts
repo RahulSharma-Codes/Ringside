@@ -300,17 +300,20 @@ router.post("/invite", async (req, res) => {
     return res.status(400).json({ error: `Invalid role. Must be one of: ${VALID_ROLES.join(", ")}.` });
   }
 
-  // Prevent inviting someone who already has an account
+  // Use the caller's own company from their JWT — never LIMIT 1 to avoid cross-tenant mis-association
+  const companyId = claims.companyId;
+  if (!companyId) return res.status(400).json({ error: "Could not determine your company from session." });
+
+  // Prevent inviting someone who already has an account in this company
   const [existing] = await db.select({ id: usersTable.id })
-    .from(usersTable).where(eq(usersTable.email, email)).limit(1);
+    .from(usersTable)
+    .where(and(eq(usersTable.email, email), eq(usersTable.companyId, companyId)))
+    .limit(1);
   if (existing) return res.status(409).json({ error: "A user with that email already exists." });
 
-  const [company] = await db.select({ id: companiesTable.id }).from(companiesTable).limit(1);
-  if (!company) return res.status(500).json({ error: "No company configured." });
-
-  // Invalidate any prior unused invite for this email
+  // Invalidate any prior unused invite for this email within this company
   await db.execute(
-    sql`DELETE FROM invite_tokens WHERE email = ${email} AND used_at IS NULL`
+    sql`DELETE FROM invite_tokens WHERE email = ${email} AND company_id = ${companyId}::uuid AND used_at IS NULL`
   );
 
   // Generate token
@@ -320,7 +323,7 @@ router.post("/invite", async (req, res) => {
 
   await db.execute(sql`
     INSERT INTO invite_tokens (company_id, email, role, display_name, token_hash, expires_at, created_by)
-    VALUES (${company.id}, ${email}, ${role}, ${displayName}, ${tokenHash}, ${expiresAt}, ${claims.userId})
+    VALUES (${companyId}::uuid, ${email}, ${role}, ${displayName}, ${tokenHash}, ${expiresAt}, ${claims.userId}::uuid)
   `);
 
   // Build the invite URL

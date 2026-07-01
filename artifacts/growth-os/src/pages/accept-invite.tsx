@@ -76,7 +76,11 @@ export default function AcceptInvitePage({ onLogin }: AcceptInvitePageProps) {
 
       window.localStorage.setItem(AUTH_TOKEN_KEY, data.token);
       setPhase("done");
-      setTimeout(() => onLogin(), 800);
+      // Navigate away from /accept-invite so isAcceptInvite gate clears
+      const base = (import.meta.env.BASE_URL as string).replace(/\/$/, "");
+      setTimeout(() => {
+        window.location.assign(base + "/");
+      }, 800);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
       setFieldError(msg);
