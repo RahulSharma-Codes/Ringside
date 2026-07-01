@@ -573,6 +573,14 @@ async function applyMigrations(): Promise<void> {
       END $rls$
     `));
   }
+
+  // ── audit_events: DB-level write-once enforcement ──────────────────────────
+  // The application never exposes UPDATE or DELETE routes for audit_events, but
+  // enforcing this at the DB-role level ensures that even a compromised API
+  // process cannot alter or erase audit rows — a hard tamper-evidence guarantee.
+  // REVOKE is idempotent: re-revoking a privilege that was never granted is a
+  // no-op (Postgres silently ignores it).
+  await db.execute(sql`REVOKE UPDATE, DELETE ON audit_events FROM CURRENT_USER`);
 }
 
 app.listen(port, (err) => {
