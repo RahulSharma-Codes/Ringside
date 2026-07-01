@@ -20,7 +20,7 @@ import {
   Activity as ActivityIcon, Scale, TrendingUp, AlertTriangle, Users,
   ShieldCheck, ClipboardList, Printer,
 } from "lucide-react";
-import { differenceInDays, parseISO } from "date-fns";
+import { differenceInDays, parseISO, format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button as Btn } from "@/components/ui/button";
 import { StageRail } from "@/components/stage-rail";
@@ -184,7 +184,7 @@ export default function TargetDetail() {
             </div>
           </div>
 
-          {/* Row 2: stat strip */}
+          {/* Row 2: stat strip — mobile shows Stage | Health | Days only; full details on sm+ */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-3 pt-3 border-t border-border/30">
             {target.currentStage && (
               <StageChip stage={target.currentStage} size="xs" />
@@ -196,8 +196,13 @@ export default function TargetDetail() {
                 size="sm"
               />
             )}
+            {daysInCurrentStage !== undefined && (
+              <span className="text-[10px] font-mono text-muted-foreground/70 flex items-center gap-1">
+                <TrendingUp size={9} className="text-muted-foreground/50" />{daysInCurrentStage}d
+              </span>
+            )}
             {target.priorityTier && (
-              <span className={`text-[10px] font-mono font-semibold ${
+              <span className={`hidden sm:inline text-[10px] font-mono font-semibold ${
                 target.priorityTier === "Must-Win"   ? "text-destructive" :
                 target.priorityTier === "Priority 1" ? "text-amber-500" : "text-primary"
               }`}>
@@ -205,47 +210,33 @@ export default function TargetDetail() {
               </span>
             )}
             {target.sector && (
-              <>
-                <span className="w-1 h-1 bg-border/60 rounded-full shrink-0" />
-                <span className="text-[10px] font-mono text-muted-foreground uppercase">{target.sector}</span>
-              </>
+              <span className="hidden sm:inline text-[10px] font-mono text-muted-foreground uppercase">{target.sector}</span>
             )}
             {target.country && (
-              <>
-                <span className="w-1 h-1 bg-border/60 rounded-full shrink-0" />
-                <span className="text-[10px] font-mono text-muted-foreground">{target.country}</span>
-              </>
-            )}
-            {daysInCurrentStage !== undefined && (
-              <>
-                <span className="w-1 h-1 bg-border/60 rounded-full shrink-0" />
-                <span className="text-[10px] font-mono text-muted-foreground/70 flex items-center gap-1">
-                  <TrendingUp size={9} className="text-muted-foreground/50" />{daysInCurrentStage}d in stage
-                </span>
-              </>
+              <span className="hidden sm:inline text-[10px] font-mono text-muted-foreground">{target.country}</span>
             )}
             {(target as { diligencePct?: number | null }).diligencePct != null && (
-              <>
-                <span className="w-1 h-1 bg-border/60 rounded-full shrink-0" />
-                <span className="text-[10px] font-mono text-muted-foreground/70 flex items-center gap-1.5">
-                  <ClipboardList size={9} className="text-muted-foreground/50" />
-                  <span>{(target as { diligencePct?: number | null }).diligencePct}% diligence</span>
-                  <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-primary/60"
-                      style={{ width: `${(target as { diligencePct?: number | null }).diligencePct}%` }}
-                    />
-                  </div>
-                </span>
-              </>
+              <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground/70">
+                <ClipboardList size={9} className="text-muted-foreground/50" />
+                <span>{(target as { diligencePct?: number | null }).diligencePct}%</span>
+                <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary/60"
+                    style={{ width: `${(target as { diligencePct?: number | null }).diligencePct}%` }}
+                  />
+                </div>
+              </span>
+            )}
+            {target.lastInteractionDate && (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono text-muted-foreground/60">
+                <MessageSquare size={9} className="text-muted-foreground/40" />
+                Last contact {format(parseISO(target.lastInteractionDate), "MMM d, yyyy")}
+              </span>
             )}
             {target.isConfidential && (
-              <>
-                <span className="w-1 h-1 bg-border/60 rounded-full shrink-0" />
-                <Badge variant="outline" className="font-mono text-[9px] uppercase bg-amber-500/10 text-amber-500 border-amber-500/25 h-4 px-1.5">
-                  <ShieldAlert size={8} className="mr-1" />Confidential
-                </Badge>
-              </>
+              <Badge variant="outline" className="hidden sm:inline-flex font-mono text-[9px] uppercase bg-amber-500/10 text-amber-500 border-amber-500/25 h-4 px-1.5">
+                <ShieldAlert size={8} className="mr-1" />Confidential
+              </Badge>
             )}
           </div>
         </div>

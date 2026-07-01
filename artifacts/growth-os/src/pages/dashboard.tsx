@@ -489,6 +489,7 @@ export default function Dashboard() {
                     <tr className="border-b border-border/40 bg-muted/20">
                       <th className="text-left py-1.5 pl-4 pr-2 font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider w-5">#</th>
                       <th className="text-left py-1.5 px-2 font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider">Deal</th>
+                      <th className="py-1.5 px-2 font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider hidden sm:table-cell text-center">Health</th>
                       <th className="text-left py-1.5 px-2 font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider hidden md:table-cell">Stage</th>
                       <th className="text-right py-1.5 px-2 font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider">Score</th>
                       <th className="text-right py-1.5 pl-2 pr-4 font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider hidden sm:table-cell">Days</th>
@@ -497,6 +498,7 @@ export default function Dashboard() {
                   <tbody className="divide-y divide-border/30">
                     {topTargets.map((target, idx) => {
                       const days = (target as { daysInCurrentStage?: number | null }).daysInCurrentStage;
+                      const health = (target as { healthScore?: string | null }).healthScore as "healthy" | "watch" | "at_risk" | null | undefined;
                       return (
                         <Link key={target.id} href={`/targets/${target.id}`} asChild>
                           <tr className="hover:bg-muted/20 transition-colors cursor-pointer group">
@@ -506,6 +508,9 @@ export default function Dashboard() {
                               <div className={`text-[9px] font-mono mt-0.5 ${target.priorityTier === "Must-Win" ? "text-destructive font-bold" : "text-muted-foreground/60"}`}>
                                 {target.priorityTier}
                               </div>
+                            </td>
+                            <td className="py-2 px-2 hidden sm:table-cell text-center">
+                              <HealthDot score={health} />
                             </td>
                             <td className="py-2 px-2 hidden md:table-cell">
                               {target.currentStage && <StageChip stage={target.currentStage} size="xs" />}
