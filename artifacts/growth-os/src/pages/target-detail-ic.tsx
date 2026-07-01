@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import {
   useListIcProposals, getListIcProposalsQueryKey,
@@ -11,8 +11,11 @@ import {
   useListIcSessions, getListIcSessionsQueryKey,
   useCreateIcSession,
   useDeleteIcSession,
+  useGetIcMemo, getGetIcMemoQueryKey,
+  useRunIcMemo,
+  useListValuations,
 } from "@workspace/api-client-react";
-import type { IcProposal, IcVote, IcCp } from "@workspace/api-client-react";
+import type { IcProposal, IcVote, IcCp, IcMemoResult } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,7 +36,7 @@ import {
 import {
   Plus, Scale, CheckCircle2, XCircle, AlertTriangle, Clock, Users,
   ChevronDown, ChevronRight, Trash2, Lock, Gavel, FileText, Flag,
-  Target as TargetIcon,
+  Target as TargetIcon, Sparkles, Copy, RefreshCw,
 } from "lucide-react";
 import { format, parseISO, formatDistanceToNow } from "date-fns";
 
@@ -646,6 +649,148 @@ function ProposalCard({ proposal, targetId }: { proposal: IcProposal; targetId: 
 }
 
 // ---------------------------------------------------------------------------
+// IcMemoCard — renders a cached or freshly generated IC memo
+// ---------------------------------------------------------------------------
+function IcMemoCard({ memo }: { memo: IcMemoResult }) {
+  const { toast } = useToast();
+
+  const buildMarkdown = useCallback(() => {
+    const lines: string[] = [
+      `# IC Memo Draft`,
+      ``,
+      `## Executive Summary`,
+      memo.executiveSummary,
+      ``,
+      `## Investment Thesis`,
+      ...memo.investmentThesis.map((t) => `- ${t}`),
+      ``,
+      `## Valuation Opinion`,
+      memo.valuationOpinion,
+      ``,
+      `## Key Risks & Mitigants`,
+      ...memo.keyRisksAndMitigants.map((r) => `- **Risk:** ${r.risk}  \n  **Mitigant:** ${r.mitigant}`),
+    ];
+    if (memo.icConditionsOutstanding.length > 0) {
+      lines.push(``, `## IC Conditions Outstanding`);
+      memo.icConditionsOutstanding.forEach((c) => lines.push(`- ${c}`));
+    }
+    if (memo.runAt) {
+      lines.push(``, `---`, `*Generated ${new Date(memo.runAt).toLocaleString()}*`);
+    }
+    return lines.join("\n");
+  }, [memo]);
+
+  const handleCopy = () => {
+    void navigator.clipboard.writeText(buildMarkdown()).then(() => {
+      toast({ title: "Copied as Markdown" });
+    });
+  };
+
+  return (
+    <div className="space-y-4 rounded-sm border border-primary/20 bg-primary/5 p-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Sparkles size={13} className="text-primary" />
+          <span className="text-[10px] font-mono uppercase tracking-wider text-primary">IC Memo Draft</span>
+          {memo.runAt && (
+            <span className="text-[9px] font-mono text-muted-foreground/60">
+              · Generated {new Date(memo.runAt).toLocaleDateString()}
+            </span>
+          )}
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 rounded-sm font-mono text-[10px] uppercase border-border gap-1"
+          onClick={handleCopy}
+        >
+          <Copy size={10} /> Copy as Markdown
+        </Button>
+      </div>
+
+      {/* Executive Summary */}
+      <div>
+        <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70 mb-1.5">
+          Executive Summary
+        </div>
+        <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{memo.executiveSummary}</p>
+      </div>
+
+      {/* Investment Thesis */}
+      {memo.investmentThesis.length > 0 && (
+        <div>
+          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70 mb-1.5">
+            Investment Thesis
+          </div>
+          <ul className="space-y-1">
+            {memo.investmentThesis.map((point, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-foreground/85">
+                <CheckCircle2 size={12} className="text-primary/60 mt-0.5 shrink-0" />
+                <span className="leading-snug">{point}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Valuation Opinion */}
+      <div>
+        <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70 mb-1.5">
+          Valuation Opinion
+        </div>
+        <p className="text-sm text-foreground/85 leading-relaxed">{memo.valuationOpinion}</p>
+      </div>
+
+      {/* Key Risks & Mitigants */}
+      {memo.keyRisksAndMitigants.length > 0 && (
+        <div>
+          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70 mb-1.5">
+            Key Risks & Mitigants
+          </div>
+          <div className="space-y-2">
+            {memo.keyRisksAndMitigants.map((r, i) => (
+              <div key={i} className="rounded-sm border border-destructive/15 bg-destructive/5 p-2.5 space-y-0.5">
+                <div className="flex items-start gap-1.5">
+                  <AlertTriangle size={11} className="text-destructive/70 mt-0.5 shrink-0" />
+                  <p className="text-[12px] text-foreground/90 font-medium leading-snug">{r.risk}</p>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-snug pl-5">
+                  <span className="font-mono text-[9px] uppercase tracking-wider text-emerald-500/80 mr-1">Mitigant:</span>
+                  {r.mitigant}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* IC Conditions Outstanding */}
+      {memo.icConditionsOutstanding.length > 0 && (
+        <div>
+          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70 mb-1.5">
+            IC Conditions Outstanding
+          </div>
+          <ul className="space-y-1">
+            {memo.icConditionsOutstanding.map((c, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-amber-500/90">
+                <Clock size={11} className="mt-0.5 shrink-0" />
+                <span className="leading-snug">{c}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {memo.icConditionsOutstanding.length === 0 && (
+        <div className="text-[11px] font-mono text-emerald-500/80 flex items-center gap-1.5">
+          <CheckCircle2 size={12} /> No outstanding IC conditions
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // IcTab — full IC tab
 // ---------------------------------------------------------------------------
 export function IcTab({ targetId }: IcTabProps) {
@@ -671,6 +816,9 @@ export function IcTab({ targetId }: IcTabProps) {
   const [icConditions, setIcConditions] = useState("");
   const [icNotes, setIcNotes] = useState("");
 
+  // IC memo state
+  const [memoExpanded, setMemoExpanded] = useState(true);
+
   const { data: proposals, isLoading: loadingProposals } = useListIcProposals(targetId, {
     query: { queryKey: getListIcProposalsQueryKey(targetId) },
   });
@@ -678,6 +826,36 @@ export function IcTab({ targetId }: IcTabProps) {
   const { data: icSessions, isLoading: loadingIcSessions } = useListIcSessions(targetId, {
     query: { queryKey: getListIcSessionsQueryKey(targetId) },
   });
+
+  const { data: valuationsData } = useListValuations(targetId);
+  const memoQueryKey = getGetIcMemoQueryKey(targetId);
+  const { data: memoData, isLoading: loadingMemo } = useGetIcMemo(targetId, {
+    query: { queryKey: memoQueryKey },
+  });
+
+  const runIcMemo = useRunIcMemo();
+
+  const hasIcSessions = (icSessions?.length ?? 0) > 0;
+  const hasValuations = (valuationsData?.length ?? 0) > 0;
+  const canGenerateMemo = hasIcSessions && hasValuations;
+
+  const handleGenerateMemo = () => {
+    runIcMemo.mutate(
+      { targetId },
+      {
+        onSuccess: (data) => {
+          if (data.error && !data.result) {
+            toast({ title: "Cannot generate memo", description: data.error, variant: "destructive" });
+          } else {
+            toast({ title: "IC memo drafted", description: "Review the AI-generated memo below." });
+            void queryClient.invalidateQueries({ queryKey: memoQueryKey });
+            setMemoExpanded(true);
+          }
+        },
+        onError: () => toast({ title: "Error", description: "Could not generate IC memo", variant: "destructive" }),
+      }
+    );
+  };
 
   const createProposal = useCreateIcProposal();
   const createIcSession = useCreateIcSession();
@@ -877,6 +1055,87 @@ export function IcTab({ targetId }: IcTabProps) {
               );
             })}
           </div>
+        )}
+      </div>
+
+      {/* ===== IC MEMO SECTION ===== */}
+      <div className="border-t border-border/40 pt-2">
+        <div className="flex items-center justify-between mb-3">
+          <button
+            type="button"
+            className="flex items-center gap-1.5 text-left"
+            onClick={() => setMemoExpanded(!memoExpanded)}
+          >
+            {memoExpanded ? (
+              <ChevronDown size={13} className="text-muted-foreground" />
+            ) : (
+              <ChevronRight size={13} className="text-muted-foreground" />
+            )}
+            <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1.5">
+              <Sparkles size={12} className="text-primary/70" />
+              AI Memo Draft
+            </div>
+            {memoData?.result && (
+              <span className="text-[9px] font-mono text-muted-foreground/50 ml-1">
+                · Last generated {memoData.result.runAt ? new Date(memoData.result.runAt).toLocaleDateString() : ""}
+              </span>
+            )}
+          </button>
+          <div className="flex items-center gap-2">
+            {!canGenerateMemo && (
+              <span className="text-[10px] font-mono text-muted-foreground/50">
+                {!hasIcSessions ? "Add an IC session first" : "Add a valuation entry first"}
+              </span>
+            )}
+            <Button
+              size="sm"
+              variant={memoData?.result ? "outline" : "default"}
+              className="rounded-sm font-mono text-[10px] uppercase h-7 gap-1"
+              onClick={handleGenerateMemo}
+              disabled={!canGenerateMemo || runIcMemo.isPending}
+              title={
+                !canGenerateMemo
+                  ? !hasIcSessions
+                    ? "Add at least one IC session to enable memo generation"
+                    : "Add at least one valuation entry to enable memo generation"
+                  : undefined
+              }
+            >
+              {runIcMemo.isPending ? (
+                <>
+                  <RefreshCw size={10} className="animate-spin" /> Generating…
+                </>
+              ) : memoData?.result ? (
+                <>
+                  <RefreshCw size={10} /> Regenerate
+                </>
+              ) : (
+                <>
+                  <Sparkles size={10} /> Generate IC Memo
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {memoExpanded && (
+          <>
+            {loadingMemo ? (
+              <Skeleton className="h-24 w-full" />
+            ) : memoData?.result ? (
+              <IcMemoCard memo={memoData.result} />
+            ) : (
+              <div className="border border-dashed border-border rounded-sm py-8 text-center text-muted-foreground font-mono text-[11px] tracking-widest flex flex-col items-center gap-2">
+                <Sparkles size={18} className="text-muted-foreground/30" />
+                <span className="uppercase">No memo generated yet</span>
+                {canGenerateMemo && (
+                  <span className="text-[10px] normal-case text-muted-foreground/60">
+                    Click "Generate IC Memo" to draft a structured memo from deal data
+                  </span>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
 

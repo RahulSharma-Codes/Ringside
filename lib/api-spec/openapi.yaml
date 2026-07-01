@@ -1498,6 +1498,42 @@ paths:
               schema:
                 $ref: "#/components/schemas/DdSynthesisResponse"
 
+  /ai/{targetId}/ic-memo:
+    get:
+      operationId: getIcMemo
+      tags: [ai]
+      summary: Get last AI IC memo draft for a target
+      parameters:
+        - in: path
+          name: targetId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Last cached result or null
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IcMemoResponse"
+    post:
+      operationId: runIcMemo
+      tags: [ai]
+      summary: Generate AI IC memo draft for a target
+      parameters:
+        - in: path
+          name: targetId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: IC memo draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IcMemoResponse"
+
   /import/apply:
     post:
       operationId: applyImport
@@ -4664,6 +4700,60 @@ components:
           nullable: true
           allOf:
             - $ref: "#/components/schemas/DdSynthesisResult"
+        setupRequired:
+          type: boolean
+          nullable: true
+        billingRequired:
+          type: boolean
+          nullable: true
+        error:
+          type: string
+          nullable: true
+      required: [result]
+
+    IcMemoRisk:
+      type: object
+      properties:
+        risk:
+          type: string
+        mitigant:
+          type: string
+      required: [risk, mitigant]
+
+    IcMemoResult:
+      type: object
+      properties:
+        executiveSummary:
+          type: string
+        investmentThesis:
+          type: array
+          items:
+            type: string
+        valuationOpinion:
+          type: string
+        keyRisksAndMitigants:
+          type: array
+          items:
+            $ref: "#/components/schemas/IcMemoRisk"
+        icConditionsOutstanding:
+          type: array
+          items:
+            type: string
+        runAt:
+          type: string
+          nullable: true
+        model:
+          type: string
+          nullable: true
+      required: [executiveSummary, investmentThesis, valuationOpinion, keyRisksAndMitigants, icConditionsOutstanding]
+
+    IcMemoResponse:
+      type: object
+      properties:
+        result:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/IcMemoResult"
         setupRequired:
           type: boolean
           nullable: true

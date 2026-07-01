@@ -1256,6 +1256,28 @@ export interface DdSynthesisResponse {
   error?: string | null;
 }
 
+export interface IcMemoRisk {
+  risk: string;
+  mitigant: string;
+}
+
+export interface IcMemoResult {
+  executiveSummary: string;
+  investmentThesis: string[];
+  valuationOpinion: string;
+  keyRisksAndMitigants: IcMemoRisk[];
+  icConditionsOutstanding: string[];
+  runAt?: string | null;
+  model?: string | null;
+}
+
+export interface IcMemoResponse {
+  result: IcMemoResult | null;
+  setupRequired?: boolean | null;
+  billingRequired?: boolean | null;
+  error?: string | null;
+}
+
 export type SynergyType = (typeof SynergyType)[keyof typeof SynergyType];
 
 export const SynergyType = {

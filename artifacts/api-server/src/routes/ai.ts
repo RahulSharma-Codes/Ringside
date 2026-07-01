@@ -12,6 +12,7 @@ import {
   dealDocumentsTable,
   aiPhaseRunsTable,
   valuationsTable,
+  icSessionsTable,
 } from "@workspace/db";
 import { eq, and, desc, isNull, isNotNull, gte, inArray } from "drizzle-orm";
 import { logger } from "../lib/logger";
@@ -1139,6 +1140,179 @@ Rules:
   } catch (err) {
     const { setupRequired, billingRequired, message } = classifyAiError(err);
     req.log.error({ err }, "DD synthesis AI error");
+    return res.json({ result: null, setupRequired, billingRequired, error: message });
+  }
+});
+
+// ── Phase 6: IC Memo Auto-Draft ─────────────────────────────────────────────
+// GET /api/ai/:targetId/ic-memo  — return last cached result (or null)
+router.get("/:targetId/ic-memo", async (req, res) => {
+  const targetId = parseInt(req.params.targetId, 10);
+  if (isNaN(targetId)) return res.status(400).json({ error: "Invalid targetId" });
+
+  const row = await getLastRun(targetId, "ic-memo");
+  return res.json({ result: row ? row.outputJson : null });
+});
+
+// POST /api/ai/:targetId/ic-memo  — generate fresh IC memo draft
+router.post("/:targetId/ic-memo", async (req, res) => {
+  const targetId = parseInt(req.params.targetId, 10);
+  if (isNaN(targetId)) return res.status(400).json({ error: "Invalid targetId" });
+
+  if (!openai) {
+    return res.json({ result: null, setupRequired: true, billingRequired: false });
+  }
+
+  const [targetRow] = await db
+    .select({
+      projectName: targetsTable.projectName,
+      targetCode: targetsTable.targetCode,
+      sector: targetsTable.sector,
+      subsector: targetsTable.subsector,
+      country: targetsTable.country,
+      priorityTier: targetsTable.priorityTier,
+      strategicRationale: targetsTable.strategicRationale,
+      dealOwner: targetsTable.dealOwner,
+      currentStage: milestonesTable.currentStage,
+    })
+    .from(targetsTable)
+    .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id))
+    .where(eq(targetsTable.id, targetId));
+
+  if (!targetRow) return res.status(404).json({ error: "Target not found" });
+
+  const [icSessions, valuations] = await Promise.all([
+    db
+      .select()
+      .from(icSessionsTable)
+      .where(eq(icSessionsTable.targetId, targetId))
+      .orderBy(desc(icSessionsTable.sessionDate)),
+    db
+      .select()
+      .from(valuationsTable)
+      .where(eq(valuationsTable.targetId, targetId))
+      .orderBy(desc(valuationsTable.recordedAt)),
+  ]);
+
+  if (icSessions.length === 0) {
+    return res.json({ result: null, error: "No IC sessions recorded — add at least one IC session before generating a memo" });
+  }
+
+  if (valuations.length === 0) {
+    return res.json({ result: null, error: "No valuation entries recorded — add at least one valuation before generating a memo" });
+  }
+
+  const ddRun = await getLastRun(targetId, "dd-synthesis");
+
+  const contextLines: string[] = [
+    `=== IC MEMO CONTEXT ===`,
+    `Project: ${targetRow.projectName} (${targetRow.targetCode ?? "N/A"})`,
+    `Sector: ${targetRow.sector ?? "N/A"}${targetRow.subsector ? ` / ${targetRow.subsector}` : ""}`,
+    `Country: ${targetRow.country ?? "N/A"}`,
+    `Priority Tier: ${targetRow.priorityTier}`,
+    `Current Stage: ${targetRow.currentStage ?? "Unknown"}`,
+    `Deal Owner: ${targetRow.dealOwner ?? "Unassigned"}`,
+    `Strategic Rationale: ${targetRow.strategicRationale ?? "Not recorded"}`,
+    ``,
+    `--- VALUATION ENTRIES (${valuations.length} total) ---`,
+  ];
+
+  for (const v of valuations) {
+    const range = [v.valueLow, v.valuePoint, v.valueHigh].filter(Boolean).join(" – ");
+    const dt = v.recordedAt instanceof Date ? v.recordedAt.toISOString().slice(0, 10) : String(v.recordedAt ?? "").slice(0, 10);
+    contextLines.push(
+      `[v${v.version}] ${v.methodology} | ${v.currency} ${range || "N/A"} | Stage: ${v.stageAtRecord ?? "N/A"} | By: ${v.recordedBy ?? "Unknown"} | ${dt}`
+    );
+    if (v.notes) contextLines.push(`  Notes: ${v.notes.slice(0, 150)}`);
+  }
+
+  contextLines.push(``, `--- IC SESSION HISTORY (${icSessions.length} sessions) ---`);
+  for (const s of icSessions) {
+    contextLines.push(
+      `[${s.sessionDate}] Outcome: ${s.outcome}${s.attendees ? ` | Attendees: ${s.attendees}` : ""}`
+    );
+    if (s.conditions) contextLines.push(`  Conditions: ${s.conditions}`);
+    if (s.notes) contextLines.push(`  Notes: ${s.notes.slice(0, 200)}`);
+  }
+
+  const openConditions = icSessions
+    .filter((s) => s.outcome === "Conditional" && s.conditions)
+    .map((s) => s.conditions!);
+
+  if (openConditions.length > 0) {
+    contextLines.push(``, `--- OPEN CONDITIONS FROM IC SESSIONS ---`);
+    openConditions.forEach((c, i) => contextLines.push(`${i + 1}. ${c}`));
+  }
+
+  if (ddRun) {
+    type DdResultShape = {
+      summaryNote?: string;
+      risks?: Array<{ rank?: number; description?: string; severity?: string; mitigation?: string }>;
+    };
+    const ddResult = ddRun.outputJson as DdResultShape | null;
+    contextLines.push(``, `--- DD SYNTHESIS (last run) ---`);
+    if (ddResult?.summaryNote) contextLines.push(`Summary: ${ddResult.summaryNote}`);
+    if (ddResult?.risks && ddResult.risks.length > 0) {
+      contextLines.push(`Top Risks:`);
+      for (const r of ddResult.risks.slice(0, 5)) {
+        contextLines.push(
+          `  [${r.severity ?? "?"}] ${r.description ?? ""}${r.mitigation ? ` — Mitigation: ${r.mitigation}` : ""}`
+        );
+      }
+    }
+  }
+
+  const contextBlock = contextLines.join("\n");
+
+  const IC_MEMO_PROMPT = `You are a senior M&A investment committee analyst. Draft a structured IC memo from the provided deal data.
+
+Return your response as a JSON object with exactly these fields:
+{
+  "executiveSummary": "concise 2-3 paragraph summary of the deal opportunity, current status, and IC recommendation",
+  "investmentThesis": ["key thesis point 1", "key thesis point 2"],
+  "valuationOpinion": "assessment of valuation range, methodology used, and fairness of price relative to strategic rationale",
+  "keyRisksAndMitigants": [
+    { "risk": "risk description", "mitigant": "mitigation strategy" }
+  ],
+  "icConditionsOutstanding": ["condition 1", "condition 2"],
+  "runAt": "${new Date().toISOString()}"
+}
+
+Rules:
+- Use ONLY the data provided. Do not invent targets, financials, participants, or facts.
+- investmentThesis: 3-5 bullet points capturing the strategic, financial, and operational rationale.
+- valuationOpinion: mention specific methodology names and values from the valuation entries.
+- keyRisksAndMitigants: identify the top 3-5 risks; each must have a specific mitigant or open question.
+- icConditionsOutstanding: extract and list ALL conditions from conditional IC sessions; use empty array if none.
+- Write in formal investment committee language — concise, factual, and actionable.
+- Do not provide legal, tax, or financial advice as fact; note that independent advisors should validate.`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model,
+      max_completion_tokens: 2048,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: IC_MEMO_PROMPT },
+        { role: "user", content: contextBlock },
+      ],
+    });
+
+    const raw = completion.choices[0]?.message?.content ?? "{}";
+    let result: unknown;
+    try {
+      result = JSON.parse(raw);
+    } catch {
+      return res.json({ result: null, error: "Failed to parse AI response" });
+    }
+
+    const tokensUsed = completion.usage?.total_tokens;
+    await saveRun(targetId, "ic-memo", result, model, tokensUsed);
+    req.log.info({ targetId, tokensUsed }, "IC memo draft generated");
+    return res.json({ result, model });
+  } catch (err) {
+    const { setupRequired, billingRequired, message } = classifyAiError(err);
+    req.log.error({ err }, "IC memo AI error");
     return res.json({ result: null, setupRequired, billingRequired, error: message });
   }
 });

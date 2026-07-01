@@ -2531,6 +2531,64 @@ export const RunDdSynthesisResponse = zod.object({
 });
 
 /**
+ * @summary Get last AI IC memo draft for a target
+ */
+export const GetIcMemoParams = zod.object({
+  targetId: zod.coerce.number(),
+});
+
+export const GetIcMemoResponse = zod.object({
+  result: zod
+    .object({
+      executiveSummary: zod.string(),
+      investmentThesis: zod.array(zod.string()),
+      valuationOpinion: zod.string(),
+      keyRisksAndMitigants: zod.array(
+        zod.object({
+          risk: zod.string(),
+          mitigant: zod.string(),
+        }),
+      ),
+      icConditionsOutstanding: zod.array(zod.string()),
+      runAt: zod.string().nullish(),
+      model: zod.string().nullish(),
+    })
+    .nullable(),
+  setupRequired: zod.boolean().nullish(),
+  billingRequired: zod.boolean().nullish(),
+  error: zod.string().nullish(),
+});
+
+/**
+ * @summary Generate AI IC memo draft for a target
+ */
+export const RunIcMemoParams = zod.object({
+  targetId: zod.coerce.number(),
+});
+
+export const RunIcMemoResponse = zod.object({
+  result: zod
+    .object({
+      executiveSummary: zod.string(),
+      investmentThesis: zod.array(zod.string()),
+      valuationOpinion: zod.string(),
+      keyRisksAndMitigants: zod.array(
+        zod.object({
+          risk: zod.string(),
+          mitigant: zod.string(),
+        }),
+      ),
+      icConditionsOutstanding: zod.array(zod.string()),
+      runAt: zod.string().nullish(),
+      model: zod.string().nullish(),
+    })
+    .nullable(),
+  setupRequired: zod.boolean().nullish(),
+  billingRequired: zod.boolean().nullish(),
+  error: zod.string().nullish(),
+});
+
+/**
  * @summary Apply a validated import (create + update targets)
  */
 export const ApplyImportBody = zod.object({
