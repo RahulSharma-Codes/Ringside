@@ -500,27 +500,32 @@ export default function Dashboard() {
                       const days = (target as { daysInCurrentStage?: number | null }).daysInCurrentStage;
                       const health = (target as { healthScore?: string | null }).healthScore as "healthy" | "watch" | "at_risk" | null | undefined;
                       return (
-                        <Link key={target.id} href={`/targets/${target.id}`} asChild>
-                          <tr className="hover:bg-muted/20 transition-colors cursor-pointer group">
-                            <td className="py-2 pl-4 pr-2 font-mono text-[10px] text-muted-foreground/40">{idx + 1}</td>
-                            <td className="py-2 px-2 min-w-0 max-w-0">
-                              <div className="font-medium truncate group-hover:text-primary transition-colors leading-snug">{target.projectName}</div>
-                              <div className={`text-[9px] font-mono mt-0.5 ${target.priorityTier === "Must-Win" ? "text-destructive font-bold" : "text-muted-foreground/60"}`}>
-                                {target.priorityTier}
-                              </div>
-                            </td>
-                            <td className="py-2 px-2 hidden sm:table-cell text-center">
-                              <HealthDot score={health} />
-                            </td>
-                            <td className="py-2 px-2 hidden md:table-cell">
-                              {target.currentStage && <StageChip stage={target.currentStage} size="xs" />}
-                            </td>
-                            <td className="py-2 px-2 text-right font-mono font-bold text-primary text-sm">{Math.round(target.priorityScore)}</td>
-                            <td className="py-2 pl-2 pr-4 text-right font-mono text-[10px] text-muted-foreground/50 hidden sm:table-cell">
-                              {days != null ? `${days}d` : "—"}
-                            </td>
-                          </tr>
-                        </Link>
+                        <tr
+                          key={target.id}
+                          className="hover:bg-muted/20 transition-colors cursor-pointer group"
+                          onClick={() => navigate(`/targets/${target.id}`)}
+                          onKeyDown={(e) => e.key === "Enter" && navigate(`/targets/${target.id}`)}
+                          tabIndex={0}
+                          role="link"
+                        >
+                          <td className="py-2 pl-4 pr-2 font-mono text-[10px] text-muted-foreground/40">{idx + 1}</td>
+                          <td className="py-2 px-2 min-w-0 max-w-0">
+                            <div className="font-medium truncate group-hover:text-primary transition-colors leading-snug">{target.projectName}</div>
+                            <div className={`text-[9px] font-mono mt-0.5 ${target.priorityTier === "Must-Win" ? "text-destructive font-bold" : "text-muted-foreground/60"}`}>
+                              {target.priorityTier}
+                            </div>
+                          </td>
+                          <td className="py-2 px-2 hidden sm:table-cell text-center">
+                            <HealthDot score={health} />
+                          </td>
+                          <td className="py-2 px-2 hidden md:table-cell">
+                            {target.currentStage && <StageChip stage={target.currentStage} size="xs" />}
+                          </td>
+                          <td className="py-2 px-2 text-right font-mono font-bold text-primary text-sm">{Math.round(target.priorityScore)}</td>
+                          <td className="py-2 pl-2 pr-4 text-right font-mono text-[10px] text-muted-foreground/50 hidden sm:table-cell">
+                            {days != null ? `${days}d` : "—"}
+                          </td>
+                        </tr>
                       );
                     })}
                   </tbody>
