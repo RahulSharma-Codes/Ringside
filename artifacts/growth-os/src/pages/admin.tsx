@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Shield, UserPlus, RefreshCw, Loader2, CheckCircle2,
-  Users, Trash2, AlertTriangle, MailX, MailCheck, WifiOff,
+  Users, Trash2, AlertTriangle, MailX, MailCheck, WifiOff, Link2, Copy, Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,8 @@ export default function AdminPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteDisplayName, setInviteDisplayName] = useState("");
   const [inviteRole, setInviteRole] = useState<Role>("Member");
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
@@ -76,24 +78,42 @@ export default function AdminPage() {
 
   // ── Mutations ─────────────────────────────────────────────────────────────
 
-  const inviteUser = useMutation({
+  const sendInvite = useMutation({
     mutationFn: (data: { email: string; displayName: string; role: string }) =>
-      customFetch("/api/admin/users", {
+      customFetch<{ ok: boolean; emailed: boolean; inviteUrl?: string }>("/api/auth/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       }),
-    onSuccess: () => {
-      toast({ title: "User created", description: `${inviteEmail} can now log in via OTP.` });
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      setInviteOpen(false);
-      setInviteEmail("");
-      setInviteDisplayName("");
-      setInviteRole("Member");
+      if (data.emailed) {
+        toast({ title: "Invite sent", description: `An invite link was emailed to ${inviteEmail}.` });
+        closeInviteDialog();
+      } else if (data.inviteUrl) {
+        setInviteLink(data.inviteUrl);
+      }
     },
     onError: (err: Error) =>
-      toast({ title: "Error creating user", description: err.message, variant: "destructive" }),
+      toast({ title: "Error sending invite", description: err.message, variant: "destructive" }),
   });
+
+  function closeInviteDialog() {
+    setInviteOpen(false);
+    setInviteEmail("");
+    setInviteDisplayName("");
+    setInviteRole("Member");
+    setInviteLink(null);
+    setCopied(false);
+  }
+
+  function copyInviteLink() {
+    if (!inviteLink) return;
+    navigator.clipboard.writeText(inviteLink).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   const updateRole = useMutation({
     mutationFn: ({ id, role }: { id: string; role: string }) =>
@@ -343,88 +363,139 @@ export default function AdminPage() {
       </div>
 
       {/* ── Invite Dialog ─────────────────────────────────────────────────── */}
-      <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) { setInviteEmail(""); setInviteDisplayName(""); setInviteRole("Member"); } }}>
+      <Dialog open={inviteOpen} onOpenChange={(o) => { if (!o) closeInviteDialog(); }}>
         <DialogContent className="sm:max-w-md border-border bg-sidebar rounded-sm">
           <DialogHeader>
             <DialogTitle className="font-mono uppercase tracking-tight text-base">
-              Invite User
+              {inviteLink ? "Share Invite Link" : "Send Invite"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-3">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                Email <span className="text-destructive">*</span>
-              </label>
-              <Input
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="user@company.com"
-                className="rounded-sm bg-background/50 font-mono text-[11px]"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                Display Name
-              </label>
-              <Input
-                value={inviteDisplayName}
-                onChange={(e) => setInviteDisplayName(e.target.value)}
-                placeholder="Jane Smith"
-                className="rounded-sm bg-background/50 font-mono text-[11px]"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                Role
-              </label>
-              <Select value={inviteRole} onValueChange={(r) => setInviteRole(r as Role)}>
-                <SelectTrigger className="rounded-sm bg-background/50 font-mono text-[11px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-sm">
-                  {ALL_ROLES.map((r) => (
-                    <SelectItem key={r} value={r} className="font-mono text-[11px]">
-                      {r}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-[9px] text-muted-foreground/50 font-mono">
-                <strong>Admin</strong> — full access · <strong>Deal Lead</strong> — can change stages &amp; run IC ·{" "}
-                <strong>Member</strong> — read + comment · <strong>IC Voter</strong> — vote on proposals
-              </p>
-            </div>
-            <div className="rounded-sm bg-amber-500/10 border border-amber-500/25 p-2.5 flex items-start gap-2">
-              <AlertTriangle size={11} className="text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-[10px] font-mono text-amber-700/80 leading-relaxed">
-                The user will log in via a one-time code. After creating their account, use the OTP
-                generator above to share their first login code.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setInviteOpen(false)}
-              className="rounded-sm font-mono text-[10px] uppercase"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() =>
-                inviteUser.mutate({
-                  email: inviteEmail,
-                  displayName: inviteDisplayName,
-                  role: inviteRole,
-                })
-              }
-              disabled={!inviteEmail.trim() || inviteUser.isPending}
-              className="rounded-sm font-mono text-[10px] uppercase"
-            >
-              {inviteUser.isPending ? <Loader2 size={10} className="animate-spin mr-1" /> : null}
-              Create User
-            </Button>
-          </DialogFooter>
+
+          {/* ── Step 1: invite form ── */}
+          {!inviteLink && (
+            <>
+              <div className="space-y-4 py-3">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                    Email <span className="text-destructive">*</span>
+                  </label>
+                  <Input
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="user@company.com"
+                    className="rounded-sm bg-background/50 font-mono text-[11px]"
+                    type="email"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                    Display Name <span className="text-muted-foreground/40">(optional)</span>
+                  </label>
+                  <Input
+                    value={inviteDisplayName}
+                    onChange={(e) => setInviteDisplayName(e.target.value)}
+                    placeholder="Jane Smith"
+                    className="rounded-sm bg-background/50 font-mono text-[11px]"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                    Role
+                  </label>
+                  <Select value={inviteRole} onValueChange={(r) => setInviteRole(r as Role)}>
+                    <SelectTrigger className="rounded-sm bg-background/50 font-mono text-[11px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-sm">
+                      {ALL_ROLES.map((r) => (
+                        <SelectItem key={r} value={r} className="font-mono text-[11px]">
+                          {r}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[9px] text-muted-foreground/50 font-mono">
+                    <strong>Admin</strong> — full access · <strong>Deal Lead</strong> — can change stages &amp; run IC ·{" "}
+                    <strong>Member</strong> — read + comment · <strong>IC Voter</strong> — vote on proposals
+                  </p>
+                </div>
+                <div className="rounded-sm bg-muted/30 border border-border/40 p-2.5 flex items-start gap-2">
+                  <Link2 size={11} className="text-muted-foreground/50 shrink-0 mt-0.5" />
+                  <p className="text-[10px] font-mono text-muted-foreground/60 leading-relaxed">
+                    The recipient will receive a secure link to set their own password and join.
+                    The link expires in 72 hours.
+                    {smtpStatus && !smtpStatus.configured && (
+                      <> SMTP is not configured — you'll receive a link to share manually.</>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={closeInviteDialog}
+                  className="rounded-sm font-mono text-[10px] uppercase"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => sendInvite.mutate({ email: inviteEmail, displayName: inviteDisplayName, role: inviteRole })}
+                  disabled={!inviteEmail.trim() || sendInvite.isPending}
+                  className="rounded-sm font-mono text-[10px] uppercase"
+                >
+                  {sendInvite.isPending ? <Loader2 size={10} className="animate-spin mr-1" /> : <UserPlus size={10} className="mr-1" />}
+                  Send Invite
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+
+          {/* ── Step 2: copy link (SMTP not configured) ── */}
+          {inviteLink && (
+            <>
+              <div className="space-y-4 py-3">
+                <div className="flex items-start gap-2.5 rounded-sm bg-green-500/8 border border-green-500/30 p-3">
+                  <CheckCircle2 size={13} className="text-green-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-[11px] font-mono font-semibold text-green-600">Invite created for {inviteEmail}</p>
+                    <p className="text-[10px] font-mono text-muted-foreground/60 mt-0.5 leading-relaxed">
+                      SMTP is not configured, so the link wasn't emailed automatically.
+                      Copy and share it directly with the recipient.
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                    Invite Link <span className="text-muted-foreground/40">(expires in 72 hours)</span>
+                  </label>
+                  <div className="flex gap-1.5">
+                    <Input
+                      value={inviteLink}
+                      readOnly
+                      className="rounded-sm bg-background/50 font-mono text-[10px] text-muted-foreground"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={copyInviteLink}
+                      className="rounded-sm h-9 px-2.5 shrink-0"
+                      title="Copy link"
+                    >
+                      {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={closeInviteDialog}
+                  className="rounded-sm font-mono text-[10px] uppercase"
+                >
+                  Done
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 

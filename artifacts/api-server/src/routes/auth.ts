@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { eq, and, gt, sql } from "drizzle-orm";
-import { createHash, randomInt } from "crypto";
+import { createHash, randomInt, randomBytes } from "crypto";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
@@ -267,6 +267,177 @@ router.get("/smtp/status", async (req, res) => {
     req.log?.warn({ err }, "SMTP verify failed");
     return res.json({ configured: true, reachable: false });
   }
+});
+
+// ── POST /api/auth/invite ─────────────────────────────────────────────────────
+// Admin-only: generate an invite link for a new teammate.
+// If SMTP is configured the link is emailed; otherwise it is returned in the
+// response body so the admin can share it manually.
+
+router.post("/invite", async (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) return res.status(401).json({ error: "Authentication required." });
+
+  let claims: JwtClaims;
+  try {
+    claims = jwt.verify(token, JWT_SECRET) as JwtClaims;
+  } catch {
+    return res.status(401).json({ error: "Invalid or expired session." });
+  }
+  if (claims.role !== "Admin") {
+    return res.status(403).json({ error: "Admin role required." });
+  }
+
+  const email       = typeof req.body?.email       === "string" ? req.body.email.toLowerCase().trim()       : "";
+  const role        = typeof req.body?.role        === "string" ? req.body.role                              : "Member";
+  const displayName = typeof req.body?.displayName === "string" ? req.body.displayName.trim() || null       : null;
+
+  if (!email) return res.status(400).json({ error: "email is required." });
+
+  const VALID_ROLES = ["Admin", "Deal Lead", "Member", "IC Voter"];
+  if (!VALID_ROLES.includes(role)) {
+    return res.status(400).json({ error: `Invalid role. Must be one of: ${VALID_ROLES.join(", ")}.` });
+  }
+
+  // Prevent inviting someone who already has an account
+  const [existing] = await db.select({ id: usersTable.id })
+    .from(usersTable).where(eq(usersTable.email, email)).limit(1);
+  if (existing) return res.status(409).json({ error: "A user with that email already exists." });
+
+  const [company] = await db.select({ id: companiesTable.id }).from(companiesTable).limit(1);
+  if (!company) return res.status(500).json({ error: "No company configured." });
+
+  // Invalidate any prior unused invite for this email
+  await db.execute(
+    sql`DELETE FROM invite_tokens WHERE email = ${email} AND used_at IS NULL`
+  );
+
+  // Generate token
+  const rawToken   = randomBytes(32).toString("hex");
+  const tokenHash  = sha256(rawToken);
+  const expiresAt  = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
+
+  await db.execute(sql`
+    INSERT INTO invite_tokens (company_id, email, role, display_name, token_hash, expires_at, created_by)
+    VALUES (${company.id}, ${email}, ${role}, ${displayName}, ${tokenHash}, ${expiresAt}, ${claims.userId})
+  `);
+
+  // Build the invite URL
+  const proto   = (req.headers["x-forwarded-proto"] as string | undefined) ?? req.protocol ?? "https";
+  const host    = (req.headers["x-forwarded-host"] as string | undefined) ?? (req.headers.host as string | undefined) ?? "";
+  const basePath = process.env.BASE_PATH ?? "";
+  const inviteUrl = `${proto}://${host}${basePath}/accept-invite?token=${rawToken}`;
+
+  if (isSmtpConfigured()) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST!,
+        port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587,
+        secure: process.env.SMTP_PORT === "465",
+        auth: { user: process.env.SMTP_USER!, pass: process.env.SMTP_PASS! },
+      });
+      const from = process.env.SMTP_FROM ?? process.env.SMTP_USER!;
+      await transporter.sendMail({
+        from,
+        to: email,
+        subject: "You've been invited to Ringside",
+        text: `You've been invited to join Ringside.\n\nClick the link below to set your password and get started:\n\n${inviteUrl}\n\nThis link expires in 72 hours.`,
+        html: `
+          <div style="font-family:monospace;max-width:480px;margin:0 auto;padding:24px;background:#0a0a0a;color:#e5e5e5;border:1px solid #222;border-radius:4px;">
+            <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.15em;color:#666;margin:0 0 8px;">Inorganic Growth Command Center</p>
+            <h1 style="font-size:20px;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 24px;color:#fff;">Ringside</h1>
+            <p style="font-size:13px;color:#aaa;margin:0 0 16px;">You've been invited to join as <strong style="color:#e5e5e5;">${role}</strong>.</p>
+            <a href="${inviteUrl}" style="display:inline-block;padding:10px 20px;background:#a78bfa;color:#0a0a0a;text-decoration:none;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;font-size:12px;border-radius:3px;">Accept Invitation</a>
+            <p style="font-size:11px;color:#555;margin:24px 0 0;">Link expires in 72 hours. If you did not expect this invite, ignore this email.</p>
+          </div>
+        `,
+      });
+    } catch (err) {
+      req.log?.error({ err }, "Failed to send invite email");
+      return res.status(502).json({ error: "Could not send invite email. Please try again or share the link manually." });
+    }
+    await writeAuditEvent("invite_sent", null, claims.email, { invitedEmail: email, role, method: "email" });
+    return res.json({ ok: true, emailed: true });
+  }
+
+  // SMTP not configured — return the raw link so admin can share it
+  await writeAuditEvent("invite_sent", null, claims.email, { invitedEmail: email, role, method: "link" });
+  return res.json({ ok: true, emailed: false, inviteUrl });
+});
+
+// ── GET /api/auth/invite/validate ─────────────────────────────────────────────
+// Public: verify an invite token and return the associated email/role.
+
+router.get("/invite/validate", async (req, res) => {
+  const raw = typeof req.query.token === "string" ? req.query.token.trim() : "";
+  if (!raw) return res.status(400).json({ error: "token is required." });
+
+  const tokenHash = sha256(raw);
+  const now = new Date();
+
+  const [row] = (await db.execute(sql`
+    SELECT email, role, display_name FROM invite_tokens
+    WHERE token_hash = ${tokenHash}
+      AND used_at IS NULL
+      AND expires_at > ${now}
+    LIMIT 1
+  `)).rows as { email: string; role: string; display_name: string | null }[];
+
+  if (!row) {
+    return res.status(404).json({ error: "Invite link is invalid or has expired." });
+  }
+
+  return res.json({ valid: true, email: row.email, role: row.role, displayName: row.display_name });
+});
+
+// ── POST /api/auth/invite/accept ──────────────────────────────────────────────
+// Public: consume an invite token, create the user, issue a JWT.
+
+router.post("/invite/accept", async (req, res) => {
+  const raw         = typeof req.body?.token       === "string" ? req.body.token.trim()       : "";
+  const password    = typeof req.body?.password    === "string" ? req.body.password           : "";
+  const displayName = typeof req.body?.displayName === "string" ? req.body.displayName.trim() : "";
+
+  if (!raw)      return res.status(400).json({ error: "token is required." });
+  if (!password) return res.status(400).json({ error: "password is required." });
+  if (password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters." });
+
+  const tokenHash = sha256(raw);
+  const now = new Date();
+
+  const [row] = (await db.execute(sql`
+    SELECT id, company_id, email, role FROM invite_tokens
+    WHERE token_hash = ${tokenHash}
+      AND used_at IS NULL
+      AND expires_at > ${now}
+    LIMIT 1
+  `)).rows as { id: number; company_id: string; email: string; role: string }[];
+
+  if (!row) return res.status(404).json({ error: "Invite link is invalid or has expired." });
+
+  // Guard against race: email might have been claimed between validate and accept
+  const [existingUser] = await db.select({ id: usersTable.id })
+    .from(usersTable).where(eq(usersTable.email, row.email)).limit(1);
+  if (existingUser) return res.status(409).json({ error: "An account with this email already exists." });
+
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  const [user] = await db.insert(usersTable).values({
+    companyId:    row.company_id,
+    email:        row.email,
+    displayName:  displayName || null,
+    role:         row.role,
+    passwordHash,
+  }).returning();
+
+  // Mark token used
+  await db.execute(sql`UPDATE invite_tokens SET used_at = ${now} WHERE id = ${row.id}`);
+
+  await writeAuditEvent("invite_accepted", null, row.email, { role: row.role });
+
+  const jwtToken = issueJwt({ userId: user.id, companyId: user.companyId, email: user.email, role: user.role });
+  return res.json({ ok: true, token: jwtToken, user: { id: user.id, email: user.email, role: user.role, displayName: user.displayName } });
 });
 
 // ── GET /api/auth/oidc/config ─────────────────────────────────────────────────

@@ -26,6 +26,7 @@ import AdminPage from "@/pages/admin";
 import AccessDenied from "@/pages/access-denied";
 import NotFound from "@/pages/not-found";
 import IcBriefPage from "@/pages/ic-brief";
+import AcceptInvitePage from "@/pages/accept-invite";
 
 const queryClient = new QueryClient();
 
@@ -293,12 +294,20 @@ function App() {
     return Boolean(window.localStorage.getItem(AUTH_TOKEN_KEY));
   });
 
+  // Detect accept-invite route — must render before auth gate so unauthenticated
+  // recipients can reach the page. Check pathname after stripping base path.
+  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const pathWithoutBase = window.location.pathname.replace(base, "") || "/";
+  const isAcceptInvite = pathWithoutBase.startsWith("/accept-invite");
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        {isAuthenticated ? (
+        {isAcceptInvite ? (
+          <AcceptInvitePage onLogin={() => setIsAuthenticated(true)} />
+        ) : isAuthenticated ? (
           <AuthProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <WouterRouter base={base}>
               <Router />
             </WouterRouter>
           </AuthProvider>

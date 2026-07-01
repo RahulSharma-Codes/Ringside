@@ -504,6 +504,24 @@ async function applyMigrations(): Promise<void> {
   `);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS advisor_conflict_notes_advisor_id_idx ON advisor_conflict_notes(advisor_id, created_at DESC)`);
 
+  // Invite tokens — email-based teammate invitations
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS invite_tokens (
+      id           serial PRIMARY KEY,
+      company_id   uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+      email        text NOT NULL,
+      role         text NOT NULL DEFAULT 'Member',
+      display_name text,
+      token_hash   text NOT NULL UNIQUE,
+      expires_at   timestamptz NOT NULL,
+      used_at      timestamptz,
+      created_by   uuid REFERENCES users(id) ON DELETE SET NULL,
+      created_at   timestamptz NOT NULL DEFAULT now()
+    )
+  `);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS invite_tokens_token_hash_idx ON invite_tokens(token_hash)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS invite_tokens_email_idx ON invite_tokens(email)`);
+
   // ── Multi-tenancy: company_id on all core tables + RLS ───────────────────────
 
   const CORE_TABLES = [
