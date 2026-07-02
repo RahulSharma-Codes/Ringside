@@ -6,6 +6,7 @@ import {
   useGetDealEconomics, getGetDealEconomicsQueryKey,
   useUpsertDealEconomics,
   useGetValuationSanity, getGetValuationSanityQueryKey, useRunValuationSanity,
+  useGetAiRunHistory, getGetAiRunHistoryQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Plus, Trash2, TrendingUp, BarChart3, Landmark, Save, Loader2,
-  Brain, Sparkles, AlertTriangle,
+  Brain, Sparkles, AlertTriangle, History, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -145,6 +146,12 @@ export function ValuationTab({ targetId, currentStage }: { targetId: number; cur
     query: { enabled: !!targetId, queryKey: getGetValuationSanityQueryKey(targetId) },
   });
   const runSanity = useRunValuationSanity();
+
+  const [sanityHistoryOpen, setSanityHistoryOpen] = useState(false);
+  const [sanityExpandedId, setSanityExpandedId] = useState<number | null>(null);
+  const { data: sanityHistory } = useGetAiRunHistory(targetId, { phase: "valuation-sanity", limit: 20 }, {
+    query: { enabled: !!targetId && sanityHistoryOpen, queryKey: getGetAiRunHistoryQueryKey(targetId, { phase: "valuation-sanity", limit: 20 }) },
+  });
 
   const invalidateValuations = () => queryClient.invalidateQueries({ queryKey: getListValuationsQueryKey(targetId) });
   const invalidateEconomics = () => queryClient.invalidateQueries({ queryKey: getGetDealEconomicsQueryKey(targetId) });
@@ -573,6 +580,102 @@ export function ValuationTab({ targetId, currentStage }: { targetId: number; cur
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* AI Valuation Sanity History */}
+      {(valuations?.length ?? 0) > 0 && (
+        <div className="rounded-sm border border-border bg-card/20 overflow-hidden">
+          <button
+            className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-card/40 transition-colors"
+            onClick={() => { setSanityHistoryOpen((v) => !v); setSanityExpandedId(null); }}
+          >
+            <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+              <History size={12} />
+              Sanity-Check History
+            </div>
+            {sanityHistoryOpen ? <ChevronDown size={13} className="text-muted-foreground" /> : <ChevronRight size={13} className="text-muted-foreground" />}
+          </button>
+          {sanityHistoryOpen && (
+            <div className="border-t border-border divide-y divide-border/50">
+              {!sanityHistory || sanityHistory.runs.length === 0 ? (
+                <div className="px-4 py-6 text-center text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                  No previous runs recorded
+                </div>
+              ) : (
+                sanityHistory.runs.map((run, idx) => {
+                  const out = run.outputJson as { multiplesFlag?: string; redFlags?: string[]; methodologyNote?: string; sensitivityNote?: string; runAt?: string };
+                  const isExpanded = sanityExpandedId === run.id;
+                  const isLatest = idx === 0;
+                  return (
+                    <div key={run.id} className="bg-background/10">
+                      <button
+                        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-card/30 transition-colors text-left"
+                        onClick={() => setSanityExpandedId(isExpanded ? null : run.id)}
+                      >
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {isLatest && (
+                            <span className="text-[9px] font-mono uppercase text-primary/70 border border-primary/30 px-1 rounded-sm">Latest</span>
+                          )}
+                          {out.multiplesFlag && (
+                            <Badge variant="outline" className={`font-mono text-[9px] uppercase rounded-sm ${MULTIPLES_FLAG_COLORS[out.multiplesFlag] ?? MULTIPLES_FLAG_COLORS["insufficient-data"]}`}>
+                              {out.multiplesFlag.replace(/-/g, " ")}
+                            </Badge>
+                          )}
+                          <span className="text-[10px] font-mono text-muted-foreground">
+                            {format(parseISO(run.createdAt), "MMM d, yyyy · HH:mm")}
+                          </span>
+                          {run.model && (
+                            <span className="text-[9px] font-mono text-muted-foreground/50">{run.model}</span>
+                          )}
+                          {(out.redFlags?.length ?? 0) > 0 && (
+                            <span className="text-[9px] font-mono text-red-400/70">{out.redFlags!.length} flag{out.redFlags!.length !== 1 ? "s" : ""}</span>
+                          )}
+                        </div>
+                        {isExpanded ? <ChevronDown size={12} className="text-muted-foreground shrink-0" /> : <ChevronRight size={12} className="text-muted-foreground shrink-0" />}
+                      </button>
+                      {isExpanded && (
+                        <div className="px-4 pb-4 space-y-3 bg-background/20">
+                          {out.methodologyNote && (
+                            <div className="space-y-0.5">
+                              <div className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground">Methodology</div>
+                              <p className="text-xs text-foreground/80 leading-relaxed">{out.methodologyNote}</p>
+                            </div>
+                          )}
+                          {out.sensitivityNote && (
+                            <div className="space-y-0.5">
+                              <div className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground">Sensitivity</div>
+                              <p className="text-xs text-foreground/80 leading-relaxed">{out.sensitivityNote}</p>
+                            </div>
+                          )}
+                          {out.redFlags && out.redFlags.length > 0 && (
+                            <div className="space-y-1">
+                              <div className="text-[9px] font-mono uppercase tracking-wider text-red-400 flex items-center gap-1">
+                                <AlertTriangle size={9} /> Red Flags
+                              </div>
+                              <ul className="space-y-0.5">
+                                {out.redFlags.map((flag, i) => (
+                                  <li key={i} className="text-xs text-red-400/80 flex items-start gap-1.5">
+                                    <span className="shrink-0 mt-0.5">•</span><span>{flag}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {out.redFlags && out.redFlags.length === 0 && (
+                            <p className="text-xs text-emerald-400/70 font-mono">No red flags identified.</p>
+                          )}
+                          {run.tokensUsed != null && (
+                            <div className="text-[9px] font-mono text-muted-foreground/40 text-right">{run.tokensUsed} tokens</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Add Valuation Dialog */}

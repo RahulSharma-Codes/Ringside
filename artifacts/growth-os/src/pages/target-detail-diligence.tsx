@@ -5,6 +5,7 @@ import {
   useUpdateAction,
   useDeleteAction,
   useGetDdSynthesis, getGetDdSynthesisQueryKey, useRunDdSynthesis,
+  useGetAiRunHistory, getGetAiRunHistoryQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,7 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Plus, CheckCircle2, RotateCcw, Pencil, Trash2,
   ChevronDown, ChevronRight, ShieldCheck, Link2, X,
-  Brain, Sparkles, AlertTriangle, Loader2,
+  Brain, Sparkles, AlertTriangle, Loader2, History,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -261,6 +262,12 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
     query: { enabled: !!targetId, queryKey: getGetDdSynthesisQueryKey(targetId) },
   });
   const runDd = useRunDdSynthesis();
+
+  const [ddHistoryOpen, setDdHistoryOpen] = useState(false);
+  const [ddExpandedId, setDdExpandedId] = useState<number | null>(null);
+  const { data: ddHistory } = useGetAiRunHistory(targetId, { phase: "dd-synthesis", limit: 20 }, {
+    query: { enabled: !!targetId && ddHistoryOpen, queryKey: getGetAiRunHistoryQueryKey(targetId, { phase: "dd-synthesis", limit: 20 }) },
+  });
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: getGetDiligenceForTargetQueryKey(targetId) });
@@ -554,6 +561,116 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
               )}
             </CardContent>
           </Card>
+        );
+      })()}
+
+      {/* AI DD Synthesis History */}
+      {(() => {
+        const wsWithItems = [...itemsByWs.entries()].filter(([, wsItems]) => wsItems.length > 0).length;
+        if (wsWithItems < 3) return null;
+        return (
+          <div className="rounded-sm border border-border bg-card/20 overflow-hidden">
+            <button
+              className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-card/40 transition-colors"
+              onClick={() => { setDdHistoryOpen((v) => !v); setDdExpandedId(null); }}
+            >
+              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                <History size={12} />
+                Risk Synthesis History
+              </div>
+              {ddHistoryOpen ? <ChevronDown size={13} className="text-muted-foreground" /> : <ChevronRight size={13} className="text-muted-foreground" />}
+            </button>
+            {ddHistoryOpen && (
+              <div className="border-t border-border divide-y divide-border/50">
+                {!ddHistory || ddHistory.runs.length === 0 ? (
+                  <div className="px-4 py-6 text-center text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                    No previous runs recorded
+                  </div>
+                ) : (
+                  ddHistory.runs.map((run, idx) => {
+                    type DdRunOutput = { risks?: Array<{ rank: number; severity: string; workstream: string; description: string; mitigation: string }>; patterns?: string[]; summaryNote?: string; runAt?: string };
+                    const out = run.outputJson as DdRunOutput;
+                    const topSeverity = out.risks?.[0]?.severity;
+                    const isExpanded = ddExpandedId === run.id;
+                    const isLatest = idx === 0;
+                    return (
+                      <div key={run.id} className="bg-background/10">
+                        <button
+                          className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-card/30 transition-colors text-left"
+                          onClick={() => setDdExpandedId(isExpanded ? null : run.id)}
+                        >
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {isLatest && (
+                              <span className="text-[9px] font-mono uppercase text-primary/70 border border-primary/30 px-1 rounded-sm">Latest</span>
+                            )}
+                            {topSeverity && (
+                              <Badge variant="outline" className={`font-mono text-[9px] uppercase rounded-sm ${SEVERITY_COLORS[topSeverity] ?? "bg-muted text-muted-foreground border-border"}`}>
+                                Top risk: {topSeverity}
+                              </Badge>
+                            )}
+                            {out.risks && (
+                              <span className="text-[9px] font-mono text-muted-foreground/60">{out.risks.length} risk{out.risks.length !== 1 ? "s" : ""}</span>
+                            )}
+                            <span className="text-[10px] font-mono text-muted-foreground">
+                              {format(parseISO(run.createdAt), "MMM d, yyyy · HH:mm")}
+                            </span>
+                            {run.model && (
+                              <span className="text-[9px] font-mono text-muted-foreground/50">{run.model}</span>
+                            )}
+                          </div>
+                          {isExpanded ? <ChevronDown size={12} className="text-muted-foreground shrink-0" /> : <ChevronRight size={12} className="text-muted-foreground shrink-0" />}
+                        </button>
+                        {isExpanded && (
+                          <div className="px-4 pb-4 space-y-3 bg-background/20">
+                            {out.summaryNote && (
+                              <p className="text-xs text-foreground/80 leading-relaxed border-l-2 border-primary/40 pl-3 italic">{out.summaryNote}</p>
+                            )}
+                            {out.risks && out.risks.length > 0 && (
+                              <div className="space-y-2">
+                                <div className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                                  <AlertTriangle size={9} /> Top Risks
+                                </div>
+                                {out.risks.map((risk) => (
+                                  <div key={risk.rank} className="p-2 rounded-sm border border-border bg-background/20 space-y-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-[9px] font-mono text-muted-foreground/60 tabular-nums">#{risk.rank}</span>
+                                      <Badge variant="outline" className={`font-mono text-[9px] uppercase rounded-sm ${SEVERITY_COLORS[risk.severity] ?? "bg-muted text-muted-foreground border-border"}`}>
+                                        {risk.severity}
+                                      </Badge>
+                                      <Badge variant="outline" className="font-mono text-[9px] uppercase rounded-sm bg-muted/30 text-muted-foreground border-border">
+                                        {risk.workstream}
+                                      </Badge>
+                                    </div>
+                                    <p className="text-xs text-foreground/80">{risk.description}</p>
+                                    <p className="text-[10px] text-muted-foreground/70 italic">→ {risk.mitigation}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {out.patterns && out.patterns.length > 0 && (
+                              <div className="space-y-1">
+                                <div className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground">Patterns</div>
+                                <ul className="space-y-0.5">
+                                  {out.patterns.map((p, i) => (
+                                    <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                                      <span className="text-primary shrink-0 mt-0.5">•</span><span>{p}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {run.tokensUsed != null && (
+                              <div className="text-[9px] font-mono text-muted-foreground/40 text-right">{run.tokensUsed} tokens</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
         );
       })()}
 

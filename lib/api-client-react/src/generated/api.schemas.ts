@@ -1215,6 +1215,22 @@ export interface OriginationChannelItem {
   winRate?: number | null;
 }
 
+export type AiPhaseRunItemOutputJson = { [key: string]: unknown };
+
+export interface AiPhaseRunItem {
+  id: number;
+  phase: string;
+  model?: string | null;
+  tokensUsed?: number | null;
+  outputJson: AiPhaseRunItemOutputJson;
+  createdAt: string;
+}
+
+export interface AiPhaseRunsResponse {
+  runs: AiPhaseRunItem[];
+  total: number;
+}
+
 export interface ValuationSanityResult {
   methodologyNote: string;
   /** in-range | above-range | below-range | insufficient-data */
@@ -1952,6 +1968,14 @@ export type GetAnalyticsOriginationParams = {
 
 export type GetWeeklyReviewParams = {
   dealType?: string;
+};
+
+export type GetAiRunHistoryParams = {
+  /**
+   * Phase name: valuation-sanity | dd-synthesis | ic-memo
+   */
+  phase: string;
+  limit?: number;
 };
 
 export type MarkNotificationRead200 = {

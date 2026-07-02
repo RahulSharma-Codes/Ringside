@@ -863,6 +863,41 @@ async function saveRun(
   });
 }
 
+// ── Run History ──────────────────────────────────────────────────────────
+// GET /api/ai/:targetId/runs?phase=<phase>&limit=<n>
+router.get("/:targetId/runs", async (req, res) => {
+  const targetId = parseInt(req.params.targetId, 10);
+  if (isNaN(targetId)) return res.status(400).json({ error: "Invalid targetId" });
+
+  const phase = typeof req.query.phase === "string" ? req.query.phase.trim() : "";
+  if (!phase) return res.status(400).json({ error: "phase query param is required" });
+
+  const limitRaw = parseInt(String(req.query.limit ?? "20"), 10);
+  const limit = isNaN(limitRaw) || limitRaw < 1 ? 20 : Math.min(limitRaw, 100);
+
+  const rows = await db
+    .select({
+      id: aiPhaseRunsTable.id,
+      phase: aiPhaseRunsTable.phase,
+      model: aiPhaseRunsTable.model,
+      tokensUsed: aiPhaseRunsTable.tokensUsed,
+      outputJson: aiPhaseRunsTable.outputJson,
+      createdAt: aiPhaseRunsTable.createdAt,
+    })
+    .from(aiPhaseRunsTable)
+    .where(and(eq(aiPhaseRunsTable.targetId, targetId), eq(aiPhaseRunsTable.phase, phase)))
+    .orderBy(desc(aiPhaseRunsTable.createdAt))
+    .limit(limit);
+
+  const runs = rows.map((r) => ({
+    ...r,
+    createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt),
+  }));
+
+  req.log.info({ targetId, phase, count: runs.length }, "AI run history fetched");
+  return res.json({ runs, total: runs.length });
+});
+
 // ── Phase 4: Valuation Sanity-Check ──────────────────────────────────────
 // GET /api/ai/:targetId/valuation-sanity  — return last cached result (or null)
 router.get("/:targetId/valuation-sanity", async (req, res) => {

@@ -24,6 +24,7 @@ import type {
   AdvisorConflictNote,
   AiAskRequest,
   AiAskResponse,
+  AiPhaseRunsResponse,
   AiStatusResponse,
   AppNotification,
   AuditEvent,
@@ -62,6 +63,7 @@ import type {
   DocumentReviewResponse,
   FilterOptions,
   FunnelStageItem,
+  GetAiRunHistoryParams,
   GetAnalyticsFunnelParams,
   GetAnalyticsOriginationParams,
   GetAnalyticsTimeInStageParams,
@@ -6315,6 +6317,122 @@ export const useRunDdSynthesis = <
 > => {
   return useMutation(getRunDdSynthesisMutationOptions(options));
 };
+
+/**
+ * @summary Get paginated AI analysis run history for a target
+ */
+export const getGetAiRunHistoryUrl = (
+  targetId: number,
+  params: GetAiRunHistoryParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/ai/${targetId}/runs?${stringifiedParams}`
+    : `/api/ai/${targetId}/runs`;
+};
+
+export const getAiRunHistory = async (
+  targetId: number,
+  params: GetAiRunHistoryParams,
+  options?: RequestInit,
+): Promise<AiPhaseRunsResponse> => {
+  return customFetch<AiPhaseRunsResponse>(
+    getGetAiRunHistoryUrl(targetId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetAiRunHistoryQueryKey = (
+  targetId: number,
+  params?: GetAiRunHistoryParams,
+) => {
+  return [`/api/ai/${targetId}/runs`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetAiRunHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAiRunHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  targetId: number,
+  params: GetAiRunHistoryParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAiRunHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAiRunHistoryQueryKey(targetId, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAiRunHistory>>> = ({
+    signal,
+  }) => getAiRunHistory(targetId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!targetId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAiRunHistory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAiRunHistoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAiRunHistory>>
+>;
+export type GetAiRunHistoryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get paginated AI analysis run history for a target
+ */
+
+export function useGetAiRunHistory<
+  TData = Awaited<ReturnType<typeof getAiRunHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  targetId: number,
+  params: GetAiRunHistoryParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAiRunHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAiRunHistoryQueryOptions(
+    targetId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Get last AI IC memo draft for a target

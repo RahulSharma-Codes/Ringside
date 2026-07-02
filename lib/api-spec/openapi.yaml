@@ -1498,6 +1498,36 @@ paths:
               schema:
                 $ref: "#/components/schemas/DdSynthesisResponse"
 
+  /ai/{targetId}/runs:
+    get:
+      operationId: getAiRunHistory
+      tags: [ai]
+      summary: Get paginated AI analysis run history for a target
+      parameters:
+        - in: path
+          name: targetId
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: phase
+          required: true
+          schema:
+            type: string
+            description: "Phase name: valuation-sanity | dd-synthesis | ic-memo"
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated run history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiPhaseRunsResponse"
+
   /ai/{targetId}/ic-memo:
     get:
       operationId: getIcMemo
@@ -4615,6 +4645,37 @@ components:
           nullable: true
           description: Win rate as percentage (null when no concluded deals)
       required: [channel, total, won, dropped, inProgress]
+
+    AiPhaseRunItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        phase:
+          type: string
+        model:
+          type: string
+          nullable: true
+        tokensUsed:
+          type: integer
+          nullable: true
+        outputJson:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+      required: [id, phase, outputJson, createdAt]
+
+    AiPhaseRunsResponse:
+      type: object
+      properties:
+        runs:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiPhaseRunItem"
+        total:
+          type: integer
+      required: [runs, total]
 
     ValuationSanityResult:
       type: object

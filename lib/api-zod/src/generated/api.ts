@@ -2531,6 +2531,34 @@ export const RunDdSynthesisResponse = zod.object({
 });
 
 /**
+ * @summary Get paginated AI analysis run history for a target
+ */
+export const GetAiRunHistoryParams = zod.object({
+  targetId: zod.coerce.number(),
+});
+
+export const getAiRunHistoryQueryLimitDefault = 20;
+
+export const GetAiRunHistoryQueryParams = zod.object({
+  phase: zod.coerce.string(),
+  limit: zod.coerce.number().default(getAiRunHistoryQueryLimitDefault),
+});
+
+export const GetAiRunHistoryResponse = zod.object({
+  runs: zod.array(
+    zod.object({
+      id: zod.number(),
+      phase: zod.string(),
+      model: zod.string().nullish(),
+      tokensUsed: zod.number().nullish(),
+      outputJson: zod.record(zod.string(), zod.unknown()),
+      createdAt: zod.string(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
  * @summary Get last AI IC memo draft for a target
  */
 export const GetIcMemoParams = zod.object({
