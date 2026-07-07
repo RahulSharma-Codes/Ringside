@@ -49,9 +49,16 @@ export const db = drizzle(pool, { schema });
 // ── Per-request context acquisition ──────────────────────────────────────────
 
 /**
- * Acquires a dedicated pool client, sets `app.company_id` on it, and returns
- * helpers to run the request inside the right async context and release the
- * client when done.
+ * Acquires a dedicated pool client, sets `app.company_id` on it, switches to
+ * the non-superuser `app_rls` role so that PostgreSQL Row-Level Security
+ * policies are enforced, and returns helpers to run the request inside the
+ * right async context and release the client when done.
+ *
+ * WHY app_rls: PostgreSQL superusers bypass RLS unconditionally, even when
+ * FORCE ROW LEVEL SECURITY is set. By switching to app_rls (a non-superuser)
+ * after acquiring the connection we ensure the company_isolation policy
+ * actually filters rows. On release we RESET ROLE so the returned connection
+ * is clean for the next borrower.
  *
  * Usage in Express middleware:
  *   const ctx = await acquireRequestContext(companyId);
@@ -63,17 +70,24 @@ export async function acquireRequestContext(companyId: string): Promise<{
   run: (fn: () => void) => void;
   release: () => void;
 }> {
-  // Use originalQuery trick: we call pool.connect() but need to avoid the
-  // intercepted pool.query. pool.connect() is not intercepted so it's fine.
+  // pool.connect() is not intercepted — we get a dedicated PoolClient directly.
   const client = await pool.connect();
-  // Use set_config() with bound parameters to avoid SQL injection from JWT-derived companyId
+
+  // Set the tenant GUC first (while still superuser — set_config is always allowed).
   await client.query(`SELECT set_config($1, $2, false)`, ["app.company_id", companyId]);
+
+  // Switch to non-superuser role so RLS policies are applied to all queries
+  // on this connection for the duration of this request.
+  await client.query(`SET ROLE app_rls`);
 
   let released = false;
   const release = () => {
     if (!released) {
       released = true;
-      client.release();
+      // Restore the superuser role before returning the connection to the pool,
+      // so the next borrower (or migration code) gets a clean privileged connection.
+      // Fire-and-forget: always release the connection even if RESET ROLE fails.
+      client.query("RESET ROLE").catch(() => {}).finally(() => client.release());
     }
   };
 

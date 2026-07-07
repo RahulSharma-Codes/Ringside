@@ -592,6 +592,30 @@ async function applyMigrations(): Promise<void> {
     `));
   }
 
+  // ── app_rls: non-superuser role for RLS enforcement ───────────────────────
+  // PostgreSQL superusers bypass RLS unconditionally — even FORCE ROW LEVEL
+  // SECURITY has no effect on them. To make the company_isolation policies
+  // actually filter rows, every request-scoped DB connection switches to the
+  // app_rls role (a non-superuser) via SET ROLE in acquireRequestContext, then
+  // resets back to superuser before the connection is returned to the pool.
+  //
+  // This migration (re-)runs every startup so any table added since the last
+  // run automatically gets permissions granted to app_rls.
+  await db.execute(sql`
+    DO $$ BEGIN
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'app_rls') THEN
+        CREATE ROLE app_rls NOLOGIN;
+      END IF;
+    END $$
+  `);
+  // Grant DML on all tables that exist right now (idempotent).
+  await db.execute(sql`GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_rls`);
+  // Grant sequence access so serial PKs work under app_rls.
+  await db.execute(sql`GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_rls`);
+  // Revoke destructive operations on audit_events from app_rls too — the route
+  // layer never exposes UPDATE/DELETE, but belt-and-suspenders at the DB level.
+  await db.execute(sql`REVOKE UPDATE, DELETE ON audit_events FROM app_rls`);
+
   // ── audit_events: DB-level write-once enforcement ──────────────────────────
   // The application never exposes UPDATE or DELETE routes for audit_events, but
   // enforcing this at the DB-role level ensures that even a compromised API
