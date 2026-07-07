@@ -10,7 +10,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import {
-  Lightbulb, RefreshCw, ArrowRight, FileDown, Loader2,
+  Lightbulb, RefreshCw, ArrowRight, FileDown, Loader2, TrendingDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -456,6 +456,18 @@ export default function Doctrine() {
 
   const hasVerdictData = (data?.recentClosures ?? []).some((c) => c.phase1VerdictAccuracy);
 
+  const ACCURACY_THRESHOLD = 50;
+  const completedPeriods = accuracyTrendData.filter((p) => p.total > 0);
+  let consecutiveLowCount = 0;
+  for (let i = completedPeriods.length - 1; i >= 0; i--) {
+    if (completedPeriods[i].accuracyPct < ACCURACY_THRESHOLD) {
+      consecutiveLowCount++;
+    } else {
+      break;
+    }
+  }
+  const showAccuracyAlert = consecutiveLowCount >= 2;
+
   return (
     <div className="flex flex-col h-full">
       <div className="page-hero px-4 md:px-6 pt-3.5 pb-3 shrink-0">
@@ -604,6 +616,16 @@ export default function Doctrine() {
               </p>
             ) : (
               <>
+                {showAccuracyAlert && (
+                  <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/8 px-3.5 py-2.5 mb-3">
+                    <TrendingDown size={14} className="text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-[11px] font-mono text-amber-700 dark:text-amber-400 leading-relaxed">
+                      Accuracy has dropped for{" "}
+                      <span className="font-semibold">{consecutiveLowCount} consecutive period{consecutiveLowCount !== 1 ? "s" : ""}</span>
+                      {" "}— consider reviewing recent miss themes
+                    </p>
+                  </div>
+                )}
                 <ResponsiveContainer width="100%" height={220}>
                   <LineChart
                     data={accuracyTrendData}
