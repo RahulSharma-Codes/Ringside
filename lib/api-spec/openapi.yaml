@@ -3662,6 +3662,9 @@ components:
           type: string
         priorityTier:
           type: string
+        dealType:
+          type: string
+          nullable: true
         currentStage:
           type: string
         total:
@@ -3694,6 +3697,9 @@ components:
           type: string
           nullable: true
         priorityTier:
+          type: string
+          nullable: true
+        dealType:
           type: string
           nullable: true
         currentStage:

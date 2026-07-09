@@ -26,6 +26,7 @@ interface ReviewTarget {
   targetCode: string;
   projectName: string;
   priorityTier: string;
+  dealType?: string | null;
   currentStage: string;
   openActionCount?: number;
   lastInteractionDate?: string | null;
@@ -44,6 +45,7 @@ interface ReviewAction {
   targetName: string;
   targetCode: string | null;
   priorityTier: string | null;
+  dealType?: string | null;
   currentStage: string;
 }
 
@@ -53,6 +55,7 @@ interface ReviewStageChange {
   targetName: string;
   targetCode: string | null;
   priorityTier: string | null;
+  dealType?: string | null;
   previousStage: string | null;
   newStage: string;
   changedBy: string | null;
@@ -64,6 +67,7 @@ interface DiligenceHealthTarget {
   targetCode: string;
   projectName: string;
   priorityTier: string;
+  dealType?: string | null;
   currentStage: string;
   total: number;
   completed: number;
@@ -120,6 +124,23 @@ function TierPill({ tier }: { tier: string | null }) {
   return <span className={`status-chip ${cls}`}>{tier}</span>;
 }
 
+const DEAL_TYPE_LABELS: Record<string, string> = {
+  "JV": "JV",
+  "Partnership": "Partner",
+  "Strategic Alliance": "Alliance",
+};
+
+function DealTypeBadge({ dealType }: { dealType?: string | null }) {
+  if (!dealType) return null;
+  const label = DEAL_TYPE_LABELS[dealType];
+  if (!label) return null;
+  return (
+    <span className="status-chip bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-500/30">
+      {label}
+    </span>
+  );
+}
+
 // ── Card components ────────────────────────────────────────────────────────
 
 function TargetCard({ t, accent }: { t: ReviewTarget; accent?: "destructive" | "amber" }) {
@@ -138,6 +159,7 @@ function TargetCard({ t, accent }: { t: ReviewTarget; accent?: "destructive" | "
             <div className="flex flex-wrap gap-1.5 mt-1.5 items-center">
               <span className="metadata-label">{t.targetCode}</span>
               <TierPill tier={t.priorityTier} />
+              <DealTypeBadge dealType={t.dealType} />
               <StageChip stage={t.currentStage} size="xs" />
               {t.openActionCount !== undefined && t.openActionCount > 0 && (
                 <span className="metadata-label text-amber-500">
@@ -176,6 +198,7 @@ function ActionCard({ a }: { a: ReviewAction }) {
               {a.targetName}{a.targetCode ? ` · ${a.targetCode}` : ""}
             </span>
             <TierPill tier={a.priorityTier} />
+            <DealTypeBadge dealType={a.dealType} />
             <StageChip stage={a.currentStage} size="xs" />
             {a.dueDate && (
               <span className={`flex items-center gap-1 text-[10px] font-mono ${isOverdue ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
@@ -202,6 +225,7 @@ function DiligenceTargetCard({ t }: { t: DiligenceHealthTarget }) {
             <div className="flex flex-wrap gap-1.5 mt-1.5 items-center">
               <span className="metadata-label">{t.targetCode}</span>
               <TierPill tier={t.priorityTier} />
+              <DealTypeBadge dealType={t.dealType} />
               <StageChip stage={t.currentStage} size="xs" />
               <span className="metadata-label">{t.completed}/{t.total} done ({t.pct}%)</span>
               {t.blocked > 0 && (
@@ -234,6 +258,7 @@ function StageChangeCard({ s }: { s: ReviewStageChange }) {
             <div className="flex flex-wrap gap-1.5 mt-1.5 items-center">
               {s.targetCode && <span className="metadata-label">{s.targetCode}</span>}
               <TierPill tier={s.priorityTier} />
+              <DealTypeBadge dealType={s.dealType} />
               {s.previousStage && <StageChip stage={s.previousStage} size="xs" />}
               <ArrowRight size={9} className="text-muted-foreground shrink-0" />
               <StageChip stage={s.newStage} size="xs" />

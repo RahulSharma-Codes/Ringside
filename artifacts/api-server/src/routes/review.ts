@@ -207,6 +207,7 @@ router.get("/weekly", async (req, res) => {
       targetCode: t.targetCode,
       projectName: t.projectName,
       priorityTier: t.priorityTier,
+      dealType: t.dealType ?? null,
       currentStage: t.currentStage ?? "Sourcing",
       openActionCount: openActionCountByTarget.get(t.id) ?? 0,
       lastInteractionDate: toIso(lastInteraction ?? null),
@@ -241,6 +242,7 @@ router.get("/weekly", async (req, res) => {
     targetName: a.targetName ?? `Target #${a.targetId}`,
     targetCode: a.targetCode ?? null,
     priorityTier: a.priorityTier ?? null,
+    dealType: a.dealType ?? null,
     currentStage: a.currentStage ?? "Unknown",
   });
 
@@ -279,6 +281,7 @@ router.get("/weekly", async (req, res) => {
     targetName: s.targetName ?? `Target #${s.targetId}`,
     targetCode: s.targetCode ?? null,
     priorityTier: s.priorityTier ?? null,
+    dealType: s.dealType ?? null,
     previousStage: s.previousStage,
     newStage: s.newStage,
     changedBy: s.changedBy,
@@ -317,6 +320,7 @@ router.get("/weekly", async (req, res) => {
       targetCode: t.targetCode,
       projectName: t.projectName,
       priorityTier: t.priorityTier,
+      dealType: t.dealType ?? null,
       currentStage: t.currentStage ?? "Sourcing",
       total: stats.total,
       completed: stats.completed,

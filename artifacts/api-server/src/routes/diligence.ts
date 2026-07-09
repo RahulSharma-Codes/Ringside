@@ -52,6 +52,7 @@ router.get("/review", async (req, res) => {
         targetName: targetsTable.projectName,
         targetCode: targetsTable.targetCode,
         priorityTier: targetsTable.priorityTier,
+        dealType: targetsTable.dealType,
         currentStage: milestonesTable.currentStage,
       })
       .from(actionItemsTable)
@@ -100,6 +101,7 @@ router.get("/review", async (req, res) => {
       targetCode: target.targetCode,
       projectName: target.projectName,
       priorityTier: target.priorityTier,
+      dealType: target.dealType ?? null,
       currentStage: milestone?.currentStage ?? "Sourcing",
       total,
       completed,
@@ -122,6 +124,7 @@ router.get("/review", async (req, res) => {
     targetCode: i.targetCode,
     targetName: i.targetName ?? `Target #${i.targetId}`,
     priorityTier: i.priorityTier,
+    dealType: i.dealType ?? null,
     currentStage: i.currentStage ?? "Unknown",
     workstream: i.workstream,
     description: i.description,

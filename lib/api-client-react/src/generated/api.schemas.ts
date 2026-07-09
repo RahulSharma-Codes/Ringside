@@ -629,6 +629,7 @@ export interface DiligenceReviewTargetSummary {
   targetCode: string;
   projectName: string;
   priorityTier: string;
+  dealType?: string | null;
   currentStage: string;
   total: number;
   completed: number;
@@ -644,6 +645,7 @@ export interface DiligenceReviewItem {
   targetCode?: string | null;
   targetName?: string | null;
   priorityTier?: string | null;
+  dealType?: string | null;
   currentStage?: string | null;
   workstream?: string | null;
   description: string;

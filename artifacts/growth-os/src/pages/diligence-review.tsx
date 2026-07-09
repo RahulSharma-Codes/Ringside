@@ -69,6 +69,23 @@ function priorityColor(priority: string) {
   return "text-muted-foreground";
 }
 
+const DEAL_TYPE_LABELS: Record<string, string> = {
+  "JV": "JV",
+  "Partnership": "Partner",
+  "Strategic Alliance": "Alliance",
+};
+
+function dealTypeBadge(dealType: string | null | undefined) {
+  if (!dealType) return null;
+  const label = DEAL_TYPE_LABELS[dealType];
+  if (!label) return null;
+  return (
+    <Badge variant="outline" className="font-mono text-[9px] uppercase rounded-md bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-500/30">
+      {label}
+    </Badge>
+  );
+}
+
 function tierBadge(tier: string | null | undefined) {
   if (!tier) return null;
   const cls =
@@ -271,6 +288,7 @@ export default function DiligenceReview() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{t.projectName}</span>
                           {tierBadge(t.priorityTier)}
+                          {dealTypeBadge(t.dealType)}
                         </div>
                         <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground flex-wrap">
                           <span>{t.targetCode}</span>
@@ -316,6 +334,7 @@ export default function DiligenceReview() {
                         <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">{item.description}</div>
                         <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground flex-wrap">
                           <span className="text-primary">{item.targetName}</span>
+                          {dealTypeBadge(item.dealType)}
                           {item.owner && <span>{item.owner}</span>}
                           {item.dueDate && <span>Due {format(parseISO(item.dueDate), "MMM d")}</span>}
                         </div>
@@ -349,6 +368,7 @@ export default function DiligenceReview() {
                         <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">{item.description}</div>
                         <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground flex-wrap">
                           <span className="text-primary">{item.targetName}</span>
+                          {dealTypeBadge(item.dealType)}
                           {item.owner && <span>{item.owner}</span>}
                           {item.dueDate && (
                             <span className="text-amber-500 font-semibold flex items-center gap-1">
@@ -380,6 +400,7 @@ export default function DiligenceReview() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{t.projectName}</span>
                           {tierBadge(t.priorityTier)}
+                          {dealTypeBadge(t.dealType)}
                         </div>
                         <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground flex-wrap">
                           <span>{t.targetCode}</span>
@@ -428,6 +449,7 @@ export default function DiligenceReview() {
                           <div className="flex items-center gap-2 flex-wrap mb-2">
                             <span className="font-semibold text-sm group-hover:text-primary transition-colors">{t.projectName}</span>
                             {tierBadge(t.priorityTier)}
+                            {dealTypeBadge(t.dealType)}
                           </div>
                           <div className="flex flex-wrap gap-1">
                             {t.missingWorkstreams.map((ws) => (
@@ -470,6 +492,7 @@ export default function DiligenceReview() {
                         </div>
                         <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground flex-wrap">
                           <span className="text-primary no-underline">{item.targetName}</span>
+                          {dealTypeBadge(item.dealType)}
                           {item.completedAt && <span>{format(parseISO(item.completedAt), "MMM d")}</span>}
                         </div>
                       </div>
