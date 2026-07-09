@@ -227,7 +227,10 @@ router.get("/summary", async (req, res) => {
     return updatedAt && updatedAt >= sevenDaysAgo;
   }).length;
 
-  const allActionsForSummary = await db.select().from(actionItemsTable).where(isNull(actionItemsTable.workstream));
+  const accessibleTargetIdsForSummary = new Set(active.map((row) => row.target.id));
+  const allActionsForSummary = (
+    await db.select().from(actionItemsTable).where(isNull(actionItemsTable.workstream))
+  ).filter((a) => accessibleTargetIdsForSummary.has(a.targetId));
   const openActions = allActionsForSummary.filter((a) => ["Open", "In Progress", "Blocked"].includes(a.status));
   const todayForOverdue = new Date();
   todayForOverdue.setHours(0, 0, 0, 0);
@@ -256,8 +259,24 @@ router.get("/summary", async (req, res) => {
 
 // ── GET /api/targets/velocity — new-deals per week, last 8 weeks ─────────────
 
-router.get("/velocity", async (_req, res) => {
-  const rows = await db.select({ createdAt: targetsTable.createdAt }).from(targetsTable);
+router.get("/velocity", async (req, res) => {
+  const scope = await getAccessScope(req);
+  if (!scope.isAdmin && scope.accessibleTargetIds.length === 0) {
+    const weeks: { weekLabel: string; count: number }[] = [];
+    const now0 = new Date();
+    for (let i = 7; i >= 0; i--) {
+      const weekStart = new Date(now0);
+      weekStart.setDate(weekStart.getDate() - i * 7);
+      const mo = weekStart.toISOString().slice(5, 7);
+      const dy = weekStart.toISOString().slice(8, 10);
+      weeks.push({ weekLabel: `${mo}/${dy}`, count: 0 });
+    }
+    return res.json(weeks);
+  }
+  const rows = await db
+    .select({ createdAt: targetsTable.createdAt, id: targetsTable.id })
+    .from(targetsTable)
+    .where(scope.isAdmin ? undefined : inArray(targetsTable.id, scope.accessibleTargetIds));
   const now = new Date();
   const weeks: { weekLabel: string; count: number }[] = [];
   for (let i = 7; i >= 0; i--) {
@@ -649,6 +668,7 @@ router.put("/:id/stage", requireRole("Admin", "Deal Lead"), async (req, res) => 
 
 router.get("/:id/stage-history", async (req, res) => {
   const id = parseInt(req.params.id, 10);
+  if (!(await canAccessTarget(req, id))) return res.status(404).json({ error: "Target not found" });
   const history = await db
     .select()
     .from(stageChangeLogTable)

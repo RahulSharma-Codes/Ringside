@@ -3,6 +3,7 @@ import { eq, desc } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { interactionsTable, targetsTable } from "@workspace/db";
 import { CreateInteractionBody } from "@workspace/api-zod";
+import { canAccessTarget } from "../lib/target-access";
 
 const router = Router({ mergeParams: true });
 
@@ -25,6 +26,7 @@ function formatInteraction(i: InteractionRow) {
 // GET /api/targets/:id/interactions
 router.get("/", async (req, res) => {
   const id = parseInt((req.params as { id: string }).id, 10);
+  if (!(await canAccessTarget(req, id))) return res.status(404).json({ error: "Target not found" });
   const interactions = await db
     .select()
     .from(interactionsTable)
@@ -37,6 +39,7 @@ router.get("/", async (req, res) => {
 // POST /api/targets/:id/interactions
 router.post("/", async (req, res) => {
   const targetId = parseInt((req.params as { id: string }).id, 10);
+  if (!(await canAccessTarget(req, targetId))) return res.status(404).json({ error: "Target not found" });
   const parsed = CreateInteractionBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.flatten() });

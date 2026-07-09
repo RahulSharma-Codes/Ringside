@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import { actionItemsTable, targetsTable } from "@workspace/db";
 import { CreateActionBody } from "@workspace/api-zod";
 import { writeAuditEvent } from "./audit";
+import { canAccessTarget } from "../lib/target-access";
 
 const router = Router({ mergeParams: true });
 
@@ -33,6 +34,7 @@ function formatAction(a: ActionRow) {
 // GET /api/targets/:id/actions — regular actions only (workstream IS NULL)
 router.get("/", async (req, res) => {
   const id = parseInt((req.params as { id: string }).id, 10);
+  if (!(await canAccessTarget(req, id))) return res.status(404).json({ error: "Target not found" });
   const actions = await db
     .select()
     .from(actionItemsTable)
@@ -45,6 +47,7 @@ router.get("/", async (req, res) => {
 // POST /api/targets/:id/actions
 router.post("/", async (req, res) => {
   const targetId = parseInt((req.params as { id: string }).id, 10);
+  if (!(await canAccessTarget(req, targetId))) return res.status(404).json({ error: "Target not found" });
   const parsed = CreateActionBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.flatten() });
