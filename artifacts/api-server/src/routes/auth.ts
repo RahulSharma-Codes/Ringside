@@ -23,6 +23,13 @@ function isSmtpConfigured(): boolean {
   return !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 }
 
+// Returns true when at least one but not all of SMTP_HOST/SMTP_USER/SMTP_PASS
+// are set — i.e. a misconfiguration rather than "not using SMTP at all".
+export function isSmtpPartiallyConfigured(): boolean {
+  const set = [process.env.SMTP_HOST, process.env.SMTP_USER, process.env.SMTP_PASS].filter(Boolean).length;
+  return set > 0 && set < 3;
+}
+
 async function sendOtpEmail(to: string, code: string): Promise<void> {
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST!,
@@ -157,7 +164,14 @@ router.post("/otp/request", async (req, res) => {
     return res.json({ ok: true, message: "A login code has been sent to your email address." });
   }
 
-  // SMTP not configured — return code in response for dev/internal use
+  if (isSmtpPartiallyConfigured()) {
+    // Only some of SMTP_HOST/SMTP_USER/SMTP_PASS are set — this is a misconfiguration,
+    // not an intentional "no SMTP" dev setup. Never fall back to exposing the code.
+    req.log?.error("SMTP is partially configured (some but not all of SMTP_HOST/SMTP_USER/SMTP_PASS are set); refusing to send or expose OTP code");
+    return res.status(500).json({ error: "Email not configured correctly — contact your administrator." });
+  }
+
+  // SMTP not configured at all — return code in response for dev/internal use
   return res.json({ ok: true, code, message: "SMTP not configured. Code shown for development use only." });
 });
 

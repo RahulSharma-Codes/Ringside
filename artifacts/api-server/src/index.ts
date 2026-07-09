@@ -625,6 +625,22 @@ async function applyMigrations(): Promise<void> {
   await db.execute(sql`REVOKE UPDATE, DELETE ON audit_events FROM CURRENT_USER`);
 }
 
+function checkSmtpConfig(): void {
+  const vars = { SMTP_HOST: process.env.SMTP_HOST, SMTP_USER: process.env.SMTP_USER, SMTP_PASS: process.env.SMTP_PASS };
+  const setCount = Object.values(vars).filter(Boolean).length;
+  if (setCount > 0 && setCount < 3) {
+    const missing = Object.entries(vars)
+      .filter(([, v]) => !v)
+      .map(([k]) => k);
+    logger.warn(
+      { missing },
+      `SMTP is partially configured — missing ${missing.join(", ")}. OTP emails will not be sent and the OTP endpoint will return an error instead of falling back to dev mode.`,
+    );
+  }
+}
+
+checkSmtpConfig();
+
 app.listen(port, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
