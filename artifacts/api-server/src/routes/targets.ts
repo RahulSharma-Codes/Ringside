@@ -475,6 +475,7 @@ router.get("/:id", async (req, res) => {
 
 router.put("/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
+  if (!(await canAccessTarget(req, id))) return res.status(404).json({ error: "Not found" });
   const parsed = UpdateTargetBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
@@ -535,6 +536,7 @@ router.put("/:id", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
+  if (!(await canAccessTarget(req, id))) return res.status(404).json({ error: "Not found" });
   await db.update(targetsTable).set({ isActive: false, updatedAt: new Date() }).where(eq(targetsTable.id, id));
   return res.status(204).send();
 });
@@ -543,6 +545,7 @@ router.delete("/:id", async (req, res) => {
 
 router.get("/:id/stage-gate", async (req, res) => {
   const id = parseInt(req.params.id, 10);
+  if (!(await canAccessTarget(req, id))) return res.status(404).json({ error: "Not found" });
   const newStage = String(req.query.newStage ?? "").trim();
   if (!newStage) return res.status(400).json({ error: "newStage query param is required" });
 
@@ -563,6 +566,7 @@ router.get("/:id/stage-gate", async (req, res) => {
 
 router.put("/:id/stage", requireRole("Admin", "Deal Lead"), async (req, res) => {
   const id = parseInt(req.params.id as string, 10);
+  if (!(await canAccessTarget(req, id))) return res.status(404).json({ error: "Not found" });
   const parsed = UpdateTargetStageBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
