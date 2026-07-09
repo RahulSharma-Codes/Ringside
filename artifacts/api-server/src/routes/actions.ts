@@ -4,7 +4,7 @@ import { db } from "@workspace/db";
 import { actionItemsTable, targetsTable, milestonesTable, usersTable } from "@workspace/db";
 import { UpdateActionBody } from "@workspace/api-zod";
 import { writeAuditEvent } from "./audit";
-import { getAccessScope } from "../lib/target-access";
+import { getAccessScope, canAccessTarget } from "../lib/target-access";
 
 const router = Router();
 
@@ -172,6 +172,11 @@ router.put("/:id", async (req, res) => {
     .from(actionItemsTable)
     .where(eq(actionItemsTable.id, id));
 
+  if (!prevAction) return res.status(404).json({ error: "Not found" });
+  if (!(await canAccessTarget(req, prevAction.targetId))) {
+    return res.status(404).json({ error: "Not found" });
+  }
+
   const [action] = await db
     .update(actionItemsTable)
     .set(updates)
@@ -201,6 +206,16 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+
+  const [existing] = await db
+    .select({ targetId: actionItemsTable.targetId })
+    .from(actionItemsTable)
+    .where(eq(actionItemsTable.id, id));
+  if (!existing) return res.status(404).json({ error: "Not found" });
+  if (!(await canAccessTarget(req, existing.targetId))) {
+    return res.status(404).json({ error: "Not found" });
+  }
+
   await db.delete(actionItemsTable).where(eq(actionItemsTable.id, id));
   return res.status(204).send();
 });
