@@ -7,7 +7,7 @@ import {
   stageChangeLogTable,
 } from "@workspace/db";
 import { VALID_TIERS, VALID_STAGES, TERMINAL_STAGES } from "../constants";
-import { getAccessScope } from "../lib/target-access";
+import { getAccessScope, grantTargetAccess } from "../lib/target-access";
 
 const router = Router();
 
@@ -390,6 +390,8 @@ router.post("/apply", async (req, res) => {
         changeReason: "Created via CSV/Excel import",
         changedAt: now,
       });
+
+      if (scope.userId) await grantTargetAccess(target.id, scope.userId, scope.userId);
 
       created++;
     } catch (err) {

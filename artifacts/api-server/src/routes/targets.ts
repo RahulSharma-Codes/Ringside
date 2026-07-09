@@ -112,9 +112,15 @@ router.put("/reorder", async (req, res) => {
   const { orders } = parsed.data;
   if (orders.length === 0) return res.json({ updated: 0 });
 
+  const scope = await getAccessScope(req);
+  const authorizedOrders = scope.isAdmin
+    ? orders
+    : orders.filter((o) => scope.accessibleTargetIds.includes(o.id));
+  if (authorizedOrders.length === 0) return res.json({ updated: 0 });
+
   // Run all updates in a single transaction so a partial failure leaves no mixed state
   await db.transaction(async (tx) => {
-    for (const { id, sortOrder } of orders) {
+    for (const { id, sortOrder } of authorizedOrders) {
       await tx
         .update(targetsTable)
         .set({ kanbanSortOrder: sortOrder })
@@ -122,7 +128,7 @@ router.put("/reorder", async (req, res) => {
     }
   });
 
-  return res.json({ updated: orders.length });
+  return res.json({ updated: authorizedOrders.length });
 });
 
 // ── POST /api/targets ─────────────────────────────────────────────────────────
