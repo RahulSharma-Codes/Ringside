@@ -520,6 +520,19 @@ async function applyMigrations(): Promise<void> {
   await db.execute(sql`CREATE INDEX IF NOT EXISTS invite_tokens_token_hash_idx ON invite_tokens(token_hash)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS invite_tokens_email_idx ON invite_tokens(email)`);
 
+  // Per-user deal visibility — explicit target <-> user grants (Task 201)
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS target_access (
+      id          serial PRIMARY KEY,
+      target_id   integer NOT NULL REFERENCES targets(id) ON DELETE CASCADE,
+      user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      granted_by  uuid REFERENCES users(id) ON DELETE SET NULL,
+      granted_at  timestamptz NOT NULL DEFAULT now()
+    )
+  `);
+  await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS target_access_target_user_idx ON target_access(target_id, user_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS target_access_user_id_idx ON target_access(user_id)`);
+
   // ── Multi-tenancy: company_id on all core tables + RLS ───────────────────────
 
   const CORE_TABLES = [
@@ -527,7 +540,7 @@ async function applyMigrations(): Promise<void> {
     "ic_sessions", "ic_proposals", "ic_votes", "ic_cps",
     "valuations", "deal_economics", "synergies",
     "nda_records", "regulatory_clearances", "deal_advisors", "advisor_conflict_notes",
-    "audit_events", "notifications",
+    "audit_events", "notifications", "target_access",
   ] as const;
 
   // Step 1: add company_id column (idempotent)

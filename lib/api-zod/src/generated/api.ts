@@ -558,6 +558,68 @@ export const GetStageHistoryResponseItem = zod.object({
 export const GetStageHistoryResponse = zod.array(GetStageHistoryResponseItem);
 
 /**
+ * @summary List users granted access to a target (Admin only)
+ */
+export const ListTargetAccessParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListTargetAccessResponseItem = zod.object({
+  userId: zod.string(),
+  grantedAt: zod.coerce.date().nullish(),
+  grantedBy: zod.string().nullish(),
+  email: zod.string(),
+  displayName: zod.string().nullish(),
+  role: zod.string(),
+});
+export const ListTargetAccessResponse = zod.array(ListTargetAccessResponseItem);
+
+/**
+ * @summary Grant a user access to a target (Admin only)
+ */
+export const GrantTargetAccessEndpointParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GrantTargetAccessEndpointBody = zod.object({
+  userId: zod.string(),
+});
+
+/**
+ * @summary Revoke a user's access to a target (Admin only)
+ */
+export const RevokeTargetAccessParams = zod.object({
+  id: zod.coerce.number(),
+  userId: zod.coerce.string(),
+});
+
+/**
+ * @summary List target ids a user has been granted access to (Admin only)
+ */
+export const GetUserAccessParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetUserAccessResponse = zod.object({
+  targetIds: zod.array(zod.number()),
+});
+
+/**
+ * @summary Replace the full set of target ids granted to a user (Admin only)
+ */
+export const SetUserAccessParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const SetUserAccessBody = zod.object({
+  targetIds: zod.array(zod.number()),
+});
+
+export const SetUserAccessResponse = zod.object({
+  targetIds: zod.array(zod.number()),
+});
+
+/**
  * @summary List interactions for a target
  */
 export const ListInteractionsParams = zod.object({

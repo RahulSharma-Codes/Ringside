@@ -165,6 +165,22 @@ Chat interface at `/copilot` backed by `POST /api/ai/ask`. Reads a live DB snaps
 - `regulatory_clearances` table: id, target_id, category, description, owner_name, status, target_clearance_date, evidence_reference, notes, created_at, updated_at
 - OpenAPI: new `compliance` tag; 6 new paths; 6 new schemas (NdaRecord, CreateNdaRecordBody, UpdateNdaRecordBody, RegulatoryClearance, CreateRegulatoryClearanceBody, UpdateRegulatoryClearanceBody)
 
+### Phase 10A — Per-User Deal Visibility
+
+**Access model**:
+- Non-admin users see NO deals until an Admin explicitly grants access; Admins always see all deals.
+- `target_access` table: `id, targetId, userId, grantedBy, grantedAt` (+ `companyId` via RLS), unique on `(targetId, userId)`.
+- `getAccessScope(req)` / `canAccessTarget(req, targetId)` / `grantTargetAccess(...)` helpers in `artifacts/api-server/src/lib/target-access.ts`. Admin role bypasses; everyone else needs an explicit grant row.
+- Creating a target auto-grants the creator access to it.
+
+**Enforced in**: `routes/targets.ts` (list, summary, by-stage, top-priority, needs-attention, get-by-id), `routes/review.ts` (`/weekly` — all 4 parallel queries), `routes/diligence.ts` (`/review`), `routes/actions.ts` (`/open`, `/command-center`). Each short-circuits to an empty/zeroed response when a non-admin has zero grants, rather than passing an empty id list into `inArray(...)`.
+
+**Admin-only management routes**:
+- `GET/POST /api/targets/:id/access`, `DELETE /api/targets/:id/access/:userId` — per-target grant list.
+- `GET/PUT /api/admin/users/:id/access` — per-user checklist (replace-all-grants) — backs the Admin Console "Access" dialog on the Users list (`pages/admin.tsx`), a simple checkbox list of all deals.
+
+**OpenAPI**: new `access` tag; 4 new paths; `TargetAccessGrant`, `GrantTargetAccessBody`, `UserAccessList` schemas.
+
 ## Checkpoints
 
 | Label | Commit | Notes |

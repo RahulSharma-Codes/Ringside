@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Shield, UserPlus, RefreshCw, Loader2, CheckCircle2,
   Users, Trash2, AlertTriangle, MailX, MailCheck, WifiOff, Link2, Copy, Check,
+  Eye, EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { customFetch } from "@workspace/api-client-react";
+import { customFetch, useListTargets } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 
@@ -57,6 +58,10 @@ export default function AdminPage() {
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
 
+  // Access management dialog
+  const [accessUser, setAccessUser] = useState<AdminUser | null>(null);
+  const [accessSelectedIds, setAccessSelectedIds] = useState<Set<number>>(new Set());
+
   // OTP generator
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [otpEmail, setOtpEmail] = useState("");
@@ -66,6 +71,14 @@ export default function AdminPage() {
   const { data: users, isLoading, refetch } = useQuery<AdminUser[]>({
     queryKey: ["/api/admin/users"],
     queryFn: () => customFetch("/api/admin/users"),
+  });
+
+  const { data: allTargets } = useListTargets();
+
+  const { data: accessData, isLoading: accessLoading } = useQuery<{ targetIds: number[] }>({
+    queryKey: ["/api/admin/users", accessUser?.id, "access"],
+    queryFn: () => customFetch(`/api/admin/users/${accessUser!.id}/access`),
+    enabled: !!accessUser,
   });
 
   const { data: smtpStatus, isLoading: smtpLoading, refetch: refetchSmtp } =
@@ -162,6 +175,39 @@ export default function AdminPage() {
     setGeneratedCode(null);
     requestOtp.mutate(otpEmail.trim().toLowerCase());
   };
+
+  const saveAccess = useMutation({
+    mutationFn: ({ id, targetIds }: { id: string; targetIds: number[] }) =>
+      customFetch(`/api/admin/users/${id}/access`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetIds }),
+      }),
+    onSuccess: () => {
+      toast({ title: "Access updated" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users", accessUser?.id, "access"] });
+      setAccessUser(null);
+    },
+    onError: () => toast({ title: "Error updating access", variant: "destructive" }),
+  });
+
+  function openAccessDialog(user: AdminUser) {
+    setAccessUser(user);
+    setAccessSelectedIds(new Set());
+  }
+
+  function toggleAccessTarget(id: number) {
+    setAccessSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  React.useEffect(() => {
+    if (accessData) setAccessSelectedIds(new Set(accessData.targetIds));
+  }, [accessData]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -348,6 +394,18 @@ export default function AdminPage() {
               </SelectContent>
             </Select>
 
+            {/* Manage access button */}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 gap-1 text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 shrink-0 font-mono text-[10px] uppercase"
+              onClick={() => openAccessDialog(user)}
+              title="Manage deal access"
+              disabled={user.role === "Admin"}
+            >
+              <Eye size={11} /> Access
+            </Button>
+
             {/* Delete button */}
             <Button
               size="sm"
@@ -496,6 +554,76 @@ export default function AdminPage() {
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Access Management Dialog ────────────────────────────────────── */}
+      <Dialog open={!!accessUser} onOpenChange={(o) => { if (!o) setAccessUser(null); }}>
+        <DialogContent className="sm:max-w-md border-border bg-sidebar rounded-sm">
+          <DialogHeader>
+            <DialogTitle className="font-mono uppercase tracking-tight text-base flex items-center gap-2">
+              <Eye size={15} className="text-primary" /> Deal Access
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-3">
+            <p className="text-[10px] font-mono text-muted-foreground/60 leading-relaxed">
+              {accessUser?.displayName ?? accessUser?.email} can only see deals checked below.
+              Unchecked deals stay hidden from the Pipeline, Dashboard, Actions, and Weekly Review.
+            </p>
+            <div className="max-h-72 overflow-y-auto space-y-1 border border-border/40 rounded-sm p-2 bg-background/30">
+              {accessLoading && (
+                <div className="text-center py-6 text-muted-foreground/40 font-mono text-[10px]">
+                  Loading…
+                </div>
+              )}
+              {!accessLoading && (!allTargets || allTargets.length === 0) && (
+                <div className="text-center py-6 text-muted-foreground/40 font-mono text-[10px]">
+                  No deals in the pipeline yet.
+                </div>
+              )}
+              {!accessLoading && allTargets?.map((t) => (
+                <label
+                  key={t.id}
+                  className="flex items-center gap-2 p-1.5 rounded-sm hover:bg-muted/30 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={accessSelectedIds.has(t.id)}
+                    onChange={() => toggleAccessTarget(t.id)}
+                    className="accent-primary"
+                  />
+                  <span className="font-mono text-[11px] truncate">
+                    {t.targetCode} — {t.projectName}
+                  </span>
+                </label>
+              ))}
+            </div>
+            {accessSelectedIds.size === 0 && (
+              <div className="flex items-start gap-2 rounded-sm bg-amber-500/10 border border-amber-500/30 p-2">
+                <EyeOff size={12} className="text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-[10px] font-mono text-amber-700/80 leading-relaxed">
+                  No deals selected — this user won't see any deals until you grant access.
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAccessUser(null)}
+              className="rounded-sm font-mono text-[10px] uppercase"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => accessUser && saveAccess.mutate({ id: accessUser.id, targetIds: [...accessSelectedIds] })}
+              disabled={saveAccess.isPending}
+              className="rounded-sm font-mono text-[10px] uppercase"
+            >
+              {saveAccess.isPending ? <Loader2 size={10} className="animate-spin mr-1" /> : null}
+              Save Access
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

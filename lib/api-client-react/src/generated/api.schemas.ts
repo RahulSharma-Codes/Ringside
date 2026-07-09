@@ -209,6 +209,23 @@ export interface UpdateStageBody {
   closeMissTheme?: string | null;
 }
 
+export interface TargetAccessGrant {
+  userId: string;
+  grantedAt?: string | null;
+  grantedBy?: string | null;
+  email: string;
+  displayName?: string | null;
+  role: string;
+}
+
+export interface GrantTargetAccessBody {
+  userId: string;
+}
+
+export interface UserAccessList {
+  targetIds: number[];
+}
+
 export interface CreateInteractionBody {
   interactionType: string;
   summary: string;
@@ -1938,6 +1955,10 @@ export type GetTopPriorityTargetsParams = {
 
 export type GetStageGateParams = {
   newStage: string;
+};
+
+export type GrantTargetAccessEndpoint201 = {
+  granted: boolean;
 };
 
 export type ListCommandCenterActionsParams = {

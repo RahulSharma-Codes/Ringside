@@ -404,6 +404,15 @@ export const insertIcVoteSchema = createInsertSchema(icVotesTable).omit({ id: tr
 export type InsertIcVote = z.infer<typeof insertIcVoteSchema>;
 export type IcVote = typeof icVotesTable.$inferSelect;
 
+export const targetAccessTable = pgTable("target_access", {
+  id: serial("id").primaryKey(),
+  targetId: integer("target_id").notNull().references(() => targetsTable.id),
+  userId: uuid("user_id").notNull().references(() => usersTable.id),
+  grantedBy: uuid("granted_by"),
+  grantedAt: timestamp("granted_at").notNull().defaultNow(),
+});
+export type TargetAccess = typeof targetAccessTable.$inferSelect;
+
 export const icCpsTable = pgTable("ic_cps", {
   id: serial("id").primaryKey(),
   proposalId: integer("proposal_id").notNull().references(() => icProposalsTable.id),

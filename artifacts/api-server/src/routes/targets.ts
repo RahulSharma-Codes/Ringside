@@ -2,8 +2,8 @@ import { Router } from "express";
 import { requireRole } from "../middlewares/auth";
 import interactionsSubRouter from "./target-interactions";
 import actionsSubRouter from "./target-actions";
-import { eq, and, ilike, or, desc, isNull, isNotNull } from "drizzle-orm";
-import { db } from "@workspace/db";
+import { eq, and, ilike, or, desc, isNull, isNotNull, inArray, type SQL } from "drizzle-orm";
+import { db, targetAccessTable } from "@workspace/db";
 import {
   targetsTable, milestonesTable, interactionsTable, actionItemsTable, stageChangeLogTable, usersTable,
 } from "@workspace/db";
@@ -21,8 +21,20 @@ import { computeHealthScore } from "../lib/health-score";
 import {
   evaluateGates, fetchGateContext, nextPipelineStage,
 } from "./target-stage-gate-config";
+import { getAccessScope, canAccessTarget, grantTargetAccess } from "../lib/target-access";
 
 const router = Router();
+
+/** Adds a visibility condition to `conditions` for non-admins. Returns true if the
+ *  caller has zero granted targets and the route should short-circuit with an empty result. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function applyAccessScope(req: import("express").Request, conditions: any[]): Promise<boolean> {
+  const scope = await getAccessScope(req);
+  if (scope.isAdmin) return false;
+  if (scope.accessibleTargetIds.length === 0) return true;
+  conditions.push(inArray(targetsTable.id, scope.accessibleTargetIds));
+  return false;
+}
 
 // ── GET /api/targets ──────────────────────────────────────────────────────────
 
@@ -34,7 +46,7 @@ router.get("/", async (req, res) => {
   const { sector, priorityTier, stage, search, isActive, owner, country, needsAttention, dealType, myDeals } =
     parsed.data;
 
-  const conditions = [];
+  const conditions: SQL[] = [];
   if (isActive !== undefined) conditions.push(eq(targetsTable.isActive, isActive));
   else conditions.push(eq(targetsTable.isActive, true));
   if (sector) conditions.push(eq(targetsTable.sector, sector));
@@ -69,6 +81,8 @@ router.get("/", async (req, res) => {
       )!,
     );
   }
+
+  if (await applyAccessScope(req, conditions)) return res.json([]);
 
   const rows = await db
     .select({ target: targetsTable, milestone: milestonesTable })
@@ -171,16 +185,30 @@ router.post("/", async (req, res) => {
     initialStage: "Sourcing",
   });
 
+  // Auto-grant the creator visibility into the deal they just created.
+  const scope = await getAccessScope(req);
+  if (scope.userId) await grantTargetAccess(target.id, scope.userId, scope.userId);
+
   return res.status(201).json(formatTarget(target, milestone));
 });
 
 // ── GET /api/targets/summary — must come before /:id ─────────────────────────
 
-router.get("/summary", async (_req, res) => {
+router.get("/summary", async (req, res) => {
+  const conditions: SQL[] = [];
+  if (await applyAccessScope(req, conditions)) {
+    return res.json({
+      activeTargets: 0, mustWinCount: 0, priority1Count: 0, openActionsCount: 0,
+      overdueActionsCount: 0, closedDealsCount: 0, droppedDealsCount: 0, avgPriorityScore: 0,
+      needsAttentionCount: 0, recentlyUpdatedCount: 0, newDealsThisWeek: 0, newMustWinThisWeek: 0,
+    });
+  }
+
   const rows = await db
     .select({ target: targetsTable, milestone: milestonesTable })
     .from(targetsTable)
-    .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id));
+    .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id))
+    .where(conditions.length > 0 ? and(...conditions) : undefined);
 
   const active = rows.filter((row) => {
     const stage = currentStage(row.milestone);
@@ -253,12 +281,15 @@ router.get("/velocity", async (_req, res) => {
 
 // ── GET /api/targets/by-stage — must come before /:id ────────────────────────
 
-router.get("/by-stage", async (_req, res) => {
+router.get("/by-stage", async (req, res) => {
+  const conditions = [eq(targetsTable.isActive, true)];
+  if (await applyAccessScope(req, conditions)) return res.json([]);
+
   const rows = await db
     .select({ target: targetsTable, milestone: milestonesTable })
     .from(targetsTable)
     .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id))
-    .where(eq(targetsTable.isActive, true));
+    .where(and(...conditions));
 
   const counts: Record<string, number> = {};
   for (const row of rows) {
@@ -283,11 +314,14 @@ router.get("/by-stage", async (_req, res) => {
 
 router.get("/top-priority", async (req, res) => {
   const limit = Math.min(parseInt(String(req.query.limit ?? "5"), 10), 20);
+  const conditions = [eq(targetsTable.isActive, true)];
+  if (await applyAccessScope(req, conditions)) return res.json([]);
+
   const rows = await db
     .select({ target: targetsTable, milestone: milestonesTable })
     .from(targetsTable)
     .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id))
-    .where(eq(targetsTable.isActive, true));
+    .where(and(...conditions));
 
   const nowTs = Date.now();
   const ranked = rows
@@ -330,12 +364,15 @@ router.get("/filters", async (_req, res) => {
 
 // ── GET /api/targets/needs-attention — must come before /:id ─────────────────
 
-router.get("/needs-attention", async (_req, res) => {
+router.get("/needs-attention", async (req, res) => {
+  const conditions = [eq(targetsTable.isActive, true)];
+  if (await applyAccessScope(req, conditions)) return res.json([]);
+
   const rows = await db
     .select({ target: targetsTable, milestone: milestonesTable })
     .from(targetsTable)
     .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id))
-    .where(eq(targetsTable.isActive, true));
+    .where(and(...conditions));
 
   const activeRows = rows.filter((row) => !TERMINAL_STAGES.has(currentStage(row.milestone)));
   const enriched = await enrichTargetRows(activeRows);
@@ -346,6 +383,8 @@ router.get("/needs-attention", async (_req, res) => {
 
 router.get("/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
+  if (!(await canAccessTarget(req, id))) return res.status(404).json({ error: "Not found" });
+
   const [row] = await db
     .select({ target: targetsTable, milestone: milestonesTable })
     .from(targetsTable)
@@ -616,6 +655,52 @@ router.get("/:id/stage-history", async (req, res) => {
     .where(eq(stageChangeLogTable.targetId, id))
     .orderBy(desc(stageChangeLogTable.changedAt));
   return res.json(history.map(formatStageChange));
+});
+
+// ── Per-user deal access management (Admin only) ─────────────────────────────
+
+// GET /api/targets/:id/access — list users granted access to this target
+router.get("/:id/access", requireRole("Admin"), async (req, res) => {
+  const id = parseInt(req.params.id as string, 10);
+  const rows = await db
+    .select({
+      userId: targetAccessTable.userId,
+      grantedAt: targetAccessTable.grantedAt,
+      grantedBy: targetAccessTable.grantedBy,
+      email: usersTable.email,
+      displayName: usersTable.displayName,
+      role: usersTable.role,
+    })
+    .from(targetAccessTable)
+    .innerJoin(usersTable, eq(usersTable.id, targetAccessTable.userId))
+    .where(eq(targetAccessTable.targetId, id));
+
+  return res.json(
+    rows.map((r) => ({ ...r, grantedAt: toIso(r.grantedAt) })),
+  );
+});
+
+// POST /api/targets/:id/access — grant a user access to this target
+router.post("/:id/access", requireRole("Admin"), async (req, res) => {
+  const id = parseInt(req.params.id as string, 10);
+  const parsed = z.object({ userId: z.string().uuid() }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+  const [target] = await db.select({ id: targetsTable.id }).from(targetsTable).where(eq(targetsTable.id, id));
+  if (!target) return res.status(404).json({ error: "Not found" });
+
+  await grantTargetAccess(id, parsed.data.userId, req.jwtClaims?.userId ?? null);
+  return res.status(201).json({ granted: true });
+});
+
+// DELETE /api/targets/:id/access/:userId — revoke a user's access to this target
+router.delete("/:id/access/:userId", requireRole("Admin"), async (req, res) => {
+  const id = parseInt(req.params.id as string, 10);
+  const userId = req.params.userId as string;
+  await db
+    .delete(targetAccessTable)
+    .where(and(eq(targetAccessTable.targetId, id), eq(targetAccessTable.userId, userId)));
+  return res.status(204).send();
 });
 
 // ── Interactions & Actions sub-routers ───────────────────────────────────────

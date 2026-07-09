@@ -9,6 +9,7 @@ import {
   stageChangeLogTable,
 } from "@workspace/db";
 import { computeHealthScore } from "../lib/health-score";
+import { getAccessScope } from "../lib/target-access";
 
 const router = Router();
 
@@ -48,6 +49,21 @@ router.get("/weekly", async (req, res) => {
   // Build target WHERE conditions
   const targetConditions = [eq(targetsTable.isActive, true) as ReturnType<typeof eq>];
   if (dealType) targetConditions.push(eq(targetsTable.dealType, dealType));
+
+  const scope = await getAccessScope(req);
+  if (!scope.isAdmin) {
+    if (scope.accessibleTargetIds.length === 0) {
+      return res.json({
+        mustWin: [], needsAttention: [], overdueActions: [], dueThisWeek: [],
+        recentStageChanges: [], recentlyUpdated: [], noOpenAction: [], noRecentInteraction: [],
+        diligenceHealth: { lowCompletionMustWin: [], blockedTargets: [] },
+      });
+    }
+    targetConditions.push(inArray(targetsTable.id, scope.accessibleTargetIds) as ReturnType<typeof eq>);
+  }
+  const accessCondition = !scope.isAdmin
+    ? [inArray(targetsTable.id, scope.accessibleTargetIds) as ReturnType<typeof eq>]
+    : [];
 
   // ── Batch all DB reads in parallel ──────────────────────────────────────
   const [targetsWithMilestones, allOpenActions, allInteractions, recentStageChangesRaw, allDiligenceItems] =
@@ -94,6 +110,7 @@ router.get("/weekly", async (req, res) => {
             inArray(actionItemsTable.status, ["Open", "In Progress", "Blocked"]),
             isNull(actionItemsTable.workstream),
             ...(dealType ? [eq(targetsTable.dealType, dealType)] : []),
+            ...accessCondition,
           ),
         ),
 
@@ -125,6 +142,7 @@ router.get("/weekly", async (req, res) => {
           and(
             gte(stageChangeLogTable.changedAt, sevenDaysAgo),
             ...(dealType ? [eq(targetsTable.dealType, dealType)] : []),
+            ...accessCondition,
           ),
         )
         .orderBy(desc(stageChangeLogTable.changedAt)),
@@ -142,6 +160,7 @@ router.get("/weekly", async (req, res) => {
             isNotNull(actionItemsTable.workstream),
             eq(targetsTable.isActive, true),
             ...(dealType ? [eq(targetsTable.dealType, dealType)] : []),
+            ...accessCondition,
           ),
         ),
     ]);

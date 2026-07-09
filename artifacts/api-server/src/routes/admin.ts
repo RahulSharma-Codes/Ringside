@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { eq, and } from "drizzle-orm";
-import { db, usersTable, companiesTable } from "@workspace/db";
+import { eq, and, inArray } from "drizzle-orm";
+import { db, usersTable, companiesTable, targetAccessTable, targetsTable } from "@workspace/db";
+import { grantTargetAccess } from "../lib/target-access";
 
 const router = Router();
 
@@ -154,6 +155,51 @@ router.delete("/users/:id", async (req, res) => {
 
   if (!deleted) return res.status(404).json({ error: "User not found." });
   return res.json({ deleted: true, id: deleted.id, email: deleted.email });
+});
+
+// ── Per-user deal access management ──────────────────────────────────────────
+
+// GET /api/admin/users/:id/access — target ids this user has been granted access to
+router.get("/users/:id/access", async (req, res) => {
+  const rows = await db
+    .select({ targetId: targetAccessTable.targetId })
+    .from(targetAccessTable)
+    .where(eq(targetAccessTable.userId, req.params.id));
+  return res.json({ targetIds: rows.map((r) => r.targetId) });
+});
+
+// PUT /api/admin/users/:id/access — replace the full set of granted target ids for this user
+router.put("/users/:id/access", async (req, res) => {
+  const userId = req.params.id;
+  const { targetIds } = req.body ?? {};
+  if (!Array.isArray(targetIds) || !targetIds.every((t) => typeof t === "number")) {
+    return res.status(400).json({ error: "targetIds must be an array of numbers." });
+  }
+
+  const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, userId));
+  if (!user) return res.status(404).json({ error: "User not found." });
+
+  const existing = await db
+    .select({ targetId: targetAccessTable.targetId })
+    .from(targetAccessTable)
+    .where(eq(targetAccessTable.userId, userId));
+  const existingIds = new Set(existing.map((r) => r.targetId));
+  const desiredIds = new Set<number>(targetIds);
+
+  const toRevoke = [...existingIds].filter((id) => !desiredIds.has(id));
+  const toGrant = [...desiredIds].filter((id) => !existingIds.has(id));
+
+  if (toRevoke.length > 0) {
+    await db.delete(targetAccessTable).where(
+      and(eq(targetAccessTable.userId, userId), inArray(targetAccessTable.targetId, toRevoke)),
+    );
+  }
+  for (const targetId of toGrant) {
+    const [target] = await db.select({ id: targetsTable.id }).from(targetsTable).where(eq(targetsTable.id, targetId));
+    if (target) await grantTargetAccess(targetId, userId, req.jwtClaims?.userId ?? null);
+  }
+
+  return res.json({ targetIds: [...desiredIds] });
 });
 
 export default router;

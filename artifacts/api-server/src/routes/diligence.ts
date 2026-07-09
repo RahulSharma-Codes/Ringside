@@ -1,7 +1,8 @@
 import { Router } from "express";
-import { eq, isNotNull, and } from "drizzle-orm";
+import { eq, isNotNull, and, inArray } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { actionItemsTable, targetsTable, milestonesTable } from "@workspace/db";
+import { getAccessScope } from "../lib/target-access";
 
 const router = Router();
 
@@ -31,8 +32,18 @@ router.get("/review", async (req, res) => {
   today.setHours(0, 0, 0, 0);
   const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
 
+  const scope = await getAccessScope(req);
+  if (!scope.isAdmin && scope.accessibleTargetIds.length === 0) {
+    return res.json({
+      mustWinIncomplete: [], blockedItems: [], overdueItems: [], recentlyCompleted: [], targetSummaries: [],
+    });
+  }
+  const accessCondition = !scope.isAdmin
+    ? [inArray(targetsTable.id, scope.accessibleTargetIds)]
+    : [];
+
   // Build target conditions
-  const targetConditions = [] as ReturnType<typeof eq>[];
+  const targetConditions = [...accessCondition] as ReturnType<typeof eq>[];
   if (dealType) targetConditions.push(eq(targetsTable.dealType, dealType));
 
   const [allItems, allTargets, allMilestones] = await Promise.all([
@@ -62,6 +73,7 @@ router.get("/review", async (req, res) => {
         and(
           isNotNull(actionItemsTable.workstream),
           ...(dealType ? [eq(targetsTable.dealType, dealType)] : []),
+          ...accessCondition,
         ),
       ),
     db

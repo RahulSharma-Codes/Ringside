@@ -43,6 +43,8 @@ tags:
     description: Learning loop — deal closure verdicts and accuracy analysis
   - name: auth
     description: Authentication — Email OTP login, OIDC SSO stub, session logout
+  - name: access
+    description: Per-user deal visibility — admin-managed target access grants
 paths:
   /healthz:
     get:
@@ -371,6 +373,116 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/StageChange"
+
+  /targets/{id}/access:
+    get:
+      operationId: listTargetAccess
+      tags: [access]
+      summary: List users granted access to a target (Admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Users with access to this target
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TargetAccessGrant"
+    post:
+      operationId: grantTargetAccessEndpoint
+      tags: [access]
+      summary: Grant a user access to a target (Admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GrantTargetAccessBody"
+      responses:
+        "201":
+          description: Access granted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  granted:
+                    type: boolean
+                required: [granted]
+
+  /targets/{id}/access/{userId}:
+    delete:
+      operationId: revokeTargetAccess
+      tags: [access]
+      summary: Revoke a user's access to a target (Admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Access revoked
+
+  /admin/users/{id}/access:
+    get:
+      operationId: getUserAccess
+      tags: [access]
+      summary: List target ids a user has been granted access to (Admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Accessible target ids for this user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserAccessList"
+    put:
+      operationId: setUserAccess
+      tags: [access]
+      summary: Replace the full set of target ids granted to a user (Admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserAccessList"
+      responses:
+        "200":
+          description: Updated accessible target ids for this user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserAccessList"
 
   /targets/{id}/interactions:
     get:
@@ -2620,6 +2732,43 @@ components:
           type: string
           format: date-time
       required: [id, targetId, newStage, changedAt]
+
+    TargetAccessGrant:
+      type: object
+      properties:
+        userId:
+          type: string
+        grantedAt:
+          type: string
+          format: date-time
+          nullable: true
+        grantedBy:
+          type: string
+          nullable: true
+        email:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+        role:
+          type: string
+      required: [userId, email, role]
+
+    GrantTargetAccessBody:
+      type: object
+      properties:
+        userId:
+          type: string
+      required: [userId]
+
+    UserAccessList:
+      type: object
+      properties:
+        targetIds:
+          type: array
+          items:
+            type: integer
+      required: [targetIds]
 
     Interaction:
       type: object

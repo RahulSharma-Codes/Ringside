@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import { actionItemsTable, targetsTable, milestonesTable, usersTable } from "@workspace/db";
 import { UpdateActionBody } from "@workspace/api-zod";
 import { writeAuditEvent } from "./audit";
+import { getAccessScope } from "../lib/target-access";
 
 const router = Router();
 
@@ -20,7 +21,12 @@ function toDateString(value: Date | string | null | undefined): string | null {
 }
 
 // GET /api/actions/open — only regular actions (workstream IS NULL)
-router.get("/open", async (_req, res) => {
+router.get("/open", async (req, res) => {
+  const scope = await getAccessScope(req);
+  if (!scope.isAdmin && scope.accessibleTargetIds.length === 0) {
+    return res.json([]);
+  }
+
   const actions = await db
     .select({
       id: actionItemsTable.id,
@@ -43,6 +49,7 @@ router.get("/open", async (_req, res) => {
       and(
         isNull(actionItemsTable.workstream),
         inArray(actionItemsTable.status, ["Open", "In Progress", "Blocked"]),
+        ...(!scope.isAdmin ? [inArray(actionItemsTable.targetId, scope.accessibleTargetIds)] : []),
       ),
     );
 
@@ -66,6 +73,11 @@ router.get("/command-center", async (req, res) => {
   const mineOnly = (mineParam === "true" || mineParam === "1") && !!req.jwtClaims?.email;
   const dealType = (req.query.dealType as string | undefined) || undefined;
 
+  const scope = await getAccessScope(req);
+  if (!scope.isAdmin && scope.accessibleTargetIds.length === 0) {
+    return res.json([]);
+  }
+
   // Build mine condition: match owner against user's email OR displayName (both case-insensitive)
   let mineCondition: ReturnType<typeof ilike> | ReturnType<typeof or> | undefined;
   if (mineOnly) {
@@ -85,6 +97,7 @@ router.get("/command-center", async (req, res) => {
     isNull(actionItemsTable.workstream),
     ...(mineCondition ? [mineCondition] : []),
     ...(dealType ? [eq(targetsTable.dealType, dealType)] : []),
+    ...(!scope.isAdmin ? [inArray(actionItemsTable.targetId, scope.accessibleTargetIds)] : []),
     or(
       inArray(actionItemsTable.status, ["Open", "In Progress", "Blocked"]),
       and(

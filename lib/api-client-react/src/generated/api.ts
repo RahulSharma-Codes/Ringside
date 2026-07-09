@@ -72,6 +72,8 @@ import type {
   GetStageGateParams,
   GetTopPriorityTargetsParams,
   GetWeeklyReviewParams,
+  GrantTargetAccessBody,
+  GrantTargetAccessEndpoint201,
   HealthStatus,
   IcBriefResponse,
   IcCp,
@@ -107,6 +109,7 @@ import type {
   StageUpdateResponse,
   Synergy,
   Target,
+  TargetAccessGrant,
   TargetDetail,
   TimeInStageResponse,
   UnreadCountResult,
@@ -123,6 +126,7 @@ import type {
   UpdateSynergyBody,
   UpdateTargetBody,
   UpsertEconomicsBody,
+  UserAccessList,
   Valuation,
   ValuationSanityResponse,
   VelocityWeek,
@@ -1498,6 +1502,443 @@ export function useGetStageHistory<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List users granted access to a target (Admin only)
+ */
+export const getListTargetAccessUrl = (id: number) => {
+  return `/api/targets/${id}/access`;
+};
+
+export const listTargetAccess = async (
+  id: number,
+  options?: RequestInit,
+): Promise<TargetAccessGrant[]> => {
+  return customFetch<TargetAccessGrant[]>(getListTargetAccessUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListTargetAccessQueryKey = (id: number) => {
+  return [`/api/targets/${id}/access`] as const;
+};
+
+export const getListTargetAccessQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTargetAccess>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTargetAccess>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListTargetAccessQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listTargetAccess>>
+  > = ({ signal }) => listTargetAccess(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTargetAccess>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTargetAccessQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTargetAccess>>
+>;
+export type ListTargetAccessQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List users granted access to a target (Admin only)
+ */
+
+export function useListTargetAccess<
+  TData = Awaited<ReturnType<typeof listTargetAccess>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTargetAccess>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTargetAccessQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Grant a user access to a target (Admin only)
+ */
+export const getGrantTargetAccessEndpointUrl = (id: number) => {
+  return `/api/targets/${id}/access`;
+};
+
+export const grantTargetAccessEndpoint = async (
+  id: number,
+  grantTargetAccessBody: GrantTargetAccessBody,
+  options?: RequestInit,
+): Promise<GrantTargetAccessEndpoint201> => {
+  return customFetch<GrantTargetAccessEndpoint201>(
+    getGrantTargetAccessEndpointUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(grantTargetAccessBody),
+    },
+  );
+};
+
+export const getGrantTargetAccessEndpointMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof grantTargetAccessEndpoint>>,
+    TError,
+    { id: number; data: BodyType<GrantTargetAccessBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof grantTargetAccessEndpoint>>,
+  TError,
+  { id: number; data: BodyType<GrantTargetAccessBody> },
+  TContext
+> => {
+  const mutationKey = ["grantTargetAccessEndpoint"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof grantTargetAccessEndpoint>>,
+    { id: number; data: BodyType<GrantTargetAccessBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return grantTargetAccessEndpoint(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GrantTargetAccessEndpointMutationResult = NonNullable<
+  Awaited<ReturnType<typeof grantTargetAccessEndpoint>>
+>;
+export type GrantTargetAccessEndpointMutationBody =
+  BodyType<GrantTargetAccessBody>;
+export type GrantTargetAccessEndpointMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Grant a user access to a target (Admin only)
+ */
+export const useGrantTargetAccessEndpoint = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof grantTargetAccessEndpoint>>,
+    TError,
+    { id: number; data: BodyType<GrantTargetAccessBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof grantTargetAccessEndpoint>>,
+  TError,
+  { id: number; data: BodyType<GrantTargetAccessBody> },
+  TContext
+> => {
+  return useMutation(getGrantTargetAccessEndpointMutationOptions(options));
+};
+
+/**
+ * @summary Revoke a user's access to a target (Admin only)
+ */
+export const getRevokeTargetAccessUrl = (id: number, userId: string) => {
+  return `/api/targets/${id}/access/${userId}`;
+};
+
+export const revokeTargetAccess = async (
+  id: number,
+  userId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getRevokeTargetAccessUrl(id, userId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getRevokeTargetAccessMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof revokeTargetAccess>>,
+    TError,
+    { id: number; userId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof revokeTargetAccess>>,
+  TError,
+  { id: number; userId: string },
+  TContext
+> => {
+  const mutationKey = ["revokeTargetAccess"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof revokeTargetAccess>>,
+    { id: number; userId: string }
+  > = (props) => {
+    const { id, userId } = props ?? {};
+
+    return revokeTargetAccess(id, userId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RevokeTargetAccessMutationResult = NonNullable<
+  Awaited<ReturnType<typeof revokeTargetAccess>>
+>;
+
+export type RevokeTargetAccessMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Revoke a user's access to a target (Admin only)
+ */
+export const useRevokeTargetAccess = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof revokeTargetAccess>>,
+    TError,
+    { id: number; userId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof revokeTargetAccess>>,
+  TError,
+  { id: number; userId: string },
+  TContext
+> => {
+  return useMutation(getRevokeTargetAccessMutationOptions(options));
+};
+
+/**
+ * @summary List target ids a user has been granted access to (Admin only)
+ */
+export const getGetUserAccessUrl = (id: string) => {
+  return `/api/admin/users/${id}/access`;
+};
+
+export const getUserAccess = async (
+  id: string,
+  options?: RequestInit,
+): Promise<UserAccessList> => {
+  return customFetch<UserAccessList>(getGetUserAccessUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetUserAccessQueryKey = (id: string) => {
+  return [`/api/admin/users/${id}/access`] as const;
+};
+
+export const getGetUserAccessQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUserAccess>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUserAccess>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetUserAccessQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserAccess>>> = ({
+    signal,
+  }) => getUserAccess(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUserAccess>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUserAccessQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUserAccess>>
+>;
+export type GetUserAccessQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List target ids a user has been granted access to (Admin only)
+ */
+
+export function useGetUserAccess<
+  TData = Awaited<ReturnType<typeof getUserAccess>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUserAccess>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUserAccessQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Replace the full set of target ids granted to a user (Admin only)
+ */
+export const getSetUserAccessUrl = (id: string) => {
+  return `/api/admin/users/${id}/access`;
+};
+
+export const setUserAccess = async (
+  id: string,
+  userAccessList: UserAccessList,
+  options?: RequestInit,
+): Promise<UserAccessList> => {
+  return customFetch<UserAccessList>(getSetUserAccessUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(userAccessList),
+  });
+};
+
+export const getSetUserAccessMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setUserAccess>>,
+    TError,
+    { id: string; data: BodyType<UserAccessList> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setUserAccess>>,
+  TError,
+  { id: string; data: BodyType<UserAccessList> },
+  TContext
+> => {
+  const mutationKey = ["setUserAccess"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setUserAccess>>,
+    { id: string; data: BodyType<UserAccessList> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return setUserAccess(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetUserAccessMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setUserAccess>>
+>;
+export type SetUserAccessMutationBody = BodyType<UserAccessList>;
+export type SetUserAccessMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Replace the full set of target ids granted to a user (Admin only)
+ */
+export const useSetUserAccess = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setUserAccess>>,
+    TError,
+    { id: string; data: BodyType<UserAccessList> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setUserAccess>>,
+  TError,
+  { id: string; data: BodyType<UserAccessList> },
+  TContext
+> => {
+  return useMutation(getSetUserAccessMutationOptions(options));
+};
 
 /**
  * @summary List interactions for a target
