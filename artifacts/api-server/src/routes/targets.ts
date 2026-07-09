@@ -360,10 +360,15 @@ router.get("/top-priority", async (req, res) => {
 
 // ── GET /api/targets/filter-options — must come before /:id ──────────────────
 
-async function getFilterOptions() {
+async function getFilterOptions(req: import("express").Request) {
+  const scope = await getAccessScope(req);
+  if (!scope.isAdmin && scope.accessibleTargetIds.length === 0) {
+    return { owners: [], countries: [], sectors: [], dealTypes: [] };
+  }
   const rows = await db
     .select({ dealOwner: targetsTable.dealOwner, country: targetsTable.country, sector: targetsTable.sector, dealType: targetsTable.dealType })
-    .from(targetsTable);
+    .from(targetsTable)
+    .where(scope.isAdmin ? undefined : inArray(targetsTable.id, scope.accessibleTargetIds));
   return {
     owners: [...new Set(rows.map((r) => r.dealOwner).filter((v): v is string => v !== null))].sort(),
     countries: [...new Set(rows.map((r) => r.country).filter((v): v is string => v !== null))].sort(),
@@ -372,13 +377,13 @@ async function getFilterOptions() {
   };
 }
 
-router.get("/filter-options", async (_req, res) => {
-  return res.json(await getFilterOptions());
+router.get("/filter-options", async (req, res) => {
+  return res.json(await getFilterOptions(req));
 });
 
 // Alias used by review pages
-router.get("/filters", async (_req, res) => {
-  return res.json(await getFilterOptions());
+router.get("/filters", async (req, res) => {
+  return res.json(await getFilterOptions(req));
 });
 
 // ── GET /api/targets/needs-attention — must come before /:id ─────────────────

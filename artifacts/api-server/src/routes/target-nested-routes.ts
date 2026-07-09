@@ -21,12 +21,24 @@ import { CreateDiligenceItemBody } from "@workspace/api-zod";
 import { requireRole } from "../middlewares/auth";
 import { writeAuditEvent } from "./audit";
 import { toIso, toDateString, formatAction, formatInteraction, formatStageChange } from "./target-helpers";
+import { canAccessTarget } from "../lib/target-access";
 
 const router = Router({ mergeParams: true });
 
 function id(req: { params: Record<string, string | string[]> }): number {
   return parseInt(req.params.id as string, 10);
 }
+
+// Every route in this router is nested under /:id — enforce per-user deal
+// visibility once, for every method, before any handler runs.
+router.use("/:id", async (req, res, next) => {
+  const targetId = id(req);
+  if (!(await canAccessTarget(req, targetId))) {
+    res.status(404).json({ error: "Target not found" });
+    return;
+  }
+  next();
+});
 
 // ── Diligence ─────────────────────────────────────────────────────────────────
 
