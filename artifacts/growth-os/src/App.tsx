@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider } from "next-themes";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -470,22 +471,24 @@ function App() {
   const isAcceptInvite = pathWithoutBase.startsWith("/accept-invite");
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        {isAcceptInvite ? (
-          <AcceptInvitePage onLogin={() => setIsAuthenticated(true)} />
-        ) : isAuthenticated ? (
-          <AuthProvider>
-            <WouterRouter base={base}>
-              <Router />
-            </WouterRouter>
-          </AuthProvider>
-        ) : (
-          <LoginScreen onLogin={() => setIsAuthenticated(true)} />
-        )}
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="ringside-theme">
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          {isAcceptInvite ? (
+            <AcceptInvitePage onLogin={() => setIsAuthenticated(true)} />
+          ) : isAuthenticated ? (
+            <AuthProvider>
+              <WouterRouter base={base}>
+                <Router />
+              </WouterRouter>
+            </AuthProvider>
+          ) : (
+            <LoginScreen onLogin={() => setIsAuthenticated(true)} />
+          )}
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

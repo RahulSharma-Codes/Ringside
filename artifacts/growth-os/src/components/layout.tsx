@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useTheme } from "next-themes";
 import {
   Target, ListTodo, Briefcase, Plus, BarChart3, Bot, CalendarCheck,
   ClipboardCheck, Upload, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu,
-  FolderOpen, LineChart, ShieldCheck, Lightbulb, LogOut,
+  FolderOpen, LineChart, ShieldCheck, Lightbulb, LogOut, Sun, Moon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -12,6 +13,67 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { NotificationBell } from "@/components/notification-bell";
 import { useAuth } from "@/contexts/auth-context";
 import { customFetch } from "@workspace/api-client-react";
+
+// ─── Theme toggle ────────────────────────────────────────────────────────────
+
+function ThemeToggle({ collapsed }: { collapsed: boolean }) {
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const isDark = mounted ? (theme ?? resolvedTheme) === "dark" : true;
+  const toggle = () => setTheme(isDark ? "light" : "dark");
+
+  if (collapsed) {
+    return (
+      <Tooltip delayDuration={0}>
+        <TooltipTrigger asChild>
+          <button
+            onClick={toggle}
+            className="w-7 h-7 flex items-center justify-center rounded-md text-sidebar-foreground/40 hover:text-sidebar-foreground/80 hover:bg-white/6 transition-colors"
+            aria-label="Toggle theme"
+          >
+            {isDark ? <Moon size={12} /> : <Sun size={12} />}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right" sideOffset={8}>
+          <span className="font-mono text-[11px]">{isDark ? "Switch to light" : "Switch to dark"}</span>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <button
+      onClick={toggle}
+      className="flex items-center gap-1 text-[10px] font-mono text-sidebar-foreground/40 hover:text-sidebar-foreground/70 transition-colors rounded-sm px-1.5 py-1 hover:bg-white/5"
+      title={isDark ? "Switch to light theme" : "Switch to dark theme"}
+      aria-label="Toggle theme"
+    >
+      {isDark ? <Moon size={11} /> : <Sun size={11} />}
+      <span className="uppercase tracking-widest">{isDark ? "Dark" : "Light"}</span>
+    </button>
+  );
+}
+
+function MobileThemeToggle() {
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const isDark = mounted ? (theme ?? resolvedTheme) === "dark" : true;
+  const toggle = () => setTheme(isDark ? "light" : "dark");
+
+  return (
+    <button
+      onClick={toggle}
+      className="w-8 h-8 flex items-center justify-center rounded-lg text-sidebar-foreground/60 hover:text-foreground hover:bg-white/8 transition-colors"
+      aria-label="Toggle theme"
+    >
+      {isDark ? <Moon size={15} /> : <Sun size={15} />}
+    </button>
+  );
+}
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -208,6 +270,7 @@ function SidebarNav({
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
             </span>
+            <ThemeToggle collapsed />
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
                 <button
@@ -231,14 +294,17 @@ function SidebarNav({
               </span>
               Live
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1 text-[10px] font-mono text-sidebar-foreground/30 hover:text-sidebar-foreground/60 transition-colors rounded-sm px-1.5 py-1 hover:bg-white/5"
-              title="Logout"
-            >
-              <LogOut size={11} />
-              <span className="uppercase tracking-widest">Logout</span>
-            </button>
+            <div className="flex items-center gap-1">
+              <ThemeToggle collapsed={false} />
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1 text-[10px] font-mono text-sidebar-foreground/30 hover:text-sidebar-foreground/60 transition-colors rounded-sm px-1.5 py-1 hover:bg-white/5"
+                title="Logout"
+              >
+                <LogOut size={11} />
+                <span className="uppercase tracking-widest">Logout</span>
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -319,6 +385,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <span className="font-bold text-[11px] tracking-widest uppercase text-foreground/90 font-mono">Ringside</span>
         </div>
         <div className="flex items-center gap-1.5">
+          <MobileThemeToggle />
           <NotificationBell />
           <Link href="/targets/new">
             <Button size="sm" className="h-7 px-2.5 rounded-lg font-mono text-[10px] uppercase gap-1.5 font-semibold">

@@ -67,6 +67,91 @@
 }
 
 :root {
+  --button-outline: rgba(0,0,0, .08);
+  --badge-outline: rgba(0,0,0, .06);
+  --opaque-button-border-intensity: 9;
+  --elevate-1: rgba(0,0,0, .035);
+  --elevate-2: rgba(0,0,0, .07);
+
+  /* ── Ringside light surface ramp ─────────────────────────── */
+  /* sidebar (98%) → background (99%) → card (100%) → secondary (94%) */
+
+  --background: 40 30% 98%;        /* warm ivory paper */
+  --foreground: 240 20% 12%;       /* near-black charcoal */
+  --border: 240 12% 86%;
+
+  /* Card — clean white, subtly elevated above page canvas */
+  --card: 0 0% 100%;
+  --card-foreground: 240 20% 12%;
+  --card-border: 240 12% 87%;
+
+  /* Sidebar — light ivory shell, one shade off the page canvas */
+  --sidebar: 40 24% 96%;
+  --sidebar-foreground: 240 18% 22%;
+  --sidebar-border: 240 12% 88%;
+  --sidebar-primary: 42 70% 40%;   /* deeper antique gold — legible on light */
+  --sidebar-primary-foreground: 40 30% 98%;
+  --sidebar-accent: 240 10% 91%;
+  --sidebar-accent-foreground: 240 20% 12%;
+  --sidebar-ring: 42 70% 40%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 20% 12%;
+  --popover-border: 240 12% 87%;
+
+  /* ── Colour scale ────────────────────────────────────────── */
+  --primary: 42 70% 40%;           /* deeper antique gold — meets contrast on light */
+  --primary-foreground: 40 30% 98%;
+  --secondary: 240 10% 92%;
+  --secondary-foreground: 240 20% 15%;
+  --muted: 240 10% 94%;
+  --muted-foreground: 220 8% 40%;  /* muted stone / blue-gray, darker for contrast */
+  --accent: 240 10% 92%;
+  --accent-foreground: 240 20% 15%;
+
+  /* Controlled crimson — legible on light backgrounds */
+  --destructive: 0 70% 42%;
+  --destructive-foreground: 40 30% 98%;
+
+  --input: 240 12% 88%;
+  --ring: 42 70% 40%;
+
+  /* ── Charts ──────────────────────────────────────────────── */
+  --chart-1: 42 70% 40%;           /* deeper gold / primary */
+  --chart-2: 160 55% 32%;          /* emerald, darkened for light bg */
+  --chart-3: 32 85% 42%;           /* amber, darkened */
+  --chart-4: 185 60% 30%;          /* deep teal */
+  --chart-5: 0 70% 42%;            /* controlled crimson */
+
+  /* ── Typography ──────────────────────────────────────────── */
+  --app-font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --app-font-serif: Georgia, serif;
+  --app-font-mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* ── Radius ───────────────────────────────────────────────── */
+  --radius: 0.5rem;
+
+  /* ── Soft shadows for light premium feel ─────────────────── */
+  --shadow-2xs: 0 1px 2px 0 rgba(16,24,40,.04);
+  --shadow-xs:  0 1px 3px 0 rgba(16,24,40,.06),  0 1px 2px -1px rgba(16,24,40,.05);
+  --shadow-sm:  0 2px 4px 0 rgba(16,24,40,.07),  0 1px 2px -1px rgba(16,24,40,.05);
+  --shadow:     0 4px 8px 0 rgba(16,24,40,.08),  0 2px 4px -1px rgba(16,24,40,.06);
+  --shadow-md:  0 6px 16px 0 rgba(16,24,40,.09), 0 3px 6px  -1px rgba(16,24,40,.06);
+  --shadow-lg:  0 12px 24px 0 rgba(16,24,40,.1), 0 6px 12px -2px rgba(16,24,40,.07);
+  --shadow-xl:  0 20px 40px 0 rgba(16,24,40,.12), 0 10px 20px -4px rgba(16,24,40,.08);
+  --shadow-2xl: 0 32px 64px 0 rgba(16,24,40,.14);
+
+  /* ── Token aliases ───────────────────────────────────────── */
+  --sidebar-primary-border: hsl(var(--sidebar-primary));
+  --sidebar-accent-border: hsl(var(--sidebar-accent));
+  --primary-border: hsl(var(--primary));
+  --secondary-border: hsl(var(--secondary));
+  --muted-border: hsl(var(--muted));
+  --accent-border: hsl(var(--accent));
+  --destructive-border: hsl(var(--destructive));
+}
+
+.dark {
   --button-outline: rgba(255,255,255, .10);
   --badge-outline: rgba(255,255,255, .08);
   --opaque-button-border-intensity: 9;
@@ -123,14 +208,6 @@
   --chart-4: 185 60% 38%;          /* deep teal */
   --chart-5: 0 68% 52%;            /* controlled crimson */
 
-  /* ── Typography ──────────────────────────────────────────── */
-  --app-font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --app-font-serif: Georgia, serif;
-  --app-font-mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-
-  /* ── Radius ───────────────────────────────────────────────── */
-  --radius: 0.5rem;
-
   /* ── Deeper shadows for dark premium feel ────────────────── */
   --shadow-2xs: 0 1px 2px 0 rgba(0,0,0,.45);
   --shadow-xs:  0 1px 3px 0 rgba(0,0,0,.5),  0 1px 2px -1px rgba(0,0,0,.4);
@@ -149,10 +226,6 @@
   --muted-border: hsl(var(--muted));
   --accent-border: hsl(var(--accent));
   --destructive-border: hsl(var(--destructive));
-}
-
-.dark {
-  /* Defaulting root to dark */
 }
 
 @layer base {
