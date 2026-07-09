@@ -30,7 +30,7 @@ import AcceptInvitePage from "@/pages/accept-invite";
 
 const queryClient = new QueryClient();
 
-// Auth token storage — stores either a raw APP_PASSWORD (legacy) or a JWT
+// Auth token storage — always a JWT issued by /api/auth/login or /api/auth/otp/verify
 const AUTH_TOKEN_KEY = "ig_os_auth_token";
 
 setAuthTokenGetter(() => {
@@ -38,9 +38,9 @@ setAuthTokenGetter(() => {
   return window.localStorage.getItem(AUTH_TOKEN_KEY);
 });
 
-// ── Login screen — OTP only ────────────────────────────────────────────────────
+// ── Login screen — password (default) with OTP as backup ───────────────────────
 
-type LoginMode = "otp-email" | "otp-code";
+type LoginMode = "password" | "otp-email" | "otp-code" | "set-password";
 
 interface OtpState {
   email: string;
@@ -50,8 +50,10 @@ interface OtpState {
 }
 
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
-  const [mode, setMode] = useState<LoginMode>("otp-email");
+  const [mode, setMode] = useState<LoginMode>("password");
   const [otp, setOtp] = useState<OtpState>({ email: "", code: "", serverCode: null });
+  const [passwordForm, setPasswordForm] = useState({ email: "", password: "" });
+  const [newPassword, setNewPassword] = useState({ password: "", confirm: "" });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [oidcConfig, setOidcConfig] = useState<{ configured: boolean; clientId?: string; issuer?: string; authorizationEndpoint?: string } | null>(null);
@@ -62,6 +64,37 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
       .then((d) => setOidcConfig(d))
       .catch(() => setOidcConfig({ configured: false }));
   }, []);
+
+  // ── Password login ──────────────────────────────────────────────────────────
+
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordForm.email.trim() || !passwordForm.password) return;
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: passwordForm.email.trim().toLowerCase(), password: passwordForm.password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Invalid credentials.");
+        return;
+      }
+      window.localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+      if (data.needsPasswordSetup) {
+        setMode("set-password");
+      } else {
+        onLogin();
+      }
+    } catch {
+      setError("Login failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // ── OTP — step 1: request code ──────────────────────────────────────────────
 
@@ -106,9 +139,49 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
       }
       const data = await res.json();
       window.localStorage.setItem(AUTH_TOKEN_KEY, data.token);
-      onLogin();
+      if (data.needsPasswordSetup) {
+        setMode("set-password");
+      } else {
+        onLogin();
+      }
     } catch {
       setError("Verification failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ── Set password (after first-time OTP login) ───────────────────────────────
+
+  const handleSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (newPassword.password !== newPassword.confirm) {
+      setError("Passwords do not match.");
+      return;
+    }
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/set-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${window.localStorage.getItem(AUTH_TOKEN_KEY)}`,
+        },
+        body: JSON.stringify({ password: newPassword.password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Could not set password.");
+        return;
+      }
+      onLogin();
+    } catch {
+      setError("Could not set password. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -125,6 +198,96 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
+
+          {/* ── Password login (default) ── */}
+          {mode === "password" && (
+            <form onSubmit={handlePasswordLogin} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  Email Address
+                </label>
+                <Input
+                  type="email"
+                  value={passwordForm.email}
+                  onChange={(e) => setPasswordForm((p) => ({ ...p, email: e.target.value }))}
+                  placeholder="you@example.com"
+                  className="rounded-sm bg-background/50"
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  Password
+                </label>
+                <Input
+                  type="password"
+                  value={passwordForm.password}
+                  onChange={(e) => setPasswordForm((p) => ({ ...p, password: e.target.value }))}
+                  placeholder="••••••••"
+                  className="rounded-sm bg-background/50"
+                />
+              </div>
+              {error && <p className="text-sm text-destructive font-mono">{error}</p>}
+              <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]" disabled={!passwordForm.email.trim() || !passwordForm.password || isSubmitting}>
+                {isSubmitting ? "Signing in…" : "Sign In"}
+              </Button>
+              <div className="flex items-center justify-center">
+                <button type="button" onClick={() => { setError(null); setMode("otp-email"); }}
+                  className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2">
+                  Use a login code instead
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ── Set password (first-time login, or after OTP fallback) ── */}
+          {mode === "set-password" && (
+            <form onSubmit={handleSetPassword} className="space-y-4">
+              <div className="rounded-sm border border-primary/30 bg-primary/10 p-3 space-y-1">
+                <p className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider">
+                  Set a password
+                </p>
+                <p className="text-sm font-mono text-foreground/80">
+                  You're signed in. Set a password now so you can sign in faster next time.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  New Password
+                </label>
+                <Input
+                  type="password"
+                  value={newPassword.password}
+                  onChange={(e) => setNewPassword((p) => ({ ...p, password: e.target.value }))}
+                  placeholder="At least 8 characters"
+                  className="rounded-sm bg-background/50"
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  Confirm Password
+                </label>
+                <Input
+                  type="password"
+                  value={newPassword.confirm}
+                  onChange={(e) => setNewPassword((p) => ({ ...p, confirm: e.target.value }))}
+                  placeholder="Re-enter password"
+                  className="rounded-sm bg-background/50"
+                />
+              </div>
+              {error && <p className="text-sm text-destructive font-mono">{error}</p>}
+              <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]" disabled={!newPassword.password || isSubmitting}>
+                {isSubmitting ? "Saving…" : "Set Password"}
+              </Button>
+              <div className="flex items-center justify-center">
+                <button type="button" onClick={() => onLogin()}
+                  className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2">
+                  Skip for now
+                </button>
+              </div>
+            </form>
+          )}
 
           {/* ── OTP step 1: enter email ── */}
           {mode === "otp-email" && (
@@ -149,6 +312,12 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
               <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]" disabled={!otp.email.trim() || isSubmitting}>
                 {isSubmitting ? "Generating…" : "Get Code"}
               </Button>
+              <div className="flex items-center justify-center">
+                <button type="button" onClick={() => { setError(null); setMode("password"); }}
+                  className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2">
+                  ← Back to password login
+                </button>
+              </div>
             </form>
           )}
 

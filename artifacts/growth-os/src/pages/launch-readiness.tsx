@@ -26,7 +26,7 @@ interface AiStatusResponse {
 }
 
 interface LaunchReadinessResponse {
-  appPasswordSet: boolean;
+  sessionSecretConfigured: boolean;
   aiKeySet: boolean;
 }
 
@@ -68,19 +68,18 @@ export default function LaunchReadiness() {
       icon: <CreditCard size={15} className="text-muted-foreground" />,
     },
     {
-      id: "app-password",
-      label: "APP_PASSWORD configured",
-      description: "A shared access password is set in environment secrets.",
+      id: "session-secret",
+      label: "SESSION_SECRET configured",
+      description: "A strong session signing secret is set in environment secrets.",
       state: "loading",
       icon: <Lock size={15} className="text-muted-foreground" />,
     },
     {
       id: "email-auth",
-      label: "Email-based auth",
-      description: "Per-user email/password authentication via Supabase Auth.",
-      state: "unknown",
+      label: "Per-user login",
+      description: "Each user signs in with their own email + password, with OTP as backup.",
+      state: "pass",
       icon: <ShieldCheck size={15} className="text-muted-foreground" />,
-      guidance: "Not yet enabled — see docs/auth-architecture.md for the migration plan.",
     },
     {
       id: "storage",
@@ -164,21 +163,21 @@ export default function LaunchReadiness() {
         updateCheck("ai-billing", { state: "warn", description: "Could not reach /api/ai/status." });
       });
 
-    // Check 4: APP_PASSWORD via /api/launch/readiness (public, no auth needed)
+    // Check 4: SESSION_SECRET via /api/launch/readiness (public, no auth needed)
     fetch("/api/launch/readiness")
       .then((r) => r.json())
       .then((data: LaunchReadinessResponse) => {
-        if (data.appPasswordSet) {
-          updateCheck("app-password", { state: "pass", description: "APP_PASSWORD is configured." });
+        if (data.sessionSecretConfigured) {
+          updateCheck("session-secret", { state: "pass", description: "SESSION_SECRET is configured." });
         } else {
-          updateCheck("app-password", {
+          updateCheck("session-secret", {
             state: "warn",
-            description: "APP_PASSWORD is not set — the app will reject all API requests until it is configured.",
+            description: "SESSION_SECRET is not set (or using the dev default) — set a strong secret before going live.",
           });
         }
       })
       .catch(() => {
-        updateCheck("app-password", { state: "warn", description: "Could not reach /api/launch/readiness." });
+        updateCheck("session-secret", { state: "warn", description: "Could not reach /api/launch/readiness." });
       });
 
     return () => { mounted = false; };

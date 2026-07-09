@@ -4,7 +4,7 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import authRouter from "./routes/auth";
 import launchRouter from "./routes/launch";
-import { requireAppPassword } from "./middlewares/auth";
+import { requireAuth } from "./middlewares/auth";
 import { logger } from "./lib/logger";
 import { acquireRequestContext } from "@workspace/db";
 
@@ -62,7 +62,7 @@ async function companyContextMiddleware(req: Request, res: Response, next: NextF
   }
 }
 
-app.use("/api", requireAppPassword, companyContextMiddleware, router);
+app.use("/api", requireAuth, companyContextMiddleware, router);
 
 // Error handler — surfaces cause so we can see the underlying Postgres error
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

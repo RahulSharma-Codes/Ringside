@@ -3,11 +3,11 @@ import { Router } from "express";
 const router = Router();
 
 router.get("/readiness", (_req, res) => {
-  const appPasswordSet = Boolean(process.env["APP_PASSWORD"]);
+  const sessionSecretConfigured = Boolean(process.env["SESSION_SECRET"]) && process.env["SESSION_SECRET"] !== "dev-secret-change-me";
   const aiKeySet = Boolean(process.env["OPENAI_API_KEY"]);
 
   return res.json({
-    appPasswordSet,
+    sessionSecretConfigured,
     aiKeySet,
   });
 });

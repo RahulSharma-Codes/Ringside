@@ -29,13 +29,11 @@ function extractBearerToken(header: string | undefined): string | null {
 }
 
 /** Middleware factory — ensures the authenticated user has one of the allowed roles.
- *  Must be used after requireAppPassword (which populates req.jwtClaims).
- *  Legacy sessions without JWT claims are rejected unless allowLegacy is true. */
+ *  Must be used after requireAuth (which populates req.jwtClaims). */
 export function requireRole(...roles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     const claims = req.jwtClaims;
     if (!claims) {
-      // No JWT — reject; legacy APP_PASSWORD sessions cannot carry role info
       return res.status(403).json({ error: "A signed-in account is required for this action." });
     }
     if (!roles.includes(claims.role)) {
@@ -45,43 +43,33 @@ export function requireRole(...roles: string[]) {
   };
 }
 
-export async function requireAppPassword(req: Request, res: Response, next: NextFunction) {
+/** Verifies the request carries a valid, non-revoked JWT and attaches its claims to req.jwtClaims.
+ *  Per-user password/OTP login are the only ways to obtain a JWT — there is no shared-secret fallback. */
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (req.method === "OPTIONS") return next();
   if (req.path === "/healthz" || req.path.startsWith("/auth/")) return next();
 
-  const expectedPassword = process.env.APP_PASSWORD;
   const bearerToken = extractBearerToken(req.get("authorization"));
-  const headerPassword = req.get("x-app-password") ?? null;
-
-  // 1. Try JWT verification
-  if (bearerToken && bearerToken !== expectedPassword) {
-    try {
-      const claims = jwt.verify(bearerToken, JWT_SECRET) as JwtClaims;
-      // Check session blocklist (logout revocation)
-      const [blocked] = await db
-        .select({ id: sessionBlocklistTable.id })
-        .from(sessionBlocklistTable)
-        .where(eq(sessionBlocklistTable.jti, claims.jti))
-        .limit(1);
-      if (blocked) return res.status(401).json({ error: "Session has been revoked. Please log in again." });
-      req.jwtClaims = claims;
-      // Opportunistic cleanup: prune expired blocklist rows (fire-and-forget, never blocks the request)
-      db.delete(sessionBlocklistTable)
-        .where(lt(sessionBlocklistTable.expiresAt, new Date()))
-        .catch(() => { /* ignore cleanup errors */ });
-      return next();
-    } catch {
-      // Fall through to legacy check
-    }
+  if (!bearerToken) {
+    return res.status(401).json({ error: "Authentication required." });
   }
 
-  // 2. Legacy shared-password fallback (for existing sessions stored in localStorage)
-  if (!expectedPassword) {
-    return res.status(500).json({ error: "APP_PASSWORD is not configured in Replit Secrets." });
-  }
-  if (bearerToken === expectedPassword || headerPassword === expectedPassword) {
+  try {
+    const claims = jwt.verify(bearerToken, JWT_SECRET) as JwtClaims;
+    // Check session blocklist (logout revocation)
+    const [blocked] = await db
+      .select({ id: sessionBlocklistTable.id })
+      .from(sessionBlocklistTable)
+      .where(eq(sessionBlocklistTable.jti, claims.jti))
+      .limit(1);
+    if (blocked) return res.status(401).json({ error: "Session has been revoked. Please log in again." });
+    req.jwtClaims = claims;
+    // Opportunistic cleanup: prune expired blocklist rows (fire-and-forget, never blocks the request)
+    db.delete(sessionBlocklistTable)
+      .where(lt(sessionBlocklistTable.expiresAt, new Date()))
+      .catch(() => { /* ignore cleanup errors */ });
     return next();
+  } catch {
+    return res.status(401).json({ error: "Invalid or expired session. Please log in again." });
   }
-
-  return res.status(401).json({ error: "Authentication required." });
 }

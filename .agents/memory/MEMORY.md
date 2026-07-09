@@ -3,3 +3,4 @@
 - [RLS pool.query intercept](rls-pool-intercept.md) — pool.query overridden to route through per-request PoolClient; Proxy on db object is unreliable for Drizzle
 - [Schema vs DB drift](schema-db-drift.md) — targets table missing deal_type; always add IF NOT EXISTS ALTER TABLE when adding Drizzle schema columns
 - [Tab extraction pattern](tab-extraction-pattern.md) — how tab components are extracted from target-detail.tsx; mobile bar bridge uses addOpen/onAddOpenChange props
+- [Auth model](auth-model.md) — password login is default, OTP is backup/first-login path; no shared-secret auth exists anymore

@@ -4,7 +4,7 @@ import { createHash, randomInt, randomBytes } from "crypto";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
-import { db, usersTable, otpAttemptsTable, companiesTable, sessionBlocklistTable } from "@workspace/db";
+import { db, usersTable, otpAttemptsTable, sessionBlocklistTable } from "@workspace/db";
 import { writeAuditEvent } from "./audit";
 import type { JwtClaims } from "../middlewares/auth";
 
@@ -69,55 +69,83 @@ function issueJwt(payload: { userId: string; companyId: string; email: string; r
   return jwt.sign({ ...payload, jti }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
 }
 
-async function getOrCreateDefaultCompany(): Promise<{ id: string }> {
-  const [existing] = await db.select({ id: companiesTable.id }).from(companiesTable).limit(1);
-  return existing ?? { id: "00000000-0000-0000-0000-000000000000" };
-}
+const PASSWORD_MAX_ATTEMPTS = 5;
+const PASSWORD_LOCKOUT_MS = 15 * 60 * 1000;
 
-// ── POST /api/auth/login (legacy password — disabled by default) ───────────────
-// Enabled only when ALLOW_LEGACY_PASSWORD=true is explicitly set.
-// OTP is the primary auth flow; this route exists for emergency break-glass access only.
+// ── POST /api/auth/login — email + password (default login method) ─────────────
+// OTP (below) remains available as a backup for users who haven't set a password yet,
+// or who've forgotten theirs. There is no shared/legacy password path.
 
 router.post("/login", async (req, res) => {
-  if (process.env.ALLOW_LEGACY_PASSWORD !== "true") {
-    return res.status(403).json({ error: "Password login is disabled. Use email OTP to sign in." });
-  }
-
   const suppliedPassword = typeof req.body?.password === "string" ? req.body.password : "";
-  const suppliedEmail    = typeof req.body?.email    === "string" ? req.body.email    : "";
-  const expectedPassword = process.env.APP_PASSWORD;
+  const suppliedEmail    = typeof req.body?.email    === "string" ? req.body.email.toLowerCase().trim() : "";
 
-  // Legacy shared-password path
-  if (!suppliedEmail && suppliedPassword && expectedPassword) {
-    if (suppliedPassword !== expectedPassword) {
-      return res.status(401).json({ error: "Invalid password." });
-    }
-    const company = await getOrCreateDefaultCompany();
-    const [user] = await db.select().from(usersTable)
-      .where(and(eq(usersTable.companyId, company.id), eq(usersTable.role, "Admin")))
-      .limit(1);
-    if (user) {
-      const token = issueJwt({ userId: user.id, companyId: company.id, email: user.email, role: user.role });
-      await writeAuditEvent("login", null, user.email, { method: "legacy-password", email: user.email });
-      return res.json({ ok: true, token, user: { id: user.id, email: user.email, role: user.role, displayName: user.displayName } });
-    }
-    return res.json({ ok: true, token: null });
+  if (!suppliedEmail || !suppliedPassword) {
+    return res.status(400).json({ error: "Email and password are required." });
   }
 
-  // Email + password login
-  if (suppliedEmail) {
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, suppliedEmail.toLowerCase())).limit(1);
-    if (!user || !user.passwordHash) {
-      return res.status(401).json({ error: "Invalid credentials." });
-    }
-    const valid = await bcrypt.compare(suppliedPassword, user.passwordHash);
-    if (!valid) return res.status(401).json({ error: "Invalid credentials." });
-    const token = issueJwt({ userId: user.id, companyId: user.companyId, email: user.email, role: user.role });
-    await writeAuditEvent("login", null, user.email, { method: "password", email: user.email });
-    return res.json({ ok: true, token, user: { id: user.id, email: user.email, role: user.role, displayName: user.displayName } });
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, suppliedEmail)).limit(1);
+
+  // Don't reveal whether the account exists or has a password set — generic error either way.
+  if (!user || !user.passwordHash) {
+    return res.status(401).json({ error: "Invalid credentials. If you haven't set a password yet, use a login code instead." });
   }
 
-  return res.status(400).json({ error: "Missing credentials." });
+  const now = new Date();
+  if (user.passwordLockedUntil && user.passwordLockedUntil > now) {
+    return res.status(429).json({ error: "Too many failed attempts. Try again later, or use a login code instead." });
+  }
+
+  const valid = await bcrypt.compare(suppliedPassword, user.passwordHash);
+  if (!valid) {
+    const newAttempts = user.failedPasswordAttempts + 1;
+    const lockedUntil = newAttempts >= PASSWORD_MAX_ATTEMPTS ? new Date(Date.now() + PASSWORD_LOCKOUT_MS) : null;
+    await db.update(usersTable)
+      .set({ failedPasswordAttempts: newAttempts, passwordLockedUntil: lockedUntil })
+      .where(eq(usersTable.id, user.id));
+    if (lockedUntil) {
+      await writeAuditEvent("password_lockout", null, user.email, { email: user.email, attempts: newAttempts, lockedUntilIso: lockedUntil.toISOString() });
+    }
+    return res.status(401).json({ error: "Invalid credentials." });
+  }
+
+  if (user.failedPasswordAttempts > 0 || user.passwordLockedUntil) {
+    await db.update(usersTable)
+      .set({ failedPasswordAttempts: 0, passwordLockedUntil: null })
+      .where(eq(usersTable.id, user.id));
+  }
+
+  const token = issueJwt({ userId: user.id, companyId: user.companyId, email: user.email, role: user.role });
+  await writeAuditEvent("login", null, user.email, { method: "password", email: user.email });
+  return res.json({ ok: true, token, user: { id: user.id, email: user.email, role: user.role, displayName: user.displayName } });
+});
+
+// ── POST /api/auth/set-password ─────────────────────────────────────────────────
+// Requires a valid JWT (obtained via OTP or invite-accept). Lets a signed-in user
+// set/change their password so they can use password login going forward.
+
+router.post("/set-password", async (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) return res.status(401).json({ error: "Authentication required." });
+
+  let claims: JwtClaims;
+  try {
+    claims = jwt.verify(token, JWT_SECRET) as JwtClaims;
+  } catch {
+    return res.status(401).json({ error: "Invalid or expired session." });
+  }
+
+  const password = typeof req.body?.password === "string" ? req.body.password : "";
+  if (password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters." });
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  await db.update(usersTable)
+    .set({ passwordHash, failedPasswordAttempts: 0, passwordLockedUntil: null })
+    .where(eq(usersTable.id, claims.userId));
+
+  await writeAuditEvent("password_set", null, claims.email, { email: claims.email });
+  return res.json({ ok: true });
 });
 
 // ── POST /api/auth/otp/request ────────────────────────────────────────────────
@@ -214,7 +242,12 @@ router.post("/otp/verify", async (req, res) => {
   if (!user) return res.status(401).json({ error: "User not found." });
 
   const token = issueJwt({ userId: user.id, companyId: user.companyId, email: user.email, role: user.role });
-  return res.json({ ok: true, token, user: { id: user.id, email: user.email, role: user.role, displayName: user.displayName } });
+  return res.json({
+    ok: true,
+    token,
+    needsPasswordSetup: !user.passwordHash,
+    user: { id: user.id, email: user.email, role: user.role, displayName: user.displayName },
+  });
 });
 
 // ── POST /api/auth/logout ─────────────────────────────────────────────────────

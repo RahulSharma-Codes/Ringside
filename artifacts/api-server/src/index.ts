@@ -440,17 +440,15 @@ async function applyMigrations(): Promise<void> {
     )
   `);
   await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email)`);
-  // Seed default admin user from APP_PASSWORD env var
-  const appPassword = process.env.APP_PASSWORD;
-  if (appPassword) {
-    const { default: bcrypt } = await import("bcryptjs");
-    const passwordHash = await bcrypt.hash(appPassword, 10);
-    await db.execute(sql`
-      INSERT INTO users (company_id, email, display_name, role, password_hash)
-      SELECT '00000000-0000-0000-0000-000000000001', 'admin@ringside.local', 'Admin', 'Admin', ${passwordHash}
-      WHERE NOT EXISTS (SELECT 1 FROM users LIMIT 1)
-    `);
-  }
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_password_attempts integer NOT NULL DEFAULT 0`);
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_locked_until timestamptz`);
+  // Seed a default admin account (no password set yet) so there is always a way in via
+  // the OTP login flow on a brand-new install. The admin sets their password on first login.
+  await db.execute(sql`
+    INSERT INTO users (company_id, email, display_name, role)
+    SELECT '00000000-0000-0000-0000-000000000001', 'admin@ringside.local', 'Admin', 'Admin'
+    WHERE NOT EXISTS (SELECT 1 FROM users LIMIT 1)
+  `);
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS otp_attempts (
       id            serial PRIMARY KEY,

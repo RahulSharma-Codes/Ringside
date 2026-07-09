@@ -21,6 +21,8 @@ export const usersTable = pgTable("users", {
   displayName: text("display_name"),
   role: text("role").notNull().default("Member"),
   passwordHash: text("password_hash"),
+  failedPasswordAttempts: integer("failed_password_attempts").notNull().default(0),
+  passwordLockedUntil: timestamp("password_locked_until"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 export type User = typeof usersTable.$inferSelect;
