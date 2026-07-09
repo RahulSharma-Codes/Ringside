@@ -11,6 +11,7 @@ import {
 } from "@workspace/db";
 import PDFDocument from "pdfkit";
 import ExcelJS from "exceljs";
+import { canAccessTarget, getAccessScope } from "../lib/target-access";
 
 const router = Router();
 
@@ -48,6 +49,15 @@ router.get("/pipeline", async (req, res) => {
   if (country) conditions.push(eq(targetsTable.country, country));
   if (dealType) conditions.push(eq(targetsTable.dealType, dealType));
   if (stage) conditions.push(eq(milestonesTable.currentStage, stage));
+
+  const scope = await getAccessScope(req);
+  if (!scope.isAdmin) {
+    if (scope.accessibleTargetIds.length === 0) {
+      res.status(400).json({ error: "No accessible deals to export" });
+      return;
+    }
+    conditions.push(inArray(targetsTable.id, scope.accessibleTargetIds));
+  }
 
   const rows = await db
     .select({ target: targetsTable, milestone: milestonesTable })
@@ -119,6 +129,7 @@ router.get("/pipeline", async (req, res) => {
 router.get("/memo/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!(await canAccessTarget(req, id))) { res.status(404).json({ error: "Target not found" }); return; }
 
   const [row] = await db
     .select({ target: targetsTable, milestone: milestonesTable })
@@ -313,7 +324,8 @@ router.get("/memo/:id", async (req, res) => {
 
 // ── PDF: Weekly Review ────────────────────────────────────────────────────
 // GET /api/export/weekly-review
-router.get("/weekly-review", async (_req, res) => {
+router.get("/weekly-review", async (req, res) => {
+  const scope = await getAccessScope(req);
   const now = new Date();
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
@@ -324,7 +336,7 @@ router.get("/weekly-review", async (_req, res) => {
   const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
   const fortyFiveDaysAgo = new Date(today.getTime() - 45 * 24 * 60 * 60 * 1000);
 
-  const [targetsWithMilestones, allOpenActions, allInteractions, recentStageChanges] = await Promise.all([
+  const [targetsWithMilestonesRaw, allOpenActionsRaw, allInteractionsRaw, recentStageChangesRaw] = await Promise.all([
     db
       .select({
         id: targetsTable.id,
@@ -368,6 +380,7 @@ router.get("/weekly-review", async (_req, res) => {
 
     db
       .select({
+        targetId: stageChangeLogTable.targetId,
         targetName: targetsTable.projectName,
         targetCode: targetsTable.targetCode,
         previousStage: stageChangeLogTable.previousStage,
@@ -380,6 +393,19 @@ router.get("/weekly-review", async (_req, res) => {
       .where(gte(stageChangeLogTable.changedAt, sevenDaysAgo))
       .orderBy(desc(stageChangeLogTable.changedAt)),
   ]);
+
+  const targetsWithMilestones = scope.isAdmin
+    ? targetsWithMilestonesRaw
+    : targetsWithMilestonesRaw.filter((t) => scope.accessibleTargetIds.includes(t.id));
+  const allOpenActions = scope.isAdmin
+    ? allOpenActionsRaw
+    : allOpenActionsRaw.filter((a) => scope.accessibleTargetIds.includes(a.targetId));
+  const allInteractions = scope.isAdmin
+    ? allInteractionsRaw
+    : allInteractionsRaw.filter((i) => scope.accessibleTargetIds.includes(i.targetId));
+  const recentStageChanges = scope.isAdmin
+    ? recentStageChangesRaw
+    : recentStageChangesRaw.filter((s) => scope.accessibleTargetIds.includes(s.targetId));
 
   const openCountByTarget = new Map<number, number>();
   for (const a of allOpenActions) openCountByTarget.set(a.targetId, (openCountByTarget.get(a.targetId) ?? 0) + 1);

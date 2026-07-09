@@ -7,6 +7,7 @@ import {
   stageChangeLogTable,
 } from "@workspace/db";
 import { VALID_TIERS, VALID_STAGES, TERMINAL_STAGES } from "../constants";
+import { getAccessScope } from "../lib/target-access";
 
 const router = Router();
 
@@ -315,6 +316,8 @@ router.post("/apply", async (req, res) => {
   }>;
   const actor = typeof body.changedBy === "string" ? body.changedBy : "Import";
 
+  const scope = await getAccessScope(req);
+
   let created = 0;
   let updated = 0;
   let skipped = 0;
@@ -402,6 +405,11 @@ router.post("/apply", async (req, res) => {
       // Server-side revalidation: existingId must be a positive integer
       if (!existingId || typeof existingId !== "number" || existingId < 1) {
         errors.push({ rowIndex, message: "existingId must be a valid target ID" });
+        skipped++;
+        continue;
+      }
+      if (!scope.isAdmin && !scope.accessibleTargetIds.includes(existingId)) {
+        errors.push({ rowIndex, message: "Not authorized to update this target" });
         skipped++;
         continue;
       }

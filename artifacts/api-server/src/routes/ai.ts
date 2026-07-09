@@ -16,6 +16,7 @@ import {
 } from "@workspace/db";
 import { eq, and, desc, isNull, isNotNull, gte, inArray } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { canAccessTarget, getAccessScope } from "../lib/target-access";
 
 const router = Router();
 
@@ -527,7 +528,8 @@ router.post("/ask", async (req, res) => {
   }
 
   try {
-    const context = await buildAiContext();
+    const scope = await getAccessScope(req);
+    const context = await buildAiContext(scope.isAdmin ? undefined : scope.accessibleTargetIds);
     const contextBlock = buildContextBlock(context);
 
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
@@ -607,6 +609,10 @@ router.post("/meeting-notes", async (req, res) => {
   }
 
   const targetId = typeof body.targetId === "number" ? body.targetId : parseInt(String(body.targetId ?? ""), 10);
+
+  if (!isNaN(targetId) && !(await canAccessTarget(req, targetId))) {
+    return res.status(404).json({ error: "Target not found" });
+  }
 
   let targetContext = "";
   if (!isNaN(targetId)) {
@@ -751,6 +757,9 @@ router.post("/opportunity-brief", async (req, res) => {
   if (isNaN(targetId)) {
     return res.status(400).json({ error: "targetId is required" });
   }
+  if (!(await canAccessTarget(req, targetId))) {
+    return res.status(404).json({ error: "Target not found" });
+  }
 
   try {
     const contextBlock = await buildOpportunityBriefContext(targetId);
@@ -781,7 +790,8 @@ router.post("/weekly-brief", async (req, res) => {
   }
 
   try {
-    const context = await buildAiContext();
+    const scope = await getAccessScope(req);
+    const context = await buildAiContext(scope.isAdmin ? undefined : scope.accessibleTargetIds);
     const contextBlock = buildContextBlock(context);
 
     const stageCounts: Record<string, number> = {};
@@ -793,13 +803,15 @@ router.post("/weekly-brief", async (req, res) => {
       .map(([stage, count]) => `  ${stage}: ${count} target${count !== 1 ? "s" : ""}`);
 
     const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
-    const recentTargetIds = new Set(
-      (await db
-        .select({ targetId: interactionsTable.targetId })
-        .from(interactionsTable)
-        .where(gte(interactionsTable.interactionDatetime, sixtyDaysAgo))
-      ).map((r) => r.targetId)
-    );
+    const recentInteractionsRaw = await db
+      .select({ targetId: interactionsTable.targetId })
+      .from(interactionsTable)
+      .where(
+        !scope.isAdmin
+          ? and(gte(interactionsTable.interactionDatetime, sixtyDaysAgo), inArray(interactionsTable.targetId, scope.accessibleTargetIds))
+          : gte(interactionsTable.interactionDatetime, sixtyDaysAgo),
+      );
+    const recentTargetIds = new Set(recentInteractionsRaw.map((r) => r.targetId));
     const noInteractionTargets = context.targets
       .filter((t) => t.isActive && !recentTargetIds.has(t.id))
       .map((t) => `${t.name} (${t.stage})`);
@@ -868,6 +880,7 @@ async function saveRun(
 router.get("/:targetId/runs", async (req, res) => {
   const targetId = parseInt(req.params.targetId, 10);
   if (isNaN(targetId)) return res.status(400).json({ error: "Invalid targetId" });
+  if (!(await canAccessTarget(req, targetId))) return res.status(404).json({ error: "Target not found" });
 
   const phase = typeof req.query.phase === "string" ? req.query.phase.trim() : "";
   if (!phase) return res.status(400).json({ error: "phase query param is required" });
@@ -903,6 +916,7 @@ router.get("/:targetId/runs", async (req, res) => {
 router.get("/:targetId/valuation-sanity", async (req, res) => {
   const targetId = parseInt(req.params.targetId, 10);
   if (isNaN(targetId)) return res.status(400).json({ error: "Invalid targetId" });
+  if (!(await canAccessTarget(req, targetId))) return res.status(404).json({ error: "Target not found" });
 
   const row = await getLastRun(targetId, "valuation-sanity");
   return res.json({ result: row ? row.outputJson : null });
@@ -912,6 +926,7 @@ router.get("/:targetId/valuation-sanity", async (req, res) => {
 router.post("/:targetId/valuation-sanity", async (req, res) => {
   const targetId = parseInt(req.params.targetId, 10);
   if (isNaN(targetId)) return res.status(400).json({ error: "Invalid targetId" });
+  if (!(await canAccessTarget(req, targetId))) return res.status(404).json({ error: "Target not found" });
 
   if (!openai) {
     return res.json({ result: null, setupRequired: true, billingRequired: false });
@@ -1046,6 +1061,7 @@ Rules:
 router.get("/:targetId/dd-synthesis", async (req, res) => {
   const targetId = parseInt(req.params.targetId, 10);
   if (isNaN(targetId)) return res.status(400).json({ error: "Invalid targetId" });
+  if (!(await canAccessTarget(req, targetId))) return res.status(404).json({ error: "Target not found" });
 
   const row = await getLastRun(targetId, "dd-synthesis");
   return res.json({ result: row ? row.outputJson : null });
@@ -1055,6 +1071,7 @@ router.get("/:targetId/dd-synthesis", async (req, res) => {
 router.post("/:targetId/dd-synthesis", async (req, res) => {
   const targetId = parseInt(req.params.targetId, 10);
   if (isNaN(targetId)) return res.status(400).json({ error: "Invalid targetId" });
+  if (!(await canAccessTarget(req, targetId))) return res.status(404).json({ error: "Target not found" });
 
   if (!openai) {
     return res.json({ result: null, setupRequired: true, billingRequired: false });
@@ -1184,6 +1201,7 @@ Rules:
 router.get("/:targetId/ic-memo", async (req, res) => {
   const targetId = parseInt(req.params.targetId, 10);
   if (isNaN(targetId)) return res.status(400).json({ error: "Invalid targetId" });
+  if (!(await canAccessTarget(req, targetId))) return res.status(404).json({ error: "Target not found" });
 
   const row = await getLastRun(targetId, "ic-memo");
   return res.json({ result: row ? row.outputJson : null });
@@ -1193,6 +1211,7 @@ router.get("/:targetId/ic-memo", async (req, res) => {
 router.post("/:targetId/ic-memo", async (req, res) => {
   const targetId = parseInt(req.params.targetId, 10);
   if (isNaN(targetId)) return res.status(400).json({ error: "Invalid targetId" });
+  if (!(await canAccessTarget(req, targetId))) return res.status(404).json({ error: "Target not found" });
 
   if (!openai) {
     return res.json({ result: null, setupRequired: true, billingRequired: false });

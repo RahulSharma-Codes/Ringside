@@ -3,6 +3,7 @@ import { eq, desc, and } from "drizzle-orm";
 import { createHash } from "crypto";
 import { db, getRequestCompanyId } from "@workspace/db";
 import { auditEventsTable } from "@workspace/db";
+import { canAccessTarget } from "../lib/target-access";
 
 const DEFAULT_COMPANY_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -76,6 +77,7 @@ export async function writeAuditEvent(
 router.get("/target/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+  if (!(await canAccessTarget(req, id))) return res.status(404).json({ error: "Target not found" });
 
   const events = await db
     .select()
@@ -92,6 +94,7 @@ router.get("/target/:id", async (req, res) => {
 router.get("/verify/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+  if (!(await canAccessTarget(req, id))) return res.status(404).json({ error: "Target not found" });
 
   const events = await db
     .select()

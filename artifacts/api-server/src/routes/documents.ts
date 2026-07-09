@@ -12,6 +12,7 @@ import {
   MAX_FILE_SIZE,
 } from "../lib/supabase-storage";
 import { writeAuditEvent } from "./audit";
+import { canAccessTarget, getAccessScope } from "../lib/target-access";
 
 const router = Router();
 
@@ -77,8 +78,19 @@ const UpdateDocSchema = z.object({
 
 // ─── GET /api/documents/review ──────────────────────────────────────────────
 // NOTE: this route must be registered before /:id to avoid "review" matching as an id param.
-router.get("/review", async (_req, res) => {
-  const [allDocs, allTargets] = await Promise.all([
+router.get("/review", async (req, res) => {
+  const scope = await getAccessScope(req);
+  if (!scope.isAdmin && scope.accessibleTargetIds.length === 0) {
+    return res.json({
+      missingCritical: [],
+      requested: [],
+      underReview: [],
+      recentlyReceived: [],
+      recentlyReviewed: [],
+      mustWinMissing: [],
+    });
+  }
+  const [allDocsRaw, allTargetsRaw] = await Promise.all([
     db
       .select({
         id: dealDocumentsTable.id,
@@ -114,6 +126,13 @@ router.get("/review", async (_req, res) => {
       })
       .from(targetsTable),
   ]);
+
+  const allDocs = scope.isAdmin
+    ? allDocsRaw
+    : allDocsRaw.filter((d) => scope.accessibleTargetIds.includes(d.targetId));
+  const allTargets = scope.isAdmin
+    ? allTargetsRaw
+    : allTargetsRaw.filter((t) => scope.accessibleTargetIds.includes(t.id));
 
   const fmt = (d: (typeof allDocs)[number]) => ({
     id: d.id,
@@ -207,6 +226,7 @@ router.get("/:id/download-url", async (req, res) => {
     .limit(1);
 
   if (!doc) return res.status(404).json({ error: "Not found" });
+  if (!(await canAccessTarget(req, doc.targetId))) return res.status(404).json({ error: "Not found" });
 
   // For Highly-Restricted documents, allow only the deal owner (or Admin role) to download.
   // Requester identity MUST come from verified JWT claims (req.jwtClaims).
@@ -311,6 +331,7 @@ router.post("/:id/upload", upload.single("file"), async (req, res) => {
     .limit(1);
 
   if (!doc) return res.status(404).json({ error: "Document not found" });
+  if (!(await canAccessTarget(req, doc.targetId))) return res.status(404).json({ error: "Document not found" });
 
   try {
     const { storagePath } = await uploadFile({
@@ -364,6 +385,7 @@ router.put("/:id/replace-file", upload.single("file"), async (req, res) => {
     .limit(1);
 
   if (!doc) return res.status(404).json({ error: "Document not found" });
+  if (!(await canAccessTarget(req, doc.targetId))) return res.status(404).json({ error: "Document not found" });
 
   try {
     const { storagePath } = await uploadFile({
@@ -398,6 +420,10 @@ router.put("/:id/replace-file", upload.single("file"), async (req, res) => {
 // ─── PUT /api/documents/:id ──────────────────────────────────────────────────
 router.put("/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+  const [existing] = await db.select().from(dealDocumentsTable).where(eq(dealDocumentsTable.id, id)).limit(1);
+  if (!existing) return res.status(404).json({ error: "Not found" });
+  if (!(await canAccessTarget(req, existing.targetId))) return res.status(404).json({ error: "Not found" });
   const parsed = UpdateDocSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.flatten() });

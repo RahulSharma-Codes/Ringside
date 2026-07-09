@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, desc, and, isNull, lte, gte, ne, isNotNull, not } from "drizzle-orm";
+import { eq, desc, and, isNull, lte, gte, ne, isNotNull, not, sql, inArray, or } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   notificationsTable,
@@ -10,7 +10,7 @@ import {
   stageChangeLogTable,
   ndaRecordsTable,
 } from "@workspace/db";
-import { sql } from "drizzle-orm";
+import { getAccessScope } from "../lib/target-access";
 
 const router = Router();
 
@@ -195,21 +195,35 @@ router.post("/generate", async (req, res) => {
 });
 
 // ── GET /api/notifications ─────────────────────────────────────────────────────
-router.get("/", async (_req, res) => {
+router.get("/", async (req, res) => {
+  const scope = await getAccessScope(req);
+  const visibilityFilter = scope.isAdmin
+    ? undefined
+    : or(isNull(notificationsTable.targetId), inArray(notificationsTable.targetId, scope.accessibleTargetIds));
+
   const rows = await db
     .select()
     .from(notificationsTable)
+    .where(visibilityFilter)
     .orderBy(notificationsTable.isRead, desc(notificationsTable.createdAt))
     .limit(50);
   return res.json(rows);
 });
 
 // ── GET /api/notifications/unread-count ───────────────────────────────────────
-router.get("/unread-count", async (_req, res) => {
+router.get("/unread-count", async (req, res) => {
+  const scope = await getAccessScope(req);
+  const visibilityFilter = scope.isAdmin
+    ? eq(notificationsTable.isRead, false)
+    : and(
+        eq(notificationsTable.isRead, false),
+        or(isNull(notificationsTable.targetId), inArray(notificationsTable.targetId, scope.accessibleTargetIds)),
+      );
+
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(notificationsTable)
-    .where(eq(notificationsTable.isRead, false));
+    .where(visibilityFilter);
   return res.json({ count: Number(count) });
 });
 
@@ -217,6 +231,17 @@ router.get("/unread-count", async (_req, res) => {
 router.put("/:id/read", async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+
+  const scope = await getAccessScope(req);
+  const [existing] = await db
+    .select({ id: notificationsTable.id, targetId: notificationsTable.targetId })
+    .from(notificationsTable)
+    .where(eq(notificationsTable.id, id));
+  if (!existing) return res.status(404).json({ error: "Not found" });
+  if (!scope.isAdmin && existing.targetId !== null && !scope.accessibleTargetIds.includes(existing.targetId)) {
+    return res.status(404).json({ error: "Not found" });
+  }
+
   await db
     .update(notificationsTable)
     .set({ isRead: true })
@@ -225,11 +250,19 @@ router.put("/:id/read", async (req, res) => {
 });
 
 // ── PUT /api/notifications/read-all ───────────────────────────────────────────
-router.put("/read-all", async (_req, res) => {
+router.put("/read-all", async (req, res) => {
+  const scope = await getAccessScope(req);
+  const visibilityFilter = scope.isAdmin
+    ? eq(notificationsTable.isRead, false)
+    : and(
+        eq(notificationsTable.isRead, false),
+        or(isNull(notificationsTable.targetId), inArray(notificationsTable.targetId, scope.accessibleTargetIds)),
+      );
+
   await db
     .update(notificationsTable)
     .set({ isRead: true })
-    .where(eq(notificationsTable.isRead, false));
+    .where(visibilityFilter);
   return res.json({ ok: true });
 });
 

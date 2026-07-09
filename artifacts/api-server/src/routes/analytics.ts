@@ -7,6 +7,7 @@ import {
   stageChangeLogTable,
 } from "@workspace/db";
 import { z } from "zod";
+import { getAccessScope } from "../lib/target-access";
 
 const router = Router();
 
@@ -48,10 +49,15 @@ router.get("/funnel", async (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
   const { dealType, sector } = parsed.data;
 
-  const rows = await db
+  const scope = await getAccessScope(req);
+  const rowsRaw = await db
     .select({ t: targetsTable, m: milestonesTable })
     .from(targetsTable)
     .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id));
+
+  const rows = scope.isAdmin
+    ? rowsRaw
+    : rowsRaw.filter((r) => scope.accessibleTargetIds.includes(r.t.id));
 
   const filteredIds = new Set(
     rows
@@ -111,10 +117,15 @@ router.get("/time-in-stage", async (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
   const { dealType, sector } = parsed.data;
 
-  const rows = await db
+  const scope = await getAccessScope(req);
+  const rowsRaw = await db
     .select({ t: targetsTable, m: milestonesTable })
     .from(targetsTable)
     .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id));
+
+  const rows = scope.isAdmin
+    ? rowsRaw
+    : rowsRaw.filter((r) => scope.accessibleTargetIds.includes(r.t.id));
 
   const filteredRows = rows.filter((r) => {
     if (dealType && r.t.dealType !== dealType) return false;
@@ -213,6 +224,7 @@ router.get("/win-loss", async (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
   const { dealType, sector } = parsed.data;
 
+  const scope = await getAccessScope(req);
   const cutoff = twelveMonthsAgo();
 
   // Get all stage change log entries in trailing 12m that are terminal transitions
@@ -226,10 +238,14 @@ router.get("/win-loss", async (req, res) => {
     );
 
   // Get all targets with milestones for context
-  const rows = await db
+  const rowsRaw = await db
     .select({ t: targetsTable, m: milestonesTable })
     .from(targetsTable)
     .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id));
+
+  const rows = scope.isAdmin
+    ? rowsRaw
+    : rowsRaw.filter((r) => scope.accessibleTargetIds.includes(r.t.id));
 
   const targetMap = new Map(rows.map((r) => [r.t.id, r]));
 
@@ -308,10 +324,15 @@ router.get("/origination", async (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
   const { dealType, sector } = parsed.data;
 
-  const rows = await db
+  const scope = await getAccessScope(req);
+  const rowsRaw = await db
     .select({ t: targetsTable, m: milestonesTable })
     .from(targetsTable)
     .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id));
+
+  const rows = scope.isAdmin
+    ? rowsRaw
+    : rowsRaw.filter((r) => scope.accessibleTargetIds.includes(r.t.id));
 
   const byChannel: Record<string, { total: number; won: number; dropped: number; inProgress: number }> = {};
 

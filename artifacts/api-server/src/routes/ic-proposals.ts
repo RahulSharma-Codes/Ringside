@@ -5,6 +5,7 @@ import { icProposalsTable, icVotesTable, icCpsTable, milestonesTable } from "@wo
 import { z } from "zod";
 import { logger } from "../lib/logger";
 import { writeAuditEvent } from "./audit";
+import { canAccessTarget } from "../lib/target-access";
 
 const router = Router();
 
@@ -138,6 +139,7 @@ async function buildProposalDetail(proposalId: number) {
 router.get("/targets/:id/ic-proposals", async (req, res) => {
   const targetId = parseInt(req.params.id, 10);
   if (isNaN(targetId)) return res.status(400).json({ error: "Invalid target id" });
+  if (!(await canAccessTarget(req, targetId))) return res.status(404).json({ error: "Target not found" });
 
   const proposals = await db
     .select()
@@ -152,6 +154,7 @@ router.get("/targets/:id/ic-proposals", async (req, res) => {
 router.post("/targets/:id/ic-proposals", async (req, res) => {
   const targetId = parseInt(req.params.id, 10);
   if (isNaN(targetId)) return res.status(400).json({ error: "Invalid target id" });
+  if (!(await canAccessTarget(req, targetId))) return res.status(404).json({ error: "Target not found" });
 
   const parsed = CreateIcProposalBodySchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
@@ -185,6 +188,9 @@ router.get("/ic-proposals/:id", async (req, res) => {
 
   const detail = await buildProposalDetail(id);
   if (!detail) return res.status(404).json({ error: "Not found" });
+  if (!(await canAccessTarget(req, detail.proposal.targetId))) {
+    return res.status(404).json({ error: "Not found" });
+  }
 
   return res.json(detail);
 });
@@ -199,6 +205,9 @@ router.post("/ic-proposals/:id/voters", async (req, res) => {
     .from(icProposalsTable)
     .where(eq(icProposalsTable.id, proposalId));
   if (!proposal) return res.status(404).json({ error: "Proposal not found" });
+  if (!(await canAccessTarget(req, proposal.targetId))) {
+    return res.status(404).json({ error: "Proposal not found" });
+  }
   if (proposal.status === "Resolved") {
     return res.status(400).json({ error: "Cannot add voter to resolved proposal" });
   }
@@ -234,6 +243,9 @@ router.post("/ic-votes/:id/cast", async (req, res) => {
     .where(eq(icProposalsTable.id, voteRow.proposalId));
   if (!proposal || proposal.status === "Resolved") {
     return res.status(400).json({ error: "Proposal is already resolved" });
+  }
+  if (!(await canAccessTarget(req, proposal.targetId))) {
+    return res.status(404).json({ error: "Vote not found" });
   }
 
   const parsed = CastIcVoteBodySchema.safeParse(req.body);
@@ -282,6 +294,9 @@ router.post("/ic-proposals/:id/resolve", async (req, res) => {
     .from(icProposalsTable)
     .where(eq(icProposalsTable.id, id));
   if (!proposal) return res.status(404).json({ error: "Not found" });
+  if (!(await canAccessTarget(req, proposal.targetId))) {
+    return res.status(404).json({ error: "Not found" });
+  }
   if (proposal.status === "Resolved") {
     return res.status(400).json({ error: "Proposal already resolved" });
   }
@@ -377,6 +392,15 @@ router.get("/ic-proposals/:id/cps", async (req, res) => {
   const proposalId = parseInt(req.params.id, 10);
   if (isNaN(proposalId)) return res.status(400).json({ error: "Invalid id" });
 
+  const [proposalForCps] = await db
+    .select()
+    .from(icProposalsTable)
+    .where(eq(icProposalsTable.id, proposalId));
+  if (!proposalForCps) return res.status(404).json({ error: "Proposal not found" });
+  if (!(await canAccessTarget(req, proposalForCps.targetId))) {
+    return res.status(404).json({ error: "Proposal not found" });
+  }
+
   const cps = await db
     .select()
     .from(icCpsTable)
@@ -396,6 +420,14 @@ router.put("/ic-cps/:cpId", async (req, res) => {
     .from(icCpsTable)
     .where(eq(icCpsTable.id, cpId));
   if (!existing) return res.status(404).json({ error: "CP not found" });
+
+  const [cpProposal] = await db
+    .select()
+    .from(icProposalsTable)
+    .where(eq(icProposalsTable.id, existing.proposalId));
+  if (!cpProposal || !(await canAccessTarget(req, cpProposal.targetId))) {
+    return res.status(404).json({ error: "CP not found" });
+  }
 
   const parsed = UpdateIcCpBodySchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });

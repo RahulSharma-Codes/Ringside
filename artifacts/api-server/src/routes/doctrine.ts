@@ -2,14 +2,16 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { targetsTable, milestonesTable } from "@workspace/db";
 import { eq, inArray, isNotNull } from "drizzle-orm";
+import { getAccessScope } from "../lib/target-access";
 
 const router = Router();
 
 const CLOSED_STAGES = new Set(["Closed", "Dropped", "Rejected"]);
 
 // GET /api/doctrine/summary
-router.get("/summary", async (_req, res) => {
-  const allTargets = await db
+router.get("/summary", async (req, res) => {
+  const scope = await getAccessScope(req);
+  const allTargetsRaw = await db
     .select({
       id: targetsTable.id,
       targetCode: targetsTable.targetCode,
@@ -24,6 +26,10 @@ router.get("/summary", async (_req, res) => {
     })
     .from(targetsTable)
     .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id));
+
+  const allTargets = scope.isAdmin
+    ? allTargetsRaw
+    : allTargetsRaw.filter((t) => scope.accessibleTargetIds.includes(t.id));
 
   const closedDeals = allTargets.filter((t) =>
     CLOSED_STAGES.has(t.currentStage ?? ""),

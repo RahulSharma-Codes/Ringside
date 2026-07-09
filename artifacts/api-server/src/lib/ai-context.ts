@@ -6,7 +6,7 @@ import {
   interactionsTable,
   stageChangeLogTable,
 } from "@workspace/db";
-import { eq, inArray, gte, desc } from "drizzle-orm";
+import { eq, inArray, gte, desc, and } from "drizzle-orm";
 
 export interface AiContext {
   generatedAt: string;
@@ -71,12 +71,24 @@ function toIso(v: Date | string | null | undefined): string | null {
   return new Date(v).toISOString();
 }
 
-export async function buildAiContext(): Promise<AiContext> {
+export async function buildAiContext(accessibleTargetIds?: number[]): Promise<AiContext> {
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const scoped = accessibleTargetIds !== undefined;
+
+  if (scoped && accessibleTargetIds.length === 0) {
+    return {
+      generatedAt: now.toISOString(),
+      summary: { totalTargets: 0, activeTargets: 0, openActions: 0, overdueActions: 0 },
+      targets: [],
+      openActions: [],
+      recentInteractions: [],
+      recentStageChanges: [],
+    };
+  }
 
   // ── Targets with current stage from milestones ──────────────────────────
-  const targetsRaw = await db
+  const targetsQuery = db
     .select({
       id: targetsTable.id,
       targetCode: targetsTable.targetCode,
@@ -87,8 +99,11 @@ export async function buildAiContext(): Promise<AiContext> {
       currentStage: milestonesTable.currentStage,
     })
     .from(targetsTable)
-    .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id))
-    .limit(50);
+    .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id));
+
+  const targetsRaw = await (scoped
+    ? targetsQuery.where(inArray(targetsTable.id, accessibleTargetIds)).limit(50)
+    : targetsQuery.limit(50));
 
   const targets: AiTarget[] = targetsRaw.map((t) => ({
     id: t.id,
@@ -101,6 +116,7 @@ export async function buildAiContext(): Promise<AiContext> {
   }));
 
   // ── Open + overdue actions ──────────────────────────────────────────────
+  const actionsStatusFilter = inArray(actionItemsTable.status, ["Open", "In Progress", "Blocked"]);
   const actionsRaw = await db
     .select({
       id: actionItemsTable.id,
@@ -114,7 +130,11 @@ export async function buildAiContext(): Promise<AiContext> {
     })
     .from(actionItemsTable)
     .leftJoin(targetsTable, eq(actionItemsTable.targetId, targetsTable.id))
-    .where(inArray(actionItemsTable.status, ["Open", "In Progress", "Blocked"]))
+    .where(
+      scoped
+        ? and(actionsStatusFilter, inArray(actionItemsTable.targetId, accessibleTargetIds))
+        : actionsStatusFilter,
+    )
     .limit(30);
 
   const todayStr = now.toISOString().slice(0, 10);
@@ -145,7 +165,11 @@ export async function buildAiContext(): Promise<AiContext> {
     })
     .from(interactionsTable)
     .leftJoin(targetsTable, eq(interactionsTable.targetId, targetsTable.id))
-    .where(gte(interactionsTable.interactionDatetime, thirtyDaysAgo))
+    .where(
+      scoped
+        ? and(gte(interactionsTable.interactionDatetime, thirtyDaysAgo), inArray(interactionsTable.targetId, accessibleTargetIds))
+        : gte(interactionsTable.interactionDatetime, thirtyDaysAgo),
+    )
     .orderBy(desc(interactionsTable.interactionDatetime))
     .limit(20);
 
@@ -169,6 +193,7 @@ export async function buildAiContext(): Promise<AiContext> {
     })
     .from(stageChangeLogTable)
     .leftJoin(targetsTable, eq(stageChangeLogTable.targetId, targetsTable.id))
+    .where(scoped ? inArray(stageChangeLogTable.targetId, accessibleTargetIds) : undefined)
     .orderBy(desc(stageChangeLogTable.changedAt))
     .limit(20);
 

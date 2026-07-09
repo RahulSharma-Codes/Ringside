@@ -15,6 +15,7 @@ import {
 } from "@workspace/db";
 import { toIso, toDateString, formatAction, formatInteraction, formatTarget } from "./target-helpers";
 import { computeHealthScore } from "../lib/health-score";
+import { canAccessTarget } from "../lib/target-access";
 
 const router = Router();
 
@@ -54,6 +55,7 @@ function formatEconomics(e: typeof dealEconomicsTable.$inferSelect) {
 router.get("/:id/ic-brief", async (req, res) => {
   const targetId = id(req);
   if (isNaN(targetId)) return res.status(400).json({ error: "Invalid id" });
+  if (!(await canAccessTarget(req, targetId))) return res.status(404).json({ error: "Target not found" });
 
   const [
     targetResult,
