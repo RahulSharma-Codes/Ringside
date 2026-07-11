@@ -409,12 +409,39 @@ function buildDoctrinePdf(data: DoctrineSummary): jsPDF {
 
 // ── Page ───────────────────────────────────────────────────────────────────
 
+const ACCURACY_THRESHOLD_KEY = "doctrine_accuracy_threshold";
+const DEFAULT_THRESHOLD = 50;
+
+function loadThreshold(): number {
+  try {
+    const stored = localStorage.getItem(ACCURACY_THRESHOLD_KEY);
+    if (stored !== null) {
+      const parsed = parseInt(stored, 10);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= 100) return parsed;
+    }
+  } catch {
+    // ignore
+  }
+  return DEFAULT_THRESHOLD;
+}
+
 export default function Doctrine() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [refreshedAt, setRefreshedAt] = useState(new Date());
   const [isExporting, setIsExporting] = useState(false);
   const [granularity, setGranularity] = useState<"quarter" | "month">("quarter");
   const [rolling90, setRolling90] = useState(false);
+  const [accuracyThreshold, setAccuracyThreshold] = useState<number>(loadThreshold);
+
+  const handleThresholdChange = (value: number) => {
+    const clamped = Math.max(1, Math.min(100, value));
+    setAccuracyThreshold(clamped);
+    try {
+      localStorage.setItem(ACCURACY_THRESHOLD_KEY, String(clamped));
+    } catch {
+      // ignore
+    }
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["doctrine-summary", refreshKey],
@@ -456,11 +483,10 @@ export default function Doctrine() {
 
   const hasVerdictData = (data?.recentClosures ?? []).some((c) => c.phase1VerdictAccuracy);
 
-  const ACCURACY_THRESHOLD = 50;
   const completedPeriods = accuracyTrendData.filter((p) => p.total > 0);
   let consecutiveLowCount = 0;
   for (let i = completedPeriods.length - 1; i >= 0; i--) {
-    if (completedPeriods[i].accuracyPct < ACCURACY_THRESHOLD) {
+    if (completedPeriods[i].accuracyPct < accuracyThreshold) {
       consecutiveLowCount++;
     } else {
       break;
@@ -579,6 +605,22 @@ export default function Doctrine() {
                 Accuracy Over Time
               </CardTitle>
               <div className="flex items-center gap-2 flex-wrap">
+                {/* Alert threshold control */}
+                <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/30 px-2 h-6" title="Alert fires when accuracy drops below this threshold for 2+ consecutive periods">
+                  <span className="text-[10px] font-mono text-muted-foreground">Alert at</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={accuracyThreshold}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      if (!isNaN(val)) handleThresholdChange(val);
+                    }}
+                    className="w-9 text-[10px] font-mono text-center bg-transparent border-none outline-none text-foreground"
+                  />
+                  <span className="text-[10px] font-mono text-muted-foreground">%</span>
+                </div>
                 {/* Granularity toggle */}
                 <div className="flex items-center rounded-lg border border-border/60 overflow-hidden text-[10px] font-mono">
                   <button
@@ -620,7 +662,9 @@ export default function Doctrine() {
                   <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/8 px-3.5 py-2.5 mb-3">
                     <TrendingDown size={14} className="text-amber-600 shrink-0 mt-0.5" />
                     <p className="text-[11px] font-mono text-amber-700 dark:text-amber-400 leading-relaxed">
-                      Accuracy has dropped for{" "}
+                      Accuracy has been below{" "}
+                      <span className="font-semibold">{accuracyThreshold}%</span>
+                      {" "}for{" "}
                       <span className="font-semibold">{consecutiveLowCount} consecutive period{consecutiveLowCount !== 1 ? "s" : ""}</span>
                       {" "}— consider reviewing recent miss themes
                     </p>
@@ -647,11 +691,11 @@ export default function Doctrine() {
                       width={36}
                     />
                     <ReferenceLine
-                      y={50}
+                      y={accuracyThreshold}
                       stroke="#6b7280"
                       strokeDasharray="4 3"
                       strokeWidth={1}
-                      label={{ value: "50%", fontSize: 9, fill: "#9ca3af", fontFamily: "monospace", position: "right" }}
+                      label={{ value: `${accuracyThreshold}%`, fontSize: 9, fill: "#9ca3af", fontFamily: "monospace", position: "right" }}
                     />
                     <RechartsTooltip
                       contentStyle={{ fontSize: 11, fontFamily: "monospace", borderRadius: 6 }}
