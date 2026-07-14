@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { MessageSquarePlus, ListChecks, ExternalLink, ChevronLeft } from "lucide-react";
+import { MessageSquarePlus, ListChecks, ExternalLink, ChevronLeft, CheckCircle2, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import {
   Sheet,
@@ -33,6 +33,11 @@ interface MobileLongPressTrayProps {
   targetCode?: string | null;
   targetHref: string;
   children: React.ReactNode;
+  showViewActions?: boolean;
+  onComplete?: () => void;
+  onReopen?: () => void;
+  isCompleted?: boolean;
+  isCompletePending?: boolean;
 }
 
 export function MobileLongPressTray({
@@ -41,6 +46,11 @@ export function MobileLongPressTray({
   targetCode,
   targetHref,
   children,
+  showViewActions = true,
+  onComplete,
+  onReopen,
+  isCompleted = false,
+  isCompletePending = false,
 }: MobileLongPressTrayProps) {
   const [, navigate] = useLocation();
 
@@ -207,25 +217,6 @@ export function MobileLongPressTray({
                 className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-muted/40 hover:bg-muted/70 active:bg-muted transition-colors text-left"
                 onClick={() => {
                   closeTray();
-                  navigate(`/targets/${targetId}?tab=actions`);
-                }}
-              >
-                <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-muted shrink-0">
-                  <ListChecks size={18} className="text-muted-foreground" />
-                </span>
-                <div>
-                  <p className="text-sm font-medium">View Actions</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    See open and overdue action items
-                  </p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-muted/40 hover:bg-muted/70 active:bg-muted transition-colors text-left"
-                onClick={() => {
-                  closeTray();
                   navigate(targetHref);
                 }}
               >
@@ -239,6 +230,71 @@ export function MobileLongPressTray({
                   </p>
                 </div>
               </button>
+
+              {showViewActions && (
+                <button
+                  type="button"
+                  className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-muted/40 hover:bg-muted/70 active:bg-muted transition-colors text-left"
+                  onClick={() => {
+                    closeTray();
+                    navigate(`/targets/${targetId}?tab=actions`);
+                  }}
+                >
+                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-muted shrink-0">
+                    <ListChecks size={18} className="text-muted-foreground" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium">View Actions</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      See open and overdue action items
+                    </p>
+                  </div>
+                </button>
+              )}
+
+              {(onComplete || onReopen) && (
+                isCompleted ? (
+                  <button
+                    type="button"
+                    disabled={isCompletePending}
+                    className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-muted/40 hover:bg-muted/70 active:bg-muted transition-colors text-left disabled:opacity-50"
+                    onClick={() => {
+                      onReopen?.();
+                      closeTray();
+                    }}
+                  >
+                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-muted shrink-0">
+                      <RotateCcw size={18} className="text-muted-foreground" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-medium">Reopen Action</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Mark this action as open again
+                      </p>
+                    </div>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={isCompletePending}
+                    className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-emerald-500/8 hover:bg-emerald-500/12 active:bg-emerald-500/18 transition-colors text-left disabled:opacity-50"
+                    onClick={() => {
+                      onComplete?.();
+                      closeTray();
+                    }}
+                  >
+                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/15 shrink-0">
+                      <CheckCircle2 size={18} className="text-emerald-600" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-medium">Mark Complete</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Close out this action item
+                      </p>
+                    </div>
+                  </button>
+                )
+              )}
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="px-4 py-3 pb-8 space-y-3">

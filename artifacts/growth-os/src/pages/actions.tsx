@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUpdateAction, customFetch } from "@workspace/api-client-react";
 import { Link } from "wouter";
 import { useAuth } from "@/contexts/auth-context";
+import { MobileLongPressTray } from "@/components/mobile-long-press-tray";
 import { format, parseISO } from "date-fns";
 import {
   CheckCircle2, RotateCcw, AlertTriangle, Clock,
@@ -226,14 +227,26 @@ function GroupSection({
             </p>
           ) : (
             actions.map((a) => (
-              <ActionCard
+              <MobileLongPressTray
                 key={a.id}
-                action={a}
-                todayStr={todayStr}
+                targetId={a.targetId}
+                targetName={a.targetName}
+                targetCode={a.targetCode}
+                targetHref={`/targets/${a.targetId}`}
+                showViewActions={false}
+                isCompleted={a.status === "Completed"}
+                isCompletePending={isPending}
                 onComplete={() => onComplete(a.id)}
                 onReopen={() => onReopen(a.id)}
-                isPending={isPending}
-              />
+              >
+                <ActionCard
+                  action={a}
+                  todayStr={todayStr}
+                  onComplete={() => onComplete(a.id)}
+                  onReopen={() => onReopen(a.id)}
+                  isPending={isPending}
+                />
+              </MobileLongPressTray>
             ))
           )}
         </div>
