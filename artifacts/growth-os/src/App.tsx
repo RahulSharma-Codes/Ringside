@@ -58,12 +58,17 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [oidcConfig, setOidcConfig] = useState<{ configured: boolean; clientId?: string; issuer?: string; authorizationEndpoint?: string } | null>(null);
+  const [smtpConfigured, setSmtpConfigured] = useState<boolean | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/oidc/config")
       .then((r) => r.json())
       .then((d) => setOidcConfig(d))
       .catch(() => setOidcConfig({ configured: false }));
+    fetch("/api/auth/state")
+      .then((r) => r.json())
+      .then((d: { smtpConfigured: boolean }) => setSmtpConfigured(d.smtpConfigured))
+      .catch(() => setSmtpConfigured(false));
   }, []);
 
   // ── Password login ──────────────────────────────────────────────────────────
@@ -111,10 +116,14 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
         body: JSON.stringify({ email: otp.email.trim().toLowerCase() }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Could not generate login code. Please try again.");
+        return;
+      }
       setOtp((prev) => ({ ...prev, serverCode: data.code ?? null }));
       setMode("otp-code");
     } catch {
-      setError("Could not send OTP. Please try again.");
+      setError("Could not connect to server. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -293,6 +302,17 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
           {/* ── OTP step 1: enter email ── */}
           {mode === "otp-email" && (
             <form onSubmit={handleOtpRequest} className="space-y-4">
+              {smtpConfigured === false && (
+                <div className="rounded-sm border border-amber-500/40 bg-amber-500/10 p-3 space-y-1">
+                  <p className="text-[9px] font-mono text-amber-700/80 uppercase tracking-wider font-semibold">
+                    Email delivery not configured
+                  </p>
+                  <p className="text-[10px] font-mono text-amber-700/70 leading-relaxed">
+                    Your code will be displayed on screen after you click Get Code.
+                    Default admin email: <span className="font-bold text-amber-700">admin@ringside.local</span>
+                  </p>
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
                   Email Address
@@ -301,12 +321,14 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   type="email"
                   value={otp.email}
                   onChange={(e) => setOtp((p) => ({ ...p, email: e.target.value }))}
-                  placeholder="you@example.com"
+                  placeholder={smtpConfigured === false ? "admin@ringside.local" : "you@example.com"}
                   className="rounded-sm bg-background/50"
                   autoFocus
                 />
                 <p className="text-[9px] text-muted-foreground/40 font-mono">
-                  A 6-digit code will be sent to your email address.
+                  {smtpConfigured
+                    ? "A 6-digit code will be sent to your email address."
+                    : "Enter the registered email address to generate a code."}
                 </p>
               </div>
               {error && <p className="text-sm text-destructive font-mono">{error}</p>}

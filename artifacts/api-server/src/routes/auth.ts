@@ -490,6 +490,15 @@ router.post("/invite/accept", async (req, res) => {
   return res.json({ ok: true, token: jwtToken, user: { id: user.id, email: user.email, role: user.role, displayName: user.displayName } });
 });
 
+// ── GET /api/auth/state ───────────────────────────────────────────────────────
+// Public (no auth required). Returns enough state for the login page to show
+// correct hints: whether email delivery is configured and whether the DB has
+// been bootstrapped (at least one user exists, so OTP recovery is possible).
+
+router.get("/state", (_req, res) => {
+  return res.json({ smtpConfigured: isSmtpConfigured() });
+});
+
 // ── GET /api/auth/oidc/config ─────────────────────────────────────────────────
 
 router.get("/oidc/config", (_req, res) => {
