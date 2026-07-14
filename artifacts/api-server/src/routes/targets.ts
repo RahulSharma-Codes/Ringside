@@ -471,6 +471,12 @@ router.get("/:id", async (req, res) => {
   return res.json({
     ...formatTarget(row.target, row.milestone),
     healthScore,
+    openActionCount: openActions.length,
+    overdueActionCount: overdueActions.length,
+    lastInteractionDate: sortedInteractions.length > 0
+      ? sortedInteractions[0]!.interactionDatetime.toISOString()
+      : null,
+    needsAttention: healthScore === "at_risk" || overdueActions.length > 0,
     interactions: interactions.map(formatInteraction),
     actions: actions.map(formatAction),
     stageHistory: stageHistory.map(formatStageChange),
