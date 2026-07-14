@@ -127,6 +127,10 @@ function SortableCard({
   isSaving?: boolean;
   isOver?: boolean;
 }) {
+  // Active (non-off-track) cards are managed by dnd-kit's PointerSensor.
+  // Disabling the long-press tray prevents the two pointer pipelines from
+  // fighting each other on Android (phantom drag + tray firing together).
+  const longPressDisabled = !isOffTrack;
   const {
     attributes,
     listeners,
@@ -153,6 +157,7 @@ function SortableCard({
       targetName={target.projectName ?? target.targetCode ?? ""}
       targetCode={target.targetCode}
       targetHref={`/targets/${target.id}`}
+      disableLongPress={longPressDisabled}
     >
     <div
       className={`group/card bg-card border border-border/70 border-l-2 ${getTierCardAccent(target.priorityTier)} rounded-lg p-3 space-y-2 ${
@@ -530,8 +535,14 @@ export function PipelineKanban({
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
+  // Use a delay + tolerance constraint so dnd-kit defers drag activation on
+  // touch devices. This prevents a slow finger-hold (meant as a tap) from
+  // accidentally starting a drag ghost, and keeps the interaction separate
+  // from the MobileLongPressTray (which is disabled on active kanban cards).
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
+    })
   );
 
   const [activeCard, setActiveCard] = useState<KanbanTarget | null>(null);

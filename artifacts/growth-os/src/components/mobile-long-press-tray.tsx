@@ -38,6 +38,8 @@ interface MobileLongPressTrayProps {
   onReopen?: () => void;
   isCompleted?: boolean;
   isCompletePending?: boolean;
+  /** When true, long-press detection is skipped entirely (e.g. inside a dnd-kit draggable). */
+  disableLongPress?: boolean;
 }
 
 export function MobileLongPressTray({
@@ -51,6 +53,7 @@ export function MobileLongPressTray({
   onReopen,
   isCompleted = false,
   isCompletePending = false,
+  disableLongPress = false,
 }: MobileLongPressTrayProps) {
   const [, navigate] = useLocation();
 
@@ -154,6 +157,12 @@ export function MobileLongPressTray({
         },
       }
     );
+  }
+
+  // When long-press is disabled (e.g. inside a dnd-kit draggable) render
+  // children as-is so the parent's pointer listeners manage the interaction.
+  if (disableLongPress) {
+    return <>{children}</>;
   }
 
   return (
