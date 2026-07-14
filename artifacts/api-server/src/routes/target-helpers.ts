@@ -35,19 +35,19 @@ export function currentStage(milestone: MilestoneRow): string {
 }
 
 export function calcPriorityScore(t: {
-  strategicFitScore: number;
-  synergyScore: number;
-  financialAttractivenessScore: number;
-  processMaturityScore: number;
-  riskPenaltyScore: number;
+  strategicFitScore: number | null;
+  synergyScore: number | null;
+  financialAttractivenessScore: number | null;
+  processMaturityScore: number | null;
+  riskPenaltyScore: number | null;
 }): number {
   const gross =
-    t.strategicFitScore * 0.25 +
-    t.synergyScore * 0.2 +
-    t.financialAttractivenessScore * 0.2 +
-    t.processMaturityScore * 0.15 +
+    (t.strategicFitScore ?? 0) * 0.25 +
+    (t.synergyScore ?? 0) * 0.2 +
+    (t.financialAttractivenessScore ?? 0) * 0.2 +
+    (t.processMaturityScore ?? 0) * 0.15 +
     20;
-  return Math.max(0, Math.min(100, Math.round(gross - t.riskPenaltyScore)));
+  return Math.max(0, Math.min(100, Math.round(gross - (t.riskPenaltyScore ?? 0))));
 }
 
 export function formatTarget(t: TargetRow, milestone: MilestoneRow = null) {

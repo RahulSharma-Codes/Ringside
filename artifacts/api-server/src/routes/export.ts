@@ -227,11 +227,14 @@ router.get("/memo/:id", async (req, res) => {
 
   // ── Scores ─────────────────────────────────────────────────────────────
   section("Scores");
-  field("Strategic Fit", t.strategicFitScore + " / 100");
-  field("Financial Attractiveness", t.financialAttractivenessScore + " / 100");
-  field("Synergy Potential", t.synergyScore + " / 100");
+  field("Strategic Fit", t.strategicFitScore != null ? t.strategicFitScore + " / 100" : "Not assessed");
+  field("Financial Attractiveness", t.financialAttractivenessScore != null ? t.financialAttractivenessScore + " / 100" : "Not assessed");
+  field("Synergy Potential", t.synergyScore != null ? t.synergyScore + " / 100" : "Not assessed");
   if (t.riskPenaltyScore) field("Risk Penalty", "-" + t.riskPenaltyScore);
-  const composite = Math.round((t.strategicFitScore + t.financialAttractivenessScore + t.synergyScore) / 3 - t.riskPenaltyScore);
+  const composite = Math.round(
+    ((t.strategicFitScore ?? 0) + (t.financialAttractivenessScore ?? 0) + (t.synergyScore ?? 0)) / 3
+    - (t.riskPenaltyScore ?? 0)
+  );
   field("Composite Score", composite + " / 100");
 
   // ── Strategic Rationale ────────────────────────────────────────────────
