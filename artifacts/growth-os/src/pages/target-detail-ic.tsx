@@ -14,6 +14,7 @@ import {
   useGetIcMemo, getGetIcMemoQueryKey,
   useRunIcMemo,
   useListValuations,
+  useGetAiRunHistory, getGetAiRunHistoryQueryKey,
 } from "@workspace/api-client-react";
 import type { IcProposal, IcVote, IcCp, IcMemoResult } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
@@ -36,7 +37,7 @@ import {
 import {
   Plus, Scale, CheckCircle2, XCircle, AlertTriangle, Clock, Users,
   ChevronDown, ChevronRight, Trash2, Lock, Gavel, FileText, Flag,
-  Target as TargetIcon, Sparkles, Copy, RefreshCw, Download,
+  Target as TargetIcon, Sparkles, Copy, RefreshCw, Download, History,
 } from "lucide-react";
 import { format, parseISO, formatDistanceToNow } from "date-fns";
 
@@ -989,6 +990,8 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
 
   // IC memo state
   const [memoExpanded, setMemoExpanded] = useState(true);
+  const [memoHistoryOpen, setMemoHistoryOpen] = useState(false);
+  const [memoExpandedRunId, setMemoExpandedRunId] = useState<number | null>(null);
 
   const { data: proposals, isLoading: loadingProposals } = useListIcProposals(targetId, {
     query: { queryKey: getListIcProposalsQueryKey(targetId) },
@@ -1002,6 +1005,14 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
   const memoQueryKey = getGetIcMemoQueryKey(targetId);
   const { data: memoData, isLoading: loadingMemo } = useGetIcMemo(targetId, {
     query: { queryKey: memoQueryKey },
+  });
+
+  const icMemoHistoryParams = { phase: "ic-memo" as const, limit: 20 };
+  const { data: memoHistory } = useGetAiRunHistory(targetId, icMemoHistoryParams, {
+    query: {
+      enabled: !!targetId && memoHistoryOpen,
+      queryKey: getGetAiRunHistoryQueryKey(targetId, icMemoHistoryParams),
+    },
   });
 
   const runIcMemo = useRunIcMemo();
@@ -1308,6 +1319,98 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
             )}
           </>
         )}
+
+        {/* IC Memo Generation History */}
+        <div className="mt-3 rounded-sm border border-border bg-card/20 overflow-hidden">
+          <button
+            className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-card/40 transition-colors"
+            onClick={() => { setMemoHistoryOpen((v) => !v); setMemoExpandedRunId(null); }}
+          >
+            <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+              <History size={12} />
+              Generation History
+            </div>
+            {memoHistoryOpen ? <ChevronDown size={13} className="text-muted-foreground" /> : <ChevronRight size={13} className="text-muted-foreground" />}
+          </button>
+          {memoHistoryOpen && (
+            <div className="border-t border-border divide-y divide-border/50">
+              {!memoHistory || memoHistory.runs.length === 0 ? (
+                <div className="px-4 py-6 text-center text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                  No previous runs recorded
+                </div>
+              ) : (
+                memoHistory.runs.map((run, idx) => {
+                  const out = run.outputJson as {
+                    executiveSummary?: string;
+                    investmentThesis?: string[];
+                    valuationOpinion?: string;
+                    runAt?: string;
+                  };
+                  const isExpanded = memoExpandedRunId === run.id;
+                  const isLatest = idx === 0;
+                  const preview = out.investmentThesis?.[0] ?? out.executiveSummary?.slice(0, 120);
+                  return (
+                    <div key={run.id} className="bg-background/10">
+                      <button
+                        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-card/30 transition-colors text-left"
+                        onClick={() => setMemoExpandedRunId(isExpanded ? null : run.id)}
+                      >
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                          {isLatest && (
+                            <span className="text-[9px] font-mono uppercase text-primary/70 border border-primary/30 px-1 rounded-sm shrink-0">Latest</span>
+                          )}
+                          <span className="text-[10px] font-mono text-muted-foreground shrink-0">
+                            {format(parseISO(run.createdAt), "MMM d, yyyy · HH:mm")}
+                          </span>
+                          {run.model && (
+                            <span className="text-[9px] font-mono text-muted-foreground/50 shrink-0">{run.model}</span>
+                          )}
+                          {!isExpanded && preview && (
+                            <span className="text-[10px] font-mono text-muted-foreground/60 truncate">
+                              · {preview}{(out.investmentThesis?.[0] && out.investmentThesis[0].length < 120) ? "" : "…"}
+                            </span>
+                          )}
+                        </div>
+                        {isExpanded ? <ChevronDown size={12} className="text-muted-foreground shrink-0" /> : <ChevronRight size={12} className="text-muted-foreground shrink-0" />}
+                      </button>
+                      {isExpanded && (
+                        <div className="px-4 pb-4 space-y-3 bg-background/20">
+                          {out.executiveSummary && (
+                            <div className="space-y-0.5">
+                              <div className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground">Executive Summary</div>
+                              <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap">{out.executiveSummary}</p>
+                            </div>
+                          )}
+                          {out.investmentThesis && out.investmentThesis.length > 0 && (
+                            <div className="space-y-1">
+                              <div className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                                <CheckCircle2 size={9} className="text-primary/60" /> Investment Thesis
+                              </div>
+                              <ul className="space-y-0.5">
+                                {out.investmentThesis.map((point, i) => (
+                                  <li key={i} className="text-xs text-foreground/80 flex items-start gap-1.5">
+                                    <span className="shrink-0 mt-0.5 text-primary/50">•</span>
+                                    <span>{point}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {out.valuationOpinion && (
+                            <div className="space-y-0.5">
+                              <div className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground">Valuation Opinion</div>
+                              <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap">{out.valuationOpinion}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Submit Proposal Dialog */}
