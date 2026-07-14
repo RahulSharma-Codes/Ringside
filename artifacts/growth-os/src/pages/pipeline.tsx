@@ -20,6 +20,7 @@ import { HealthDot } from "@/components/health-dot";
 import { PIPELINE_STAGE_ORDER } from "@/components/stage-rail";
 import { PipelineKanban } from "@/pages/pipeline-kanban";
 import { useAuth } from "@/contexts/auth-context";
+import { useToast } from "@/hooks/use-toast";
 
 const STAGES = [
   "Sourcing", "Outreach", "Introductory Discussion", "NDA / CIM",
@@ -48,6 +49,7 @@ const DEAL_TYPES = [
 
 const VIEW_STORAGE_KEY = "ringside_pipeline_view";
 const MY_DEALS_STORAGE_KEY = "pipeline_my_deals";
+const LONG_PRESS_HINT_KEY = "pipeline_long_press_hint_shown";
 
 function getTierBadgeColor(tier: string) {
   switch (tier) {
@@ -73,6 +75,7 @@ type PipelineView = "list" | "board";
 export default function Pipeline() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const [view, setView] = useState<PipelineView>(() => {
     try {
@@ -144,6 +147,26 @@ export default function Pipeline() {
     const newUrl = qs ? `/pipeline?${qs}` : "/pipeline";
     window.history.replaceState(null, "", newUrl);
   }, [search, stage, tier, owner, country, attentionOnly, dealType]);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const alreadySeen = !!localStorage.getItem(LONG_PRESS_HINT_KEY);
+      const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+      if (!alreadySeen && isTouch) {
+        timer = setTimeout(() => {
+          toast({
+            title: "Tip: hold a card to log an interaction",
+            description: "Long-press any deal card to quickly log a call, meeting, or email.",
+            duration: 5000,
+          });
+          try { localStorage.setItem(LONG_PRESS_HINT_KEY, "1"); } catch { /* ignore */ }
+        }, 1200);
+      }
+    } catch { /* ignore */ }
+    return () => { if (timer !== undefined) clearTimeout(timer); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleViewChange = (newView: PipelineView) => {
     setView(newView);
