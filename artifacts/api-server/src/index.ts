@@ -540,6 +540,7 @@ async function applyMigrations(): Promise<void> {
     "ic_sessions", "ic_proposals", "ic_votes", "ic_cps",
     "valuations", "deal_economics", "synergies",
     "nda_records", "regulatory_clearances", "deal_advisors", "advisor_conflict_notes",
+    "deal_sponsors", "invite_tokens",
     "audit_events", "notifications", "target_access",
   ] as const;
 

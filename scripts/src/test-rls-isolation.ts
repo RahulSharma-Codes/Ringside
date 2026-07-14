@@ -288,6 +288,59 @@ async function run() {
           fail(`Unexpected error on cross-tenant insert under app_rls: ${msg}`);
         }
       }
+
+      // ─ Test D: deal_sponsors cross-tenant INSERT ────────────────────────────
+      // GUC = Company B, explicit company_id = Company A → RLS WITH CHECK blocks.
+      // target_id=0 is intentionally invalid; Postgres evaluates RLS before FK.
+      await client.query(`SELECT set_config('app.company_id', $1, false)`, [COMPANY_B_ID]);
+      try {
+        await client.query(`
+          INSERT INTO deal_sponsors (target_id, name, company_id)
+          VALUES (0, 'LEAK_SPONSOR', $1)
+        `, [DEFAULT_COMPANY_ID]);
+        fail(
+          "Cross-tenant INSERT into deal_sponsors (Company A ID while GUC = Company B) " +
+          "succeeded — RLS WITH CHECK is missing on deal_sponsors!"
+        );
+      } catch (err: unknown) {
+        const msg = (err as Error).message ?? "";
+        if (
+          msg.includes("violates") ||
+          msg.includes("row-level security") ||
+          msg.includes("new row") ||
+          msg.includes("permission denied")
+        ) {
+          pass(`deal_sponsors cross-tenant INSERT blocked by RLS WITH CHECK: "${msg.split("\n")[0]}"`);
+        } else {
+          fail(`Unexpected error on deal_sponsors cross-tenant insert under app_rls: ${msg}`);
+        }
+      }
+
+      // ─ Test E: invite_tokens cross-tenant INSERT ────────────────────────────
+      // GUC = Company B, explicit company_id = Company A → RLS WITH CHECK blocks.
+      await client.query(`SELECT set_config('app.company_id', $1, false)`, [COMPANY_B_ID]);
+      try {
+        await client.query(`
+          INSERT INTO invite_tokens (company_id, email, token_hash, expires_at)
+          VALUES ($1, 'leak@test.invalid', 'leak-hash-rls-test', now() + interval '1 day')
+        `, [DEFAULT_COMPANY_ID]);
+        fail(
+          "Cross-tenant INSERT into invite_tokens (Company A ID while GUC = Company B) " +
+          "succeeded — RLS WITH CHECK is missing on invite_tokens!"
+        );
+      } catch (err: unknown) {
+        const msg = (err as Error).message ?? "";
+        if (
+          msg.includes("violates") ||
+          msg.includes("row-level security") ||
+          msg.includes("new row") ||
+          msg.includes("permission denied")
+        ) {
+          pass(`invite_tokens cross-tenant INSERT blocked by RLS WITH CHECK: "${msg.split("\n")[0]}"`);
+        } else {
+          fail(`Unexpected error on invite_tokens cross-tenant insert under app_rls: ${msg}`);
+        }
+      }
     } finally {
       // Always reset role before returning the connection to the pool.
       await client.query(`RESET ROLE`).catch(() => {});
