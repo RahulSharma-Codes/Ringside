@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, Download } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { ChevronDown, Download, ListChecks, AlertCircle, MessageSquare, CheckCircle2 } from "lucide-react";
+import { format, parseISO, formatDistanceToNowStrict } from "date-fns";
 import { LinkifiedText } from "@/components/linkified-text";
 import { ALL_KNOWN_STAGES } from "@/components/stage-rail";
 import {
@@ -46,6 +46,10 @@ export type OverviewTarget = {
   phase1VerdictAccuracy?: string | null;
   phase1VerdictNote?: string | null;
   closeMissTheme?: string | null;
+  openActionCount?: number | null;
+  overdueActionCount?: number | null;
+  lastInteractionDate?: string | null;
+  needsAttention?: boolean | null;
 };
 
 export type OverviewAction = {
@@ -177,8 +181,47 @@ function OverviewSections({ target, actions }: { target: OverviewTarget; actions
     currentStage: stage,
   });
 
+  const { openActionCount, overdueActionCount, lastInteractionDate, needsAttention } = target;
+  const hasOverdue = (overdueActionCount ?? 0) > 0;
+  const hasOpenActions = (openActionCount ?? 0) > 0;
+
   return (
     <div className="space-y-6">
+      {/* ── Activity Snapshot strip ── */}
+      <div className="flex flex-wrap items-center gap-2">
+        {hasOpenActions ? (
+          <div className={`flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1.5 rounded-md border ${
+            hasOverdue
+              ? "bg-destructive/10 border-destructive/25 text-destructive"
+              : "bg-primary/10 border-primary/20 text-primary"
+          }`}>
+            {hasOverdue
+              ? <AlertCircle size={11} className="shrink-0" />
+              : <ListChecks size={11} className="shrink-0" />}
+            <span>
+              {openActionCount} open action{(openActionCount ?? 0) !== 1 ? "s" : ""}
+              {hasOverdue && ` · ${overdueActionCount} overdue`}
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1.5 rounded-md border bg-emerald-500/10 border-emerald-500/20 text-emerald-600">
+            <CheckCircle2 size={11} className="shrink-0" />
+            <span>No open actions</span>
+          </div>
+        )}
+        {lastInteractionDate ? (
+          <div className="flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1.5 rounded-md border bg-muted/40 border-border/50 text-muted-foreground">
+            <MessageSquare size={11} className="shrink-0" />
+            <span>Last contact {formatDistanceToNowStrict(parseISO(lastInteractionDate), { addSuffix: true })}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1.5 rounded-md border bg-muted/40 border-border/50 text-muted-foreground/60">
+            <MessageSquare size={11} className="shrink-0" />
+            <span>No interactions logged</span>
+          </div>
+        )}
+      </div>
+
       {/* ── Section 1: Teaser / Origination Snapshot (always visible) ── */}
       <div className="space-y-2">
         <OverviewSectionHeader label="Teaser / Origination Snapshot" always />

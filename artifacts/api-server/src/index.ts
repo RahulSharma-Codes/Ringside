@@ -481,10 +481,10 @@ async function applyMigrations(): Promise<void> {
 
   // Deal metadata columns added by later features
   await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS deal_type text`);
-  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS risk_penalty_score integer NOT NULL DEFAULT 0`);
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS risk_penalty_score integer`);
   await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS is_confidential boolean NOT NULL DEFAULT true`);
-  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS financial_attractiveness_score integer NOT NULL DEFAULT 50`);
-  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS process_maturity_score integer NOT NULL DEFAULT 50`);
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS financial_attractiveness_score integer`);
+  await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS process_maturity_score integer`);
 
   // kanban_sort_order — within-stage drag ordering
   await db.execute(sql`ALTER TABLE targets ADD COLUMN IF NOT EXISTS kanban_sort_order integer NOT NULL DEFAULT 0`);
@@ -635,6 +635,24 @@ async function applyMigrations(): Promise<void> {
   // REVOKE is idempotent: re-revoking a privilege that was never granted is a
   // no-op (Postgres silently ignores it).
   await db.execute(sql`REVOKE UPDATE, DELETE ON audit_events FROM CURRENT_USER`);
+
+  // ── Score nullable migration ───────────────────────────────────────────────
+  // Drops NOT NULL + DEFAULT on all five score columns so newly created targets
+  // carry NULL (unassessed) rather than misleading default values (50 or 0).
+  // DROP NOT NULL and SET DEFAULT NULL are idempotent in Postgres.
+  await db.execute(sql`
+    ALTER TABLE targets
+      ALTER COLUMN strategic_fit_score         DROP NOT NULL,
+      ALTER COLUMN strategic_fit_score         SET DEFAULT NULL,
+      ALTER COLUMN synergy_score               DROP NOT NULL,
+      ALTER COLUMN synergy_score               SET DEFAULT NULL,
+      ALTER COLUMN financial_attractiveness_score DROP NOT NULL,
+      ALTER COLUMN financial_attractiveness_score SET DEFAULT NULL,
+      ALTER COLUMN process_maturity_score      DROP NOT NULL,
+      ALTER COLUMN process_maturity_score      SET DEFAULT NULL,
+      ALTER COLUMN risk_penalty_score          DROP NOT NULL,
+      ALTER COLUMN risk_penalty_score          SET DEFAULT NULL
+  `);
 }
 
 function checkSmtpConfig(): void {

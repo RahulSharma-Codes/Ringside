@@ -312,8 +312,11 @@ export default function TargetDetail() {
         </div>
       </div>
 
-      {/* Mobile sticky bottom bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-sidebar/95 backdrop-blur-sm p-3 flex gap-2">
+      {/* Mobile sticky bottom bar — pb accounts for iOS/Android home gesture bar */}
+      <div
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-sidebar/95 backdrop-blur-sm px-3 pt-3 flex gap-2"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+      >
         <Button variant="outline" size="sm" className="flex-1 rounded-sm font-mono text-[10px] uppercase border-border"
           onClick={() => { setActiveTab("interactions"); setInteractionAddOpen(true); }}>
           <MessageSquare size={13} className="mr-1" /> Log
