@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Plus, ChevronRight, AlertTriangle, Calendar, Zap, User, MapPin, Upload, Download, Sparkles, LayoutList, LayoutGrid } from "lucide-react";
 import { ExportDialog } from "@/components/export-dialog";
 import { QuickLogInteractionPopover } from "@/components/quick-log-interaction-popover";
+import { MobileLongPressTray } from "@/components/mobile-long-press-tray";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
 import { StageChip } from "@/components/stage-chip";
@@ -446,7 +447,14 @@ export default function Pipeline() {
                   : `/targets/${target.id}`;
 
                 return (
-                  <Link key={target.id} href={targetHref}>
+                  <MobileLongPressTray
+                    key={target.id}
+                    targetId={target.id}
+                    targetName={target.projectName ?? target.targetCode ?? ""}
+                    targetCode={target.targetCode}
+                    targetHref={targetHref}
+                  >
+                  <Link href={targetHref}>
                     <Card className={`bg-card border-border/70 rounded-xl hover:shadow-md transition-all duration-150 cursor-pointer group ${tierCardClass}`}>
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3">
@@ -549,6 +557,7 @@ export default function Pipeline() {
                       </CardContent>
                     </Card>
                   </Link>
+                  </MobileLongPressTray>
                 );
               })}
             </div>

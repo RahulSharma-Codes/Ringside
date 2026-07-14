@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, User, Zap, ChevronDown, ChevronRight, X, Check, Loader2 } from "lucide-react";
 import { QuickLogInteractionPopover } from "@/components/quick-log-interaction-popover";
+import { MobileLongPressTray } from "@/components/mobile-long-press-tray";
 import { HealthDot } from "@/components/health-dot";
 import { StageChip } from "@/components/stage-chip";
 import { PIPELINE_STAGE_ORDER, OFF_TRACK_STAGES, getStagesForDealType } from "@/components/stage-rail";
@@ -147,6 +148,12 @@ function SortableCard({
   const openCount = target.openActionCount ?? 0;
 
   const cardContent = (
+    <MobileLongPressTray
+      targetId={target.id}
+      targetName={target.projectName ?? target.targetCode ?? ""}
+      targetCode={target.targetCode}
+      targetHref={`/targets/${target.id}`}
+    >
     <div
       className={`group/card bg-card border border-border/70 border-l-2 ${getTierCardAccent(target.priorityTier)} rounded-lg p-3 space-y-2 ${
         isDragging
@@ -237,6 +244,7 @@ function SortableCard({
         </div>
       )}
     </div>
+    </MobileLongPressTray>
   );
 
   if (isOffTrack) {
