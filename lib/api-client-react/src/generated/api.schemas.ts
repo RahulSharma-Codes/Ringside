@@ -77,11 +77,11 @@ export interface Target {
   dealType?: string | null;
   priorityTier: string;
   strategicRationale?: string | null;
-  strategicFitScore: number;
-  synergyScore: number;
-  financialAttractivenessScore: number;
-  processMaturityScore: number;
-  riskPenaltyScore: number;
+  strategicFitScore?: number | null;
+  synergyScore?: number | null;
+  financialAttractivenessScore?: number | null;
+  processMaturityScore?: number | null;
+  riskPenaltyScore?: number | null;
   priorityScore: number;
   currentStage: string;
   isActive: boolean;
@@ -166,11 +166,11 @@ export interface CreateTargetBody {
   dealType?: string | null;
   priorityTier?: string;
   strategicRationale?: string | null;
-  strategicFitScore?: number;
-  synergyScore?: number;
-  financialAttractivenessScore?: number;
-  processMaturityScore?: number;
-  riskPenaltyScore?: number;
+  strategicFitScore?: number | null;
+  synergyScore?: number | null;
+  financialAttractivenessScore?: number | null;
+  processMaturityScore?: number | null;
+  riskPenaltyScore?: number | null;
   isConfidential?: boolean;
 }
 
@@ -190,11 +190,11 @@ export interface UpdateTargetBody {
   dealType?: string | null;
   priorityTier?: string;
   strategicRationale?: string | null;
-  strategicFitScore?: number;
-  synergyScore?: number;
-  financialAttractivenessScore?: number;
-  processMaturityScore?: number;
-  riskPenaltyScore?: number;
+  strategicFitScore?: number | null;
+  synergyScore?: number | null;
+  financialAttractivenessScore?: number | null;
+  processMaturityScore?: number | null;
+  riskPenaltyScore?: number | null;
   isActive?: boolean;
   isConfidential?: boolean;
 }
@@ -979,11 +979,11 @@ export interface IcBriefTarget {
   openActionCount: number;
   overdueActionCount: number;
   daysSinceLastInteraction?: number | null;
-  strategicFitScore?: number;
-  synergyScore?: number;
-  financialAttractivenessScore?: number;
-  processMaturityScore?: number;
-  riskPenaltyScore?: number;
+  strategicFitScore?: number | null;
+  synergyScore?: number | null;
+  financialAttractivenessScore?: number | null;
+  processMaturityScore?: number | null;
+  riskPenaltyScore?: number | null;
   description?: string | null;
   ownerName?: string | null;
   createdAt?: string | null;

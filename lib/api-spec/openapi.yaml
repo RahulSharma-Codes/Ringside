@@ -2478,14 +2478,19 @@ components:
           nullable: true
         strategicFitScore:
           type: integer
+          nullable: true
         synergyScore:
           type: integer
+          nullable: true
         financialAttractivenessScore:
           type: integer
+          nullable: true
         processMaturityScore:
           type: integer
+          nullable: true
         riskPenaltyScore:
           type: integer
+          nullable: true
         priorityScore:
           type: integer
         currentStage:
@@ -2524,11 +2529,6 @@ components:
         - targetCode
         - projectName
         - priorityTier
-        - strategicFitScore
-        - synergyScore
-        - financialAttractivenessScore
-        - processMaturityScore
-        - riskPenaltyScore
         - priorityScore
         - currentStage
         - isActive
@@ -2606,19 +2606,19 @@ components:
           nullable: true
         strategicFitScore:
           type: integer
-          default: 50
+          nullable: true
         synergyScore:
           type: integer
-          default: 50
+          nullable: true
         financialAttractivenessScore:
           type: integer
-          default: 50
+          nullable: true
         processMaturityScore:
           type: integer
-          default: 50
+          nullable: true
         riskPenaltyScore:
           type: integer
-          default: 0
+          nullable: true
         isConfidential:
           type: boolean
           default: true
@@ -2672,14 +2672,19 @@ components:
           nullable: true
         strategicFitScore:
           type: integer
+          nullable: true
         synergyScore:
           type: integer
+          nullable: true
         financialAttractivenessScore:
           type: integer
+          nullable: true
         processMaturityScore:
           type: integer
+          nullable: true
         riskPenaltyScore:
           type: integer
+          nullable: true
         isActive:
           type: boolean
         isConfidential:
@@ -4340,14 +4345,19 @@ components:
           nullable: true
         strategicFitScore:
           type: number
+          nullable: true
         synergyScore:
           type: number
+          nullable: true
         financialAttractivenessScore:
           type: number
+          nullable: true
         processMaturityScore:
           type: number
+          nullable: true
         riskPenaltyScore:
           type: number
+          nullable: true
         description:
           type: string
           nullable: true
