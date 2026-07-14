@@ -36,12 +36,13 @@ import {
 import {
   Plus, Scale, CheckCircle2, XCircle, AlertTriangle, Clock, Users,
   ChevronDown, ChevronRight, Trash2, Lock, Gavel, FileText, Flag,
-  Target as TargetIcon, Sparkles, Copy, RefreshCw,
+  Target as TargetIcon, Sparkles, Copy, RefreshCw, Download,
 } from "lucide-react";
 import { format, parseISO, formatDistanceToNow } from "date-fns";
 
 interface IcTabProps {
   targetId: number;
+  dealName?: string;
 }
 
 type VoteOption = "Approve" | "Approve with Conditions" | "Reject" | "Recuse";
@@ -651,7 +652,7 @@ function ProposalCard({ proposal, targetId }: { proposal: IcProposal; targetId: 
 // ---------------------------------------------------------------------------
 // IcMemoCard — renders a cached or freshly generated IC memo
 // ---------------------------------------------------------------------------
-function IcMemoCard({ memo }: { memo: IcMemoResult }) {
+function IcMemoCard({ memo, dealName }: { memo: IcMemoResult; dealName?: string }) {
   const { toast } = useToast();
 
   const buildMarkdown = useCallback(() => {
@@ -686,9 +687,169 @@ function IcMemoCard({ memo }: { memo: IcMemoResult }) {
     });
   };
 
+  const handleExportPdf = useCallback(async () => {
+    const { jsPDF } = await import("jspdf");
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const marginL = 20;
+    const marginR = 20;
+    const contentW = pageW - marginL - marginR;
+    const generatedDate = memo.runAt ? new Date(memo.runAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+    const footerText = `CONFIDENTIAL  ·  ${generatedDate}${dealName ? `  ·  ${dealName}` : ""}`;
+
+    const addFooter = (pageNum: number, totalPages: number) => {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(150, 150, 150);
+      doc.text(footerText, marginL, pageH - 10);
+      doc.text(`${pageNum} / ${totalPages}`, pageW - marginR, pageH - 10, { align: "right" });
+    };
+
+    let y = 20;
+
+    const ensureSpace = (needed: number) => {
+      if (y + needed > pageH - 20) {
+        doc.addPage();
+        y = 20;
+      }
+    };
+
+    const addSectionHeading = (text: string) => {
+      ensureSpace(10);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(80, 80, 80);
+      doc.text(text.toUpperCase(), marginL, y);
+      y += 1.5;
+      doc.setDrawColor(200, 200, 200);
+      doc.line(marginL, y, pageW - marginR, y);
+      y += 5;
+      doc.setTextColor(30, 30, 30);
+    };
+
+    const addBodyText = (text: string) => {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9.5);
+      doc.setTextColor(40, 40, 40);
+      const lines = doc.splitTextToSize(text, contentW) as string[];
+      lines.forEach((line) => {
+        ensureSpace(6);
+        doc.text(line, marginL, y);
+        y += 5;
+      });
+    };
+
+    const addBullet = (text: string, indent = 0) => {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9.5);
+      doc.setTextColor(40, 40, 40);
+      const bulletX = marginL + indent;
+      const textX = bulletX + 4;
+      const wrapped = doc.splitTextToSize(text, contentW - indent - 4) as string[];
+      wrapped.forEach((line, i) => {
+        ensureSpace(6);
+        if (i === 0) doc.text("•", bulletX, y);
+        doc.text(line, textX, y);
+        y += 5;
+      });
+    };
+
+    // ── Title block ──────────────────────────────────────────────────────────
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(20, 20, 20);
+    doc.text("IC MEMO DRAFT", marginL, y);
+    y += 8;
+
+    if (dealName) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.setTextColor(80, 80, 80);
+      doc.text(dealName, marginL, y);
+      y += 6;
+    }
+
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8);
+    doc.setTextColor(130, 130, 130);
+    doc.text(`Generated ${generatedDate}`, marginL, y);
+    y += 2;
+    doc.setDrawColor(180, 180, 180);
+    doc.line(marginL, y + 2, pageW - marginR, y + 2);
+    y += 10;
+
+    // ── Executive Summary ────────────────────────────────────────────────────
+    addSectionHeading("Executive Summary");
+    addBodyText(memo.executiveSummary);
+    y += 4;
+
+    // ── Investment Thesis ────────────────────────────────────────────────────
+    if (memo.investmentThesis.length > 0) {
+      addSectionHeading("Investment Thesis");
+      memo.investmentThesis.forEach((point) => {
+        addBullet(point);
+      });
+      y += 4;
+    }
+
+    // ── Valuation Opinion ────────────────────────────────────────────────────
+    addSectionHeading("Valuation Opinion");
+    addBodyText(memo.valuationOpinion);
+    y += 4;
+
+    // ── Key Risks & Mitigants ────────────────────────────────────────────────
+    if (memo.keyRisksAndMitigants.length > 0) {
+      addSectionHeading("Key Risks & Mitigants");
+      memo.keyRisksAndMitigants.forEach((r, i) => {
+        ensureSpace(14);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(40, 40, 40);
+        const riskWrapped = doc.splitTextToSize(`${i + 1}. Risk: ${r.risk}`, contentW) as string[];
+        riskWrapped.forEach((line) => { doc.text(line, marginL, y); y += 5; });
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(70, 110, 70);
+        const mitigantWrapped = doc.splitTextToSize(`   Mitigant: ${r.mitigant}`, contentW) as string[];
+        mitigantWrapped.forEach((line) => { doc.text(line, marginL, y); y += 5; });
+        y += 2;
+      });
+      y += 2;
+    }
+
+    // ── IC Conditions Outstanding ────────────────────────────────────────────
+    if (memo.icConditionsOutstanding.length > 0) {
+      addSectionHeading("IC Conditions Outstanding");
+      memo.icConditionsOutstanding.forEach((c) => addBullet(c));
+      y += 4;
+    } else {
+      addSectionHeading("IC Conditions Outstanding");
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(9);
+      doc.setTextColor(100, 150, 100);
+      doc.text("No outstanding IC conditions.", marginL, y);
+      y += 4;
+    }
+
+    // ── Add footers ──────────────────────────────────────────────────────────
+    const totalPages = (doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      addFooter(p, totalPages);
+    }
+
+    const filename = dealName
+      ? `IC_Memo_${dealName.replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`
+      : `IC_Memo_${new Date().toISOString().slice(0, 10)}.pdf`;
+    doc.save(filename);
+    toast({ title: "PDF downloaded" });
+  }, [memo, dealName, toast]);
+
   return (
     <div className="space-y-4 rounded-sm border border-primary/20 bg-primary/5 p-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Sparkles size={13} className="text-primary" />
           <span className="text-[10px] font-mono uppercase tracking-wider text-primary">IC Memo Draft</span>
@@ -698,14 +859,24 @@ function IcMemoCard({ memo }: { memo: IcMemoResult }) {
             </span>
           )}
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 rounded-sm font-mono text-[10px] uppercase border-border gap-1"
-          onClick={handleCopy}
-        >
-          <Copy size={10} /> Copy as Markdown
-        </Button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 rounded-sm font-mono text-[10px] uppercase border-border gap-1"
+            onClick={handleCopy}
+          >
+            <Copy size={10} /> Copy as Markdown
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 rounded-sm font-mono text-[10px] uppercase border-border gap-1"
+            onClick={() => { void handleExportPdf(); }}
+          >
+            <Download size={10} /> Export as PDF
+          </Button>
+        </div>
       </div>
 
       {/* Executive Summary */}
@@ -793,7 +964,7 @@ function IcMemoCard({ memo }: { memo: IcMemoResult }) {
 // ---------------------------------------------------------------------------
 // IcTab — full IC tab
 // ---------------------------------------------------------------------------
-export function IcTab({ targetId }: IcTabProps) {
+export function IcTab({ targetId, dealName }: IcTabProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { canEditDeal: canEditDealForIcTab } = useAuth();
@@ -1123,7 +1294,7 @@ export function IcTab({ targetId }: IcTabProps) {
             {loadingMemo ? (
               <Skeleton className="h-24 w-full" />
             ) : memoData?.result ? (
-              <IcMemoCard memo={memoData.result} />
+              <IcMemoCard memo={memoData.result} dealName={dealName} />
             ) : (
               <div className="border border-dashed border-border rounded-sm py-8 text-center text-muted-foreground font-mono text-[11px] tracking-widest flex flex-col items-center gap-2">
                 <Sparkles size={18} className="text-muted-foreground/30" />

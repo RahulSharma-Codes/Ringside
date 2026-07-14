@@ -293,7 +293,7 @@ export default function TargetDetail() {
               <ActionsTab targetId={targetId} addOpen={actionAddOpen} onAddOpenChange={setActionAddOpen} />
             </TabsContent>
             <TabsContent value="history" className="mt-0"><HistoryTab targetId={targetId} /></TabsContent>
-            <TabsContent value="ic" className="mt-0"><IcTab targetId={targetId} /></TabsContent>
+            <TabsContent value="ic" className="mt-0"><IcTab targetId={targetId} dealName={target.projectName ?? target.targetCode ?? undefined} /></TabsContent>
             <TabsContent value="stakeholders" className="mt-0"><StakeholdersTab targetId={targetId} /></TabsContent>
             <TabsContent value="compliance" className="mt-0"><ComplianceTab targetId={targetId} /></TabsContent>
             <TabsContent value="audit" className="mt-0"><AuditTrailTab targetId={targetId} /></TabsContent>
