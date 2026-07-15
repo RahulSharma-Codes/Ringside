@@ -446,7 +446,7 @@ async function applyMigrations(): Promise<void> {
   // the OTP login flow on a brand-new install. The admin sets their password on first login.
   await db.execute(sql`
     INSERT INTO users (company_id, email, display_name, role)
-    SELECT '00000000-0000-0000-0000-000000000001', 'admin@ringside.local', 'Admin', 'Admin'
+    SELECT '00000000-0000-0000-0000-000000000001', 'rahul.sharma@manipalgroup.info', 'Admin', 'Admin'
     WHERE NOT EXISTS (SELECT 1 FROM users LIMIT 1)
   `);
   await db.execute(sql`

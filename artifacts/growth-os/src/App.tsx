@@ -220,7 +220,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   </p>
                   <p className="text-[10px] font-mono text-amber-700/70 leading-relaxed">
                     Email delivery is not configured. Default admin:{" "}
-                    <span className="font-bold text-amber-700">admin@ringside.local</span>.
+                    <span className="font-bold text-amber-700">rahul.sharma@manipalgroup.info</span>.
                     Use "Forgot password?" below to get a code shown on screen.
                   </p>
                 </div>
@@ -233,7 +233,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   type="email"
                   value={passwordForm.email}
                   onChange={(e) => setPasswordForm((p) => ({ ...p, email: e.target.value }))}
-                  placeholder={smtpConfigured === false ? "admin@ringside.local" : "you@example.com"}
+                  placeholder={smtpConfigured === false ? "rahul.sharma@manipalgroup.info" : "you@example.com"}
                   className="rounded-sm bg-background/50"
                   autoFocus
                 />
@@ -322,7 +322,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   </p>
                   <p className="text-[10px] font-mono text-amber-700/70 leading-relaxed">
                     Your code will be displayed on screen after you click Get Code.
-                    Default admin email: <span className="font-bold text-amber-700">admin@ringside.local</span>
+                    Default admin email: <span className="font-bold text-amber-700">rahul.sharma@manipalgroup.info</span>
                   </p>
                 </div>
               )}
@@ -334,7 +334,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   type="email"
                   value={otp.email}
                   onChange={(e) => setOtp((p) => ({ ...p, email: e.target.value }))}
-                  placeholder={smtpConfigured === false ? "admin@ringside.local" : "you@example.com"}
+                  placeholder={smtpConfigured === false ? "rahul.sharma@manipalgroup.info" : "you@example.com"}
                   className="rounded-sm bg-background/50"
                   autoFocus
                 />
