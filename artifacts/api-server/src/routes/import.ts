@@ -27,6 +27,7 @@ interface ImportRow {
   dealOwner?: string;
   dealChampion?: string;
   executiveSponsor?: string;
+  dealType?: string;
   priorityTier?: string;
   stage?: string;
   strategicRationale?: string;
@@ -84,8 +85,8 @@ function defaultMilestoneValues(targetId: number, now: Date, stage = "Sourcing")
 const ALLOWED_FIELDS = new Set([
   "targetCode", "projectName", "legalName", "businessUnit", "sector",
   "subsector", "geographyRegion", "country", "sourcingChannel", "sourcingFirm",
-  "dealOwner", "dealChampion", "executiveSponsor", "priorityTier", "stage",
-  "strategicRationale", "notes",
+  "dealOwner", "dealChampion", "executiveSponsor", "dealType", "priorityTier",
+  "stage", "strategicRationale", "notes",
 ]);
 
 /** Map raw row through the column map, producing a typed ImportRow.
@@ -128,6 +129,7 @@ function applyColumnMap(
   result.dealOwner = s("dealOwner");
   result.dealChampion = s("dealChampion");
   result.executiveSponsor = s("executiveSponsor");
+  result.dealType = s("dealType");
   result.priorityTier = s("priorityTier");
   result.stage = s("stage");
   result.strategicRationale = s("strategicRationale");
@@ -363,14 +365,15 @@ router.post("/apply", async (req, res) => {
           dealOwner: data.dealOwner ?? null,
           dealChampion: data.dealChampion ?? null,
           executiveSponsor: data.executiveSponsor ?? null,
+          dealType: data.dealType ?? null,
           priorityTier: data.priorityTier ?? "Watchlist",
           strategicRationale: data.strategicRationale ?? null,
-          // Scores are not importable — set to DB defaults explicitly
-          strategicFitScore: 50,
-          synergyScore: 50,
-          financialAttractivenessScore: 50,
-          processMaturityScore: 50,
-          riskPenaltyScore: 0,
+          // Scores are not importable — left null (unassessed)
+          strategicFitScore: null,
+          synergyScore: null,
+          financialAttractivenessScore: null,
+          processMaturityScore: null,
+          riskPenaltyScore: null,
           isActive: !TERMINAL_STAGES.has(initialStage),
           isConfidential: true,
           createdAt: now,
@@ -458,6 +461,8 @@ router.post("/apply", async (req, res) => {
         patch.dealChampion = data.dealChampion!;
       if (changedFields.includes("executiveSponsor") && !isBlank(data.executiveSponsor))
         patch.executiveSponsor = data.executiveSponsor!;
+      if (changedFields.includes("dealType") && !isBlank(data.dealType))
+        patch.dealType = data.dealType!;
       if (changedFields.includes("priorityTier") && !isBlank(data.priorityTier))
         patch.priorityTier = data.priorityTier!;
       if (changedFields.includes("strategicRationale") && !isBlank(data.strategicRationale))

@@ -34,6 +34,7 @@ const DB_FIELDS = [
   { value: "dealOwner", label: "Deal Owner" },
   { value: "dealChampion", label: "Deal Champion" },
   { value: "executiveSponsor", label: "Executive Sponsor" },
+  { value: "dealType", label: "Deal Type" },
   { value: "priorityTier", label: "Priority Tier" },
   { value: "stage", label: "Stage" },
   { value: "strategicRationale", label: "Strategic Rationale" },
@@ -57,28 +58,48 @@ const CANONICAL_MAP: Record<string, string> = Object.fromEntries(
 // Canonical template-label matches are checked first so re-importing the
 // downloaded template always maps every column correctly without manual edits.
 function autoMap(header: string): string {
-  const h = header.toLowerCase().replace(/[\s_\-/]+/g, "");
+  const h = header.toLowerCase().replace(/[\s_\-/().#]+/g, "");
   // 1. Exact canonical match against DB_FIELDS labels (covers all template headers)
   if (CANONICAL_MAP[h]) return CANONICAL_MAP[h];
   // 2. Heuristic aliases for common third-party / custom headers
   const MAP: Record<string, string> = {
-    targetcode: "targetCode", code: "targetCode",
+    // Target identity
+    targetcode: "targetCode", code: "targetCode", id: "targetCode", dealid: "targetCode", ref: "targetCode",
     projectname: "projectName", project: "projectName", name: "projectName",
-    legalname: "legalName", legal: "legalName",
+    dealname: "projectName", companyname: "projectName", targetcompany: "projectName",
+    targetname: "projectName", company: "projectName", target: "projectName",
+    legalname: "legalName", legal: "legalName", registeredname: "legalName",
+    // Organisation
     businessunit: "businessUnit", bu: "businessUnit", division: "businessUnit",
-    sector: "sector", industry: "sector",
-    subsector: "subsector", subindustry: "subsector",
+    department: "businessUnit", team: "businessUnit",
+    sector: "sector", industry: "sector", vertical: "sector",
+    subsector: "subsector", subindustry: "subsector", subvertical: "subsector",
+    // Geography
     region: "geographyRegion", geographyregion: "geographyRegion", geography: "geographyRegion",
-    country: "country", location: "country",
-    sourcingchannel: "sourcingChannel", channel: "sourcingChannel",
-    sourcingfirm: "sourcingFirm", firm: "sourcingFirm",
-    dealowner: "dealOwner", owner: "dealOwner",
-    dealchampion: "dealChampion", champion: "dealChampion",
-    executivesponsor: "executiveSponsor", sponsor: "executiveSponsor",
+    geographyarea: "geographyRegion", area: "geographyRegion",
+    country: "country", location: "country", market: "country", jurisdiction: "country",
+    // Sourcing
+    sourcingchannel: "sourcingChannel", channel: "sourcingChannel", source: "sourcingChannel",
+    howsourced: "sourcingChannel", origination: "sourcingChannel",
+    sourcingfirm: "sourcingFirm", firm: "sourcingFirm", bank: "sourcingFirm",
+    advisor: "sourcingFirm", ibank: "sourcingFirm",
+    // People
+    dealowner: "dealOwner", owner: "dealOwner", lead: "dealOwner",
+    deallead: "dealOwner", analyst: "dealOwner", rm: "dealOwner",
+    dealchampion: "dealChampion", champion: "dealChampion", internalchampion: "dealChampion",
+    executivesponsor: "executiveSponsor", sponsor: "executiveSponsor", esponsor: "executiveSponsor",
+    // Deal classification
+    dealtype: "dealType", type: "dealType", transactiontype: "dealType",
+    structuretype: "dealType", structure: "dealType",
     prioritytier: "priorityTier", priority: "priorityTier", tier: "priorityTier",
-    stage: "stage", pipelinestage: "stage",
+    rank: "priorityTier", classification: "priorityTier",
+    stage: "stage", pipelinestage: "stage", dealstage: "stage", status: "stage",
+    currentstage: "stage", phase: "stage",
+    // Notes
     strategicrationale: "strategicRationale", rationale: "strategicRationale",
-    notes: "notes", note: "notes",
+    thesis: "strategicRationale", strategicthesis: "strategicRationale",
+    notes: "notes", note: "notes", comments: "notes", description: "notes",
+    overview: "notes", summary: "notes",
   };
   return MAP[h] ?? "__skip__";
 }
@@ -309,7 +330,8 @@ const TEMPLATE_SAMPLE: Record<string, string> = {
   dealOwner: "Jane Smith",
   dealChampion: "John Doe",
   executiveSponsor: "CEO",
-  priorityTier: "Tier 1",
+  dealType: "Acquisition",
+  priorityTier: "Priority 1",
   stage: "Initial Outreach",
   strategicRationale: "Strong product-market fit in adjacent vertical",
 };

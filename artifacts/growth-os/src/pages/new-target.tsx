@@ -31,15 +31,22 @@ const formSchema = z.object({
   targetCode: z.string().min(2, "Target code is required"),
   legalName: z.string().optional(),
   sector: z.string().optional(),
+  subsector: z.string().optional(),
   country: z.string().optional(),
+  geographyRegion: z.string().optional(),
+  businessUnit: z.string().optional(),
   dealOwner: z.string().optional(),
+  dealChampion: z.string().optional(),
+  executiveSponsor: z.string().optional(),
+  sourcingChannel: z.string().optional(),
+  sourcingFirm: z.string().optional(),
   dealType: z.string().optional(),
   priorityTier: z.string().default("Watchlist"),
-  strategicFitScore: z.number().min(0).max(100).default(50),
-  synergyScore: z.number().min(0).max(100).default(50),
-  financialAttractivenessScore: z.number().min(0).max(100).default(50),
-  processMaturityScore: z.number().min(0).max(100).default(50),
-  riskPenaltyScore: z.number().min(0).max(100).default(0),
+  strategicFitScore: z.number().min(0).max(100).optional(),
+  synergyScore: z.number().min(0).max(100).optional(),
+  financialAttractivenessScore: z.number().min(0).max(100).optional(),
+  processMaturityScore: z.number().min(0).max(100).optional(),
+  riskPenaltyScore: z.number().min(0).max(100).optional(),
   isConfidential: z.boolean().default(true),
   strategicRationale: z.string().optional(),
 });
@@ -58,24 +65,22 @@ export default function NewTarget() {
       projectName: "",
       targetCode: "",
       priorityTier: "Watchlist",
-      strategicFitScore: 50,
-      synergyScore: 50,
-      financialAttractivenessScore: 50,
-      processMaturityScore: 50,
-      riskPenaltyScore: 0,
       isConfidential: true,
     }
   });
 
   function onSubmit(data: FormValues) {
+    const scorePayload = scoringOpen ? {
+      strategicFitScore: data.strategicFitScore ?? 50,
+      synergyScore: data.synergyScore ?? 50,
+      financialAttractivenessScore: data.financialAttractivenessScore ?? 50,
+      processMaturityScore: data.processMaturityScore ?? 50,
+      riskPenaltyScore: data.riskPenaltyScore ?? 0,
+    } : {};
     createTarget.mutate({
       data: {
         ...data,
-        strategicFitScore: data.strategicFitScore,
-        synergyScore: data.synergyScore,
-        financialAttractivenessScore: data.financialAttractivenessScore,
-        processMaturityScore: data.processMaturityScore,
-        riskPenaltyScore: data.riskPenaltyScore,
+        ...scorePayload,
       }
     }, {
       onSuccess: (res) => {
@@ -198,53 +203,160 @@ export default function NewTarget() {
                     />
                     <FormField
                       control={form.control}
-                      name="country"
+                      name="subsector"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Geography</FormLabel>
+                          <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Subsector</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g. US, UK, DE" className="rounded-sm bg-background/50" {...field} />
+                            <Input placeholder="e.g. Payments, Insurtech" className="rounded-sm bg-background/50" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="country"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Country</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. India, US, UK" className="rounded-sm bg-background/50" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="geographyRegion"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Region</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. South Asia, EMEA" className="rounded-sm bg-background/50" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="dealType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Deal Type</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                            <FormControl>
+                              <SelectTrigger className="rounded-sm bg-background/50">
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="rounded-sm">
+                              {DEAL_TYPES.map((dt) => (
+                                <SelectItem key={dt} value={dt}>{dt}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="businessUnit"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Business Unit</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. Corp Dev, Growth" className="rounded-sm bg-background/50" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
+                <CardHeader className="border-b border-border pb-4">
+                  <CardTitle className="font-mono text-sm uppercase tracking-wider text-primary">Deal Team &amp; Origination</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-4">
                   <FormField
                     control={form.control}
                     name="dealOwner"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Lead Owner</FormLabel>
+                        <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Deal Owner / Lead</FormLabel>
                         <FormControl>
-                          <Input placeholder="Deal Lead Name" className="rounded-sm bg-background/50" {...field} />
+                          <Input placeholder="Primary deal lead" className="rounded-sm bg-background/50" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="dealType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Deal Type</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="dealChampion"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Deal Champion</FormLabel>
                           <FormControl>
-                            <SelectTrigger className="rounded-sm bg-background/50">
-                              <SelectValue placeholder="Select type (optional)" />
-                            </SelectTrigger>
+                            <Input placeholder="Internal champion" className="rounded-sm bg-background/50" {...field} />
                           </FormControl>
-                          <SelectContent className="rounded-sm">
-                            {DEAL_TYPES.map((dt) => (
-                              <SelectItem key={dt} value={dt}>{dt}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="executiveSponsor"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Executive Sponsor</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. CEO, CFO" className="rounded-sm bg-background/50" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="sourcingChannel"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Sourcing Channel</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. Direct, IB, VC" className="rounded-sm bg-background/50" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="sourcingFirm"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Sourcing Firm</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Advisor / bank name" className="rounded-sm bg-background/50" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </CardContent>
               </Card>
 
@@ -281,14 +393,14 @@ export default function NewTarget() {
                             <FormItem>
                               <div className="flex justify-between items-center mb-2">
                                 <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{label}</FormLabel>
-                                <span className="font-mono font-bold text-primary text-sm">{field.value}/100</span>
+                                <span className="font-mono font-bold text-primary text-sm">{field.value ?? 50}/100</span>
                               </div>
                               <FormControl>
                                 <Slider
                                   min={0}
                                   max={100}
                                   step={1}
-                                  value={[field.value]}
+                                  value={[field.value ?? 50]}
                                   onValueChange={(vals) => field.onChange(vals[0])}
                                   className="py-2"
                                 />
