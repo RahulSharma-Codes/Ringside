@@ -137,7 +137,18 @@ router.post("/set-password", async (req, res) => {
   }
 
   const password = typeof req.body?.password === "string" ? req.body.password : "";
+  const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
   if (password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters." });
+
+  // If the user already has a password set, require the current password before allowing a change.
+  const [existing] = await db.select({ passwordHash: usersTable.passwordHash })
+    .from(usersTable).where(eq(usersTable.id, claims.userId)).limit(1);
+
+  if (existing?.passwordHash) {
+    if (!currentPassword) return res.status(400).json({ error: "Current password is required." });
+    const matches = await bcrypt.compare(currentPassword, existing.passwordHash);
+    if (!matches) return res.status(403).json({ error: "Current password is incorrect." });
+  }
 
   const passwordHash = await bcrypt.hash(password, 12);
   await db.update(usersTable)

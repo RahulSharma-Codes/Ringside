@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Lock, CheckCircle2, AlertTriangle, KeyRound } from "lucide-react";
+import { Lock, CheckCircle2, AlertTriangle, KeyRound, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -27,13 +27,14 @@ function PasswordStrength({ password }: { password: string }) {
           />
         ))}
       </div>
-      <p className="text-[9px] font-mono text-muted-foreground/50">{label}</p>
+      <p className="text-[9px] font-mono text-muted-foreground/50">{label} — min 8 chars, upper case, number</p>
     </div>
   );
 }
 
 export default function SettingsPasswordPage() {
   const { toast } = useToast();
+  const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -44,11 +45,11 @@ export default function SettingsPasswordPage() {
     e.preventDefault();
     setError(null);
     if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+      setError("New password must be at least 8 characters.");
       return;
     }
     if (password !== confirm) {
-      setError("Passwords do not match.");
+      setError("New passwords do not match.");
       return;
     }
     setIsSubmitting(true);
@@ -60,14 +61,15 @@ export default function SettingsPasswordPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token ?? ""}`,
         },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ currentPassword, password }),
       });
-      const data = await res.json();
+      const data = await res.json() as { ok?: boolean; error?: string };
       if (!res.ok) {
         setError(data.error ?? "Could not update password.");
         return;
       }
       setDone(true);
+      setCurrentPassword("");
       setPassword("");
       setConfirm("");
       toast({ title: "Password updated", description: "You can now sign in with your new password." });
@@ -115,43 +117,68 @@ export default function SettingsPasswordPage() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Current password */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                New Password <span className="text-destructive">*</span>
+                Current Password <span className="text-destructive">*</span>
               </label>
               <div className="relative">
                 <Lock size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
                 <Input
                   type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 8 characters"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Your current password"
                   className="pl-7 rounded-sm bg-background/50 font-mono text-[11px]"
-                  autoComplete="new-password"
+                  autoComplete="current-password"
                   autoFocus
+                  required
                 />
               </div>
-              {password.length > 0 && <PasswordStrength password={password} />}
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                Confirm Password <span className="text-destructive">*</span>
-              </label>
-              <div className="relative">
-                <Lock size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
-                <Input
-                  type="password"
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
-                  placeholder="Repeat password"
-                  className="pl-7 rounded-sm bg-background/50 font-mono text-[11px]"
-                  autoComplete="new-password"
-                />
+            <div className="border-t border-border/30 pt-4 space-y-4">
+              {/* New password */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  New Password <span className="text-destructive">*</span>
+                </label>
+                <div className="relative">
+                  <Lock size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="At least 8 characters"
+                    className="pl-7 rounded-sm bg-background/50 font-mono text-[11px]"
+                    autoComplete="new-password"
+                    required
+                  />
+                </div>
+                {password.length > 0 && <PasswordStrength password={password} />}
               </div>
-              {confirm.length > 0 && password !== confirm && (
-                <p className="text-[10px] font-mono text-destructive">Passwords do not match</p>
-              )}
+
+              {/* Confirm */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  Confirm New Password <span className="text-destructive">*</span>
+                </label>
+                <div className="relative">
+                  <Lock size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
+                  <Input
+                    type="password"
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)}
+                    placeholder="Repeat new password"
+                    className="pl-7 rounded-sm bg-background/50 font-mono text-[11px]"
+                    autoComplete="new-password"
+                    required
+                  />
+                </div>
+                {confirm.length > 0 && password !== confirm && (
+                  <p className="text-[10px] font-mono text-destructive">Passwords do not match</p>
+                )}
+              </div>
             </div>
 
             {error && (
@@ -163,10 +190,14 @@ export default function SettingsPasswordPage() {
 
             <Button
               type="submit"
-              disabled={isSubmitting || !password || !confirm}
+              disabled={isSubmitting || !currentPassword || !password || !confirm}
               className="w-full rounded-sm font-mono text-[11px] uppercase tracking-wider h-9"
             >
-              {isSubmitting ? "Updating…" : "Update Password"}
+              {isSubmitting ? (
+                <><Loader2 size={12} className="animate-spin mr-2" />Updating…</>
+              ) : (
+                "Update Password"
+              )}
             </Button>
           </form>
         )}
