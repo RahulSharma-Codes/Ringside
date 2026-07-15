@@ -24,6 +24,7 @@ import LaunchReadiness from "@/pages/launch-readiness";
 import Analytics from "@/pages/analytics";
 import Doctrine from "@/pages/doctrine";
 import AdminPage from "@/pages/admin";
+import SettingsPasswordPage from "@/pages/settings-password";
 import AccessDenied from "@/pages/access-denied";
 import NotFound from "@/pages/not-found";
 import IcBriefPage from "@/pages/ic-brief";
@@ -212,6 +213,18 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
           {/* ── Password login (default) ── */}
           {mode === "password" && (
             <form onSubmit={handlePasswordLogin} className="space-y-4">
+              {smtpConfigured === false && (
+                <div className="rounded-sm border border-amber-500/40 bg-amber-500/10 p-3 space-y-1">
+                  <p className="text-[9px] font-mono text-amber-700/80 uppercase tracking-wider font-semibold">
+                    Development mode
+                  </p>
+                  <p className="text-[10px] font-mono text-amber-700/70 leading-relaxed">
+                    Email delivery is not configured. Default admin:{" "}
+                    <span className="font-bold text-amber-700">admin@ringside.local</span>.
+                    Use "Forgot password?" below to get a code shown on screen.
+                  </p>
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
                   Email Address
@@ -220,7 +233,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   type="email"
                   value={passwordForm.email}
                   onChange={(e) => setPasswordForm((p) => ({ ...p, email: e.target.value }))}
-                  placeholder="you@example.com"
+                  placeholder={smtpConfigured === false ? "admin@ringside.local" : "you@example.com"}
                   className="rounded-sm bg-background/50"
                   autoFocus
                 />
@@ -236,17 +249,17 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   placeholder="••••••••"
                   className="rounded-sm bg-background/50"
                 />
+                <div className="flex justify-end">
+                  <button type="button" onClick={() => { setError(null); setMode("otp-email"); }}
+                    className="text-[10px] font-mono text-muted-foreground/50 hover:text-primary underline underline-offset-2 transition-colors">
+                    Forgot password? Get a login code instead
+                  </button>
+                </div>
               </div>
               {error && <p className="text-sm text-destructive font-mono">{error}</p>}
               <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]" disabled={!passwordForm.email.trim() || !passwordForm.password || isSubmitting}>
                 {isSubmitting ? "Signing in…" : "Sign In"}
               </Button>
-              <div className="flex items-center justify-center">
-                <button type="button" onClick={() => { setError(null); setMode("otp-email"); }}
-                  className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2">
-                  Use a login code instead
-                </button>
-              </div>
             </form>
           )}
 
@@ -348,12 +361,21 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
           {mode === "otp-code" && (
             <form onSubmit={handleOtpVerify} className="space-y-4">
               {otp.serverCode ? (
-                <div className="rounded-sm border border-primary/30 bg-primary/10 p-3 space-y-1">
+                <div className="rounded-sm border border-primary/30 bg-primary/10 p-4 space-y-2">
                   <p className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider">
-                    Your one-time code (dev mode — enter below)
+                    Your login code — SMTP not configured, shown here instead
                   </p>
-                  <p className="font-mono text-2xl font-bold tracking-[0.3em] text-primary">{otp.serverCode}</p>
-                  <p className="text-[9px] font-mono text-muted-foreground/40">Expires in 10 minutes</p>
+                  <div className="flex items-center gap-3">
+                    <p className="font-mono text-3xl font-bold tracking-[0.35em] text-primary flex-1">{otp.serverCode}</p>
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText(otp.serverCode ?? "")}
+                      className="text-[9px] font-mono text-primary/60 hover:text-primary border border-primary/30 hover:border-primary/60 rounded-sm px-2 py-1 transition-colors uppercase tracking-wider"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <p className="text-[9px] font-mono text-muted-foreground/40">Expires in 10 minutes. Copy it, then enter it below.</p>
                 </div>
               ) : (
                 <div className="rounded-sm border border-border/40 bg-muted/30 p-3 space-y-1">
@@ -470,6 +492,9 @@ function Router() {
       </Route>
       <Route path="/admin">
         <RequireAdmin><Layout><AdminPage /></Layout></RequireAdmin>
+      </Route>
+      <Route path="/settings/password">
+        <Layout><SettingsPasswordPage /></Layout>
       </Route>
       <Route path="*">
         <Layout><NotFound /></Layout>

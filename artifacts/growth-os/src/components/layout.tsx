@@ -5,7 +5,7 @@ import { useTheme } from "next-themes";
 import {
   Target, ListTodo, Briefcase, Plus, BarChart3, Bot, CalendarCheck,
   ClipboardCheck, Upload, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu,
-  FolderOpen, LineChart, ShieldCheck, Lightbulb, LogOut, Sun, Moon,
+  FolderOpen, LineChart, ShieldCheck, Lightbulb, LogOut, Sun, Moon, KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -273,6 +273,18 @@ function SidebarNav({
             <ThemeToggle collapsed />
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
+                <Link href="/settings/password">
+                  <button className="w-7 h-7 flex items-center justify-center rounded-md text-sidebar-foreground/30 hover:text-sidebar-foreground/70 hover:bg-white/6 transition-colors">
+                    <KeyRound size={12} />
+                  </button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={8}>
+                <span className="font-mono text-[11px]">Change password</span>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
                 <button
                   onClick={handleLogout}
                   className="w-7 h-7 flex items-center justify-center rounded-md text-sidebar-foreground/30 hover:text-sidebar-foreground/70 hover:bg-white/6 transition-colors"
@@ -296,6 +308,14 @@ function SidebarNav({
             </div>
             <div className="flex items-center gap-1">
               <ThemeToggle collapsed={false} />
+              <Link href="/settings/password">
+                <button
+                  className="flex items-center gap-1 text-[10px] font-mono text-sidebar-foreground/30 hover:text-sidebar-foreground/60 transition-colors rounded-sm px-1.5 py-1 hover:bg-white/5"
+                  title="Change password"
+                >
+                  <KeyRound size={11} />
+                </button>
+              </Link>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-1 text-[10px] font-mono text-sidebar-foreground/30 hover:text-sidebar-foreground/60 transition-colors rounded-sm px-1.5 py-1 hover:bg-white/5"

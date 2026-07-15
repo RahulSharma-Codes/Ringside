@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Shield, UserPlus, RefreshCw, Loader2, CheckCircle2,
   Users, Trash2, AlertTriangle, MailX, MailCheck, WifiOff, Link2, Copy, Check,
-  Eye, EyeOff,
+  Eye, EyeOff, X, Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +65,16 @@ export default function AdminPage() {
   // OTP generator
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [otpEmail, setOtpEmail] = useState("");
+
+  // Getting-started banner (dismissed per-browser via localStorage)
+  const BANNER_KEY = "ringside_admin_smtp_banner_dismissed";
+  const [bannerDismissed, setBannerDismissed] = useState(() =>
+    typeof window !== "undefined" && window.localStorage.getItem(BANNER_KEY) === "1"
+  );
+  function dismissBanner() {
+    window.localStorage.setItem(BANNER_KEY, "1");
+    setBannerDismissed(true);
+  }
 
   // ── Queries ───────────────────────────────────────────────────────────────
 
@@ -239,6 +249,31 @@ export default function AdminPage() {
         </div>
       </div>
 
+      {/* Getting-started banner — shown when SMTP is not yet configured and not dismissed */}
+      {!smtpLoading && smtpStatus && !smtpStatus.configured && !bannerDismissed && (
+        <div className="rounded-sm border border-blue-500/30 bg-blue-500/8 p-4 flex items-start gap-3">
+          <Info size={14} className="text-blue-500 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0 space-y-1.5">
+            <p className="font-mono text-[11px] font-semibold text-blue-600 uppercase tracking-wider">
+              Getting Started — Inviting Users
+            </p>
+            <p className="text-[10px] font-mono text-blue-700/80 leading-relaxed">
+              Email delivery is not configured, so invite links won't be sent automatically.
+              To add a new user: click <strong>Invite User</strong> → fill in their email and role
+              → copy the link shown and send it to them directly (Slack, WhatsApp, email, etc.).
+              They'll click the link, set their password, and are immediately signed in.
+            </p>
+          </div>
+          <button
+            onClick={dismissBanner}
+            className="text-blue-500/50 hover:text-blue-500 transition-colors shrink-0"
+            title="Dismiss"
+          >
+            <X size={13} />
+          </button>
+        </div>
+      )}
+
       {/* SMTP Health Banner */}
       {!smtpLoading && smtpStatus && (
         smtpStatus.configured && !smtpStatus.reachable ? (
@@ -275,11 +310,35 @@ export default function AdminPage() {
             </span>
           </div>
         ) : (
-          <div className="rounded-sm border border-border/40 bg-muted/20 p-3 flex items-center gap-2.5">
-            <MailX size={13} className="text-muted-foreground/50 shrink-0" />
-            <span className="font-mono text-[10px] text-muted-foreground/60">
-              SMTP is not configured. Admins must generate login codes manually and share them.
-            </span>
+          <div className="rounded-sm border border-border/40 bg-muted/20 p-3 space-y-2.5">
+            <div className="flex items-center gap-2.5">
+              <MailX size={13} className="text-muted-foreground/50 shrink-0" />
+              <span className="font-mono text-[10px] text-muted-foreground/60">
+                SMTP is not configured — invite links and login codes won't be emailed.
+              </span>
+            </div>
+            <div className="border-t border-border/30 pt-2.5 space-y-1.5">
+              <p className="font-mono text-[10px] text-muted-foreground/50 uppercase tracking-wider">
+                To enable email delivery, add these environment secrets:
+              </p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                {[
+                  ["SMTP_HOST", "e.g. smtp.gmail.com"],
+                  ["SMTP_USER", "your SMTP login email"],
+                  ["SMTP_PASS", "app password or token"],
+                  ["SMTP_FROM", "sender address (optional)"],
+                  ["SMTP_PORT", "587 (optional, default)"],
+                ].map(([key, hint]) => (
+                  <div key={key} className="flex items-start gap-1.5">
+                    <code className="font-mono text-[9px] bg-muted/40 px-1 py-0.5 rounded text-foreground/70 shrink-0">{key}</code>
+                    <span className="text-[9px] font-mono text-muted-foreground/40 leading-tight">{hint}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[9px] font-mono text-muted-foreground/40 leading-relaxed">
+                Add these in the Replit Secrets panel (padlock icon). Restart the API server after saving.
+              </p>
+            </div>
           </div>
         )
       )}
