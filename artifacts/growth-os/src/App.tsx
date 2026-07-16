@@ -126,176 +126,235 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6">
-      <Card className="w-full max-w-sm border-border bg-card/80 backdrop-blur rounded-sm">
-        <CardHeader className="space-y-1 pb-4">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary/60">
-            Inorganic Growth Command Center
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      {/* Subtle background grid */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.3)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.3)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none" />
+      {/* Glow */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="relative z-10 w-full max-w-md space-y-6">
+
+        {/* Brand header */}
+        <div className="text-center space-y-2">
+          <p className="text-[9px] font-mono uppercase tracking-[0.25em] text-muted-foreground/40">
+            Manipal Group · Corporate Development
           </p>
-          <CardTitle className="font-mono uppercase tracking-widest text-2xl">Ringside</CardTitle>
-        </CardHeader>
+          <h1 className="font-mono font-bold text-4xl uppercase tracking-[0.15em] text-foreground">
+            Ringside
+          </h1>
+          <p className="text-[11px] font-mono text-muted-foreground/50 tracking-wider uppercase">
+            M&amp;A Deal Intelligence Platform
+          </p>
+        </div>
 
-        <CardContent className="space-y-5">
+        {/* Login card */}
+        <div className="border border-border/60 bg-card/60 backdrop-blur-sm rounded-sm shadow-2xl">
 
-          {/* ── Default credentials hint (only when no SMTP and on password screen) ── */}
-          {mode === "password" && smtpOn === false && (
-            <div className="rounded-sm border border-border/50 bg-muted/30 p-3 space-y-1.5">
-              <p className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-wider font-medium">
-                Default sign-in credentials
-              </p>
+          {/* Card header */}
+          <div className="px-7 pt-7 pb-5 border-b border-border/40">
+            {mode === "password" && (
+              <h2 className="font-mono font-semibold text-base text-foreground tracking-tight">
+                Sign in to your account
+              </h2>
+            )}
+            {mode === "otp-email" && (
               <div className="space-y-0.5">
-                <p className="font-mono text-[11px] text-foreground/80">
-                  <span className="text-muted-foreground/50 mr-1">Email</span>
-                  rahul.sharma@manipalgroup.info
-                </p>
-                <p className="font-mono text-[11px] text-foreground/80">
-                  <span className="text-muted-foreground/50 mr-1">Password</span>
-                  Ringside@123
+                <h2 className="font-mono font-semibold text-base text-foreground tracking-tight">
+                  Get a login code
+                </h2>
+                <p className="text-[11px] font-mono text-muted-foreground/60">
+                  We'll send a one-time code to your email.
                 </p>
               </div>
-              <p className="text-[9px] font-mono text-muted-foreground/40">
-                Change your password after signing in via Settings.
-              </p>
-            </div>
-          )}
+            )}
+            {mode === "otp-code" && (
+              <div className="space-y-0.5">
+                <h2 className="font-mono font-semibold text-base text-foreground tracking-tight">
+                  Enter your code
+                </h2>
+                <p className="text-[11px] font-mono text-muted-foreground/60">
+                  Sent to <span className="text-foreground/80">{email}</span>
+                </p>
+              </div>
+            )}
+          </div>
 
-          {/* ── Password login ── */}
-          {mode === "password" && (
-            <form onSubmit={handlePasswordLogin} className="space-y-3">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Email</label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="rounded-sm bg-background/50"
-                  autoComplete="email"
-                  autoFocus
-                  required
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Password</label>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="rounded-sm bg-background/50"
-                  autoComplete="current-password"
-                  required
-                />
-              </div>
-              {error && <p className="text-[11px] text-destructive font-mono">{error}</p>}
-              <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]"
-                disabled={!email.trim() || !password || busy}>
-                {busy ? "Signing in…" : "Sign In"}
-              </Button>
-              <div className="text-center pt-1">
-                <button type="button" onClick={() => go("otp-email")}
-                  className="text-[10px] font-mono text-muted-foreground/50 hover:text-primary underline underline-offset-2 transition-colors">
-                  Sign in with a one-time code instead
-                </button>
-              </div>
-            </form>
-          )}
+          {/* Card body */}
+          <div className="px-7 py-6 space-y-5">
 
-          {/* ── OTP: enter email ── */}
-          {mode === "otp-email" && (
-            <form onSubmit={handleOtpRequest} className="space-y-3">
-              <p className="text-[11px] font-mono text-muted-foreground/70 leading-relaxed">
-                {smtpOn
-                  ? "Enter your email and we'll send a 6-digit login code."
-                  : "Enter your email — your login code will appear on screen (email not configured)."}
-              </p>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Email</label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="rounded-sm bg-background/50"
-                  autoFocus
-                  required
-                />
-              </div>
-              {error && <p className="text-[11px] text-destructive font-mono">{error}</p>}
-              <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]"
-                disabled={!email.trim() || busy}>
-                {busy ? "Sending…" : "Send Code"}
-              </Button>
-              <div className="text-center pt-1">
-                <button type="button" onClick={() => go("password")}
-                  className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2">
-                  ← Back to password
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* ── OTP: enter code ── */}
-          {mode === "otp-code" && (
-            <form onSubmit={handleOtpVerify} className="space-y-3">
-              {serverCode ? (
-                <div className="rounded-sm border border-primary/30 bg-primary/10 p-3 space-y-2">
-                  <p className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider">
-                    Your login code
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <p className="font-mono text-3xl font-bold tracking-[0.35em] text-primary flex-1">{serverCode}</p>
-                    <button type="button"
-                      onClick={() => navigator.clipboard.writeText(serverCode)}
-                      className="text-[9px] font-mono text-primary/60 hover:text-primary border border-primary/30 rounded-sm px-2 py-1 uppercase tracking-wider">
-                      Copy
+            {/* ── Password login ── */}
+            {mode === "password" && (
+              <form onSubmit={handlePasswordLogin} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+                    Email address
+                  </label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@company.com"
+                    className="rounded-sm bg-background/60 border-border/60 focus:border-primary/60 h-10 font-mono text-sm"
+                    autoComplete="email"
+                    autoFocus
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+                      Password
+                    </label>
+                    <button type="button" onClick={() => go("otp-email")}
+                      className="text-[10px] font-mono text-muted-foreground/40 hover:text-primary transition-colors">
+                      Forgot password?
                     </button>
                   </div>
-                  <p className="text-[9px] font-mono text-muted-foreground/40">Expires in 10 minutes.</p>
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="rounded-sm bg-background/60 border-border/60 focus:border-primary/60 h-10"
+                    autoComplete="current-password"
+                    required
+                  />
                 </div>
-              ) : (
-                <p className="text-[11px] font-mono text-muted-foreground/70">
-                  Check your inbox at <span className="text-primary">{email}</span> for a 6-digit code.
-                </p>
-              )}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">6-Digit Code</label>
-                <Input
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  placeholder="123456"
-                  className="rounded-sm bg-background/50 font-mono text-xl tracking-[0.3em] text-center"
-                  maxLength={6}
-                  autoFocus
-                />
-              </div>
-              {error && <p className="text-[11px] text-destructive font-mono">{error}</p>}
-              <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]"
-                disabled={otpCode.length < 6 || busy}>
-                {busy ? "Verifying…" : "Verify Code"}
-              </Button>
-              <div className="text-center pt-1">
-                <button type="button" onClick={() => go("otp-email")}
-                  className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2">
-                  ← Back
-                </button>
-              </div>
-            </form>
-          )}
+                {error && (
+                  <p className="text-[11px] text-destructive font-mono bg-destructive/10 border border-destructive/20 rounded-sm px-3 py-2">
+                    {error}
+                  </p>
+                )}
+                <Button type="submit"
+                  className="w-full h-10 rounded-sm font-mono uppercase text-[11px] tracking-wider"
+                  disabled={!email.trim() || !password || busy}>
+                  {busy ? "Signing in…" : "Sign In"}
+                </Button>
+              </form>
+            )}
 
-          {/* ── SSO (when configured) ── */}
-          {oidcConfigured && (
-            <div className="pt-1 border-t border-border/40 space-y-2">
-              <p className="text-[10px] font-mono text-muted-foreground/40 text-center uppercase tracking-wider">or</p>
-              <a href="/api/auth/oidc/start"
-                className="flex items-center justify-center w-full h-9 rounded-sm border border-border/60 bg-background/40 hover:bg-background/70 transition-colors font-mono text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground">
-                Sign in with Company SSO
-              </a>
-            </div>
-          )}
+            {/* ── OTP: enter email ── */}
+            {mode === "otp-email" && (
+              <form onSubmit={handleOtpRequest} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+                    Email address
+                  </label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@company.com"
+                    className="rounded-sm bg-background/60 border-border/60 focus:border-primary/60 h-10 font-mono text-sm"
+                    autoFocus
+                    required
+                  />
+                  <p className="text-[10px] font-mono text-muted-foreground/40">
+                    {smtpOn
+                      ? "A 6-digit code will be emailed to you. Check your inbox."
+                      : "Your login code will be shown on screen — email delivery is not yet configured."}
+                  </p>
+                </div>
+                {error && (
+                  <p className="text-[11px] text-destructive font-mono bg-destructive/10 border border-destructive/20 rounded-sm px-3 py-2">
+                    {error}
+                  </p>
+                )}
+                <Button type="submit"
+                  className="w-full h-10 rounded-sm font-mono uppercase text-[11px] tracking-wider"
+                  disabled={!email.trim() || busy}>
+                  {busy ? "Sending…" : "Send Login Code"}
+                </Button>
+                <div className="text-center">
+                  <button type="button" onClick={() => go("password")}
+                    className="text-[10px] font-mono text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+                    ← Back to password sign-in
+                  </button>
+                </div>
+              </form>
+            )}
 
-        </CardContent>
-      </Card>
+            {/* ── OTP: enter code ── */}
+            {mode === "otp-code" && (
+              <form onSubmit={handleOtpVerify} className="space-y-4">
+                {serverCode && (
+                  <div className="rounded-sm border border-primary/25 bg-primary/8 p-4 space-y-2.5">
+                    <p className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-widest">
+                      Your one-time login code
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-4xl font-bold tracking-[0.4em] text-primary flex-1">
+                        {serverCode}
+                      </span>
+                      <button type="button"
+                        onClick={() => navigator.clipboard.writeText(serverCode)}
+                        className="text-[9px] font-mono text-primary/50 hover:text-primary border border-primary/25 hover:border-primary/50 rounded-sm px-2.5 py-1.5 transition-colors uppercase tracking-wider shrink-0">
+                        Copy
+                      </button>
+                    </div>
+                    <p className="text-[9px] font-mono text-muted-foreground/40">
+                      Expires in 10 minutes. Enter it below.
+                    </p>
+                  </div>
+                )}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+                    6-digit code
+                  </label>
+                  <Input
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="· · · · · ·"
+                    className="rounded-sm bg-background/60 border-border/60 focus:border-primary/60 h-12 font-mono text-2xl tracking-[0.5em] text-center"
+                    maxLength={6}
+                    inputMode="numeric"
+                    autoFocus
+                  />
+                </div>
+                {error && (
+                  <p className="text-[11px] text-destructive font-mono bg-destructive/10 border border-destructive/20 rounded-sm px-3 py-2">
+                    {error}
+                  </p>
+                )}
+                <Button type="submit"
+                  className="w-full h-10 rounded-sm font-mono uppercase text-[11px] tracking-wider"
+                  disabled={otpCode.length < 6 || busy}>
+                  {busy ? "Verifying…" : "Verify & Sign In"}
+                </Button>
+                <div className="text-center">
+                  <button type="button" onClick={() => go("otp-email")}
+                    className="text-[10px] font-mono text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+                    ← Resend or use a different email
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* SSO */}
+            {oidcConfigured && (
+              <div className="border-t border-border/40 pt-4 space-y-3">
+                <p className="text-[9px] font-mono text-muted-foreground/30 text-center uppercase tracking-widest">or continue with</p>
+                <a href="/api/auth/oidc/start"
+                  className="flex items-center justify-center w-full h-10 rounded-sm border border-border/60 bg-background/40 hover:bg-background/70 transition-colors font-mono text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground">
+                  Company SSO
+                </a>
+              </div>
+            )}
+
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center space-y-1.5">
+          <p className="text-[10px] font-mono text-muted-foreground/30">
+            Access is by invitation only. Contact your administrator if you need an account.
+          </p>
+          <p className="text-[9px] font-mono text-muted-foreground/20 uppercase tracking-wider">
+            Confidential · Authorised users only · All activity is logged
+          </p>
+        </div>
+
+      </div>
     </div>
   );
 }

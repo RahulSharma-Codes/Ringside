@@ -18,11 +18,11 @@ interface InviteInfo {
   displayName: string | null;
 }
 
-const ROLE_COLORS: Record<string, string> = {
-  Admin:       "bg-primary/20 text-primary border-primary/30",
-  "Deal Lead": "bg-blue-500/15 text-blue-600 border-blue-500/25",
-  Member:      "bg-muted/50 text-muted-foreground border-border/50",
-  "IC Voter":  "bg-violet-500/15 text-violet-600 border-violet-500/25",
+const ROLE_LABELS: Record<string, { label: string; color: string }> = {
+  Admin:       { label: "Administrator",  color: "bg-primary/15 text-primary border-primary/30" },
+  "Deal Lead": { label: "Deal Lead",      color: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
+  Member:      { label: "Member",         color: "bg-muted/50 text-muted-foreground border-border/50" },
+  "IC Voter":  { label: "IC Voter",       color: "bg-violet-500/15 text-violet-400 border-violet-500/25" },
 };
 
 function PasswordStrength({ password }: { password: string }) {
@@ -31,19 +31,15 @@ function PasswordStrength({ password }: { password: string }) {
   const hasNumber = /[0-9]/.test(password);
   const score = [hasLength, hasUpper, hasNumber].filter(Boolean).length;
   const label = !hasLength ? "Too short" : score === 1 ? "Weak" : score === 2 ? "Good" : "Strong";
-  const color =
-    !hasLength  ? "bg-destructive/60"
-    : score === 1 ? "bg-amber-500"
-    : score === 2 ? "bg-blue-500"
-    : "bg-green-500";
+  const color = !hasLength ? "bg-destructive/60" : score === 1 ? "bg-amber-500" : score === 2 ? "bg-blue-500" : "bg-green-500";
   return (
-    <div className="space-y-1 mt-1">
-      <div className="flex gap-0.5">
+    <div className="space-y-1 mt-1.5">
+      <div className="flex gap-1">
         {[0, 1, 2].map((i) => (
-          <div key={i} className={`h-0.5 flex-1 rounded-full transition-colors ${i < score ? color : "bg-border/40"}`} />
+          <div key={i} className={`h-0.5 flex-1 rounded-full transition-all ${i < score ? color : "bg-border/30"}`} />
         ))}
       </div>
-      <p className="text-[9px] font-mono text-muted-foreground/50">{label} — min 8 chars, upper case, number</p>
+      <p className="text-[9px] font-mono text-muted-foreground/40">{label} — min 8 chars, uppercase, number</p>
     </div>
   );
 }
@@ -75,14 +71,13 @@ export default function AcceptInvitePage({ onLogin }: AcceptInvitePageProps) {
       })
       .catch(() => {
         setPhase("invalid");
-        setErrorMsg("This invite link is invalid or has expired. Ask your admin to send a new one.");
+        setErrorMsg("This invite link is invalid or has already been used. Ask your administrator to send a new one.");
       });
   }, [token]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFieldError("");
-
     if (!password || password.length < 8) {
       setFieldError("Password must be at least 8 characters.");
       return;
@@ -91,7 +86,6 @@ export default function AcceptInvitePage({ onLogin }: AcceptInvitePageProps) {
       setFieldError("Passwords do not match.");
       return;
     }
-
     setPhase("submitting");
     try {
       const data = await customFetch<{
@@ -103,13 +97,10 @@ export default function AcceptInvitePage({ onLogin }: AcceptInvitePageProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, displayName: displayName.trim() || null, password }),
       });
-
       window.localStorage.setItem(AUTH_TOKEN_KEY, data.token);
       setPhase("done");
       const base = (import.meta.env.BASE_URL as string).replace(/\/$/, "");
-      setTimeout(() => {
-        window.location.assign(base + "/");
-      }, 900);
+      setTimeout(() => { window.location.assign(base + "/"); }, 1200);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
       setFieldError(msg);
@@ -117,159 +108,175 @@ export default function AcceptInvitePage({ onLogin }: AcceptInvitePageProps) {
     }
   }
 
+  const roleInfo = info ? (ROLE_LABELS[info.role] ?? ROLE_LABELS.Member) : null;
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      {/* Background grid */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.3)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.3)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none" />
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="relative z-10 w-full max-w-md space-y-6">
 
         {/* Brand */}
-        <div className="text-center mb-8">
-          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/50 mb-1">
-            Inorganic Growth Command Center
+        <div className="text-center space-y-2">
+          <p className="text-[9px] font-mono uppercase tracking-[0.25em] text-muted-foreground/40">
+            Manipal Group · Corporate Development
           </p>
-          <h1 className="text-2xl font-mono font-bold uppercase tracking-[0.12em] text-foreground">
+          <h1 className="font-mono font-bold text-4xl uppercase tracking-[0.15em] text-foreground">
             Ringside
           </h1>
+          <p className="text-[11px] font-mono text-muted-foreground/50 tracking-wider uppercase">
+            M&amp;A Deal Intelligence Platform
+          </p>
         </div>
 
-        <div className="border border-border/50 bg-card/40 rounded-sm">
+        {/* Card */}
+        <div className="border border-border/60 bg-card/60 backdrop-blur-sm rounded-sm shadow-2xl">
 
           {/* Loading */}
           {phase === "loading" && (
-            <div className="flex flex-col items-center gap-3 p-8">
+            <div className="flex flex-col items-center gap-3 p-12">
               <Loader2 size={20} className="animate-spin text-primary" />
-              <p className="text-[11px] font-mono text-muted-foreground/60 uppercase tracking-wider">
-                Validating invite…
-              </p>
+              <p className="text-[11px] font-mono text-muted-foreground/50 uppercase tracking-widest">Validating invite…</p>
             </div>
           )}
 
           {/* Invalid */}
           {phase === "invalid" && (
-            <div className="flex flex-col items-center gap-3 p-8 text-center">
-              <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
-                <AlertTriangle size={18} className="text-destructive" />
+            <>
+              <div className="px-7 pt-7 pb-5 border-b border-border/40">
+                <h2 className="font-mono font-semibold text-base text-foreground tracking-tight">
+                  Invite link invalid
+                </h2>
               </div>
-              <div>
-                <p className="font-mono font-semibold text-sm uppercase tracking-tight">
-                  Invalid Invite
-                </p>
-                <p className="text-[11px] font-mono text-muted-foreground/60 mt-1 leading-relaxed">
+              <div className="px-7 py-8 flex flex-col items-center gap-4 text-center">
+                <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <AlertTriangle size={20} className="text-destructive" />
+                </div>
+                <p className="text-[12px] font-mono text-muted-foreground/70 leading-relaxed max-w-xs">
                   {errorMsg}
                 </p>
               </div>
-            </div>
+            </>
           )}
 
           {/* Done */}
           {phase === "done" && (
-            <div className="flex flex-col items-center gap-3 p-8 text-center">
-              <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                <CheckCircle2 size={18} className="text-green-500" />
+            <>
+              <div className="px-7 pt-7 pb-5 border-b border-border/40">
+                <h2 className="font-mono font-semibold text-base text-foreground tracking-tight">Account created</h2>
               </div>
-              <div>
-                <p className="font-mono font-semibold text-sm uppercase tracking-tight text-green-600">
-                  Account Created
-                </p>
-                <p className="text-[11px] font-mono text-muted-foreground/60 mt-1">
-                  Signing you in…
-                </p>
+              <div className="px-7 py-8 flex flex-col items-center gap-4 text-center">
+                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <CheckCircle2 size={20} className="text-green-500" />
+                </div>
+                <div>
+                  <p className="font-mono font-semibold text-sm text-green-500">You're in!</p>
+                  <p className="text-[11px] font-mono text-muted-foreground/50 mt-1">Redirecting to the dashboard…</p>
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {/* Form */}
-          {(phase === "form" || phase === "submitting") && info && (
+          {(phase === "form" || phase === "submitting") && info && roleInfo && (
             <>
-              {/* Welcome header */}
-              <div className="px-6 pt-6 pb-4 border-b border-border/40 space-y-1">
-                <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/60">
-                  You've been invited to join
-                </p>
+              {/* Card header */}
+              <div className="px-7 pt-7 pb-5 border-b border-border/40 space-y-3">
+                <div>
+                  <h2 className="font-mono font-semibold text-base text-foreground tracking-tight">
+                    You've been invited
+                  </h2>
+                  <p className="text-[11px] font-mono text-muted-foreground/50 mt-0.5">
+                    Create your account to get started.
+                  </p>
+                </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono text-[12px] font-medium text-foreground">{info.email}</span>
-                  <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-sm border ${ROLE_COLORS[info.role] ?? ROLE_COLORS.Member}`}>
-                    <ShieldCheck size={9} className="inline-block mr-1 -mt-px" />
-                    {info.role}
+                  <span className="font-mono text-[12px] text-foreground/80">{info.email}</span>
+                  <span className={`inline-flex items-center gap-1 text-[9px] font-mono px-2 py-0.5 rounded-sm border ${roleInfo.color}`}>
+                    <ShieldCheck size={9} />
+                    {roleInfo.label}
                   </span>
                 </div>
-                <p className="text-[10px] font-mono text-muted-foreground/50 leading-relaxed">
-                  Set a password to create your account and start using Ringside.
-                </p>
               </div>
 
-              {/* Fields */}
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              {/* Form body */}
+              <form onSubmit={handleSubmit} className="px-7 py-6 space-y-4">
+                {/* Display name */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                    Display Name <span className="text-muted-foreground/40">(optional)</span>
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+                    Your name <span className="text-muted-foreground/30 normal-case tracking-normal">(optional)</span>
                   </label>
                   <div className="relative">
-                    <User size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
+                    <User size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/30" />
                     <Input
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       placeholder="Your full name"
-                      className="pl-7 rounded-sm bg-background/50 font-mono text-[11px]"
+                      className="pl-8 rounded-sm bg-background/60 border-border/60 h-10 font-mono text-sm"
                       autoFocus
                     />
                   </div>
-                  <p className="text-[9px] font-mono text-muted-foreground/40">Shown to other team members</p>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                    Password <span className="text-destructive">*</span>
-                  </label>
-                  <div className="relative">
-                    <Lock size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
-                    <Input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="At least 8 characters"
-                      className="pl-7 rounded-sm bg-background/50 font-mono text-[11px]"
-                      autoComplete="new-password"
-                      required
-                    />
+                <div className="border-t border-border/30 pt-4 space-y-4">
+                  {/* Password */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+                      Choose a password <span className="text-destructive">*</span>
+                    </label>
+                    <div className="relative">
+                      <Lock size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/30" />
+                      <Input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="At least 8 characters"
+                        className="pl-8 rounded-sm bg-background/60 border-border/60 h-10"
+                        autoComplete="new-password"
+                        required
+                      />
+                    </div>
+                    {password.length > 0 && <PasswordStrength password={password} />}
                   </div>
-                  {password.length > 0 && <PasswordStrength password={password} />}
-                </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                    Confirm Password <span className="text-destructive">*</span>
-                  </label>
-                  <div className="relative">
-                    <Lock size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
-                    <Input
-                      type="password"
-                      value={confirm}
-                      onChange={(e) => setConfirm(e.target.value)}
-                      placeholder="Repeat password"
-                      className="pl-7 rounded-sm bg-background/50 font-mono text-[11px]"
-                      autoComplete="new-password"
-                      required
-                    />
+                  {/* Confirm */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
+                      Confirm password <span className="text-destructive">*</span>
+                    </label>
+                    <div className="relative">
+                      <Lock size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/30" />
+                      <Input
+                        type="password"
+                        value={confirm}
+                        onChange={(e) => setConfirm(e.target.value)}
+                        placeholder="Repeat your password"
+                        className="pl-8 rounded-sm bg-background/60 border-border/60 h-10"
+                        autoComplete="new-password"
+                        required
+                      />
+                    </div>
+                    {confirm.length > 0 && password !== confirm && (
+                      <p className="text-[10px] font-mono text-destructive mt-1">Passwords do not match</p>
+                    )}
                   </div>
-                  {confirm.length > 0 && password !== confirm && (
-                    <p className="text-[10px] font-mono text-destructive">Passwords do not match</p>
-                  )}
                 </div>
 
                 {fieldError && (
-                  <div className="flex items-start gap-1.5 text-destructive">
-                    <AlertTriangle size={11} className="shrink-0 mt-0.5" />
-                    <p className="text-[10px] font-mono leading-relaxed">{fieldError}</p>
-                  </div>
+                  <p className="text-[11px] text-destructive font-mono bg-destructive/10 border border-destructive/20 rounded-sm px-3 py-2">
+                    {fieldError}
+                  </p>
                 )}
 
                 <Button
                   type="submit"
                   disabled={phase === "submitting" || !password || !confirm}
-                  className="w-full rounded-sm font-mono text-[11px] uppercase tracking-wider h-9"
+                  className="w-full h-10 rounded-sm font-mono uppercase text-[11px] tracking-wider"
                 >
                   {phase === "submitting" ? (
-                    <><Loader2 size={12} className="animate-spin mr-2" /> Creating Account…</>
+                    <><Loader2 size={12} className="animate-spin mr-2" />Creating account…</>
                   ) : (
                     "Create Account & Sign In"
                   )}
@@ -279,8 +286,9 @@ export default function AcceptInvitePage({ onLogin }: AcceptInvitePageProps) {
           )}
         </div>
 
-        <p className="text-center text-[9px] font-mono text-muted-foreground/30 mt-4">
-          Already have an account? <a href="/" className="underline hover:text-muted-foreground/60">Sign in here</a>
+        {/* Footer */}
+        <p className="text-center text-[9px] font-mono text-muted-foreground/25 uppercase tracking-wider">
+          Confidential · Authorised users only · All activity is logged
         </p>
       </div>
     </div>
