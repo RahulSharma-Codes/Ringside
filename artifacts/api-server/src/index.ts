@@ -451,6 +451,11 @@ async function applyMigrations(): Promise<void> {
     SELECT '00000000-0000-0000-0000-000000000001', 'rahul.sharma@manipalgroup.info', 'Admin', 'Admin', ${defaultPasswordHash}
     WHERE NOT EXISTS (SELECT 1 FROM users LIMIT 1)
   `);
+  // Rename the legacy seed email and set the correct email + password in one step
+  await db.execute(sql`
+    UPDATE users SET email = 'rahul.sharma@manipalgroup.info', password_hash = ${defaultPasswordHash}
+    WHERE email = 'admin@ringside.local'
+  `);
   // Also set the password on the existing admin if they have no password yet
   // (handles the case where the account was already seeded without one)
   await db.execute(sql`
