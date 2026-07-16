@@ -40,373 +40,242 @@ setAuthTokenGetter(() => {
   return window.localStorage.getItem(AUTH_TOKEN_KEY);
 });
 
-// ── Login screen — password (default) with OTP as backup ───────────────────────
+// ── Login screen ───────────────────────────────────────────────────────────────
 
-type LoginMode = "password" | "otp-email" | "otp-code" | "set-password";
-
-interface OtpState {
-  email: string;
-  code: string;
-  /** The in-app generated code returned by the server (shown for UX since no email delivery yet) */
-  serverCode: string | null;
-}
+type LoginMode = "password" | "otp-email" | "otp-code";
 
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [mode, setMode] = useState<LoginMode>("password");
-  const [otp, setOtp] = useState<OtpState>({ email: "", code: "", serverCode: null });
-  const [passwordForm, setPasswordForm] = useState({ email: "", password: "" });
-  const [newPassword, setNewPassword] = useState({ password: "", confirm: "" });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [serverCode, setServerCode] = useState<string | null>(null);
+  const [smtpOn, setSmtpOn] = useState<boolean | null>(null);
+  const [oidcConfigured, setOidcConfigured] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [oidcConfig, setOidcConfig] = useState<{ configured: boolean; clientId?: string; issuer?: string; authorizationEndpoint?: string } | null>(null);
-  const [smtpConfigured, setSmtpConfigured] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/oidc/config")
-      .then((r) => r.json())
-      .then((d) => setOidcConfig(d))
-      .catch(() => setOidcConfig({ configured: false }));
     fetch("/api/auth/state")
       .then((r) => r.json())
-      .then((d: { smtpConfigured: boolean }) => setSmtpConfigured(d.smtpConfigured))
-      .catch(() => setSmtpConfigured(false));
+      .then((d: { smtpConfigured: boolean }) => setSmtpOn(d.smtpConfigured))
+      .catch(() => setSmtpOn(false));
+    fetch("/api/auth/oidc/config")
+      .then((r) => r.json())
+      .then((d: { configured: boolean }) => setOidcConfigured(d.configured))
+      .catch(() => {});
   }, []);
 
-  // ── Password login ──────────────────────────────────────────────────────────
+  const go = (m: LoginMode) => { setError(null); setMode(m); };
 
+  // Password login
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!passwordForm.email.trim() || !passwordForm.password) return;
-    setError(null);
-    setIsSubmitting(true);
+    if (!email.trim() || !password) return;
+    setError(null); setBusy(true);
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: passwordForm.email.trim().toLowerCase(), password: passwordForm.password }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Invalid credentials.");
-        return;
-      }
+      if (!res.ok) { setError(data.error ?? "Invalid email or password."); return; }
       window.localStorage.setItem(AUTH_TOKEN_KEY, data.token);
-      if (data.needsPasswordSetup) {
-        setMode("set-password");
-      } else {
-        onLogin();
-      }
-    } catch {
-      setError("Login failed. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+      onLogin();
+    } catch { setError("Login failed. Please try again."); }
+    finally { setBusy(false); }
   };
 
-  // ── OTP — step 1: request code ──────────────────────────────────────────────
-
+  // OTP step 1
   const handleOtpRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!otp.email.trim()) return;
-    setError(null);
-    setIsSubmitting(true);
+    if (!email.trim()) return;
+    setError(null); setBusy(true);
     try {
       const res = await fetch("/api/auth/otp/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: otp.email.trim().toLowerCase() }),
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Could not generate login code. Please try again.");
-        return;
-      }
-      setOtp((prev) => ({ ...prev, serverCode: data.code ?? null }));
+      if (!res.ok) { setError(data.error ?? "Could not send code. Please try again."); return; }
+      setServerCode(data.code ?? null);
       setMode("otp-code");
-    } catch {
-      setError("Could not connect to server. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    } catch { setError("Could not connect. Please try again."); }
+    finally { setBusy(false); }
   };
 
-  // ── OTP — step 2: verify code ───────────────────────────────────────────────
-
+  // OTP step 2
   const handleOtpVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!otp.code.trim()) return;
-    setError(null);
-    setIsSubmitting(true);
+    if (otpCode.length < 6) return;
+    setError(null); setBusy(true);
     try {
       const res = await fetch("/api/auth/otp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: otp.email, code: otp.code.trim() }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), code: otpCode.trim() }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error ?? "Invalid code.");
-        return;
-      }
       const data = await res.json();
+      if (!res.ok) { setError(data.error ?? "Invalid code."); return; }
       window.localStorage.setItem(AUTH_TOKEN_KEY, data.token);
-      if (data.needsPasswordSetup) {
-        setMode("set-password");
-      } else {
-        onLogin();
-      }
-    } catch {
-      setError("Verification failed. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // ── Set password (after first-time OTP login) ───────────────────────────────
-
-  const handleSetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPassword.password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-    if (newPassword.password !== newPassword.confirm) {
-      setError("Passwords do not match.");
-      return;
-    }
-    setError(null);
-    setIsSubmitting(true);
-    try {
-      const res = await fetch("/api/auth/set-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${window.localStorage.getItem(AUTH_TOKEN_KEY)}`,
-        },
-        body: JSON.stringify({ password: newPassword.password }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Could not set password.");
-        return;
-      }
       onLogin();
-    } catch {
-      setError("Could not set password. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    } catch { setError("Verification failed. Please try again."); }
+    finally { setBusy(false); }
   };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
-      <Card className="w-full max-w-md border-border bg-card/80 backdrop-blur rounded-sm">
-        <CardHeader className="space-y-2 pb-2">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-primary/70">Inorganic Growth Command Center</p>
-          <CardTitle className="font-mono uppercase tracking-widest text-2xl leading-tight">Ringside</CardTitle>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Your command center for corporate development, diligence, and inorganic growth execution.
+      <Card className="w-full max-w-sm border-border bg-card/80 backdrop-blur rounded-sm">
+        <CardHeader className="space-y-1 pb-4">
+          <p className="text-[10px] font-mono uppercase tracking-widest text-primary/60">
+            Inorganic Growth Command Center
           </p>
+          <CardTitle className="font-mono uppercase tracking-widest text-2xl">Ringside</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
 
-          {/* ── Password login (default) ── */}
+        <CardContent className="space-y-5">
+
+          {/* ── Default credentials hint (only when no SMTP and on password screen) ── */}
+          {mode === "password" && smtpOn === false && (
+            <div className="rounded-sm border border-border/50 bg-muted/30 p-3 space-y-1.5">
+              <p className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-wider font-medium">
+                Default sign-in credentials
+              </p>
+              <div className="space-y-0.5">
+                <p className="font-mono text-[11px] text-foreground/80">
+                  <span className="text-muted-foreground/50 mr-1">Email</span>
+                  rahul.sharma@manipalgroup.info
+                </p>
+                <p className="font-mono text-[11px] text-foreground/80">
+                  <span className="text-muted-foreground/50 mr-1">Password</span>
+                  Ringside@123
+                </p>
+              </div>
+              <p className="text-[9px] font-mono text-muted-foreground/40">
+                Change your password after signing in via Settings.
+              </p>
+            </div>
+          )}
+
+          {/* ── Password login ── */}
           {mode === "password" && (
-            <form onSubmit={handlePasswordLogin} className="space-y-4">
-              {smtpConfigured === false && (
-                <div className="rounded-sm border border-amber-500/40 bg-amber-500/10 p-3 space-y-1">
-                  <p className="text-[9px] font-mono text-amber-700/80 uppercase tracking-wider font-semibold">
-                    Development mode
-                  </p>
-                  <p className="text-[10px] font-mono text-amber-700/70 leading-relaxed">
-                    Email delivery is not configured. Default admin:{" "}
-                    <span className="font-bold text-amber-700">rahul.sharma@manipalgroup.info</span>.
-                    Use "Forgot password?" below to get a code shown on screen.
-                  </p>
-                </div>
-              )}
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                  Email Address
-                </label>
+            <form onSubmit={handlePasswordLogin} className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Email</label>
                 <Input
                   type="email"
-                  value={passwordForm.email}
-                  onChange={(e) => setPasswordForm((p) => ({ ...p, email: e.target.value }))}
-                  placeholder={smtpConfigured === false ? "rahul.sharma@manipalgroup.info" : "you@example.com"}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
                   className="rounded-sm bg-background/50"
+                  autoComplete="email"
                   autoFocus
+                  required
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                  Password
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Password</label>
                 <Input
                   type="password"
-                  value={passwordForm.password}
-                  onChange={(e) => setPasswordForm((p) => ({ ...p, password: e.target.value }))}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className="rounded-sm bg-background/50"
+                  autoComplete="current-password"
+                  required
                 />
-                <div className="flex justify-end">
-                  <button type="button" onClick={() => { setError(null); setMode("otp-email"); }}
-                    className="text-[10px] font-mono text-muted-foreground/50 hover:text-primary underline underline-offset-2 transition-colors">
-                    Forgot password? Get a login code instead
-                  </button>
-                </div>
               </div>
-              {error && <p className="text-sm text-destructive font-mono">{error}</p>}
-              <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]" disabled={!passwordForm.email.trim() || !passwordForm.password || isSubmitting}>
-                {isSubmitting ? "Signing in…" : "Sign In"}
+              {error && <p className="text-[11px] text-destructive font-mono">{error}</p>}
+              <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]"
+                disabled={!email.trim() || !password || busy}>
+                {busy ? "Signing in…" : "Sign In"}
               </Button>
-            </form>
-          )}
-
-          {/* ── Set password (first-time login, or after OTP fallback) ── */}
-          {mode === "set-password" && (
-            <form onSubmit={handleSetPassword} className="space-y-4">
-              <div className="rounded-sm border border-primary/30 bg-primary/10 p-3 space-y-1">
-                <p className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider">
-                  Set a password
-                </p>
-                <p className="text-sm font-mono text-foreground/80">
-                  You're signed in. Set a password now so you can sign in faster next time.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                  New Password
-                </label>
-                <Input
-                  type="password"
-                  value={newPassword.password}
-                  onChange={(e) => setNewPassword((p) => ({ ...p, password: e.target.value }))}
-                  placeholder="At least 8 characters"
-                  className="rounded-sm bg-background/50"
-                  autoFocus
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                  Confirm Password
-                </label>
-                <Input
-                  type="password"
-                  value={newPassword.confirm}
-                  onChange={(e) => setNewPassword((p) => ({ ...p, confirm: e.target.value }))}
-                  placeholder="Re-enter password"
-                  className="rounded-sm bg-background/50"
-                />
-              </div>
-              {error && <p className="text-sm text-destructive font-mono">{error}</p>}
-              <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]" disabled={!newPassword.password || isSubmitting}>
-                {isSubmitting ? "Saving…" : "Set Password"}
-              </Button>
-              <div className="flex items-center justify-center">
-                <button type="button" onClick={() => onLogin()}
-                  className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2">
-                  Skip for now
+              <div className="text-center pt-1">
+                <button type="button" onClick={() => go("otp-email")}
+                  className="text-[10px] font-mono text-muted-foreground/50 hover:text-primary underline underline-offset-2 transition-colors">
+                  Sign in with a one-time code instead
                 </button>
               </div>
             </form>
           )}
 
-          {/* ── OTP step 1: enter email ── */}
+          {/* ── OTP: enter email ── */}
           {mode === "otp-email" && (
-            <form onSubmit={handleOtpRequest} className="space-y-4">
-              {smtpConfigured === false && (
-                <div className="rounded-sm border border-amber-500/40 bg-amber-500/10 p-3 space-y-1">
-                  <p className="text-[9px] font-mono text-amber-700/80 uppercase tracking-wider font-semibold">
-                    Email delivery not configured
-                  </p>
-                  <p className="text-[10px] font-mono text-amber-700/70 leading-relaxed">
-                    Your code will be displayed on screen after you click Get Code.
-                    Default admin email: <span className="font-bold text-amber-700">rahul.sharma@manipalgroup.info</span>
-                  </p>
-                </div>
-              )}
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                  Email Address
-                </label>
+            <form onSubmit={handleOtpRequest} className="space-y-3">
+              <p className="text-[11px] font-mono text-muted-foreground/70 leading-relaxed">
+                {smtpOn
+                  ? "Enter your email and we'll send a 6-digit login code."
+                  : "Enter your email — your login code will appear on screen (email not configured)."}
+              </p>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Email</label>
                 <Input
                   type="email"
-                  value={otp.email}
-                  onChange={(e) => setOtp((p) => ({ ...p, email: e.target.value }))}
-                  placeholder={smtpConfigured === false ? "rahul.sharma@manipalgroup.info" : "you@example.com"}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
                   className="rounded-sm bg-background/50"
                   autoFocus
+                  required
                 />
-                <p className="text-[9px] text-muted-foreground/40 font-mono">
-                  {smtpConfigured
-                    ? "A 6-digit code will be sent to your email address."
-                    : "Enter the registered email address to generate a code."}
-                </p>
               </div>
-              {error && <p className="text-sm text-destructive font-mono">{error}</p>}
-              <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]" disabled={!otp.email.trim() || isSubmitting}>
-                {isSubmitting ? "Generating…" : "Get Code"}
+              {error && <p className="text-[11px] text-destructive font-mono">{error}</p>}
+              <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]"
+                disabled={!email.trim() || busy}>
+                {busy ? "Sending…" : "Send Code"}
               </Button>
-              <div className="flex items-center justify-center">
-                <button type="button" onClick={() => { setError(null); setMode("password"); }}
+              <div className="text-center pt-1">
+                <button type="button" onClick={() => go("password")}
                   className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2">
-                  ← Back to password login
+                  ← Back to password
                 </button>
               </div>
             </form>
           )}
 
-          {/* ── OTP step 2: enter code ── */}
+          {/* ── OTP: enter code ── */}
           {mode === "otp-code" && (
-            <form onSubmit={handleOtpVerify} className="space-y-4">
-              {otp.serverCode ? (
-                <div className="rounded-sm border border-primary/30 bg-primary/10 p-4 space-y-2">
+            <form onSubmit={handleOtpVerify} className="space-y-3">
+              {serverCode ? (
+                <div className="rounded-sm border border-primary/30 bg-primary/10 p-3 space-y-2">
                   <p className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider">
-                    Your login code — SMTP not configured, shown here instead
+                    Your login code
                   </p>
                   <div className="flex items-center gap-3">
-                    <p className="font-mono text-3xl font-bold tracking-[0.35em] text-primary flex-1">{otp.serverCode}</p>
-                    <button
-                      type="button"
-                      onClick={() => navigator.clipboard.writeText(otp.serverCode ?? "")}
-                      className="text-[9px] font-mono text-primary/60 hover:text-primary border border-primary/30 hover:border-primary/60 rounded-sm px-2 py-1 transition-colors uppercase tracking-wider"
-                    >
+                    <p className="font-mono text-3xl font-bold tracking-[0.35em] text-primary flex-1">{serverCode}</p>
+                    <button type="button"
+                      onClick={() => navigator.clipboard.writeText(serverCode)}
+                      className="text-[9px] font-mono text-primary/60 hover:text-primary border border-primary/30 rounded-sm px-2 py-1 uppercase tracking-wider">
                       Copy
                     </button>
                   </div>
-                  <p className="text-[9px] font-mono text-muted-foreground/40">Expires in 10 minutes. Copy it, then enter it below.</p>
+                  <p className="text-[9px] font-mono text-muted-foreground/40">Expires in 10 minutes.</p>
                 </div>
               ) : (
-                <div className="rounded-sm border border-border/40 bg-muted/30 p-3 space-y-1">
-                  <p className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider">
-                    Code sent
-                  </p>
-                  <p className="text-sm font-mono text-foreground/80">
-                    Check your email at <span className="text-primary">{otp.email}</span>
-                  </p>
-                  <p className="text-[9px] font-mono text-muted-foreground/40">Expires in 10 minutes. Check your spam folder if it doesn't arrive.</p>
-                </div>
+                <p className="text-[11px] font-mono text-muted-foreground/70">
+                  Check your inbox at <span className="text-primary">{email}</span> for a 6-digit code.
+                </p>
               )}
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                  6-Digit Code <span className="text-destructive">*</span>
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">6-Digit Code</label>
                 <Input
-                  value={otp.code}
-                  onChange={(e) => setOtp((p) => ({ ...p, code: e.target.value.replace(/\D/g, "").slice(0, 6) }))}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                   placeholder="123456"
                   className="rounded-sm bg-background/50 font-mono text-xl tracking-[0.3em] text-center"
                   maxLength={6}
                   autoFocus
                 />
               </div>
-              {error && <p className="text-sm text-destructive font-mono">{error}</p>}
-              <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]" disabled={otp.code.length < 6 || isSubmitting}>
-                {isSubmitting ? "Verifying…" : "Verify Code"}
+              {error && <p className="text-[11px] text-destructive font-mono">{error}</p>}
+              <Button type="submit" className="w-full rounded-sm font-mono uppercase text-[11px]"
+                disabled={otpCode.length < 6 || busy}>
+                {busy ? "Verifying…" : "Verify Code"}
               </Button>
-              <div className="flex items-center justify-between">
-                <button type="button" onClick={() => setMode("otp-email")}
+              <div className="text-center pt-1">
+                <button type="button" onClick={() => go("otp-email")}
                   className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground underline underline-offset-2">
                   ← Back
                 </button>
@@ -414,14 +283,12 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
             </form>
           )}
 
-          {/* ── OIDC SSO button — shown on all modes when configured ── */}
-          {oidcConfig?.configured && (
+          {/* ── SSO (when configured) ── */}
+          {oidcConfigured && (
             <div className="pt-1 border-t border-border/40 space-y-2">
               <p className="text-[10px] font-mono text-muted-foreground/40 text-center uppercase tracking-wider">or</p>
-              <a
-                href="/api/auth/oidc/start"
-                className="flex items-center justify-center w-full h-9 rounded-sm border border-border/60 bg-background/40 hover:bg-background/70 transition-colors font-mono text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
-              >
+              <a href="/api/auth/oidc/start"
+                className="flex items-center justify-center w-full h-9 rounded-sm border border-border/60 bg-background/40 hover:bg-background/70 transition-colors font-mono text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground">
                 Sign in with Company SSO
               </a>
             </div>

@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 const rawPort = process.env["PORT"];
 
@@ -442,12 +443,19 @@ async function applyMigrations(): Promise<void> {
   await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email)`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_password_attempts integer NOT NULL DEFAULT 0`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_locked_until timestamptz`);
-  // Seed a default admin account (no password set yet) so there is always a way in via
-  // the OTP login flow on a brand-new install. The admin sets their password on first login.
+  // Seed a default admin account with a known default password so first login works
+  // immediately without needing SMTP or OTP. Password can be changed from Settings.
+  const defaultPasswordHash = await bcrypt.hash("Ringside@123", 10);
   await db.execute(sql`
-    INSERT INTO users (company_id, email, display_name, role)
-    SELECT '00000000-0000-0000-0000-000000000001', 'rahul.sharma@manipalgroup.info', 'Admin', 'Admin'
+    INSERT INTO users (company_id, email, display_name, role, password_hash)
+    SELECT '00000000-0000-0000-0000-000000000001', 'rahul.sharma@manipalgroup.info', 'Admin', 'Admin', ${defaultPasswordHash}
     WHERE NOT EXISTS (SELECT 1 FROM users LIMIT 1)
+  `);
+  // Also set the password on the existing admin if they have no password yet
+  // (handles the case where the account was already seeded without one)
+  await db.execute(sql`
+    UPDATE users SET password_hash = ${defaultPasswordHash}
+    WHERE email = 'rahul.sharma@manipalgroup.info' AND password_hash IS NULL
   `);
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS otp_attempts (
