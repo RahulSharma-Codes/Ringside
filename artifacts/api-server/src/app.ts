@@ -14,6 +14,10 @@ const DEFAULT_COMPANY_ID = "00000000-0000-0000-0000-000000000001";
 
 const app: Express = express();
 
+// Trust the Replit reverse-proxy so X-Forwarded-For is correctly forwarded
+// to express-rate-limit (avoids ERR_ERL_UNEXPECTED_X_FORWARDED_FOR in preview).
+app.set("trust proxy", 1);
+
 // ── Security headers (helmet) ─────────────────────────────────────────────────
 // contentSecurityPolicy disabled — the Vite frontend manages its own CSP.
 // crossOriginEmbedderPolicy disabled — Replit preview uses cross-origin iframes.

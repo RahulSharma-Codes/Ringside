@@ -444,7 +444,7 @@ function App() {
   const isAcceptInvite = pathWithoutBase.startsWith("/accept-invite");
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="ringside-theme">
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="ringside-theme-v2">
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           {isAcceptInvite ? (
