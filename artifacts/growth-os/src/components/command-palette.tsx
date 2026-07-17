@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -6,6 +6,7 @@ import {
   BarChart3, Target, ListTodo, CalendarCheck, ClipboardCheck,
   FolderOpen, LineChart, Bot, Lightbulb, Upload, ShieldCheck,
   Plus, FileSpreadsheet, KeyRound, Building2, ChevronRight, Search,
+  Pin, PinOff,
 } from "lucide-react";
 import {
   Command,
@@ -51,6 +52,64 @@ const TIER_COLORS: Record<string, string> = {
   "Watchlist": "bg-muted text-muted-foreground border border-border/40",
 };
 
+const PINNED_STORAGE_KEY = "cmd-palette-pinned-deals";
+const MAX_PINS = 5;
+
+function loadPinnedIds(): number[] {
+  try {
+    const raw = localStorage.getItem(PINNED_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePinnedIds(ids: number[]): void {
+  try {
+    localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(ids));
+  } catch {
+    // ignore
+  }
+}
+
+function usePinnedDeals() {
+  const [pinnedIds, setPinnedIdsState] = useState<number[]>(() => loadPinnedIds());
+
+  const pin = useCallback((id: number) => {
+    setPinnedIdsState((prev) => {
+      if (prev.includes(id)) return prev;
+      const next = [id, ...prev].slice(0, MAX_PINS);
+      savePinnedIds(next);
+      return next;
+    });
+  }, []);
+
+  const unpin = useCallback((id: number) => {
+    setPinnedIdsState((prev) => {
+      const next = prev.filter((x) => x !== id);
+      savePinnedIds(next);
+      return next;
+    });
+  }, []);
+
+  const toggle = useCallback((id: number) => {
+    setPinnedIdsState((prev) => {
+      if (prev.includes(id)) {
+        const next = prev.filter((x) => x !== id);
+        savePinnedIds(next);
+        return next;
+      }
+      const next = [id, ...prev].slice(0, MAX_PINS);
+      savePinnedIds(next);
+      return next;
+    });
+  }, []);
+
+  return { pinnedIds, pin, unpin, toggle };
+}
+
 function TierBadge({ tier }: { tier: string | null | undefined }) {
   if (!tier) return null;
   return (
@@ -60,10 +119,85 @@ function TierBadge({ tier }: { tier: string | null | undefined }) {
   );
 }
 
+interface DealRowProps {
+  id: number;
+  projectName?: string | null;
+  targetCode?: string | null;
+  currentStage?: string | null;
+  priorityTier?: string | null;
+  isPinned: boolean;
+  atPinLimit: boolean;
+  onSelect: () => void;
+  onTogglePin: (e: React.MouseEvent) => void;
+}
+
+function DealRow({
+  id,
+  projectName,
+  targetCode,
+  currentStage,
+  priorityTier,
+  isPinned,
+  atPinLimit,
+  onSelect,
+  onTogglePin,
+}: DealRowProps) {
+  return (
+    <CommandItem
+      key={id}
+      value={[projectName, targetCode, currentStage, priorityTier].filter(Boolean).join(" ")}
+      onSelect={onSelect}
+      className="group flex items-center gap-2.5 cursor-pointer py-2 px-3 mx-1 rounded-xl data-[selected=true]:bg-primary/8 data-[selected=true]:text-primary"
+    >
+      <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/15 flex items-center justify-center shrink-0">
+        <Building2 size={12} className="text-primary/70" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-sans font-medium text-[13px] truncate">
+          {projectName ?? targetCode ?? `Target #${id}`}
+        </div>
+        {currentStage && (
+          <div className="text-[10px] font-mono text-muted-foreground/50 mt-0.5 truncate">{currentStage}</div>
+        )}
+      </div>
+      {priorityTier && <TierBadge tier={priorityTier} />}
+
+      {/* Pin button — visible on hover or when pinned */}
+      <button
+        type="button"
+        aria-label={isPinned ? "Unpin deal" : "Pin deal"}
+        onClick={onTogglePin}
+        title={
+          isPinned
+            ? "Unpin deal"
+            : atPinLimit
+            ? `Max ${MAX_PINS} pins reached`
+            : "Pin deal"
+        }
+        className={[
+          "shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-all",
+          "opacity-0 group-hover:opacity-100 focus:opacity-100",
+          isPinned
+            ? "opacity-100 text-amber-500 hover:text-amber-600 bg-amber-500/10 hover:bg-amber-500/20"
+            : atPinLimit
+            ? "opacity-100 text-muted-foreground/30 cursor-not-allowed"
+            : "text-muted-foreground/40 hover:text-primary hover:bg-primary/10",
+        ].join(" ")}
+        disabled={!isPinned && atPinLimit}
+      >
+        {isPinned ? <PinOff size={11} /> : <Pin size={11} />}
+      </button>
+
+      <ChevronRight size={11} className="shrink-0 text-muted-foreground/25" />
+    </CommandItem>
+  );
+}
+
 export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const [, setLocation] = useLocation();
   const { isAdmin } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+  const { pinnedIds, toggle } = usePinnedDeals();
 
   const { data: targets } = useListTargets(
     {},
@@ -82,6 +216,20 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     onClose();
     setSearchQuery("");
     setTimeout(() => setLocation(href), 80);
+  };
+
+  const pinnedTargets = targets
+    ? pinnedIds
+        .map((id) => targets.find((t) => t.id === id))
+        .filter((t): t is NonNullable<typeof t> => t !== undefined)
+    : [];
+
+  const atPinLimit = pinnedIds.length >= MAX_PINS;
+
+  const handleTogglePin = (e: React.MouseEvent, id: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggle(id);
   };
 
   return (
@@ -125,7 +273,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                         autoFocus
                       />
 
-                      <CommandList className="max-h-[400px] py-1.5">
+                      <CommandList className="max-h-[420px] py-1.5">
                         <CommandEmpty>
                           <div className="flex flex-col items-center gap-3 py-10">
                             <div className="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center">
@@ -139,30 +287,45 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                           </div>
                         </CommandEmpty>
 
-                        {/* ── Recent Deals ── */}
+                        {/* ── Pinned Deals ── */}
+                        {pinnedTargets.length > 0 && (
+                          <>
+                            <CommandGroup heading={`Pinned (${pinnedTargets.length}/${MAX_PINS})`}>
+                              {pinnedTargets.map((t) => (
+                                <DealRow
+                                  key={`pinned-${t.id}`}
+                                  id={t.id}
+                                  projectName={t.projectName}
+                                  targetCode={t.targetCode}
+                                  currentStage={t.currentStage}
+                                  priorityTier={t.priorityTier}
+                                  isPinned={true}
+                                  atPinLimit={atPinLimit}
+                                  onSelect={() => navigate(`/targets/${t.id}`)}
+                                  onTogglePin={(e) => handleTogglePin(e, t.id)}
+                                />
+                              ))}
+                            </CommandGroup>
+                            <CommandSeparator className="my-1.5" />
+                          </>
+                        )}
+
+                        {/* ── Deals ── */}
                         {targets && targets.length > 0 && (
-                          <CommandGroup heading="Recent Deals">
+                          <CommandGroup heading="Deals">
                             {targets.slice(0, 7).map((t) => (
-                              <CommandItem
+                              <DealRow
                                 key={t.id}
-                                value={[t.projectName, t.targetCode, t.currentStage, t.priorityTier].filter(Boolean).join(" ")}
+                                id={t.id}
+                                projectName={t.projectName}
+                                targetCode={t.targetCode}
+                                currentStage={t.currentStage}
+                                priorityTier={t.priorityTier}
+                                isPinned={pinnedIds.includes(t.id)}
+                                atPinLimit={atPinLimit}
                                 onSelect={() => navigate(`/targets/${t.id}`)}
-                                className="flex items-center gap-2.5 cursor-pointer py-2 px-3 mx-1 rounded-xl data-[selected=true]:bg-primary/8 data-[selected=true]:text-primary"
-                              >
-                                <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/15 flex items-center justify-center shrink-0">
-                                  <Building2 size={12} className="text-primary/70" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-sans font-medium text-[13px] truncate">
-                                    {t.projectName ?? t.targetCode ?? `Target #${t.id}`}
-                                  </div>
-                                  {t.currentStage && (
-                                    <div className="text-[10px] font-mono text-muted-foreground/50 mt-0.5 truncate">{t.currentStage}</div>
-                                  )}
-                                </div>
-                                {t.priorityTier && <TierBadge tier={t.priorityTier} />}
-                                <ChevronRight size={11} className="shrink-0 text-muted-foreground/25" />
-                              </CommandItem>
+                                onTogglePin={(e) => handleTogglePin(e, t.id)}
+                              />
                             ))}
                           </CommandGroup>
                         )}
