@@ -592,7 +592,7 @@ export default function Actions() {
                       {isOpen && rows.length === 0 && (
                         <tr className="border-b border-border/40 bg-background/10">
                           <td colSpan={colCount} className="px-4 py-3">
-                            <p className="text-[11px] text-muted-foreground font-mono border border-dashed border-border/50 rounded-lg px-3 py-2">
+                            <p className="text-[11px] text-muted-foreground/60 font-sans border border-dashed border-border/40 rounded-xl px-3 py-2.5 bg-muted/20">
                               {group.emptyMsg}
                             </p>
                           </td>

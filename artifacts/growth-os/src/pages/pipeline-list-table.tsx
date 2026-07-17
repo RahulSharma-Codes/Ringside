@@ -388,9 +388,9 @@ export function PipelineListTable({
                     ? { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0 } } }
                     : { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.18, ease: "easeOut" } } }
                 }
-                className={`group transition-colors hover:bg-muted/40 cursor-pointer ${
+                className={`group transition-all duration-150 hover:bg-muted/40 hover:shadow-sm cursor-pointer ${
                   !isLast ? "border-b border-border/40" : ""
-                } ${r.needsAttention ? "bg-destructive/3" : ""}`}
+                } ${r.needsAttention ? "bg-amber-500/3 dark:bg-amber-500/5" : ""}`}
               >
                 {row.getVisibleCells().map((cell) => (
                   <td
@@ -412,8 +412,14 @@ export function PipelineListTable({
           })}
           {table.getRowModel().rows.length === 0 && (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-12 text-center text-[11px] font-mono text-muted-foreground">
-                No targets match the selected filters
+              <td colSpan={columns.length} className="px-4 py-14 text-center">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-10 h-10 rounded-2xl bg-muted/60 flex items-center justify-center">
+                    <span className="text-muted-foreground/30 text-lg">∅</span>
+                  </div>
+                  <p className="text-[12px] font-sans font-medium text-foreground/50">No matching deals</p>
+                  <p className="text-[11px] font-sans text-muted-foreground/40">Try adjusting your stage, tier, or owner filters</p>
+                </div>
               </td>
             </tr>
           )}

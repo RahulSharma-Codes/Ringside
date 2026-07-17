@@ -161,14 +161,14 @@ function SortableCard({
       disableLongPress={longPressDisabled}
     >
     <div
-      className={`group/card bg-card border border-border/70 border-l-2 ${getTierCardAccent(target.priorityTier)} rounded-lg p-3 space-y-2 ${
+      className={`group/card bg-card border border-border/70 border-l-4 ${getTierCardAccent(target.priorityTier)} rounded-xl p-3 space-y-2 ${
         isDragging
           ? "shadow-xl opacity-90 rotate-1"
           : isSaving
             ? "opacity-60"
             : isOver
               ? "border-primary/40 bg-primary/5"
-              : "hover:shadow-md hover:border-border"
+              : "deal-card-lift"
       } transition-all duration-150`}
     >
       <div className="flex items-start justify-between gap-1.5">
