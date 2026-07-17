@@ -142,37 +142,37 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
           <h1 className="font-mono font-bold text-4xl uppercase tracking-[0.15em] text-foreground">
             Ringside
           </h1>
-          <p className="text-[11px] font-mono text-muted-foreground/50 tracking-wider uppercase">
+          <p className="text-[10px] font-mono text-muted-foreground/40 tracking-widest uppercase">
             M&amp;A Deal Intelligence Platform
           </p>
         </div>
 
         {/* Login card */}
-        <div className="border border-border/60 bg-card/60 backdrop-blur-sm rounded-sm shadow-2xl">
+        <div className="border border-border/50 bg-card/70 backdrop-blur-sm rounded-2xl shadow-xl">
 
           {/* Card header */}
           <div className="px-7 pt-7 pb-5 border-b border-border/40">
             {mode === "password" && (
-              <h2 className="font-mono font-semibold text-base text-foreground tracking-tight">
+              <h2 className="font-sans font-semibold text-[15px] text-foreground tracking-tight">
                 Sign in to your account
               </h2>
             )}
             {mode === "otp-email" && (
               <div className="space-y-0.5">
-                <h2 className="font-mono font-semibold text-base text-foreground tracking-tight">
+                <h2 className="font-sans font-semibold text-[15px] text-foreground tracking-tight">
                   Get a login code
                 </h2>
-                <p className="text-[11px] font-mono text-muted-foreground/60">
+                <p className="text-[12px] font-sans text-muted-foreground/70">
                   We'll send a one-time code to your email.
                 </p>
               </div>
             )}
             {mode === "otp-code" && (
               <div className="space-y-0.5">
-                <h2 className="font-mono font-semibold text-base text-foreground tracking-tight">
+                <h2 className="font-sans font-semibold text-[15px] text-foreground tracking-tight">
                   Enter your code
                 </h2>
-                <p className="text-[11px] font-mono text-muted-foreground/60">
+                <p className="text-[12px] font-sans text-muted-foreground/70">
                   Sent to <span className="text-foreground/80">{email}</span>
                 </p>
               </div>
@@ -226,9 +226,9 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   </p>
                 )}
                 <Button type="submit"
-                  className="w-full h-10 rounded-sm font-mono uppercase text-[11px] tracking-wider"
+                  className="w-full h-10 rounded-xl font-sans text-[13px] font-semibold tracking-normal"
                   disabled={!email.trim() || !password || busy}>
-                  {busy ? "Signing in…" : "Sign In"}
+                  {busy ? "Signing in…" : "Sign in"}
                 </Button>
               </form>
             )}

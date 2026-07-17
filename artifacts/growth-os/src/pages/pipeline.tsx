@@ -216,23 +216,23 @@ export default function Pipeline() {
         {/* Title row */}
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-lg md:text-xl font-bold font-mono tracking-tight flex items-center gap-2">
-              Inorganic Growth Pipeline
+            <h1 className="text-lg md:text-xl font-bold font-sans tracking-tight flex items-center gap-2">
+              Pipeline
               {targets && !isLoading && (
-                <span className="text-[11px] font-normal text-muted-foreground/60 font-mono">{targets.length}</span>
+                <span className="text-[11px] font-mono font-normal text-muted-foreground/50 bg-muted/60 border border-border/40 px-1.5 py-0.5 rounded-md">{targets.length}</span>
               )}
             </h1>
-            <p className="text-[11px] text-muted-foreground mt-0.5 hidden md:block">Track, prioritize, and progress opportunities from origination through diligence, offer, closing, and integration planning.</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5 hidden md:block font-sans">Track, prioritize, and progress opportunities from origination through diligence, offer, and closing.</p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             {/* View toggle */}
-            <div className="flex items-center border border-border/60 rounded-lg overflow-hidden h-7">
+            <div className="flex items-center border border-border/50 rounded-xl overflow-hidden h-7 bg-muted/30">
               <button
                 onClick={() => handleViewChange("list")}
                 title="List view"
                 className={`flex items-center justify-center w-7 h-7 transition-colors ${
                   view === "list"
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:bg-muted/60"
                 }`}
               >
@@ -243,7 +243,7 @@ export default function Pipeline() {
                 title="Board view"
                 className={`flex items-center justify-center w-7 h-7 transition-colors ${
                   view === "board"
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:bg-muted/60"
                 }`}
               >
@@ -254,7 +254,7 @@ export default function Pipeline() {
             <Button
               size="sm"
               variant="outline"
-              className="rounded-lg font-mono uppercase tracking-wider text-[10px] gap-1.5 border-border/60 h-7 px-2.5"
+              className="rounded-xl font-sans text-[11px] gap-1.5 border-border/60 h-7 px-2.5"
               onClick={() => setExportDialogOpen(true)}
             >
               <Download size={11} /> Export
@@ -262,13 +262,13 @@ export default function Pipeline() {
             <Button
               size="sm"
               variant="outline"
-              className="rounded-lg font-mono uppercase tracking-wider text-[10px] gap-1.5 border-border/60 h-7 px-2.5"
+              className="rounded-xl font-sans text-[11px] gap-1.5 border-border/60 h-7 px-2.5"
               onClick={() => navigate("/import")}
             >
               <Upload size={11} /> Import
             </Button>
             <Link href="/targets/new">
-              <Button size="sm" className="rounded-lg font-mono uppercase tracking-wider text-[10px] gap-1.5 h-7 px-2.5">
+              <Button size="sm" className="rounded-xl font-sans text-[11px] gap-1.5 h-7 px-2.5">
                 <Plus size={12} /> New
               </Button>
             </Link>

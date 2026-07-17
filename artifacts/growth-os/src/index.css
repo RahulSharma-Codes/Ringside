@@ -39,6 +39,9 @@
   --color-destructive-foreground: hsl(var(--destructive-foreground));
   --color-destructive-border: var(--destructive-border);
 
+  --color-ai: hsl(var(--ai));
+  --color-ai-foreground: hsl(var(--ai-foreground));
+
   --color-chart-1: hsl(var(--chart-1));
   --color-chart-2: hsl(var(--chart-2));
   --color-chart-3: hsl(var(--chart-3));
@@ -74,54 +77,58 @@
   --elevate-2: rgba(0,0,0, .07);
 
   /* ── Ringside light surface ramp ─────────────────────────── */
-  /* sidebar (98%) → background (99%) → card (100%) → secondary (94%) */
+  /* sidebar (97%) → background (98.5%) → card (100%) → secondary (94%) */
 
-  --background: 40 30% 98%;        /* warm ivory paper */
-  --foreground: 240 20% 12%;       /* near-black charcoal */
-  --border: 240 12% 86%;
+  --background: 220 20% 98%;        /* cool off-white — not warm ivory */
+  --foreground: 224 22% 12%;        /* near-black blue-charcoal */
+  --border: 220 15% 88%;
 
-  /* Card — clean white, subtly elevated above page canvas */
+  /* Card — pure white, subtly elevated above page canvas */
   --card: 0 0% 100%;
-  --card-foreground: 240 20% 12%;
-  --card-border: 240 12% 87%;
+  --card-foreground: 224 22% 12%;
+  --card-border: 220 15% 89%;
 
-  /* Sidebar — light ivory shell, one shade off the page canvas */
-  --sidebar: 40 24% 96%;
-  --sidebar-foreground: 240 18% 22%;
-  --sidebar-border: 240 12% 88%;
-  --sidebar-primary: 42 70% 40%;   /* deeper antique gold — legible on light */
-  --sidebar-primary-foreground: 40 30% 98%;
-  --sidebar-accent: 240 10% 91%;
-  --sidebar-accent-foreground: 240 20% 12%;
-  --sidebar-ring: 42 70% 40%;
+  /* Sidebar — very light cool-blue shell */
+  --sidebar: 220 20% 96%;
+  --sidebar-foreground: 224 18% 22%;
+  --sidebar-border: 220 15% 90%;
+  --sidebar-primary: 221 83% 53%;   /* electric blue */
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 220 15% 93%;
+  --sidebar-accent-foreground: 224 22% 12%;
+  --sidebar-ring: 221 83% 53%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 240 20% 12%;
-  --popover-border: 240 12% 87%;
+  --popover-foreground: 224 22% 12%;
+  --popover-border: 220 15% 89%;
 
   /* ── Colour scale ────────────────────────────────────────── */
-  --primary: 42 70% 40%;           /* deeper antique gold — meets contrast on light */
-  --primary-foreground: 40 30% 98%;
-  --secondary: 240 10% 92%;
-  --secondary-foreground: 240 20% 15%;
-  --muted: 240 10% 94%;
-  --muted-foreground: 220 8% 40%;  /* muted stone / blue-gray, darker for contrast */
-  --accent: 240 10% 92%;
-  --accent-foreground: 240 20% 15%;
+  --primary: 221 83% 53%;           /* electric blue */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 15% 93%;
+  --secondary-foreground: 224 22% 15%;
+  --muted: 220 15% 95%;
+  --muted-foreground: 220 10% 42%;
+  --accent: 220 15% 93%;
+  --accent-foreground: 224 22% 15%;
 
-  /* Controlled crimson — legible on light backgrounds */
-  --destructive: 0 70% 42%;
-  --destructive-foreground: 40 30% 98%;
+  /* Controlled crimson */
+  --destructive: 0 72% 44%;
+  --destructive-foreground: 0 0% 100%;
 
-  --input: 240 12% 88%;
-  --ring: 42 70% 40%;
+  /* AI purple token */
+  --ai: 262 75% 58%;
+  --ai-foreground: 0 0% 100%;
+
+  --input: 220 15% 90%;
+  --ring: 221 83% 53%;
 
   /* ── Charts ──────────────────────────────────────────────── */
-  --chart-1: 42 70% 40%;           /* deeper gold / primary */
-  --chart-2: 160 55% 32%;          /* emerald, darkened for light bg */
-  --chart-3: 32 85% 42%;           /* amber, darkened */
-  --chart-4: 185 60% 30%;          /* deep teal */
-  --chart-5: 0 70% 42%;            /* controlled crimson */
+  --chart-1: 221 83% 53%;           /* electric blue / primary */
+  --chart-2: 160 57% 33%;           /* emerald */
+  --chart-3: 32 87% 44%;            /* amber */
+  --chart-4: 185 62% 31%;           /* deep teal */
+  --chart-5: 0 72% 44%;             /* controlled crimson */
 
   /* ── Typography ──────────────────────────────────────────── */
   --app-font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -132,14 +139,14 @@
   --radius: 0.5rem;
 
   /* ── Soft shadows for light premium feel ─────────────────── */
-  --shadow-2xs: 0 1px 2px 0 rgba(16,24,40,.04);
-  --shadow-xs:  0 1px 3px 0 rgba(16,24,40,.06),  0 1px 2px -1px rgba(16,24,40,.05);
-  --shadow-sm:  0 2px 4px 0 rgba(16,24,40,.07),  0 1px 2px -1px rgba(16,24,40,.05);
-  --shadow:     0 4px 8px 0 rgba(16,24,40,.08),  0 2px 4px -1px rgba(16,24,40,.06);
-  --shadow-md:  0 6px 16px 0 rgba(16,24,40,.09), 0 3px 6px  -1px rgba(16,24,40,.06);
-  --shadow-lg:  0 12px 24px 0 rgba(16,24,40,.1), 0 6px 12px -2px rgba(16,24,40,.07);
-  --shadow-xl:  0 20px 40px 0 rgba(16,24,40,.12), 0 10px 20px -4px rgba(16,24,40,.08);
-  --shadow-2xl: 0 32px 64px 0 rgba(16,24,40,.14);
+  --shadow-2xs: 0 1px 2px 0 rgba(15,20,40,.04);
+  --shadow-xs:  0 1px 3px 0 rgba(15,20,40,.06),  0 1px 2px -1px rgba(15,20,40,.05);
+  --shadow-sm:  0 2px 4px 0 rgba(15,20,40,.07),  0 1px 2px -1px rgba(15,20,40,.05);
+  --shadow:     0 4px 8px 0 rgba(15,20,40,.08),  0 2px 4px -1px rgba(15,20,40,.06);
+  --shadow-md:  0 6px 16px 0 rgba(15,20,40,.09), 0 3px 6px  -1px rgba(15,20,40,.06);
+  --shadow-lg:  0 12px 24px 0 rgba(15,20,40,.1), 0 6px 12px -2px rgba(15,20,40,.07);
+  --shadow-xl:  0 20px 40px 0 rgba(15,20,40,.12), 0 10px 20px -4px rgba(15,20,40,.08);
+  --shadow-2xl: 0 32px 64px 0 rgba(15,20,40,.14);
 
   /* ── Token aliases ───────────────────────────────────────── */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
@@ -158,65 +165,69 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  /* ── Ringside surface ramp (darkest → lightest) ──────────── */
-  /* sidebar (5%) → background (7%) → card (12%) → secondary (18%) */
+  /* ── Ringside dark surface ramp (darkest → lightest) ──────── */
+  /* sidebar (4%) → background (7%) → card (11%) → secondary (17%) */
 
-  --background: 240 18% 7%;        /* deep ringside charcoal */
-  --foreground: 38 12% 93%;        /* warm off-white */
-  --border: 240 10% 22%;
+  --background: 224 20% 7%;         /* deep obsidian charcoal */
+  --foreground: 220 12% 94%;        /* cool near-white */
+  --border: 224 12% 20%;
 
-  /* Card — graphite slate, elevated above page canvas */
-  --card: 240 14% 12%;
-  --card-foreground: 38 12% 93%;
-  --card-border: 240 10% 22%;
+  /* Card — dark graphite, elevated above page canvas */
+  --card: 224 16% 11%;
+  --card-foreground: 220 12% 94%;
+  --card-border: 224 12% 20%;
 
-  /* Sidebar — blackened plum shell, deepest layer */
-  --sidebar: 240 28% 5%;
-  --sidebar-foreground: 38 10% 84%;
-  --sidebar-border: 240 15% 14%;
-  --sidebar-primary: 42 65% 55%;   /* champagne / antique gold */
-  --sidebar-primary-foreground: 240 20% 7%;
-  --sidebar-accent: 240 14% 14%;
-  --sidebar-accent-foreground: 38 12% 93%;
-  --sidebar-ring: 42 65% 55%;
+  /* Sidebar — deepest layer, near-black */
+  --sidebar: 224 24% 5%;
+  --sidebar-foreground: 220 10% 82%;
+  --sidebar-border: 224 16% 13%;
+  --sidebar-primary: 217 91% 65%;   /* electric blue, brighter in dark */
+  --sidebar-primary-foreground: 224 24% 5%;
+  --sidebar-accent: 224 16% 13%;
+  --sidebar-accent-foreground: 220 12% 94%;
+  --sidebar-ring: 217 91% 65%;
 
-  --popover: 240 15% 10%;
-  --popover-foreground: 38 12% 93%;
-  --popover-border: 240 10% 22%;
+  --popover: 224 18% 9%;
+  --popover-foreground: 220 12% 94%;
+  --popover-border: 224 12% 20%;
 
   /* ── Colour scale ────────────────────────────────────────── */
-  --primary: 42 65% 55%;           /* muted champagne / antique gold */
-  --primary-foreground: 240 20% 7%;
-  --secondary: 240 10% 18%;
-  --secondary-foreground: 38 12% 93%;
-  --muted: 240 10% 15%;
-  --muted-foreground: 220 6% 54%;  /* muted stone / blue-gray */
-  --accent: 240 10% 18%;
-  --accent-foreground: 38 12% 93%;
+  --primary: 217 91% 65%;           /* electric blue — bright on dark */
+  --primary-foreground: 224 24% 5%;
+  --secondary: 224 12% 17%;
+  --secondary-foreground: 220 12% 94%;
+  --muted: 224 12% 14%;
+  --muted-foreground: 220 8% 52%;
+  --accent: 224 12% 17%;
+  --accent-foreground: 220 12% 94%;
 
-  /* Controlled crimson — legible on dark backgrounds */
-  --destructive: 0 68% 52%;
-  --destructive-foreground: 38 12% 93%;
+  /* Controlled crimson */
+  --destructive: 0 68% 54%;
+  --destructive-foreground: 220 12% 94%;
 
-  --input: 240 10% 18%;
-  --ring: 42 65% 55%;
+  /* AI purple token */
+  --ai: 262 70% 65%;
+  --ai-foreground: 224 24% 5%;
+
+  --input: 224 12% 17%;
+  --ring: 217 91% 65%;
 
   /* ── Charts ──────────────────────────────────────────────── */
-  --chart-1: 42 65% 55%;           /* champagne / primary */
-  --chart-2: 160 60% 40%;          /* emerald */
-  --chart-3: 38 80% 50%;           /* amber */
-  --chart-4: 185 60% 38%;          /* deep teal */
-  --chart-5: 0 68% 52%;            /* controlled crimson */
+  --chart-1: 217 91% 65%;           /* electric blue / primary */
+  --chart-2: 160 62% 42%;           /* emerald */
+  --chart-3: 38 82% 52%;            /* amber */
+  --chart-4: 185 62% 40%;           /* deep teal */
+  --chart-5: 0 68% 54%;             /* controlled crimson */
 
   /* ── Deeper shadows for dark premium feel ────────────────── */
-  --shadow-2xs: 0 1px 2px 0 rgba(0,0,0,.45);
-  --shadow-xs:  0 1px 3px 0 rgba(0,0,0,.5),  0 1px 2px -1px rgba(0,0,0,.4);
-  --shadow-sm:  0 2px 4px 0 rgba(0,0,0,.5),  0 1px 2px -1px rgba(0,0,0,.35);
-  --shadow:     0 4px 8px 0 rgba(0,0,0,.5),  0 2px 4px -1px rgba(0,0,0,.35);
-  --shadow-md:  0 6px 16px 0 rgba(0,0,0,.5), 0 3px 6px  -1px rgba(0,0,0,.4);
-  --shadow-lg:  0 12px 24px 0 rgba(0,0,0,.55), 0 6px 12px -2px rgba(0,0,0,.4);
-  --shadow-xl:  0 20px 40px 0 rgba(0,0,0,.6), 0 10px 20px -4px rgba(0,0,0,.4);
-  --shadow-2xl: 0 32px 64px 0 rgba(0,0,0,.65);
+  --shadow-2xs: 0 1px 2px 0 rgba(0,0,0,.5);
+  --shadow-xs:  0 1px 3px 0 rgba(0,0,0,.55), 0 1px 2px -1px rgba(0,0,0,.45);
+  --shadow-sm:  0 2px 4px 0 rgba(0,0,0,.55), 0 1px 2px -1px rgba(0,0,0,.4);
+  --shadow:     0 4px 8px 0 rgba(0,0,0,.55), 0 2px 4px -1px rgba(0,0,0,.4);
+  --shadow-md:  0 6px 16px 0 rgba(0,0,0,.55), 0 3px 6px -1px rgba(0,0,0,.45);
+  --shadow-lg:  0 12px 24px 0 rgba(0,0,0,.6), 0 6px 12px -2px rgba(0,0,0,.45);
+  --shadow-xl:  0 20px 40px 0 rgba(0,0,0,.65), 0 10px 20px -4px rgba(0,0,0,.45);
+  --shadow-2xl: 0 32px 64px 0 rgba(0,0,0,.70);
 
   /* ── Token aliases ───────────────────────────────────────── */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
@@ -314,36 +325,38 @@
   ─────────────────────────────────────────────────────────── */
 
   .glass-shell {
-    backdrop-filter: blur(12px) saturate(1.4);
-    -webkit-backdrop-filter: blur(12px) saturate(1.4);
-    background-color: hsl(var(--sidebar) / 0.94);
-    border-right: 1px solid hsl(var(--sidebar-border) / 0.8);
+    backdrop-filter: blur(16px) saturate(1.6);
+    -webkit-backdrop-filter: blur(16px) saturate(1.6);
+    background-color: hsl(var(--sidebar) / 0.92);
+    border-right: 1px solid hsl(var(--sidebar-border) / 0.7);
   }
 
   .glass-panel {
-    backdrop-filter: blur(16px) saturate(1.3);
-    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
     background-color: hsl(var(--card) / 0.96);
   }
 
+  /* Premium card — shadow elevation without heavy border */
   .premium-card {
     background-color: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.8);
+    border: 1px solid hsl(var(--border) / 0.6);
     border-radius: var(--radius-xl);
-    box-shadow: 0 2px 10px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.35);
-    transition: box-shadow 150ms ease, background-color 150ms ease;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 200ms ease, transform 200ms ease;
   }
   .premium-card:hover {
-    box-shadow: 0 4px 20px rgba(0,0,0,.6), 0 2px 6px rgba(0,0,0,.4);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
   }
 
   .command-bar {
     background-color: hsl(var(--card) / 0.65);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid hsl(var(--border));
     border-radius: var(--radius-xl);
-    box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    box-shadow: 0 1px 4px rgba(0,0,0,.12);
   }
 
   .section-header {
@@ -361,6 +374,7 @@
     background-color: hsl(var(--card) / 0.75);
   }
 
+  /* Large KPI display — Space Mono for fintech number feel */
   .metric-number {
     font-family: var(--app-font-mono);
     font-size: clamp(1.75rem, 4vw, 2.5rem);
@@ -398,55 +412,81 @@
 
   /* ── Executive page hero header ─────────────────────────────── */
   .page-hero {
-    background: linear-gradient(160deg, hsl(var(--card) / 0.9) 0%, hsl(var(--background)) 100%);
-    border-bottom: 1px solid hsl(var(--border) / 0.7);
+    background: linear-gradient(160deg, hsl(var(--card) / 0.95) 0%, hsl(var(--background)) 100%);
+    border-bottom: 1px solid hsl(var(--border) / 0.6);
   }
 
   /* Sticky page hero — for pages where content scrolls below */
   .page-hero-sticky {
-    background: linear-gradient(160deg, hsl(var(--card) / 0.92) 0%, hsl(var(--card) / 0.75) 100%);
-    border-bottom: 1px solid hsl(var(--border) / 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: linear-gradient(160deg, hsl(var(--card) / 0.95) 0%, hsl(var(--card) / 0.80) 100%);
+    border-bottom: 1px solid hsl(var(--border) / 0.6);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
     position: sticky;
     top: 0;
     z-index: 20;
   }
 
   /* ── Premium thin scrollbars ─────────────────────────────────── */
-  ::-webkit-scrollbar          { width: 5px; height: 5px; }
+  ::-webkit-scrollbar          { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track    { background: transparent; }
-  ::-webkit-scrollbar-thumb    { background: hsl(var(--border) / 0.6); border-radius: 9999px; }
-  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.4); }
-  * { scrollbar-width: thin; scrollbar-color: hsl(var(--border) / 0.5) transparent; }
+  ::-webkit-scrollbar-thumb    { background: hsl(var(--border) / 0.5); border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.35); }
+  * { scrollbar-width: thin; scrollbar-color: hsl(var(--border) / 0.4) transparent; }
 
-  /* ── KPI card top-border accent lines ────────────────────────── */
-  .kpi-accent-blue    { border-top: 3px solid hsl(var(--primary)); }
-  .kpi-accent-red     { border-top: 3px solid hsl(var(--destructive)); }
-  .kpi-accent-amber   { border-top: 3px solid hsl(38 80% 50%); }
-  .kpi-accent-emerald { border-top: 3px solid hsl(160 60% 40%); }
-  .kpi-accent-muted   { border-top: 3px solid hsl(var(--muted-foreground) / 0.4); }
+  /* ── KPI card left-border accent lines ───────────────────────── */
+  .kpi-accent-blue    { border-left: 3px solid hsl(var(--primary)); }
+  .kpi-accent-red     { border-left: 3px solid hsl(var(--destructive)); }
+  .kpi-accent-amber   { border-left: 3px solid hsl(38 82% 50%); }
+  .kpi-accent-emerald { border-left: 3px solid hsl(160 57% 38%); }
+  .kpi-accent-muted   { border-left: 3px solid hsl(var(--muted-foreground) / 0.35); }
 
   /* ── Pipeline tier border utilities ─────────────────────────── */
   .tier-must-win { border-left: 3px solid hsl(var(--destructive)); background-color: hsl(var(--destructive) / 0.04); }
-  .tier-p1       { border-left: 3px solid hsl(38 80% 50%); background-color: hsl(38 80% 50% / 0.04); }
+  .tier-p1       { border-left: 3px solid hsl(38 82% 50%); background-color: hsl(38 82% 50% / 0.04); }
   .tier-p2       { border-left: 3px solid hsl(var(--primary)); }
 
   /* ── Group severity section headers ──────────────────────────── */
-  .group-header-overdue  { background-color: hsl(var(--destructive) / 0.1) !important; }
-  .group-header-blocked  { background-color: hsl(30 100% 50% / 0.08) !important; }
-  .group-header-thisweek { background-color: hsl(38 80% 50% / 0.07) !important; }
-  .group-header-complete { background-color: hsl(160 60% 40% / 0.07) !important; }
+  .group-header-overdue  { background-color: hsl(var(--destructive) / 0.08) !important; }
+  .group-header-blocked  { background-color: hsl(30 100% 50% / 0.07) !important; }
+  .group-header-thisweek { background-color: hsl(38 82% 50% / 0.06) !important; }
+  .group-header-complete { background-color: hsl(160 57% 38% / 0.06) !important; }
 
   /* ── Nav section label ────────────────────────────────────────── */
   .nav-section-label {
     font-family: var(--app-font-mono);
-    font-size: 0.6rem;
+    font-size: 0.575rem;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: hsl(var(--sidebar-foreground) / 0.28);
+    letter-spacing: 0.12em;
+    color: hsl(var(--sidebar-foreground) / 0.25);
     padding: 0 0.5rem;
     margin-bottom: 0.125rem;
+  }
+
+  /* ── AI surface token ─────────────────────────────────────────── */
+  .ai-surface {
+    background-color: hsl(var(--ai) / 0.08);
+    border-color: hsl(var(--ai) / 0.2);
+    color: hsl(var(--ai));
+  }
+
+  /* ── Floating nav rail glass background ───────────────────────── */
+  .nav-rail {
+    background-color: hsl(var(--sidebar) / 0.88);
+    backdrop-filter: blur(20px) saturate(1.6);
+    -webkit-backdrop-filter: blur(20px) saturate(1.6);
+    border: 1px solid hsl(var(--sidebar-border) / 0.6);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* ── Deal card hover lift ─────────────────────────────────────── */
+  .deal-card-lift {
+    transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
+  }
+  .deal-card-lift:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+    border-color: hsl(var(--border) / 0.9);
   }
 }
 
@@ -462,3 +502,19 @@
 .rte-content .tiptap em { font-style: italic; }
 .rte-content .tiptap a { color: hsl(var(--primary)); text-decoration: underline; }
 .rte-content .tiptap a:hover { opacity: 0.75; }
+
+/* ── Shimmer skeleton animation ─────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--muted) / 0.5) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}

@@ -416,15 +416,15 @@ export default function Actions() {
         <div className="flex items-center justify-between gap-3 mb-2.5">
           <div className="min-w-0">
             <div className="flex items-center gap-2.5">
-              <h1 className="text-lg font-bold font-mono tracking-tight">Actions Command Center</h1>
+              <h1 className="text-lg font-bold font-sans tracking-tight">Actions</h1>
               {!isLoading && totalOpen > 0 && (
-                <span className="text-[11px] font-mono text-muted-foreground/60">{totalOpen} open</span>
+                <span className="text-[11px] font-mono text-muted-foreground/50 bg-muted/60 border border-border/40 px-1.5 py-0.5 rounded-md">{totalOpen} open</span>
               )}
               {overdueCount > 0 && (
                 <span className="status-chip bg-destructive/10 text-destructive border-destructive/30">{overdueCount} overdue</span>
               )}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5 hidden md:block">Manage overdue, blocked, and upcoming execution items across the full inorganic growth pipeline.</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5 hidden md:block font-sans">Manage overdue, blocked, and upcoming execution items across the full inorganic growth pipeline.</p>
           </div>
         </div>
 

@@ -214,8 +214,8 @@ export default function DiligenceReview() {
           <div className="flex items-start gap-2.5">
             <ClipboardCheck size={16} className="text-primary shrink-0 mt-0.5" />
             <div>
-              <h1 className="text-lg font-bold font-mono tracking-tight">Diligence Review</h1>
-              <p className="text-[11px] text-muted-foreground mt-0.5 hidden md:block">Monitor diligence readiness, workstream coverage, overdue items, and blocked issues across active opportunities.</p>
+              <h1 className="text-lg font-bold font-sans tracking-tight">Diligence Review</h1>
+              <p className="text-[11px] text-muted-foreground mt-0.5 hidden md:block font-sans">Monitor diligence readiness, workstream coverage, overdue items, and blocked issues across active opportunities.</p>
             </div>
             <span className="metadata-label text-muted-foreground/40 hidden sm:inline mt-1">
               refreshed {format(lastRefresh, "HH:mm")}
@@ -224,7 +224,7 @@ export default function DiligenceReview() {
           <Button
             size="sm"
             variant="outline"
-            className="rounded-lg font-mono text-[10px] uppercase gap-1.5 border-border/60 shrink-0 h-7 px-2.5"
+            className="rounded-xl font-sans text-[11px] gap-1.5 border-border/60 shrink-0 h-7 px-2.5"
             onClick={handleRefresh}
             disabled={isFetching}
           >

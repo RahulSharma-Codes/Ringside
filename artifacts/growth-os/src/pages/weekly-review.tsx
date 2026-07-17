@@ -419,8 +419,8 @@ export default function WeeklyReview() {
           <div className="flex items-start gap-2.5">
             <CalendarCheck size={16} className="text-primary shrink-0 mt-0.5" />
             <div>
-              <h1 className="text-lg font-bold font-mono tracking-tight">Weekly Review</h1>
-              <p className="text-[11px] text-muted-foreground mt-0.5 hidden md:block">What moved, what is blocked, and what needs attention before the next leadership discussion.</p>
+              <h1 className="text-lg font-bold font-sans tracking-tight">Weekly Review</h1>
+              <p className="text-[11px] text-muted-foreground mt-0.5 hidden md:block font-sans">What moved, what is blocked, and what needs attention before the next leadership discussion.</p>
             </div>
             <span className="metadata-label text-muted-foreground/40 hidden sm:inline mt-1">
               refreshed {format(refreshedAt, "h:mm a")}
@@ -430,7 +430,7 @@ export default function WeeklyReview() {
             <Button
               size="sm"
               variant="outline"
-              className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-7 px-2.5 gap-1.5"
+              className="rounded-xl font-sans text-[11px] shrink-0 border-border/60 h-7 px-2.5 gap-1.5"
               onClick={() => { downloadAuthenticatedFile("/api/export/weekly-review", "weekly-review.pdf").catch(() => {}); }}
             >
               <Download size={11} /> Export PDF
@@ -438,19 +438,19 @@ export default function WeeklyReview() {
             <Button
               size="sm"
               variant="outline"
-              className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-primary/30 text-primary hover:bg-primary/5 h-7 px-2.5 gap-1.5 flex"
+              className="rounded-xl font-sans text-[11px] shrink-0 border-primary/30 text-primary hover:bg-primary/5 h-7 px-2.5 gap-1.5 flex"
               onClick={handleGenerateBrief}
               disabled={brief.loading}
             >
               {brief.loading
                 ? <Loader2 size={11} className="animate-spin" />
                 : <Sparkles size={11} />}
-              Generate AI Weekly Brief
+              AI Brief
             </Button>
             <Button
               size="sm"
               variant="outline"
-              className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-7 px-2.5 gap-1.5"
+              className="rounded-xl font-sans text-[11px] shrink-0 border-border/60 h-7 px-2.5 gap-1.5"
               onClick={handleRefresh}
               disabled={isLoading}
             >

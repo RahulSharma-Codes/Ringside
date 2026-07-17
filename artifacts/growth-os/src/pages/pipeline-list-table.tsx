@@ -138,11 +138,18 @@ const columns: ColumnDef<PipelineRow>[] = [
     accessorFn: (r) => r.priorityScore,
     size: 65,
     minSize: 50,
-    cell: ({ row }) => (
-      <span className="font-mono text-[11px] text-muted-foreground">
-        {Math.round(row.original.priorityScore)}
-      </span>
-    ),
+    cell: ({ row }) => {
+      const score = Math.round(row.original.priorityScore);
+      const colorCls =
+        score >= 70 ? "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25" :
+        score >= 40 ? "bg-amber-500/12 text-amber-600 dark:text-amber-400 border border-amber-500/25" :
+                     "bg-muted/60 text-muted-foreground border border-border/40";
+      return (
+        <span className={`inline-flex items-center justify-center min-w-[28px] px-1.5 py-0.5 rounded-md text-[10px] font-mono font-semibold ${colorCls}`}>
+          {score}
+        </span>
+      );
+    },
   },
   {
     id: "owner",

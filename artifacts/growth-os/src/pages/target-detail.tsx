@@ -142,52 +142,72 @@ export default function TargetDetail() {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
               <Link href="/pipeline">
-                <Button variant="ghost" size="icon" className="rounded-lg h-8 w-8 text-muted-foreground hover:text-foreground shrink-0">
+                <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8 text-muted-foreground hover:text-foreground shrink-0">
                   <ArrowLeft size={16} />
                 </Button>
               </Link>
               <div className="min-w-0">
-                <h1 className="text-lg md:text-xl font-bold font-mono tracking-tight truncate leading-tight">
+                <h1 className="text-lg md:text-2xl font-bold font-sans tracking-tight truncate leading-tight">
                   {target.projectName}
                 </h1>
-                <div className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-wider mt-0.5">
-                  {target.targetCode}
+                <div className="flex items-center gap-2 mt-0.5">
+                  <code className="text-[10px] font-mono text-muted-foreground/50 bg-muted/60 border border-border/40 px-1.5 py-0.5 rounded-md">
+                    {target.targetCode}
+                  </code>
+                  {target.isConfidential && (
+                    <Badge variant="outline" className="font-mono text-[9px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25 h-4 px-1.5 rounded-md">
+                      <ShieldAlert size={8} className="mr-1" />Confidential
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               <Button size="sm" variant="outline"
-                className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-8 gap-1.5 hidden sm:flex"
+                className="rounded-xl font-sans text-[11px] shrink-0 border-border/60 h-8 gap-1.5 hidden sm:flex"
                 onClick={() => window.open(`/targets/${targetId}/ic-brief`, "_blank")}
               >
                 <Printer size={11} className="text-muted-foreground" />
                 IC Brief
               </Button>
               <Button size="sm" variant="outline"
-                className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-8 gap-1.5 hidden sm:flex"
+                className="rounded-xl font-sans text-[11px] shrink-0 border-border/60 h-8 gap-1.5 hidden sm:flex"
                 onClick={handleGenerateBrief} disabled={briefLoading}
               >
                 {briefLoading ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} className="text-primary" />}
                 AI Brief
               </Button>
               {canEditDeal && (
-                <Button size="sm" variant="outline" className="rounded-lg font-mono text-[10px] uppercase shrink-0 border-border/60 h-8 gap-1.5" onClick={() => setEditOpen(true)}>
+                <Button size="sm" variant="outline" className="rounded-xl font-sans text-[11px] shrink-0 border-border/60 h-8 gap-1.5" onClick={() => setEditOpen(true)}>
                   <Edit size={11} />
                   <span className="hidden sm:inline">Edit</span>
                 </Button>
               )}
               {canEditDeal && (
-                <Button size="sm" className="rounded-lg font-mono uppercase text-[10px] gap-1.5 tracking-wider h-8" onClick={() => setStageOpen(true)}>
+                <Button size="sm" className="rounded-xl font-sans text-[11px] gap-1.5 h-8" onClick={() => setStageOpen(true)}>
                   <TargetIcon size={12} /> Stage
                 </Button>
               )}
             </div>
           </div>
 
-          {/* Row 2: stat strip — mobile shows Stage | Health | Days only; full details on sm+ */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-3 pt-3 border-t border-border/30">
+          {/* Row 2: premium stat strip — pills with clean dividers */}
+          <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-border/25">
             {target.currentStage && (
               <StageChip stage={target.currentStage} size="xs" />
+            )}
+            {target.priorityTier && (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold border ${
+                target.priorityTier === "Must-Win"
+                  ? "bg-destructive/10 text-destructive border-destructive/25"
+                  : target.priorityTier === "Priority 1"
+                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25"
+                  : target.priorityTier === "Priority 2"
+                  ? "bg-primary/10 text-primary border-primary/25"
+                  : "bg-muted/60 text-muted-foreground border-border/40"
+              }`}>
+                {target.priorityTier}
+              </span>
             )}
             {(target as { healthScore?: string | null }).healthScore && (
               <HealthDot
@@ -197,46 +217,37 @@ export default function TargetDetail() {
               />
             )}
             {daysInCurrentStage !== undefined && (
-              <span className="text-[10px] font-mono text-muted-foreground/70 flex items-center gap-1">
-                <TrendingUp size={9} className="text-muted-foreground/50" />{daysInCurrentStage}d
-              </span>
-            )}
-            {target.priorityTier && (
-              <span className={`hidden sm:inline text-[10px] font-mono font-semibold ${
-                target.priorityTier === "Must-Win"   ? "text-destructive" :
-                target.priorityTier === "Priority 1" ? "text-amber-500" : "text-primary"
-              }`}>
-                {target.priorityTier}
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono text-muted-foreground/60 bg-muted/40 border border-border/30">
+                <TrendingUp size={8} />{daysInCurrentStage}d in stage
               </span>
             )}
             {target.sector && (
-              <span className="hidden sm:inline text-[10px] font-mono text-muted-foreground uppercase">{target.sector}</span>
+              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono text-muted-foreground/60 bg-muted/40 border border-border/30">
+                {target.sector}
+              </span>
             )}
             {target.country && (
-              <span className="hidden sm:inline text-[10px] font-mono text-muted-foreground">{target.country}</span>
+              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono text-muted-foreground/60 bg-muted/40 border border-border/30">
+                {target.country}
+              </span>
             )}
             {(target as { diligencePct?: number | null }).diligencePct != null && (
-              <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground/70">
-                <ClipboardList size={9} className="text-muted-foreground/50" />
-                <span>{(target as { diligencePct?: number | null }).diligencePct}%</span>
-                <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden">
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-mono text-muted-foreground/60 bg-muted/40 border border-border/30">
+                <ClipboardList size={8} />
+                <span>{(target as { diligencePct?: number | null }).diligencePct}% DD</span>
+                <div className="w-10 h-1 bg-muted rounded-full overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-primary/60"
+                    className="h-full rounded-full bg-primary/70"
                     style={{ width: `${(target as { diligencePct?: number | null }).diligencePct}%` }}
                   />
                 </div>
               </span>
             )}
             {target.lastInteractionDate && (
-              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono text-muted-foreground/60">
-                <MessageSquare size={9} className="text-muted-foreground/40" />
-                Last contact {format(parseISO(target.lastInteractionDate), "MMM d, yyyy")}
+              <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono text-muted-foreground/50 bg-muted/40 border border-border/30">
+                <MessageSquare size={8} />
+                {format(parseISO(target.lastInteractionDate), "MMM d, yyyy")}
               </span>
-            )}
-            {target.isConfidential && (
-              <Badge variant="outline" className="hidden sm:inline-flex font-mono text-[9px] uppercase bg-amber-500/10 text-amber-500 border-amber-500/25 h-4 px-1.5">
-                <ShieldAlert size={8} className="mr-1" />Confidential
-              </Badge>
             )}
           </div>
         </div>
@@ -259,24 +270,24 @@ export default function TargetDetail() {
       <div className="flex-1 overflow-auto bg-background pb-20 md:pb-0">
         <div className="max-w-6xl mx-auto p-4 md:p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="bg-transparent border-b border-border w-full justify-start rounded-none p-0 h-auto mb-6">
+            <TabsList className="bg-transparent border-b border-border w-full justify-start rounded-none p-0 h-auto mb-6 overflow-x-auto">
               {[
-                { value: "overview",      label: "Overview",     icon: <LayoutGrid size={13} /> },
-                { value: "interactions",  label: "Log",          icon: <MessageSquare size={13} /> },
-                { value: "actions",       label: "Actions",      icon: <ListChecks size={13} /> },
-                { value: "history",       label: "Timeline",     icon: <GitBranch size={13} /> },
-                { value: "diligence",     label: "Diligence",    icon: <ClipboardCheck size={13} /> },
-                { value: "documents",     label: "Documents",    icon: <FolderOpen size={13} /> },
-                { value: "valuation",     label: "Valuation",    icon: <TrendingUp size={13} /> },
-                { value: "synergies",     label: "Synergies",    icon: <Sparkles size={13} /> },
-                { value: "activity",      label: "Activity",     icon: <ActivityIcon size={13} /> },
-                { value: "ic",            label: "IC",           icon: <Scale size={13} /> },
-                { value: "stakeholders",  label: "Stakeholders", icon: <Users size={13} /> },
-                { value: "compliance",    label: "Compliance",   icon: <ShieldCheck size={13} /> },
-                { value: "audit",         label: "Audit",        icon: <ClipboardList size={13} /> },
+                { value: "overview",      label: "Overview",     icon: <LayoutGrid size={12} /> },
+                { value: "interactions",  label: "Log",          icon: <MessageSquare size={12} /> },
+                { value: "actions",       label: "Actions",      icon: <ListChecks size={12} /> },
+                { value: "history",       label: "Timeline",     icon: <GitBranch size={12} /> },
+                { value: "diligence",     label: "Diligence",    icon: <ClipboardCheck size={12} /> },
+                { value: "documents",     label: "Documents",    icon: <FolderOpen size={12} /> },
+                { value: "valuation",     label: "Valuation",    icon: <TrendingUp size={12} /> },
+                { value: "synergies",     label: "Synergies",    icon: <Sparkles size={12} /> },
+                { value: "activity",      label: "Activity",     icon: <ActivityIcon size={12} /> },
+                { value: "ic",            label: "IC",           icon: <Scale size={12} /> },
+                { value: "stakeholders",  label: "Stakeholders", icon: <Users size={12} /> },
+                { value: "compliance",    label: "Compliance",   icon: <ShieldCheck size={12} /> },
+                { value: "audit",         label: "Audit",        icon: <ClipboardList size={12} /> },
               ].map(({ value, label, icon }) => (
                 <TabsTrigger key={value} value={value}
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 md:px-4 py-2 font-mono text-[11px] uppercase tracking-wider flex items-center gap-1.5"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 md:px-4 py-2.5 font-sans text-[12px] font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 text-muted-foreground data-[state=active]:text-foreground"
                 >
                   {icon}{label}
                 </TabsTrigger>
