@@ -91,6 +91,13 @@ export function DealCard({ deal, href, className = "", animate = true, animDelay
 
       {/* Slot for action buttons, progress bars, etc. */}
       {children}
+
+      {/* Hover-reveal quick action */}
+      <div className="flex items-center justify-end opacity-0 group-hover/dealcard:opacity-100 transition-opacity duration-150 -mt-1">
+        <span className="text-[10px] font-sans text-primary/60 group-hover/dealcard:text-primary flex items-center gap-0.5 transition-colors">
+          View deal <span aria-hidden="true">→</span>
+        </span>
+      </div>
     </div>
   );
 

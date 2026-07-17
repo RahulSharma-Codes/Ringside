@@ -483,59 +483,34 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="flex-1 flex flex-col px-0 pb-0 pt-0">
               {loadingTop ? (
-                <div className="p-4 space-y-3">
+                <div className="p-3 space-y-2">
                   {Array(5).fill(0).map((_, i) => <SkeletonCard key={i} />)}
                 </div>
               ) : topTargets && topTargets.length > 0 ? (
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-border/40 bg-muted/20">
-                      <th className="text-left py-1.5 pl-4 pr-2 font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider w-5">#</th>
-                      <th className="text-left py-1.5 px-2 font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider">Deal</th>
-                      <th className="py-1.5 px-2 font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider hidden sm:table-cell text-center">Health</th>
-                      <th className="text-left py-1.5 px-2 font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider hidden md:table-cell">Stage</th>
-                      <th className="text-right py-1.5 px-2 font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider">Score</th>
-                      <th className="text-right py-1.5 pl-2 pr-4 font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider hidden sm:table-cell">Days</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/30">
-                    {topTargets.map((target, idx) => {
-                      const days = (target as { daysInCurrentStage?: number | null }).daysInCurrentStage;
-                      const health = (target as { healthScore?: string | null }).healthScore as "healthy" | "watch" | "at_risk" | null | undefined;
-                      return (
-                        <tr
-                          key={target.id}
-                          className="hover:bg-muted/20 transition-colors cursor-pointer group"
-                          onClick={() => navigate(`/targets/${target.id}`)}
-                          onKeyDown={(e) => e.key === "Enter" && navigate(`/targets/${target.id}`)}
-                          tabIndex={0}
-                          role="link"
-                        >
-                          <td className="py-2 pl-4 pr-2 font-mono text-[10px] text-muted-foreground/40">{idx + 1}</td>
-                          <td className="py-2 px-2 min-w-0 max-w-0">
-                            <div className="font-medium truncate group-hover:text-primary transition-colors leading-snug">{target.projectName}</div>
-                            <div className={`text-[9px] font-mono mt-0.5 ${target.priorityTier === "Must-Win" ? "text-destructive font-bold" : "text-muted-foreground/60"}`}>
-                              {target.priorityTier}
-                            </div>
-                          </td>
-                          <td className="py-2 px-2 hidden sm:table-cell text-center">
-                            <HealthDot score={health} />
-                          </td>
-                          <td className="py-2 px-2 hidden md:table-cell">
-                            {target.currentStage && <StageChip stage={target.currentStage} size="xs" />}
-                          </td>
-                          <td className="py-2 px-2 text-right font-mono font-bold text-primary text-sm">{Math.round(target.priorityScore)}</td>
-                          <td className="py-2 pl-2 pr-4 text-right font-mono text-[10px] text-muted-foreground/50 hidden sm:table-cell">
-                            {days != null ? `${days}d` : "—"}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <div className="p-3 space-y-2">
+                  {topTargets.map((target, idx) => {
+                    const deal: DealCardData = {
+                      id: target.id,
+                      targetCode: target.targetCode,
+                      projectName: target.projectName,
+                      currentStage: target.currentStage,
+                      priorityTier: target.priorityTier,
+                      priorityScore: target.priorityScore,
+                      healthScore: (target as { healthScore?: string | null }).healthScore as DealCardData["healthScore"],
+                      daysInCurrentStage: (target as { daysInCurrentStage?: number | null }).daysInCurrentStage,
+                    };
+                    return (
+                      <DealCard key={target.id} deal={deal} animDelay={idx * 0.05}>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-mono text-muted-foreground/30 tabular-nums">#{idx + 1}</span>
+                        </div>
+                      </DealCard>
+                    );
+                  })}
+                </div>
               ) : (
-                <div className="flex h-full items-center justify-center p-8 text-xs font-mono text-muted-foreground uppercase tracking-widest text-center">
-                  No evaluated targets
+                <div className="flex h-full items-center justify-center p-8">
+                  <p className="text-[11px] font-sans text-muted-foreground/40 text-center">No evaluated targets yet</p>
                 </div>
               )}
             </CardContent>

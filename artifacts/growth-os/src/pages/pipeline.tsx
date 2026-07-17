@@ -304,27 +304,27 @@ export default function Pipeline() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 pointer-events-none" />
             <Input
               placeholder="Search…"
-              className="pl-8 rounded-lg font-mono text-xs bg-background/60 border-border/60 h-7"
+              className="pl-8 rounded-lg font-sans text-xs bg-background/60 border-border/60 h-7"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
           <Select value={stage} onValueChange={setStage}>
-            <SelectTrigger className="w-[150px] rounded-lg font-mono text-[11px] uppercase border-border/60 bg-background/60 h-7">
+            <SelectTrigger className="w-[150px] rounded-lg font-sans text-[11px] border-border/60 bg-background/60 h-7">
               <SelectValue placeholder="Stage" />
             </SelectTrigger>
-            <SelectContent className="font-mono text-[11px] uppercase">
+            <SelectContent className="font-sans text-[11px]">
               <SelectItem value="all">All Stages</SelectItem>
               {STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
 
           <Select value={tier} onValueChange={setTier}>
-            <SelectTrigger className="w-[120px] rounded-lg font-mono text-[11px] uppercase border-border/60 bg-background/60 h-7">
+            <SelectTrigger className="w-[120px] rounded-lg font-sans text-[11px] border-border/60 bg-background/60 h-7">
               <SelectValue placeholder="Tier" />
             </SelectTrigger>
-            <SelectContent className="font-mono text-[11px] uppercase">
+            <SelectContent className="font-sans text-[11px]">
               <SelectItem value="all">All Tiers</SelectItem>
               {TIERS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
             </SelectContent>
@@ -332,10 +332,10 @@ export default function Pipeline() {
 
           {(filterOptions?.owners?.length ?? 0) > 0 && (
             <Select value={owner} onValueChange={setOwner}>
-              <SelectTrigger className="w-[120px] rounded-lg font-mono text-[11px] uppercase border-border/60 bg-background/60 h-7">
+              <SelectTrigger className="w-[120px] rounded-lg font-sans text-[11px] border-border/60 bg-background/60 h-7">
                 <SelectValue placeholder="Owner" />
               </SelectTrigger>
-              <SelectContent className="font-mono text-[11px] uppercase">
+              <SelectContent className="font-sans text-[11px]">
                 <SelectItem value="all">All Owners</SelectItem>
                 {filterOptions!.owners.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
               </SelectContent>
@@ -344,10 +344,10 @@ export default function Pipeline() {
 
           {(filterOptions?.countries?.length ?? 0) > 0 && (
             <Select value={country} onValueChange={setCountry}>
-              <SelectTrigger className="w-[120px] rounded-lg font-mono text-[11px] uppercase border-border/60 bg-background/60 h-7">
+              <SelectTrigger className="w-[120px] rounded-lg font-sans text-[11px] border-border/60 bg-background/60 h-7">
                 <SelectValue placeholder="Country" />
               </SelectTrigger>
-              <SelectContent className="font-mono text-[11px] uppercase">
+              <SelectContent className="font-sans text-[11px]">
                 <SelectItem value="all">All Countries</SelectItem>
                 {filterOptions!.countries.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
@@ -355,10 +355,10 @@ export default function Pipeline() {
           )}
 
           <Select value={dealType} onValueChange={setDealType}>
-            <SelectTrigger className="w-[130px] rounded-lg font-mono text-[11px] uppercase border-border/60 bg-background/60 h-7">
+            <SelectTrigger className="w-[130px] rounded-lg font-sans text-[11px] border-border/60 bg-background/60 h-7">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
-            <SelectContent className="font-mono text-[11px]">
+            <SelectContent className="font-sans text-[11px]">
               <SelectItem value="all">All Types</SelectItem>
               {DEAL_TYPES.map((dt) => <SelectItem key={dt} value={dt}>{dt}</SelectItem>)}
             </SelectContent>
@@ -366,7 +366,7 @@ export default function Pipeline() {
 
           <button
             onClick={() => setAttentionOnly(!attentionOnly)}
-            className={`h-7 px-2.5 rounded-lg text-[11px] font-mono border transition-all duration-150 flex items-center gap-1.5 shrink-0 ${
+            className={`h-7 px-2.5 rounded-lg text-[11px] font-sans border transition-all duration-150 active:scale-[0.97] flex items-center gap-1.5 shrink-0 ${
               attentionOnly
                 ? "bg-destructive/15 text-destructive border-destructive/40"
                 : "border-border/60 text-muted-foreground hover:text-foreground"
@@ -378,7 +378,7 @@ export default function Pipeline() {
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="h-7 px-2.5 rounded-lg text-[11px] font-mono text-muted-foreground/60 hover:text-muted-foreground border border-dashed border-border/40 transition-colors"
+              className="h-7 px-2.5 rounded-lg text-[11px] font-sans text-muted-foreground/60 hover:text-muted-foreground border border-dashed border-border/40 transition-colors active:scale-[0.97]"
             >
               Clear
             </button>
