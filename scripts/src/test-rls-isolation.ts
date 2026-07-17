@@ -213,7 +213,30 @@ async function run() {
   section("RLS enforcement via app_rls role (non-superuser)");
   {
     const client = await pool.connect();
+
+    // Pre-test fixture for Test F: a real Company A advisor whose id provides a
+    // valid FK so that only RLS (not a FK constraint) can block the test INSERT.
+    // Created as superuser before SET ROLE; cleaned up in the finally block.
+    let testAdvisorId: number | null = null;
+
     try {
+      // Look up any Company A target to use as the advisor's target_id.
+      await client.query(`SELECT set_config('app.company_id', $1, false)`, [DEFAULT_COMPANY_ID]);
+      const targetRes = await client.query(
+        `SELECT id FROM targets WHERE company_id = $1 LIMIT 1`,
+        [DEFAULT_COMPANY_ID],
+      );
+      const companyATargetId: number | null = (targetRes.rows[0]?.id as number | undefined) ?? null;
+      if (companyATargetId !== null) {
+        const advisorRes = await client.query(
+          `INSERT INTO deal_advisors (target_id, advisor_type, firm_name, company_id)
+           VALUES ($1, 'Legal', 'RLS-Test-Firm', $2)
+           RETURNING id`,
+          [companyATargetId, DEFAULT_COMPANY_ID],
+        );
+        testAdvisorId = (advisorRes.rows[0]?.id as number | undefined) ?? null;
+      }
+
       // Set GUC to Company B (required so app_rls can read/write its own rows).
       // Pool connections may carry stale GUC state from prior uses, so we always
       // set it explicitly before each sub-test.
@@ -341,9 +364,45 @@ async function run() {
           fail(`Unexpected error on invite_tokens cross-tenant insert under app_rls: ${msg}`);
         }
       }
+
+      // ─ Test F: advisor_conflict_notes cross-tenant INSERT ───────────────────
+      // GUC = Company B, explicit company_id = Company A → RLS WITH CHECK blocks.
+      // Uses a real Company A advisor_id (created above as superuser) so that FK
+      // is satisfied; only RLS can block the insert, eliminating FK ambiguity.
+      await client.query(`SELECT set_config('app.company_id', $1, false)`, [COMPANY_B_ID]);
+      if (testAdvisorId === null) {
+        console.warn(
+          "  ⚠  No Company A target found — Test F skipped (fixture advisor unavailable).",
+        );
+      } else {
+        try {
+          await client.query(
+            `INSERT INTO advisor_conflict_notes (advisor_id, note, author, status_at_time, company_id)
+             VALUES ($1, 'LEAK_NOTE', 'LEAK_AUTHOR', 'Flagged', $2)`,
+            [testAdvisorId, DEFAULT_COMPANY_ID],
+          );
+          fail(
+            "Cross-tenant INSERT into advisor_conflict_notes (Company A advisor_id, " +
+            "company_id = Company A while GUC = Company B) succeeded — " +
+            "RLS WITH CHECK is missing on advisor_conflict_notes!"
+          );
+        } catch (err: unknown) {
+          const msg = (err as Error).message ?? "";
+          // Accept only explicit RLS rejection — not FK or other constraint errors.
+          if (msg.includes("row-level security")) {
+            pass(`advisor_conflict_notes cross-tenant INSERT blocked by RLS WITH CHECK: "${msg.split("\n")[0]}"`);
+          } else {
+            fail(`Unexpected error on advisor_conflict_notes cross-tenant insert under app_rls (expected RLS rejection): ${msg}`);
+          }
+        }
+      }
     } finally {
       // Always reset role before returning the connection to the pool.
       await client.query(`RESET ROLE`).catch(() => {});
+      // Remove the Test F fixture advisor (created as superuser before SET ROLE).
+      if (testAdvisorId !== null) {
+        await client.query(`DELETE FROM deal_advisors WHERE id = $1`, [testAdvisorId]).catch(() => {});
+      }
       client.release();
     }
   }
