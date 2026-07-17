@@ -14,6 +14,7 @@ import { ExportDialog } from "@/components/export-dialog";
 import { QuickLogInteractionPopover } from "@/components/quick-log-interaction-popover";
 import { MobileLongPressTray } from "@/components/mobile-long-press-tray";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonTable, SkeletonCard } from "@/components/skeleton";
 import { format, parseISO } from "date-fns";
 import { StageChip } from "@/components/stage-chip";
 import { HealthDot } from "@/components/health-dot";
@@ -431,9 +432,7 @@ export default function Pipeline() {
       {view === "list" && (
         <div className="p-4 md:p-6 space-y-2.5">
           {isLoading ? (
-            <div className="space-y-3">
-              {Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-[130px] w-full rounded-xl" />)}
-            </div>
+            <SkeletonTable rows={8} />
           ) : (targets?.length ?? 0) === 0 ? (
             <Card className="bg-card border-border rounded-xl">
               <CardContent className="p-12 text-center">

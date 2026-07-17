@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/select";
 import { StageChip } from "@/components/stage-chip";
 import { HealthDot } from "@/components/health-dot";
+import { DealCard, type DealCardData } from "@/components/deal-card";
+import { SkeletonCard } from "@/components/skeleton";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -144,44 +146,37 @@ function DealTypeBadge({ dealType }: { dealType?: string | null }) {
 // ── Card components ────────────────────────────────────────────────────────
 
 function TargetCard({ t, accent }: { t: ReviewTarget; accent?: "destructive" | "amber" }) {
+  const deal: DealCardData = {
+    id: t.id,
+    targetCode: t.targetCode,
+    projectName: t.projectName,
+    currentStage: t.currentStage,
+    priorityTier: t.priorityTier,
+    healthScore: t.healthScore as DealCardData["healthScore"],
+  };
   return (
-    <Link href={`/targets/${t.id}`}>
-      <Card className={`bg-card border-border/60 rounded-xl hover:shadow-sm transition-all duration-150 cursor-pointer group ${
-        accent === "destructive" ? "border-l-2 border-l-destructive" :
-        accent === "amber"       ? "border-l-2 border-l-amber-500" : ""
-      }`}>
-        <CardContent className="p-3.5 flex items-center justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{t.projectName}</p>
-              <HealthDot score={t.healthScore} />
-            </div>
-            <div className="flex flex-wrap gap-1.5 mt-1.5 items-center">
-              <span className="metadata-label">{t.targetCode}</span>
-              <TierPill tier={t.priorityTier} />
-              <DealTypeBadge dealType={t.dealType} />
-              <StageChip stage={t.currentStage} size="xs" />
-              {t.openActionCount !== undefined && t.openActionCount > 0 && (
-                <span className="metadata-label text-amber-500">
-                  {t.openActionCount} open action{t.openActionCount !== 1 ? "s" : ""}
-                </span>
-              )}
-              {t.lastInteractionDate && (
-                <span className="metadata-label">
-                  Last contact {format(parseISO(t.lastInteractionDate), "MMM d")}
-                </span>
-              )}
-              {t.updatedAt && (
-                <span className="metadata-label">
-                  Updated {format(parseISO(t.updatedAt), "MMM d")}
-                </span>
-              )}
-            </div>
-          </div>
-          <ArrowRight size={13} className="text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 transition-colors" />
-        </CardContent>
-      </Card>
-    </Link>
+    <DealCard deal={deal} animDelay={0}>
+      {(t.openActionCount !== undefined && t.openActionCount > 0) || t.lastInteractionDate || t.updatedAt || t.dealType ? (
+        <div className="flex flex-wrap gap-1.5 items-center pt-0.5">
+          <DealTypeBadge dealType={t.dealType} />
+          {t.openActionCount !== undefined && t.openActionCount > 0 && (
+            <span className="metadata-label text-amber-500">
+              {t.openActionCount} open action{t.openActionCount !== 1 ? "s" : ""}
+            </span>
+          )}
+          {t.lastInteractionDate && (
+            <span className="metadata-label">
+              Contact {format(parseISO(t.lastInteractionDate), "MMM d")}
+            </span>
+          )}
+          {t.updatedAt && !t.lastInteractionDate && (
+            <span className="metadata-label">
+              Updated {format(parseISO(t.updatedAt), "MMM d")}
+            </span>
+          )}
+        </div>
+      ) : null}
+    </DealCard>
   );
 }
 
@@ -547,7 +542,7 @@ export default function WeeklyReview() {
 
       <div className="flex-1 overflow-auto p-4 md:p-6 space-y-2.5">
         {isLoading ? (
-          Array(6).fill(0).map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)
+          Array(6).fill(0).map((_, i) => <SkeletonCard key={i} />)
         ) : !d ? (
           <p className="text-muted-foreground text-sm font-mono">Failed to load review data.</p>
         ) : (

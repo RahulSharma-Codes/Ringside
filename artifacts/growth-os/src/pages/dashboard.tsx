@@ -13,6 +13,8 @@ import {
 import { computeAvgAssessedScore } from "@/lib/score-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DealCard, type DealCardData } from "@/components/deal-card";
+import { SkeletonCard } from "@/components/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -482,7 +484,7 @@ export default function Dashboard() {
             <CardContent className="flex-1 flex flex-col px-0 pb-0 pt-0">
               {loadingTop ? (
                 <div className="p-4 space-y-3">
-                  {Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+                  {Array(5).fill(0).map((_, i) => <SkeletonCard key={i} />)}
                 </div>
               ) : topTargets && topTargets.length > 0 ? (
                 <table className="w-full text-xs">
@@ -556,25 +558,27 @@ export default function Dashboard() {
             </div>
 
             {loadingAttention ? (
-              <div className="space-y-1.5">
-                {Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-8 w-full rounded-lg" />)}
+              <div className="space-y-2">
+                {Array(3).fill(0).map((_, i) => <SkeletonCard key={i} />)}
               </div>
             ) : attentionTargets && attentionTargets.length > 0 ? (
-              <Card className="rounded-xl bg-card border-border/80 overflow-hidden">
-                <div className="divide-y divide-border/30">
-                {attentionTargets.map((target) => (
-                  <Link key={target.id} href={`/targets/${target.id}`}>
-                    <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/20 transition-colors cursor-pointer group">
-                      <div className="flex-1 min-w-0 flex items-center gap-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="font-medium text-sm truncate group-hover:text-primary transition-colors leading-snug">{target.projectName}</div>
-                          <div className="metadata-label mt-0.5 flex items-center gap-2">
-                            <span className="font-mono text-muted-foreground/50">{target.targetCode}</span>
-                            {target.currentStage && <StageChip stage={target.currentStage} size="xs" />}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {(target.flags as string[] | null | undefined)?.map((flag) => {
+              <div className="space-y-2">
+                {attentionTargets.map((target, idx) => {
+                  const deal: DealCardData = {
+                    id: target.id,
+                    targetCode: target.targetCode,
+                    projectName: target.projectName,
+                    currentStage: target.currentStage,
+                    priorityTier: target.priorityTier,
+                    needsAttention: true,
+                    healthScore: (target as { healthScore?: string | null }).healthScore as DealCardData["healthScore"],
+                  };
+                  const flags = (target.flags as string[] | null | undefined) ?? [];
+                  return (
+                    <DealCard key={target.id} deal={deal} animDelay={idx * 0.04}>
+                      {flags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {flags.map((flag) => {
                             const fl = FLAG_LABELS[flag];
                             return fl ? (
                               <Badge key={flag} variant="outline" className={`font-mono text-[9px] uppercase rounded-sm px-1.5 py-0 h-4 ${fl.color}`}>
@@ -583,15 +587,11 @@ export default function Dashboard() {
                             ) : null;
                           })}
                         </div>
-                      </div>
-                      <Badge className={`font-mono text-[10px] shrink-0 ${getTierColor(target.priorityTier)}`}>
-                        {target.priorityTier}
-                      </Badge>
-                    </div>
-                  </Link>
-                ))}
-                </div>
-              </Card>
+                      )}
+                    </DealCard>
+                  );
+                })}
+              </div>
             ) : null}
           </div>
         )}
