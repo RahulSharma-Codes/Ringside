@@ -143,7 +143,7 @@ const columns: ColumnDef<PipelineRow>[] = [
       const colorCls =
         score >= 70 ? "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25" :
         score >= 40 ? "bg-amber-500/12 text-amber-600 dark:text-amber-400 border border-amber-500/25" :
-                     "bg-muted/60 text-muted-foreground border border-border/40";
+                     "bg-destructive/10 text-destructive border border-destructive/25";
       return (
         <span className={`inline-flex items-center justify-center min-w-[28px] px-1.5 py-0.5 rounded-md text-[10px] font-mono font-semibold ${colorCls}`}>
           {score}

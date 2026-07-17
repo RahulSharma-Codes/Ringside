@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useParams, Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -294,31 +295,41 @@ export default function TargetDetail() {
               ))}
             </TabsList>
 
-            <TabsContent value="overview" className="space-y-4 mt-0">
-              <OverviewTab targetId={targetId} target={target} />
-            </TabsContent>
-            <TabsContent value="interactions" className="space-y-4 mt-0">
-              <InteractionsTab targetId={targetId} addOpen={interactionAddOpen} onAddOpenChange={setInteractionAddOpen} />
-            </TabsContent>
-            <TabsContent value="actions" className="space-y-4 mt-0">
-              <ActionsTab targetId={targetId} addOpen={actionAddOpen} onAddOpenChange={setActionAddOpen} />
-            </TabsContent>
-            <TabsContent value="history" className="mt-0"><HistoryTab targetId={targetId} /></TabsContent>
-            <TabsContent value="ic" className="mt-0"><IcTab targetId={targetId} dealName={target.projectName ?? target.targetCode ?? undefined} /></TabsContent>
-            <TabsContent value="stakeholders" className="mt-0"><StakeholdersTab targetId={targetId} /></TabsContent>
-            <TabsContent value="compliance" className="mt-0"><ComplianceTab targetId={targetId} /></TabsContent>
-            <TabsContent value="audit" className="mt-0"><AuditTrailTab targetId={targetId} /></TabsContent>
-            <TabsContent value="diligence" className="space-y-4 mt-0"><DiligenceTab targetId={targetId} /></TabsContent>
-            <TabsContent value="documents" className="space-y-4 mt-0"><DocumentsTab targetId={targetId} /></TabsContent>
-            <TabsContent value="valuation" className="mt-0">
-              <ValuationTab targetId={targetId} currentStage={target.currentStage ?? undefined} />
-            </TabsContent>
-            <TabsContent value="synergies" className="mt-0">
-              <SynergiesTab targetId={targetId} currentStage={target.currentStage ?? "Sourcing"} />
-            </TabsContent>
-            <TabsContent value="activity" className="mt-0">
-              <ActivityTab targetId={targetId} isActive={activeTab === "activity"} />
-            </TabsContent>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+              >
+                <TabsContent value="overview" className="space-y-4 mt-0">
+                  <OverviewTab targetId={targetId} target={target} />
+                </TabsContent>
+                <TabsContent value="interactions" className="space-y-4 mt-0">
+                  <InteractionsTab targetId={targetId} addOpen={interactionAddOpen} onAddOpenChange={setInteractionAddOpen} />
+                </TabsContent>
+                <TabsContent value="actions" className="space-y-4 mt-0">
+                  <ActionsTab targetId={targetId} addOpen={actionAddOpen} onAddOpenChange={setActionAddOpen} />
+                </TabsContent>
+                <TabsContent value="history" className="mt-0"><HistoryTab targetId={targetId} /></TabsContent>
+                <TabsContent value="ic" className="mt-0"><IcTab targetId={targetId} dealName={target.projectName ?? target.targetCode ?? undefined} /></TabsContent>
+                <TabsContent value="stakeholders" className="mt-0"><StakeholdersTab targetId={targetId} /></TabsContent>
+                <TabsContent value="compliance" className="mt-0"><ComplianceTab targetId={targetId} /></TabsContent>
+                <TabsContent value="audit" className="mt-0"><AuditTrailTab targetId={targetId} /></TabsContent>
+                <TabsContent value="diligence" className="space-y-4 mt-0"><DiligenceTab targetId={targetId} /></TabsContent>
+                <TabsContent value="documents" className="space-y-4 mt-0"><DocumentsTab targetId={targetId} /></TabsContent>
+                <TabsContent value="valuation" className="mt-0">
+                  <ValuationTab targetId={targetId} currentStage={target.currentStage ?? undefined} />
+                </TabsContent>
+                <TabsContent value="synergies" className="mt-0">
+                  <SynergiesTab targetId={targetId} currentStage={target.currentStage ?? "Sourcing"} />
+                </TabsContent>
+                <TabsContent value="activity" className="mt-0">
+                  <ActivityTab targetId={targetId} isActive={activeTab === "activity"} />
+                </TabsContent>
+              </motion.div>
+            </AnimatePresence>
           </Tabs>
         </div>
       </div>
