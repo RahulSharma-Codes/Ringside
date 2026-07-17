@@ -444,7 +444,7 @@ function DocCard({
           if (data.setupRequired) {
             toast({
               title: "Storage not configured",
-              description: "Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Secrets to enable file uploads.",
+              description: "File storage is not available. Contact your administrator.",
               variant: "destructive",
             });
           } else if (data.error?.includes("not allowed")) {
@@ -500,7 +500,7 @@ function DocCard({
       if (!data.storageEnabled) {
         toast({
           title: "Storage not configured",
-          description: "Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to download files.",
+          description: "File storage is not yet available. Contact your administrator.",
           variant: "destructive",
         });
         return;

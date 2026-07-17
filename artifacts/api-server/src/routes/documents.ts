@@ -10,7 +10,7 @@ import {
   getSignedUrl,
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE,
-} from "../lib/supabase-storage";
+} from "../lib/object-storage";
 import { writeAuditEvent } from "./audit";
 import { canAccessTarget, getAccessScope } from "../lib/target-access";
 
@@ -23,10 +23,8 @@ const CRITICAL_DOC_TYPES = ["NDA", "CIM", "Financials", "Legal", "Tax", "Integra
 router.get("/storage-config", (_req, res) => {
   return res.json({
     storageEnabled,
-    bucket: storageEnabled ? "deal-documents" : null,
-    missingSecrets: storageEnabled
-      ? []
-      : ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"],
+    bucket: storageEnabled ? process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID : null,
+    missingSecrets: storageEnabled ? [] : ["DEFAULT_OBJECT_STORAGE_BUCKET_ID"],
   });
 });
 
@@ -318,7 +316,7 @@ router.post("/:id/upload", upload.single("file"), async (req, res) => {
     return res.status(503).json({
       error: "Storage not configured",
       setupRequired: true,
-      missingSecrets: ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"],
+      missingSecrets: ["DEFAULT_OBJECT_STORAGE_BUCKET_ID"],
     });
   }
 
@@ -372,7 +370,7 @@ router.put("/:id/replace-file", upload.single("file"), async (req, res) => {
     return res.status(503).json({
       error: "Storage not configured",
       setupRequired: true,
-      missingSecrets: ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"],
+      missingSecrets: ["DEFAULT_OBJECT_STORAGE_BUCKET_ID"],
     });
   }
 
