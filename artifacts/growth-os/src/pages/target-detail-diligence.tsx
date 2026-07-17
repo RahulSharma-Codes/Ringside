@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import { stripHtmlTags } from "@/components/ui/safe-html";
+import { SafeHtml } from "@/components/ui/safe-html";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Plus, CheckCircle2, RotateCcw, Pencil, Trash2,
@@ -147,7 +147,9 @@ function WorkstreamSection({ ws, items, onEdit, onToggle, onDelete, isPending }:
                       {item.description}
                     </div>
                     {item.notes && (
-                      <div className="text-[10px] text-muted-foreground mt-0.5 italic truncate">{stripHtmlTags(item.notes)}</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5 italic">
+                        <SafeHtml html={item.notes} className="[&_p]:mb-0 [&_p:last-child]:mb-0 [&_ul]:my-0 [&_ol]:my-0 [&_li]:leading-snug" />
+                      </div>
                     )}
                     {item.evidenceLinks && item.evidenceLinks.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
