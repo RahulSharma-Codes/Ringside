@@ -4,6 +4,7 @@ import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, User, Zap, ChevronDown, ChevronRight, X, Check, Loader2 } from "lucide-react";
+import { DealCard, type DealCardData } from "@/components/deal-card";
 import { QuickLogInteractionPopover } from "@/components/quick-log-interaction-popover";
 import { MobileLongPressTray } from "@/components/mobile-long-press-tray";
 import { HealthDot } from "@/components/health-dot";
@@ -152,6 +153,27 @@ function SortableCard({
   const overdueCount = target.overdueActionCount ?? 0;
   const openCount = target.openActionCount ?? 0;
 
+  const deal: DealCardData = {
+    id: target.id,
+    targetCode: target.targetCode ?? "",
+    projectName: target.projectName,
+    currentStage: target.currentStage,
+    priorityTier: target.priorityTier,
+    priorityScore: target.priorityScore,
+    needsAttention: target.needsAttention,
+    healthScore: target.healthScore as DealCardData["healthScore"],
+    dealOwner: target.dealOwner,
+    daysInCurrentStage: target.daysInCurrentStage,
+  };
+
+  const dragStateClass = isDragging
+    ? "shadow-xl opacity-90 rotate-1 scale-[1.02]"
+    : isSaving
+      ? "opacity-60"
+      : isOver
+        ? "ring-2 ring-primary/40 bg-primary/5"
+        : "";
+
   const cardContent = (
     <MobileLongPressTray
       targetId={target.id}
@@ -160,96 +182,53 @@ function SortableCard({
       targetHref={`/targets/${target.id}`}
       disableLongPress={longPressDisabled}
     >
-    <div
-      className={`group/card bg-card border border-border/70 border-l-4 ${getTierCardAccent(target.priorityTier)} rounded-xl p-3 space-y-2 ${
-        isDragging
-          ? "shadow-xl opacity-90 rotate-1"
-          : isSaving
-            ? "opacity-60"
-            : isOver
-              ? "border-primary/40 bg-primary/5"
-              : "deal-card-lift"
-      } transition-all duration-150`}
-    >
-      <div className="flex items-start justify-between gap-1.5">
-        <div className="min-w-0 flex-1">
-          <div className="text-[12px] font-semibold leading-snug truncate group-hover:text-primary transition-colors">
-            {target.projectName ?? "Untitled"}
-          </div>
-          <div className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-wider mt-0.5">
-            {target.targetCode}
-          </div>
-        </div>
-        <div className="flex items-center gap-1 shrink-0 mt-0.5">
-          <HealthDot score={target.healthScore as "healthy" | "watch" | "at_risk" | null | undefined} />
-          {target.needsAttention && (
-            <AlertTriangle size={11} className="text-destructive" />
-          )}
-        </div>
-      </div>
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <Badge className={`font-mono text-[9px] uppercase rounded-sm px-1.5 py-0 h-4 ${getTierBadgeColor(target.priorityTier)}`}>
-          {target.priorityTier ?? "—"}
-        </Badge>
-        {target.dealType && NON_DEFAULT_DEAL_TYPES[target.dealType] && (
-          <Badge className="font-mono text-[9px] uppercase rounded-sm px-1.5 py-0 h-4 bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-500/30">
-            {NON_DEFAULT_DEAL_TYPES[target.dealType]}
-          </Badge>
-        )}
-        {target.priorityScore != null && (
-          <span className="text-[9px] font-mono text-muted-foreground/60 flex items-center gap-0.5">
-            <Zap size={8} className="text-primary/50" />
-            {Math.round(target.priorityScore)}
-          </span>
-        )}
-      </div>
-      {/* Days in stage + diligence bar */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {target.daysInCurrentStage != null && (
-          <span className="text-[9px] font-mono text-muted-foreground/50 bg-muted/60 px-1.5 py-0 rounded-sm leading-4">
-            {target.daysInCurrentStage}d
-          </span>
-        )}
+      <DealCard deal={deal} animate={false} href="" className={dragStateClass}>
+        {/* Diligence progress bar */}
         {target.diligencePct != null && target.diligencePct > 0 && (
-          <span className="inline-flex items-center gap-1">
-            <div className="w-8 h-1.5 bg-muted rounded-full overflow-hidden">
+          <div className="flex items-center gap-1.5">
+            <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
               <div className="h-full rounded-full bg-primary/60" style={{ width: `${target.diligencePct}%` }} />
             </div>
-            <span className="text-[9px] font-mono text-muted-foreground/50">{target.diligencePct}%</span>
-          </span>
+            <span className="text-[9px] font-mono text-muted-foreground/40">{target.diligencePct}%</span>
+          </div>
         )}
-      </div>
-      <div className="flex items-center justify-between gap-1.5">
-        {target.dealOwner ? (
-          <span
-            className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/15 text-primary text-[8px] font-mono font-bold uppercase shrink-0"
-            title={target.dealOwner}
-          >
-            {target.dealOwner.slice(0, 2)}
-          </span>
-        ) : <span />}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {openCount > 0 && (
-            <span className={`text-[9px] font-mono ${overdueCount > 0 ? "text-destructive" : "text-amber-500"}`}>
-              {openCount} action{openCount !== 1 ? "s" : ""}
+
+        {/* Owner + actions row */}
+        <div className="flex items-center justify-between gap-1.5">
+          {target.dealOwner ? (
+            <span
+              className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/15 text-primary text-[8px] font-mono font-bold uppercase shrink-0"
+              title={target.dealOwner}
+            >
+              {target.dealOwner.slice(0, 2)}
             </span>
-          )}
-          <QuickLogInteractionPopover
-            targetId={target.id}
-            targetName={target.projectName ?? target.targetCode ?? ""}
-          />
+          ) : <span />}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {openCount > 0 && (
+              <span className={`text-[9px] font-mono ${overdueCount > 0 ? "text-destructive" : "text-amber-500"}`}>
+                {openCount} action{openCount !== 1 ? "s" : ""}
+              </span>
+            )}
+            {!isOffTrack && (
+              <QuickLogInteractionPopover
+                targetId={target.id}
+                targetName={target.projectName ?? target.targetCode ?? ""}
+              />
+            )}
+          </div>
         </div>
-      </div>
-      {!isOffTrack && (
-        <div className={`text-[9px] font-mono text-center border-t border-border/30 pt-1.5 mt-0.5 transition-opacity duration-150 flex items-center justify-center gap-1 ${
-          isSaving ? "opacity-100 text-primary/60" : "opacity-0 group-hover/card:opacity-100 text-muted-foreground/40"
-        }`}>
-          {isSaving
-            ? <><Loader2 size={8} className="animate-spin" /> saving…</>
-            : "drag to reorder or move stage"}
-        </div>
-      )}
-    </div>
+
+        {/* Drag hint */}
+        {!isOffTrack && (
+          <div className={`text-[9px] font-sans text-center border-t border-border/30 pt-1.5 mt-0.5 transition-opacity duration-150 flex items-center justify-center gap-1 ${
+            isSaving ? "opacity-100 text-primary/60" : "opacity-0 group-hover/dealcard:opacity-100 text-muted-foreground/30"
+          }`}>
+            {isSaving
+              ? <><Loader2 size={8} className="animate-spin" /> saving…</>
+              : "drag to move stage"}
+          </div>
+        )}
+      </DealCard>
     </MobileLongPressTray>
   );
 
