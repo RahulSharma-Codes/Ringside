@@ -1,11 +1,11 @@
-import React, { useRef } from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   BarChart3, Target, ListTodo, CalendarCheck, ClipboardCheck,
   FolderOpen, LineChart, Bot, Lightbulb, Upload, ShieldCheck,
-  Plus, FileSpreadsheet, KeyRound, Building2, ChevronRight,
+  Plus, FileSpreadsheet, KeyRound, Building2, ChevronRight, Search,
 } from "lucide-react";
 import {
   Command,
@@ -63,6 +63,7 @@ function TierBadge({ tier }: { tier: string | null | undefined }) {
 export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const [, setLocation] = useLocation();
   const { isAdmin } = useAuth();
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: targets } = useListTargets(
     {},
@@ -79,16 +80,17 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
 
   const navigate = (href: string) => {
     onClose();
+    setSearchQuery("");
     setTimeout(() => setLocation(href), 80);
   };
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+    <DialogPrimitive.Root open={open} onOpenChange={(o) => { if (!o) { onClose(); setSearchQuery(""); } }}>
       <DialogPrimitive.Portal forceMount>
         <AnimatePresence>
           {open && (
             <>
-              {/* Backdrop — Radix Overlay handles inert/aria-hidden for background */}
+              {/* Backdrop — Radix Overlay provides aria-hidden + inert for background */}
               <DialogPrimitive.Overlay asChild forceMount>
                 <motion.div
                   key="palette-backdrop"
@@ -111,18 +113,29 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                   className="fixed left-1/2 top-[18%] -translate-x-1/2 z-50 w-full max-w-[540px] px-4 outline-none"
                 >
                   <div className="rounded-2xl border border-border/60 bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden">
-                    <Command className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[9px] [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.12em] [&_[cmdk-group-heading]]:text-muted-foreground/40">
-                      {/* Single CommandInput — it already renders the search icon + border-b internally */}
+                    <Command
+                      className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[9px] [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.12em] [&_[cmdk-group-heading]]:text-muted-foreground/40"
+                    >
+                      {/* CommandInput manages its own search icon — do not wrap with another */}
                       <CommandInput
                         placeholder="Search deals, pages, actions…"
+                        value={searchQuery}
+                        onValueChange={setSearchQuery}
                         className="font-sans text-[13px]"
                         autoFocus
                       />
 
                       <CommandList className="max-h-[400px] py-1.5">
                         <CommandEmpty>
-                          <div className="flex flex-col items-center gap-2 py-10">
-                            <span className="font-sans text-[13px] text-muted-foreground/50">No results found</span>
+                          <div className="flex flex-col items-center gap-3 py-10">
+                            <div className="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center">
+                              <Search size={18} className="text-muted-foreground/30" />
+                            </div>
+                            <p className="font-sans text-[13px] text-muted-foreground/50">
+                              {searchQuery
+                                ? <>No results for <span className="font-semibold text-foreground/60">"{searchQuery}"</span></>
+                                : "Start typing to search"}
+                            </p>
                           </div>
                         </CommandEmpty>
 

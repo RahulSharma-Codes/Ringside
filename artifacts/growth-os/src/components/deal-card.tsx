@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ExternalLink, Zap } from "lucide-react";
 import { StageChip } from "@/components/stage-chip";
 import { HealthDot } from "@/components/health-dot";
 
@@ -20,10 +20,10 @@ export interface DealCardData {
 
 function getTierAccent(tier: string | null | undefined): string {
   switch (tier) {
-    case "Must-Win":   return "border-l-destructive/60";
-    case "Priority 1": return "border-l-amber-500/60";
-    case "Priority 2": return "border-l-primary/60";
-    default:           return "border-l-border/40";
+    case "Must-Win":   return "border-l-destructive/70";
+    case "Priority 1": return "border-l-amber-500/70";
+    case "Priority 2": return "border-l-primary/70";
+    default:           return "border-l-border/30";
   }
 }
 
@@ -31,6 +31,12 @@ function getScoreColor(score: number): string {
   if (score >= 70) return "text-emerald-600 dark:text-emerald-400";
   if (score >= 40) return "text-amber-600 dark:text-amber-400";
   return "text-destructive";
+}
+
+function getScoreBg(score: number): string {
+  if (score >= 70) return "bg-emerald-500/10";
+  if (score >= 40) return "bg-amber-500/10";
+  return "bg-destructive/10";
 }
 
 interface DealCardProps {
@@ -43,26 +49,28 @@ interface DealCardProps {
 }
 
 export function DealCard({ deal, href, className = "", animate = true, animDelay = 0, children }: DealCardProps) {
-  const targetHref = href ?? `/targets/${deal.id}`;
+  const targetHref = href != null && href !== "" ? href : `/targets/${deal.id}`;
+  const isLinked = href !== "";
 
   const cardBody = (
     <div
       className={`
-        deal-card-lift group/dealcard
-        bg-card border border-border/60 border-l-4
+        deal-card-lift group/dealcard relative
+        bg-card border-l-4 shadow-sm hover:shadow-md
         ${getTierAccent(deal.priorityTier)}
         rounded-xl p-3.5 space-y-2.5
         ${deal.needsAttention ? "ring-1 ring-amber-500/20" : ""}
+        transition-shadow duration-200
         ${className}
       `}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-semibold leading-snug truncate group-hover/dealcard:text-primary transition-colors">
+          <p className="text-[13px] font-semibold leading-snug truncate group-hover/dealcard:text-primary transition-colors font-sans">
             {deal.projectName ?? deal.targetCode}
           </p>
-          <p className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-wider mt-0.5">
+          <p className="text-[9px] font-mono text-muted-foreground/40 uppercase tracking-wider mt-0.5">
             {deal.targetCode}
           </p>
         </div>
@@ -78,7 +86,7 @@ export function DealCard({ deal, href, className = "", animate = true, animDelay
           <StageChip stage={deal.currentStage} size="xs" />
         )}
         {deal.priorityScore != null && (
-          <span className={`text-[9px] font-mono font-semibold ${getScoreColor(deal.priorityScore)}`}>
+          <span className={`text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded-md ${getScoreColor(deal.priorityScore)} ${getScoreBg(deal.priorityScore)}`}>
             {Math.round(deal.priorityScore)}
           </span>
         )}
@@ -92,16 +100,24 @@ export function DealCard({ deal, href, className = "", animate = true, animDelay
       {/* Slot for action buttons, progress bars, etc. */}
       {children}
 
-      {/* Hover-reveal quick action */}
-      <div className="flex items-center justify-end opacity-0 group-hover/dealcard:opacity-100 transition-opacity duration-150 -mt-1">
-        <span className="text-[10px] font-sans text-primary/60 group-hover/dealcard:text-primary flex items-center gap-0.5 transition-colors">
-          View deal <span aria-hidden="true">→</span>
-        </span>
-      </div>
+      {/* Hover-reveal quick-action icon row */}
+      {isLinked && (
+        <div className="flex items-center justify-between opacity-0 group-hover/dealcard:opacity-100 transition-opacity duration-150 pt-0.5 border-t border-border/20">
+          <span className="text-[10px] font-sans text-muted-foreground/50">
+            {deal.dealOwner ?? ""}
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1 text-[10px] font-sans text-primary/70 group-hover/dealcard:text-primary transition-colors">
+              <ExternalLink size={10} />
+              Open
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 
-  const wrapped = href !== "" ? (
+  const wrapped = isLinked ? (
     <Link href={targetHref} className="block">{cardBody}</Link>
   ) : cardBody;
 

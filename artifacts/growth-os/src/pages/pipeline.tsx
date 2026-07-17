@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import {
   useListTargets, getListTargetsQueryKey,
@@ -9,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, ChevronRight, AlertTriangle, Calendar, Zap, User, MapPin, Upload, Download, Sparkles, LayoutList, LayoutGrid } from "lucide-react";
+import { Search, Plus, ChevronRight, AlertTriangle, Calendar, Zap, User, MapPin, Upload, Download, Sparkles, LayoutList, LayoutGrid, SlidersHorizontal, X as XIcon } from "lucide-react";
 import { ExportDialog } from "@/components/export-dialog";
 import { QuickLogInteractionPopover } from "@/components/quick-log-interaction-popover";
 import { MobileLongPressTray } from "@/components/mobile-long-press-tray";
@@ -135,6 +136,7 @@ export default function Pipeline() {
     return dt && dt.trim().length > 0 ? dt.trim() : "all";
   });
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -268,6 +270,17 @@ export default function Pipeline() {
             >
               <Upload size={11} /> Import
             </Button>
+            <button
+              onClick={() => setShowFilters((v) => !v)}
+              title={showFilters ? "Hide filters" : "Show filters"}
+              className={`flex items-center justify-center w-7 h-7 rounded-xl border transition-colors active:scale-[0.97] ${
+                showFilters
+                  ? "bg-primary/10 border-primary/30 text-primary"
+                  : "border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              }`}
+            >
+              <SlidersHorizontal size={12} />
+            </button>
             <Link href="/targets/new">
               <Button size="sm" className="rounded-xl font-sans text-[11px] gap-1.5 h-7 px-2.5">
                 <Plus size={12} /> New
@@ -298,8 +311,18 @@ export default function Pipeline() {
           </div>
         )}
 
-        {/* Single-row filter bar */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Single-row filter bar — spring reveal */}
+        <AnimatePresence initial={false}>
+        {showFilters && (
+        <motion.div
+          key="filter-bar"
+          initial={{ opacity: 0, height: 0, y: -4 }}
+          animate={{ opacity: 1, height: "auto", y: 0 }}
+          exit={{ opacity: 0, height: 0, y: -4 }}
+          transition={{ type: "spring", stiffness: 380, damping: 30, mass: 0.7 }}
+          className="overflow-hidden"
+        >
+        <div className="flex items-center gap-2 flex-wrap pb-0.5">
           <div className="relative flex-1 min-w-[140px] max-w-[220px]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 pointer-events-none" />
             <Input
@@ -384,6 +407,9 @@ export default function Pipeline() {
             </button>
           )}
         </div>
+        </motion.div>
+        )}
+        </AnimatePresence>
       </div>
 
       {/* AI workflow banner */}

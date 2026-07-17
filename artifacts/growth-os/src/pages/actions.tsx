@@ -21,6 +21,8 @@ import {
   ChevronsUpDown, ChevronUp,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/empty-state";
+import { CheckCheck, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SafeHtml } from "@/components/ui/safe-html";
@@ -590,11 +592,14 @@ export default function Actions() {
 
                       {/* Empty state row */}
                       {isOpen && rows.length === 0 && (
-                        <tr className="border-b border-border/40 bg-background/10">
-                          <td colSpan={colCount} className="px-4 py-3">
-                            <p className="text-[11px] text-muted-foreground/60 font-sans border border-dashed border-border/40 rounded-xl px-3 py-2.5 bg-muted/20">
-                              {group.emptyMsg}
-                            </p>
+                        <tr className="border-b border-border/40">
+                          <td colSpan={colCount} className="px-3 py-2">
+                            <EmptyState
+                              icon={group.key === "completed" ? CheckCheck : ClipboardList}
+                              title={group.emptyMsg}
+                              size="sm"
+                              className="py-4"
+                            />
                           </td>
                         </tr>
                       )}
