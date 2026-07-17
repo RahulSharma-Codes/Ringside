@@ -671,7 +671,7 @@ export default function ImportWizard() {
                       <SelectTrigger className="rounded-sm font-sans text-[11px] border-border bg-background/50 h-8">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="rounded-sm font-mono text-[11px] max-h-60">
+                      <SelectContent className="rounded-sm font-sans text-[11px] max-h-60">
                         {DB_FIELDS.map((f) => (
                           <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
                         ))}

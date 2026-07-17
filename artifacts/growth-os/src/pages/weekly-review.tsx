@@ -7,8 +7,9 @@ import { format, parseISO } from "date-fns";
 import {
   ChevronDown, ChevronRight, RefreshCw, AlertTriangle, Clock,
   Target, ArrowRight, CalendarCheck, Zap, ShieldAlert,
-  Sparkles, Loader2, Copy, Check, Bot, X, Download, Filter,
+  Sparkles, Loader2, Copy, Check, Bot, X, Download, Filter, LucideIcon,
 } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -271,11 +272,12 @@ function StageChangeCard({ s }: { s: ReviewStageChange }) {
 // ── Section wrapper ────────────────────────────────────────────────────────
 
 function Section({
-  label, icon, emptyMsg, defaultOpen, count, urgency, children,
+  label, icon, emptyMsg, emptyIcon, defaultOpen, count, urgency, children,
 }: {
   label: string;
   icon: React.ReactNode;
   emptyMsg: string;
+  emptyIcon: LucideIcon;
   defaultOpen: boolean;
   count: number;
   urgency?: "high" | "medium" | "low";
@@ -311,9 +313,7 @@ function Section({
       {open && (
         <div className="px-4 pb-4 pt-3 border-t border-border/40 bg-background/20 space-y-2">
           {count === 0 ? (
-            <div className="flex items-center justify-center py-5 px-3 rounded-lg bg-muted/20">
-              <p className="text-[11px] text-muted-foreground/60 font-sans">{emptyMsg}</p>
-            </div>
+            <EmptyState icon={emptyIcon} title={emptyMsg} size="sm" />
           ) : (
             children
           )}
@@ -549,54 +549,63 @@ export default function WeeklyReview() {
           <>
             <Section label="Must-Win Opportunities" icon={<Zap size={13} className="text-destructive" />}
               emptyMsg="No Must-Win opportunities in the active pipeline."
+              emptyIcon={Zap}
               defaultOpen urgency="high" count={d.mustWin.length}>
               {d.mustWin.map((t) => <TargetCard key={t.id} t={t} accent="destructive" />)}
             </Section>
 
             <Section label="Needs Attention" icon={<AlertTriangle size={13} />}
               emptyMsg="All active opportunities look healthy — no attention flags."
+              emptyIcon={AlertTriangle}
               defaultOpen urgency="high" count={d.needsAttention.length}>
               {d.needsAttention.map((t) => <TargetCard key={t.id} t={t} accent="destructive" />)}
             </Section>
 
             <Section label="Overdue Actions" icon={<AlertTriangle size={13} />}
               emptyMsg="No overdue actions — great pipeline hygiene."
+              emptyIcon={AlertTriangle}
               defaultOpen urgency="high" count={d.overdueActions.length}>
               {d.overdueActions.map((a) => <ActionCard key={a.id} a={a} />)}
             </Section>
 
             <Section label="Actions Due This Week" icon={<Clock size={13} />}
               emptyMsg="No actions due in the next 7 days."
+              emptyIcon={Clock}
               defaultOpen urgency="medium" count={d.dueThisWeek.length}>
               {d.dueThisWeek.map((a) => <ActionCard key={a.id} a={a} />)}
             </Section>
 
             <Section label="Stage Changes — Last 7 Days" icon={<ArrowRight size={13} />}
               emptyMsg="No stage changes recorded in the past 7 days."
+              emptyIcon={ArrowRight}
               defaultOpen count={d.recentStageChanges.length}>
               {d.recentStageChanges.map((s) => <StageChangeCard key={s.id} s={s} />)}
             </Section>
 
             <Section label="Recently Updated Opportunities" icon={<RefreshCw size={13} />}
               emptyMsg="No opportunities updated in the last 7 days."
+              emptyIcon={RefreshCw}
               defaultOpen={false} count={d.recentlyUpdated.length}>
               {d.recentlyUpdated.map((t) => <TargetCard key={t.id} t={t} />)}
             </Section>
 
             <Section label="Opportunities Without Open Actions" icon={<Target size={13} />}
               emptyMsg="All active opportunities have at least one open action."
+              emptyIcon={Target}
               defaultOpen={false} count={d.noOpenAction.length}>
               {d.noOpenAction.map((t) => <TargetCard key={t.id} t={t} />)}
             </Section>
 
             <Section label="No Interaction in 30+ Days" icon={<Clock size={13} />}
               emptyMsg="All opportunities have had recent contact — no cold deals."
+              emptyIcon={Clock}
               defaultOpen={false} count={d.noRecentInteraction.length}>
               {d.noRecentInteraction.map((t) => <TargetCard key={t.id} t={t} />)}
             </Section>
 
             <Section label="Diligence Health" icon={<ShieldAlert size={13} />}
               emptyMsg="All Must-Win diligence is on track — no blocked or low-completion items."
+              emptyIcon={ShieldAlert}
               defaultOpen
               count={new Set([
                 ...d.diligenceHealth.lowCompletionMustWin.map((t) => t.id),

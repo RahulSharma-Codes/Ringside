@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { StageChip } from "@/components/stage-chip";
+import { EmptyState } from "@/components/empty-state";
 
 // ── URL query string helpers ───────────────────────────────────────────────
 
@@ -169,13 +170,6 @@ function Section({ id: _id, title, icon, count, children, defaultOpen = true, ur
   );
 }
 
-function EmptyState({ label }: { label: string }) {
-  return (
-    <div className="flex items-center justify-center py-5 px-3 rounded-lg bg-muted/20">
-      <p className="text-[11px] text-muted-foreground/60 font-sans">{label}</p>
-    </div>
-  );
-}
 
 interface FiltersData {
   dealTypes: string[];
@@ -280,7 +274,7 @@ export default function DiligenceReview() {
                 urgency="high"
               >
                 {data.mustWinIncomplete.length === 0 ? (
-                  <EmptyState label="All Must-Win targets have complete diligence" />
+                  <EmptyState icon={CheckCircle2} title="All Must-Win targets have complete diligence" size="sm" />
                 ) : (
                   data.mustWinIncomplete.map((t) => (
                     <ItemRow key={t.id} href={`/targets/${t.id}`}>
@@ -322,7 +316,7 @@ export default function DiligenceReview() {
                 urgency="high"
               >
                 {data.blockedItems.length === 0 ? (
-                  <EmptyState label="No blocked diligence items" />
+                  <EmptyState icon={CheckCircle2} title="No blocked diligence items" size="sm" />
                 ) : (
                   data.blockedItems.map((item) => (
                     <ItemRow key={item.id} href={`/targets/${item.targetId}`}>
@@ -355,7 +349,7 @@ export default function DiligenceReview() {
                 urgency="medium"
               >
                 {data.overdueItems.length === 0 ? (
-                  <EmptyState label="No overdue diligence items" />
+                  <EmptyState icon={Clock} title="No overdue diligence items" size="sm" />
                 ) : (
                   data.overdueItems.map((item) => (
                     <ItemRow key={item.id} href={`/targets/${item.targetId}`}>
@@ -392,7 +386,7 @@ export default function DiligenceReview() {
                 defaultOpen={data.targetSummaries.length <= 10}
               >
                 {data.targetSummaries.length === 0 ? (
-                  <EmptyState label="No targets with diligence items yet" />
+                  <EmptyState icon={ClipboardCheck} title="No targets with diligence items yet" size="sm" />
                 ) : (
                   data.targetSummaries.map((t) => (
                     <ItemRow key={t.id} href={`/targets/${t.id}`}>
@@ -439,7 +433,7 @@ export default function DiligenceReview() {
                 defaultOpen={false}
               >
                 {data.targetSummaries.filter((t) => t.missingWorkstreams.length > 0).length === 0 ? (
-                  <EmptyState label="All active targets cover all 8 workstreams" />
+                  <EmptyState icon={CheckCircle2} title="All active targets cover all 8 workstreams" size="sm" />
                 ) : (
                   data.targetSummaries
                     .filter((t) => t.missingWorkstreams.length > 0)
@@ -478,7 +472,7 @@ export default function DiligenceReview() {
                 defaultOpen={false}
               >
                 {data.recentlyCompleted.length === 0 ? (
-                  <EmptyState label="No diligence items completed in the last 14 days" />
+                  <EmptyState icon={Clock} title="No diligence items completed in the last 14 days" size="sm" />
                 ) : (
                   data.recentlyCompleted.map((item) => (
                     <ItemRow key={item.id} href={`/targets/${item.targetId}`}>
