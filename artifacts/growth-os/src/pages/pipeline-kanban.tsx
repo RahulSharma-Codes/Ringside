@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -855,16 +856,23 @@ export function PipelineKanban({
       >
         <div className="flex gap-3 overflow-x-auto pb-4 pt-1 min-h-[400px]">
           {/* Active stage columns */}
-          {activeStages.map(stage => (
-            <DroppableColumn
+          {activeStages.map((stage, colIdx) => (
+            <motion.div
               key={stage}
-              stage={stage}
-              targets={filtered[stage] ?? []}
-              aiMode={aiMode}
-              isOver={hoverStage === stage}
-              savingIds={savingIds}
-              overCardId={overCardId}
-            />
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: colIdx * 0.04, duration: 0.2, ease: "easeOut" }}
+              style={{ display: "contents" }}
+            >
+              <DroppableColumn
+                stage={stage}
+                targets={filtered[stage] ?? []}
+                aiMode={aiMode}
+                isOver={hoverStage === stage}
+                savingIds={savingIds}
+                overCardId={overCardId}
+              />
+            </motion.div>
           ))}
 
           {/* Off-Track collapsed column */}

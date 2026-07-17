@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
+import { PulsingBadge } from "@/components/animated-page";
 import { Bell, Check, CheckCheck, AlertTriangle, Clock, FileWarning, Zap, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -104,11 +105,10 @@ export function NotificationBell() {
         title="Notifications"
       >
         <Bell size={15} />
-        {unreadCount > 0 && (
-          <span className="absolute top-0.5 right-0.5 min-w-[14px] h-3.5 rounded-full bg-destructive text-white font-mono text-[8px] font-bold flex items-center justify-center px-0.5 leading-none">
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </span>
-        )}
+        <PulsingBadge
+          count={unreadCount}
+          className="absolute top-0.5 right-0.5 min-w-[14px] h-3.5 rounded-full bg-destructive text-white font-mono text-[8px] font-bold flex items-center justify-center px-0.5 leading-none"
+        />
       </button>
 
       {open && (

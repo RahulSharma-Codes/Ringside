@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Link } from "wouter";
 import {
   useReactTable,
@@ -359,14 +360,19 @@ export function PipelineListTable({
             </tr>
           ))}
         </thead>
-        <tbody>
+        <motion.tbody
+          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.035 } } }}
+          initial="hidden"
+          animate="show"
+        >
           {table.getRowModel().rows.map((row, idx) => {
             const r = row.original;
             const href = aiMode ? `/targets/${r.id}?ai=${aiMode}` : `/targets/${r.id}`;
             const isLast = idx === table.getRowModel().rows.length - 1;
             return (
-              <tr
+              <motion.tr
                 key={row.id}
+                variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.18, ease: "easeOut" } } }}
                 className={`group transition-colors hover:bg-muted/40 cursor-pointer ${
                   !isLast ? "border-b border-border/40" : ""
                 } ${r.needsAttention ? "bg-destructive/3" : ""}`}
@@ -386,7 +392,7 @@ export function PipelineListTable({
                     )}
                   </td>
                 ))}
-              </tr>
+              </motion.tr>
             );
           })}
           {table.getRowModel().rows.length === 0 && (
@@ -396,7 +402,7 @@ export function PipelineListTable({
               </td>
             </tr>
           )}
-        </tbody>
+        </motion.tbody>
       </table>
       {sorting.length > 0 && (
         <div className="px-3 py-1.5 border-t border-border/40 bg-muted/20 flex items-center gap-2 text-[10px] font-mono text-muted-foreground/60">

@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { Link, useLocation } from "wouter";
+import { AnimatedCounter } from "@/components/animated-page";
 import { useQuery } from "@tanstack/react-query";
 import {
   useGetDashboardSummary, getGetDashboardSummaryQueryKey,
@@ -168,7 +169,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="animate-in fade-in duration-500 pb-20 md:pb-8">
+    <div className="pb-20 md:pb-8">
 
       {/* Executive hero header */}
       <div className="page-hero-sticky px-4 md:px-8 pt-4 pb-4">
@@ -208,7 +209,7 @@ export default function Dashboard() {
               <Target size={14} className="text-primary/70 shrink-0" />
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
-              <div className="metric-number">{summary?.activeTargets ?? 0}</div>
+              <div className="metric-number"><AnimatedCounter value={summary?.activeTargets ?? 0} /></div>
               {(summary?.newDealsThisWeek ?? 0) > 0 ? (
                 <p className="flex items-center gap-0.5 text-[9px] font-mono text-emerald-500 mt-1.5">
                   <ArrowUp size={9} />{summary!.newDealsThisWeek} new this week
@@ -227,7 +228,7 @@ export default function Dashboard() {
               <AlertOctagon size={14} className="text-destructive/70 shrink-0" />
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
-              <div className="metric-number text-destructive">{summary?.mustWinCount ?? 0}</div>
+              <div className="metric-number text-destructive"><AnimatedCounter value={summary?.mustWinCount ?? 0} /></div>
               {(summary?.newMustWinThisWeek ?? 0) > 0 ? (
                 <p className="flex items-center gap-0.5 text-[9px] font-mono text-amber-500 mt-1.5">
                   <ArrowUp size={9} />{summary!.newMustWinThisWeek} added · {summary?.priority1Count ?? 0} P1
@@ -247,7 +248,7 @@ export default function Dashboard() {
               {loadingRecent ? (
                 <div className="metric-number text-muted-foreground/30">—</div>
               ) : avgAssessedScore !== null ? (
-                <div className="metric-number">{Math.round(avgAssessedScore)}</div>
+                <div className="metric-number"><AnimatedCounter value={Math.round(avgAssessedScore)} /></div>
               ) : (
                 <div className="metric-number text-muted-foreground/50 text-lg">—</div>
               )}
@@ -263,7 +264,7 @@ export default function Dashboard() {
               <AlertCircle size={14} className="text-amber-500/70 shrink-0" />
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
-              <div className="metric-number text-amber-500">{summary?.openActionsCount ?? 0}</div>
+              <div className="metric-number text-amber-500"><AnimatedCounter value={summary?.openActionsCount ?? 0} /></div>
               {(summary?.overdueActionsCount ?? 0) > 0 ? (
                 <p className="flex items-center gap-0.5 text-[9px] font-mono text-destructive mt-1.5">
                   <ArrowDown size={9} />{summary!.overdueActionsCount} overdue

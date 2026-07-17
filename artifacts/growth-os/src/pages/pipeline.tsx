@@ -209,7 +209,7 @@ export default function Pipeline() {
   }
 
   return (
-    <div className="animate-in fade-in duration-500 pb-20 md:pb-8">
+    <div className="pb-20 md:pb-8">
 
       {/* Sticky header + filter bar */}
       <div className="page-hero-sticky px-4 md:px-6 pt-4 pb-3 space-y-3">

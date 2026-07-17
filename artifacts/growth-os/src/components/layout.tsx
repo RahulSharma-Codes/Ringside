@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
+import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "next-themes";
 import {
@@ -13,6 +14,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NotificationBell } from "@/components/notification-bell";
 import { CommandPalette } from "@/components/command-palette";
+import { AnimatedPage } from "@/components/animated-page";
 import { useAuth } from "@/contexts/auth-context";
 import { customFetch } from "@workspace/api-client-react";
 
@@ -244,7 +246,11 @@ function SidebarNav({
                                 : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-white/5"
                             }`}>
                               {active && (
-                                <span className="absolute left-0 top-1 bottom-1 w-1 bg-primary rounded-r-full" />
+                                <motion.span
+                                  layoutId="sidebar-active"
+                                  className="absolute left-0 top-1 bottom-1 w-1 bg-primary rounded-r-full"
+                                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                                />
                               )}
                               <Icon size={14} className="shrink-0 ml-0.5" />
                               <span className="truncate flex-1">{item.label}</span>
@@ -479,7 +485,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* ── Main content area ────────────────────────────────────── */}
       {/* pt-12 on mobile to clear the fixed topbar */}
       <main className="flex-1 min-w-0 overflow-auto pt-12 md:pt-0">
-        {children}
+        <AnimatedPage layoutKey={location}>
+          {children}
+        </AnimatedPage>
       </main>
 
       {/* ── Command palette ─────────────────────────────────────── */}
