@@ -1,0 +1,662 @@
+If you’re prompting an AI UI designer (Lovable, v0, Figma AI, Claude, Cursor, etc.), the biggest mistake is describing screens instead of describing the product philosophy. Modern fintech apps like Ramp, Mercury, Revolut, Linear, Stripe Dashboard, Raycast, Arc, Notion Calendar, and Perplexity all feel premium because of motion, hierarchy, micro-interactions, and information density—not just colors.
+
+Here’s a much stronger prompt.
+
+⸻
+
+Design Brief — World-Class Inorganic Growth Tracker
+
+Design a premium enterprise web application that feels like a combination of Linear, Mercury, Ramp, Notion, Arc Browser and Apple Human Interface Design.
+
+The application is an Inorganic Growth Operating System used by Corporate Development teams to source, evaluate, track and execute M&A transactions.
+
+This should not look like Salesforce, Monday.com or Airtable.
+
+It should feel like software executives actually enjoy opening every morning.
+
+⸻
+
+Design Principles
+
+Create an interface that is
+
+• Calm
+• Premium
+• Information dense without clutter
+• Beautiful motion
+• Extremely fast
+• Minimal chrome
+• Context aware
+• AI-first
+• Keyboard-first
+• Mobile companion ready
+
+Every interaction should feel intentional.
+
+Use modern glass effects sparingly.
+
+Avoid boring enterprise tables.
+
+Every page should feel alive.
+
+⸻
+
+Overall Experience
+
+The experience should resemble a fintech dashboard rather than an enterprise CRM.
+
+Think
+
+Mercury Banking
+
+Ramp
+
+Linear
+
+Superhuman
+
+Arc Browser
+
+Notion Calendar
+
+Apple Wallet
+
+Perplexity
+
+The app should immediately communicate
+
+“We know everything happening across our M&A pipeline.”
+
+⸻
+
+Navigation
+
+Instead of a normal sidebar
+
+Create a floating navigation rail.
+
+Rounded.
+
+Glass.
+
+Animated.
+
+Collapses elegantly.
+
+Icons animate on hover.
+
+Selected page has a liquid pill animation.
+
+Navigation subtly expands while hovered.
+
+⸻
+
+Home Dashboard
+
+Instead of static widgets
+
+Create an animated mission control.
+
+Animated acquisition pipeline
+
+Moving activity feed
+
+Heat maps
+
+Company cards gently floating
+
+Live notifications
+
+Timeline animations
+
+Rolling KPI counters
+
+Micro particle background
+
+Subtle gradients
+
+Glass overlays
+
+Live AI assistant panel
+
+Calendar strip
+
+Recent activity
+
+Everything should animate naturally.
+
+⸻
+
+Motion Language
+
+This is extremely important.
+
+Every interaction should have beautiful motion.
+
+Examples
+
+Cards slightly lift on hover
+
+Soft shadows increase
+
+Buttons ripple
+
+Page transitions slide
+
+Shared element transitions
+
+Animated counters
+
+Animated graphs
+
+Timeline expands smoothly
+
+Context menus morph
+
+Filters animate
+
+Search opens with expanding animation
+
+Side panels slide like Linear
+
+Cards rearrange using spring physics
+
+Selection uses liquid animation
+
+Notifications stack naturally
+
+Charts animate into place
+
+Scrolling has subtle parallax
+
+Skeleton loading
+
+Blur transitions
+
+AI responses type naturally
+
+Nothing should suddenly appear.
+
+Everything eases.
+
+⸻
+
+Micro-interactions
+
+Hovering company
+
+→ Logo enlarges
+
+→ Acquisition probability glows
+
+Hovering valuation
+
+→ Sparkline expands
+
+Clicking stage
+
+→ Timeline morphs
+
+Opening company
+
+→ Shared element transition
+
+Dragging company
+
+→ Magnetic snapping
+
+Saving notes
+
+→ Soft success pulse
+
+AI finished
+
+→ Animated thinking indicator
+
+Keyboard shortcuts
+
+→ Beautiful overlay
+
+New opportunity
+
+→ Card flies into Kanban
+
+Every interaction should delight.
+
+⸻
+
+Color System
+
+Minimal.
+
+Professional.
+
+Deep charcoal
+
+Off-white
+
+Muted grays
+
+Electric blue accents
+
+Emerald success
+
+Amber warning
+
+Ruby risk
+
+Purple AI
+
+Gradients only where meaningful.
+
+Dark mode should be stunning.
+
+⸻
+
+Typography
+
+Inter
+
+SF Pro
+
+Large breathing headers
+
+Excellent spacing
+
+Strong hierarchy
+
+Minimal borders
+
+Cards separated with shadows rather than lines.
+
+⸻
+
+Cards
+
+Every acquisition target is represented as a premium card.
+
+Include
+
+Logo
+
+Ticker
+
+Company image
+
+Probability ring
+
+Strategic fit score
+
+Synergy score
+
+Valuation
+
+Status
+
+Last interaction
+
+Owner
+
+AI recommendation
+
+Hover reveals
+
+Recent news
+
+Financial trend
+
+Quick actions
+
+Recent emails
+
+Risk indicators
+
+⸻
+
+AI Experience
+
+This is not a chatbot.
+
+AI should feel embedded everywhere.
+
+Examples
+
+Hover company
+
+AI insight appears
+
+Highlight text
+
+Summarize
+
+Open valuation
+
+AI explains assumptions
+
+Timeline
+
+AI predicts delays
+
+Pipeline
+
+AI identifies bottlenecks
+
+Meeting
+
+AI generates next actions
+
+Documents
+
+AI extracts risks
+
+Emails
+
+AI drafts outreach
+
+Every screen should contain contextual AI.
+
+⸻
+
+Pipeline View
+
+Not a simple Kanban.
+
+Instead
+
+Beautiful animated swimlanes
+
+Cards expand
+
+Probability rings animate
+
+Risk indicators glow
+
+Dependencies connect using animated lines
+
+Drag cards with spring animations
+
+Auto-grouping
+
+Smart clustering
+
+Zoomable pipeline
+
+Mini map
+
+Timeline scrubber
+
+⸻
+
+Company Detail Page
+
+Hero section
+
+Large company logo
+
+Animated valuation
+
+Stock sparkline
+
+Acquisition score
+
+Strategic rationale
+
+Recent news carousel
+
+Relationship map
+
+Below
+
+Financials
+
+Documents
+
+Meetings
+
+Valuation
+
+Synergies
+
+Risks
+
+AI
+
+Timeline
+
+Everything modular.
+
+Resizable widgets.
+
+⸻
+
+Relationship Graph
+
+Beautiful force-directed graph.
+
+Executives
+
+Investment banks
+
+Law firms
+
+Consultants
+
+Board members
+
+Shareholders
+
+Connections animate.
+
+Hover reveals relationship strength.
+
+⸻
+
+Search
+
+Inspired by Raycast.
+
+⌘ K
+
+Opens command palette.
+
+Natural language.
+
+Examples
+
+Show healthcare companies above ₹500 Cr revenue
+
+Show all active deals in diligence
+
+Find companies Gautam Pai met
+
+Generate valuation
+
+Everything accessible from search.
+
+⸻
+
+Timeline
+
+Beautiful vertical animated timeline.
+
+Meetings
+
+Emails
+
+Files
+
+Valuation updates
+
+Management calls
+
+Board approvals
+
+AI summaries
+
+Everything expandable.
+
+⸻
+
+Data Visualization
+
+Use premium charts.
+
+Animated
+
+Interactive
+
+Zoomable
+
+Gradient fills
+
+Smooth transitions
+
+Minimal axes
+
+Hover tooltips
+
+Financial dashboards should resemble Bloomberg Terminal meets Apple.
+
+⸻
+
+Documents
+
+Not a boring file list.
+
+Preview cards.
+
+Inline AI summaries.
+
+Risk extraction.
+
+Highlighted clauses.
+
+Version comparison.
+
+Side-by-side diff.
+
+⸻
+
+Notifications
+
+Apple Dynamic Island inspired.
+
+Small floating notifications.
+
+Grouped.
+
+Actionable.
+
+Dismiss elegantly.
+
+⸻
+
+Mobile Experience
+
+Executive companion.
+
+Read-only dashboard.
+
+Approvals.
+
+Alerts.
+
+Meeting summaries.
+
+AI briefing.
+
+Voice search.
+
+Offline support.
+
+⸻
+
+Advanced Features
+
+Relationship Intelligence
+
+Ownership Maps
+
+Board Connections
+
+Cross-holding visualization
+
+Deal Probability Engine
+
+Synergy Calculator
+
+Scenario Simulator
+
+DCF Sandbox
+
+Comparable Transactions
+
+Due Diligence Tracker
+
+Investment Committee Workflow
+
+Approval Matrix
+
+Board Pack Generator
+
+Live Collaboration
+
+Comments
+
+Presence indicators
+
+Activity replay
+
+Version history
+
+AI Copilot
+
+Natural language analytics
+
+Voice commands
+
+Meeting summaries
+
+Automatic action items
+
+Email drafting
+
+Risk prediction
+
+Deal timeline forecasting
+
+⸻
+
+Delight Moments
+
+Confetti should never be used.
+
+Instead
+
+Elegant glows
+
+Soft pulses
+
+Morphing transitions
+
+Glass distortion
+
+Animated gradients
+
+Physics-based movement
+
+Context-aware animations
+
+Subtle sounds (optional)
+
+Premium haptics (mobile)
+
+Everything should feel like a $100M SaaS product.
+
+⸻
+
+Final Design Goal
+
+If shown without context, users should assume this product was built by a world-class team from Stripe, Linear, Apple, Mercury, Notion, or Ramp.
+
+Prioritize timeless design over flashy effects. Every animation should communicate information, reinforce user actions, or improve orientation—not exist purely for decoration. The interface should remain highly performant, accessible, and scalable even with thousands of companies, hundreds of simultaneous deals, and years of historical data.
