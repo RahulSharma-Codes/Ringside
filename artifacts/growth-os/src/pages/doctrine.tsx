@@ -501,7 +501,7 @@ export default function Doctrine() {
           <div className="flex items-start gap-2.5">
             <Lightbulb size={16} className="text-primary shrink-0 mt-0.5" />
             <div>
-              <h1 className="text-lg font-bold font-mono tracking-tight">Doctrine</h1>
+              <h1 className="text-lg font-bold font-sans tracking-tight">Doctrine</h1>
               <p className="text-[11px] text-muted-foreground mt-0.5 hidden md:block">
                 Learning loop — Phase 1 accuracy patterns and deal closure analysis.
               </p>

@@ -194,7 +194,7 @@ export default function LaunchReadiness() {
           <ArrowLeft size={12} />
           Back to Copilot
         </Link>
-        <h1 className="font-mono uppercase tracking-widest text-lg font-bold">Launch Readiness</h1>
+        <h1 className="font-sans text-lg font-bold">Launch Readiness</h1>
         <p className="text-sm text-muted-foreground leading-relaxed">
           A read-only checklist to verify the system is ready for go-live. No secret values are displayed.
         </p>

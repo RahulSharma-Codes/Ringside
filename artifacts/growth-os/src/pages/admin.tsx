@@ -17,6 +17,7 @@ import {
 import { customFetch, useListTargets } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
+import { SkeletonRow } from "@/components/skeleton";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -227,7 +228,7 @@ export default function AdminPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-xl font-bold uppercase tracking-tight flex items-center gap-2">
+          <h1 className="font-sans text-xl font-bold tracking-tight flex items-center gap-2">
             <Shield size={18} className="text-primary" />
             Admin Console
           </h1>
@@ -401,9 +402,9 @@ export default function AdminPage() {
         </div>
 
         {isLoading && (
-          <div className="space-y-2">
+          <div className="rounded-sm border border-border/40 overflow-hidden divide-y divide-border/30">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-14 rounded-sm bg-muted/20 animate-pulse" />
+              <SkeletonRow key={i} cols={3} />
             ))}
           </div>
         )}
@@ -443,10 +444,10 @@ export default function AdminPage() {
               value={user.role}
               onValueChange={(role) => updateRole.mutate({ id: user.id, role })}
             >
-              <SelectTrigger className="w-28 h-6 rounded-sm bg-background/50 font-mono text-[10px] border-border/50 shrink-0">
+              <SelectTrigger className="w-28 h-6 rounded-sm bg-background/50 font-sans text-[10px] border-border/50 shrink-0">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-sm font-mono text-[11px]">
+              <SelectContent className="rounded-sm font-sans text-[11px]">
                 {ALL_ROLES.map((r) => (
                   <SelectItem key={r} value={r}>{r}</SelectItem>
                 ))}
@@ -520,7 +521,7 @@ export default function AdminPage() {
                     Role
                   </label>
                   <Select value={inviteRole} onValueChange={(r) => setInviteRole(r as Role)}>
-                    <SelectTrigger className="rounded-sm bg-background/50 font-mono text-[11px]">
+                    <SelectTrigger className="rounded-sm bg-background/50 font-sans text-[11px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-sm">

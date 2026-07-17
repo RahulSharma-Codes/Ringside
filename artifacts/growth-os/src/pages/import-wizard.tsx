@@ -511,7 +511,7 @@ export default function ImportWizard() {
     <div className="p-4 md:p-8 space-y-5 animate-in fade-in duration-500 pb-20 md:pb-8 max-w-4xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold font-mono tracking-tight uppercase">Import Tracker Data</h1>
+        <h1 className="text-2xl font-bold font-sans tracking-tight">Import Tracker Data</h1>
         <p className="text-sm text-muted-foreground">Safely import legacy Excel or CSV tracker data without overwriting existing records with blanks.</p>
       </div>
 
@@ -668,7 +668,7 @@ export default function ImportWizard() {
                       value={columnMap[header] ?? "__skip__"}
                       onValueChange={(val) => setColumnMap((prev) => ({ ...prev, [header]: val }))}
                     >
-                      <SelectTrigger className="rounded-sm font-mono text-[11px] border-border bg-background/50 h-8">
+                      <SelectTrigger className="rounded-sm font-sans text-[11px] border-border bg-background/50 h-8">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="rounded-sm font-mono text-[11px] max-h-60">
@@ -904,7 +904,7 @@ export default function ImportWizard() {
           <CardContent className="p-8 space-y-6">
             <div className="text-center">
               <CheckCircle className="mx-auto mb-3 text-green-500" size={40} />
-              <h2 className="font-mono text-lg uppercase tracking-tight font-bold">Import Complete</h2>
+              <h2 className="font-sans text-lg tracking-tight font-bold">Import Complete</h2>
             </div>
 
             <div className="grid grid-cols-3 gap-3">

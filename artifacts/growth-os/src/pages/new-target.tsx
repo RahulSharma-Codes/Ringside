@@ -107,7 +107,7 @@ export default function NewTarget() {
           <ArrowLeft size={16} />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold font-mono tracking-tight uppercase">New Opportunity</h1>
+          <h1 className="text-2xl font-bold font-sans tracking-tight">New Opportunity</h1>
           <p className="text-sm text-muted-foreground">Initialize a new target profile in the pipeline</p>
         </div>
       </div>

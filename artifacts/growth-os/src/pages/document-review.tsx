@@ -156,7 +156,7 @@ export default function DocumentReview() {
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
       <div className="space-y-1">
         <p className="text-[10px] font-mono uppercase tracking-widest text-primary/70">Review Cadence</p>
-        <h1 className="text-2xl font-mono font-semibold uppercase tracking-tight">Document Review</h1>
+        <h1 className="text-2xl font-sans font-semibold tracking-tight">Document Review</h1>
         <p className="text-sm text-muted-foreground">
           Pipeline-wide document vault — missing, in-flight, and recently actioned.
         </p>

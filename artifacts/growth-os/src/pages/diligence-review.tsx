@@ -171,8 +171,8 @@ function Section({ id: _id, title, icon, count, children, defaultOpen = true, ur
 
 function EmptyState({ label }: { label: string }) {
   return (
-    <div className="border border-dashed border-border/50 rounded-xl py-7 text-center text-muted-foreground font-mono text-[10px] uppercase tracking-widest">
-      {label}
+    <div className="flex items-center justify-center py-5 px-3 rounded-lg bg-muted/20">
+      <p className="text-[11px] text-muted-foreground/60 font-sans">{label}</p>
     </div>
   );
 }
@@ -237,13 +237,13 @@ export default function DiligenceReview() {
           <Filter size={11} className="text-muted-foreground/50 shrink-0" />
           <span className="text-[10px] font-mono text-muted-foreground/50 uppercase tracking-wider shrink-0">Deal Type</span>
           <Select value={dealTypeFilter || "_all"} onValueChange={(v) => setDealTypeFilter(v === "_all" ? "" : v)}>
-            <SelectTrigger className="h-6 text-[10px] font-mono rounded-md border-border/60 bg-background w-[160px] px-2">
+            <SelectTrigger className="h-6 text-[10px] font-sans rounded-md border-border/60 bg-background w-[160px] px-2">
               <SelectValue placeholder="All deal types" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="_all" className="text-[11px] font-mono">All deal types</SelectItem>
+              <SelectItem value="_all" className="text-[11px] font-sans">All deal types</SelectItem>
               {availableDealTypes.map((dt) => (
-                <SelectItem key={dt} value={dt} className="text-[11px] font-mono">{dt}</SelectItem>
+                <SelectItem key={dt} value={dt} className="text-[11px] font-sans">{dt}</SelectItem>
               ))}
             </SelectContent>
           </Select>

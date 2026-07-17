@@ -203,7 +203,7 @@ export default function Copilot() {
           <Bot size={14} className="text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="font-mono uppercase text-sm tracking-tight font-bold">Ringside Copilot</h1>
+          <h1 className="font-sans text-sm tracking-tight font-bold">Ringside Copilot</h1>
           <p className="text-[11px] text-muted-foreground hidden md:block mt-0.5">
             Ask read-only questions about the pipeline, actions, risks, and weekly review data.
           </p>

@@ -7,7 +7,7 @@ export default function AccessDenied() {
     <div className="min-h-[60vh] flex flex-col items-center justify-center gap-6 px-4 text-center">
       <div className="flex flex-col items-center gap-3">
         <ShieldOff className="h-12 w-12 text-destructive/70" />
-        <h1 className="font-mono uppercase tracking-widest text-xl font-semibold">
+        <h1 className="font-sans text-xl font-semibold">
           Access Denied
         </h1>
         <p className="text-sm text-muted-foreground max-w-sm">

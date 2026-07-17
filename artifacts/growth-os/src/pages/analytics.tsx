@@ -128,10 +128,10 @@ function FilterBar({
     <div className="flex items-center gap-2 flex-wrap">
       {dealTypes.length > 0 && (
         <Select value={filters.dealType} onValueChange={(v) => onChange({ ...filters, dealType: v })}>
-          <SelectTrigger className="w-[140px] rounded-lg font-mono text-[11px] uppercase border-border/60 bg-background/60 h-7">
+          <SelectTrigger className="w-[140px] rounded-lg font-sans text-[11px] border-border/60 bg-background/60 h-7">
             <SelectValue placeholder="Deal Type" />
           </SelectTrigger>
-          <SelectContent className="font-mono text-[11px]">
+          <SelectContent className="font-sans text-[11px]">
             <SelectItem value="all">All Types</SelectItem>
             {dealTypes.map((dt) => <SelectItem key={dt} value={dt}>{dt}</SelectItem>)}
           </SelectContent>
@@ -139,10 +139,10 @@ function FilterBar({
       )}
       {sectors.length > 0 && (
         <Select value={filters.sector} onValueChange={(v) => onChange({ ...filters, sector: v })}>
-          <SelectTrigger className="w-[130px] rounded-lg font-mono text-[11px] uppercase border-border/60 bg-background/60 h-7">
+          <SelectTrigger className="w-[130px] rounded-lg font-sans text-[11px] border-border/60 bg-background/60 h-7">
             <SelectValue placeholder="Sector" />
           </SelectTrigger>
-          <SelectContent className="font-mono text-[11px]">
+          <SelectContent className="font-sans text-[11px]">
             <SelectItem value="all">All Sectors</SelectItem>
             {sectors.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
           </SelectContent>
@@ -557,7 +557,7 @@ export default function Analytics() {
       <div className="page-hero-sticky px-4 md:px-6 pt-4 pb-3 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg md:text-xl font-bold font-mono tracking-tight">Pipeline Analytics</h1>
+            <h1 className="text-lg md:text-xl font-bold font-sans tracking-tight">Pipeline Analytics</h1>
             <p className="text-[11px] text-muted-foreground mt-0.5 hidden md:block">
               Funnel conversion, time-in-stage, win/loss analysis, and origination channel performance.
             </p>

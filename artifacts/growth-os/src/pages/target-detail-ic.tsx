@@ -527,7 +527,7 @@ function ProposalCard({ proposal, targetId }: { proposal: IcProposal; targetId: 
             <div>
               <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block mb-1">Vote</label>
               <Select value={voteChoice} onValueChange={(v) => setVoteChoice(v as VoteOption)}>
-                <SelectTrigger className="rounded-sm font-mono text-sm">
+                <SelectTrigger className="rounded-sm font-sans text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1557,7 +1557,7 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
             <div>
               <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block mb-1">Outcome <span className="text-destructive">*</span></label>
               <Select value={icOutcome} onValueChange={(v) => setIcOutcome(v as typeof icOutcome)}>
-                <SelectTrigger className="rounded-sm font-mono text-sm">
+                <SelectTrigger className="rounded-sm font-sans text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1606,7 +1606,7 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
             <div>
               <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block mb-1">Outcome <span className="text-destructive">*</span></label>
               <Select value={icEditOutcome} onValueChange={(v) => setIcEditOutcome(v as typeof icEditOutcome)}>
-                <SelectTrigger className="rounded-sm font-mono text-sm">
+                <SelectTrigger className="rounded-sm font-sans text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

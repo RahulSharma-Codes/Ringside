@@ -450,7 +450,7 @@ export default function Actions() {
               className="pl-7 h-7 text-xs rounded-lg bg-card/60 border-border/60" />
           </div>
           <Select value={ownerFilter} onValueChange={setOwnerFilter}>
-            <SelectTrigger className="w-[120px] h-7 rounded-lg font-mono text-[11px] border-border/60">
+            <SelectTrigger className="w-[120px] h-7 rounded-lg font-sans text-[11px] border-border/60">
               <SelectValue placeholder="Owner" />
             </SelectTrigger>
             <SelectContent>
@@ -459,7 +459,7 @@ export default function Actions() {
             </SelectContent>
           </Select>
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-[115px] h-7 rounded-lg font-mono text-[11px] border-border/60">
+            <SelectTrigger className="w-[115px] h-7 rounded-lg font-sans text-[11px] border-border/60">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
@@ -487,13 +487,13 @@ export default function Actions() {
             <Filter size={11} className="text-muted-foreground/50 shrink-0" />
             <span className="text-[10px] font-mono text-muted-foreground/50 uppercase tracking-wider shrink-0">Deal Type</span>
             <Select value={dealTypeFilter || "_all"} onValueChange={(v) => setDealTypeFilter(v === "_all" ? "" : v)}>
-              <SelectTrigger className="h-6 text-[10px] font-mono rounded-md border-border/60 bg-background w-[160px] px-2">
+              <SelectTrigger className="h-6 text-[10px] font-sans rounded-md border-border/60 bg-background w-[160px] px-2">
                 <SelectValue placeholder="All deal types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="_all" className="text-[11px] font-mono">All deal types</SelectItem>
+                <SelectItem value="_all" className="text-[11px] font-sans">All deal types</SelectItem>
                 {availableDealTypes.map((dt) => (
-                  <SelectItem key={dt} value={dt} className="text-[11px] font-mono">{dt}</SelectItem>
+                  <SelectItem key={dt} value={dt} className="text-[11px] font-sans">{dt}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

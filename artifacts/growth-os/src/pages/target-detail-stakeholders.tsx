@@ -547,7 +547,7 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
               <div className="space-y-1">
                 <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Side</label>
                 <Select value={advisorForm.side} onValueChange={(v) => setAdvisorForm((f) => ({ ...f, side: v as any }))}>
-                  <SelectTrigger className="h-8 text-sm font-mono"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-sm font-sans"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="buy-side">Buy-side (Ours)</SelectItem>
                     <SelectItem value="sell-side">Sell-side (Counterparty)</SelectItem>
@@ -557,7 +557,7 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
               <div className="space-y-1">
                 <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Conflicts Status</label>
                 <Select value={advisorForm.conflictsStatus} onValueChange={(v) => setAdvisorForm((f) => ({ ...f, conflictsStatus: v as any }))}>
-                  <SelectTrigger className="h-8 text-sm font-mono"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-sm font-sans"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {CONFLICTS_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
@@ -567,7 +567,7 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
             <div className="space-y-1">
               <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Advisor Type</label>
               <Select value={advisorForm.advisorType} onValueChange={(v) => setAdvisorForm((f) => ({ ...f, advisorType: v as any }))}>
-                <SelectTrigger className="h-8 text-sm font-mono"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-8 text-sm font-sans"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {ADVISOR_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>

@@ -83,7 +83,7 @@ export default function SettingsPasswordPage() {
   return (
     <div className="max-w-lg mx-auto p-4 md:p-6 space-y-6">
       <div>
-        <h1 className="font-mono text-xl font-bold uppercase tracking-tight flex items-center gap-2">
+        <h1 className="font-sans text-xl font-bold tracking-tight flex items-center gap-2">
           <KeyRound size={18} className="text-primary" />
           Change Password
         </h1>
