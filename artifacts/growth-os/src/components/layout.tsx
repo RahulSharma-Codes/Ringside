@@ -6,11 +6,13 @@ import {
   Target, ListTodo, Briefcase, Plus, BarChart3, Bot, CalendarCheck,
   ClipboardCheck, Upload, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu,
   FolderOpen, LineChart, ShieldCheck, Lightbulb, LogOut, Sun, Moon, KeyRound,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NotificationBell } from "@/components/notification-bell";
+import { CommandPalette } from "@/components/command-palette";
 import { useAuth } from "@/contexts/auth-context";
 import { customFetch } from "@workspace/api-client-react";
 
@@ -122,6 +124,7 @@ function SidebarNav({
   openGroups,
   toggleGroup,
   onNavigate,
+  onOpenPalette,
   isAdmin,
   overdueCount,
 }: {
@@ -130,6 +133,7 @@ function SidebarNav({
   openGroups: Set<string>;
   toggleGroup: (g: string) => void;
   onNavigate?: () => void;
+  onOpenPalette: () => void;
   isAdmin: boolean;
   overdueCount: number;
 }) {
@@ -270,6 +274,20 @@ function SidebarNav({
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
             </span>
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={onOpenPalette}
+                  className="w-7 h-7 flex items-center justify-center rounded-md text-sidebar-foreground/40 hover:text-sidebar-foreground/80 hover:bg-white/6 transition-colors"
+                  aria-label="Open command palette"
+                >
+                  <Search size={12} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={8}>
+                <span className="font-mono text-[11px]">Command palette (⌘K)</span>
+              </TooltipContent>
+            </Tooltip>
             <ThemeToggle collapsed />
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
@@ -298,34 +316,48 @@ function SidebarNav({
             </Tooltip>
           </div>
         ) : (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-[10px] text-sidebar-foreground/35 font-mono">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
-              </span>
-              Live
-            </div>
-            <div className="flex items-center gap-1">
-              <ThemeToggle collapsed={false} />
-              <Link href="/settings/password">
+          <>
+            {/* ⌘K search trigger */}
+            <button
+              onClick={onOpenPalette}
+              className="w-full flex items-center gap-2 px-2 py-1.5 mb-2 rounded-md border border-sidebar-border/40 bg-white/4 hover:bg-white/8 text-sidebar-foreground/40 hover:text-sidebar-foreground/70 transition-colors group"
+              aria-label="Open command palette"
+            >
+              <Search size={11} className="shrink-0" />
+              <span className="flex-1 text-left text-[10px] font-mono truncate">Search…</span>
+              <kbd className="hidden sm:flex items-center gap-0.5 text-[9px] font-mono text-sidebar-foreground/30 group-hover:text-sidebar-foreground/50 transition-colors">
+                <span>⌘</span><span>K</span>
+              </kbd>
+            </button>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-[10px] text-sidebar-foreground/35 font-mono">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                </span>
+                Live
+              </div>
+              <div className="flex items-center gap-1">
+                <ThemeToggle collapsed={false} />
+                <Link href="/settings/password">
+                  <button
+                    className="flex items-center gap-1 text-[10px] font-mono text-sidebar-foreground/30 hover:text-sidebar-foreground/60 transition-colors rounded-sm px-1.5 py-1 hover:bg-white/5"
+                    title="Change password"
+                  >
+                    <KeyRound size={11} />
+                  </button>
+                </Link>
                 <button
+                  onClick={handleLogout}
                   className="flex items-center gap-1 text-[10px] font-mono text-sidebar-foreground/30 hover:text-sidebar-foreground/60 transition-colors rounded-sm px-1.5 py-1 hover:bg-white/5"
-                  title="Change password"
+                  title="Logout"
                 >
-                  <KeyRound size={11} />
+                  <LogOut size={11} />
+                  <span className="uppercase tracking-widest">Logout</span>
                 </button>
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-1 text-[10px] font-mono text-sidebar-foreground/30 hover:text-sidebar-foreground/60 transition-colors rounded-sm px-1.5 py-1 hover:bg-white/5"
-                title="Logout"
-              >
-                <LogOut size={11} />
-                <span className="uppercase tracking-widest">Logout</span>
-              </button>
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>
@@ -345,7 +377,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const { isAdmin, user } = useAuth();
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
 
   /* Groups default open; remember state across navigation */
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(NAV_GROUPS));
@@ -369,7 +413,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   const overdueCount = myActions ?? 0;
 
-  const navProps = { location, openGroups, toggleGroup, isAdmin, overdueCount };
+  const navProps = { location, openGroups, toggleGroup, isAdmin, overdueCount, onOpenPalette: () => setPaletteOpen(true) };
 
   return (
     /* Root: full-viewport, no outer scroll — prevents double scrollbar */
@@ -437,6 +481,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 min-w-0 overflow-auto pt-12 md:pt-0">
         {children}
       </main>
+
+      {/* ── Command palette ─────────────────────────────────────── */}
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   );
 }
