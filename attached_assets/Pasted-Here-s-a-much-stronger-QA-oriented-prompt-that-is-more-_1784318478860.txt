@@ -1,0 +1,306 @@
+Here’s a much stronger, QA-oriented prompt that is more comprehensive and structured.
+
+⸻
+
+Prompt: Comprehensive UI/UX & Functional QA Audit
+
+Perform an exhaustive, production-grade quality assurance audit of the entire application. Assume this product is about to be released to enterprise customers and must meet the quality bar of products like Linear, Stripe, Mercury, Notion, Ramp, Figma, and Apple.
+
+Do not stop after checking obvious issues. Navigate through every screen, modal, drawer, workflow, interaction, and edge case until you have high confidence the application is production-ready.
+
+1. Complete Navigation Audit
+
+Visit every:
+
+* Page
+* Subpage
+* Dashboard
+* Tab
+* Section
+* Modal
+* Drawer
+* Popover
+* Tooltip
+* Context menu
+* Right-click menu
+* Command palette
+* Settings page
+* Empty state
+* Loading state
+* Error state
+* Success state
+* Mobile view (if applicable)
+
+Ensure there are no inaccessible or broken routes.
+
+⸻
+
+2. Functional Testing
+
+Execute every possible user action, including:
+
+* Create
+* Edit
+* Delete
+* Archive
+* Restore
+* Duplicate
+* Share
+* Export
+* Import
+* Upload
+* Download
+* Search
+* Sort
+* Filter
+* Group
+* Pin
+* Favorite
+* Drag & drop
+* Multi-select
+* Bulk actions
+* Keyboard shortcuts
+* Copy/Paste
+* Undo/Redo
+* AI actions
+* Notifications
+* Comments
+* Mentions
+* Attachments
+
+Confirm every action produces the expected outcome without visual or functional regressions.
+
+⸻
+
+3. UI Consistency Review
+
+Inspect every screen for:
+
+* Typography consistency
+* Font sizes
+* Font weights
+* Color consistency
+* Border radius
+* Shadows
+* Icon sizing
+* Icon alignment
+* Spacing consistency
+* Padding
+* Margins
+* Grid alignment
+* Responsive layouts
+* Component sizing
+* Button hierarchy
+* Visual hierarchy
+
+Every screen should feel like it belongs to the same design system.
+
+⸻
+
+4. Layout Audit
+
+Identify and eliminate:
+
+* Large empty spaces
+* Awkward whitespace
+* Misaligned components
+* Uneven spacing
+* Orphaned elements
+* Cropped content
+* Overflowing text
+* Clipped buttons
+* Horizontal scrolling
+* Overlapping elements
+* Uneven card heights
+* Broken grids
+* Unbalanced layouts
+
+Every screen should feel intentional and visually balanced.
+
+⸻
+
+5. Content Quality Review
+
+Review all visible text for:
+
+* Typographical errors
+* Grammar mistakes
+* Capitalization inconsistencies
+* Duplicate words
+* Placeholder text (e.g., “Lorem Ipsum”, “Sample”, “Test”, “Lorem”)
+* Truncated labels
+* Inconsistent terminology
+* Incorrect formatting
+* Missing labels
+* Ambiguous wording
+
+Ensure terminology is consistent across the application.
+
+⸻
+
+6. Component Audit
+
+Verify every:
+
+* Button
+* Card
+* Input
+* Dropdown
+* Date picker
+* Table
+* Chart
+* Badge
+* Tag
+* Avatar
+* Timeline
+* Navigation item
+* Progress bar
+* Empty state
+* Skeleton loader
+* Modal
+* Notification
+* Toast
+
+Ensure consistent behavior and styling across all instances.
+
+⸻
+
+7. Animation & Interaction Audit
+
+Review all animations for:
+
+* Smoothness
+* Appropriate duration
+* Consistent easing
+* No flickering
+* No abrupt transitions
+* Proper hover effects
+* Click feedback
+* Focus states
+* Loading transitions
+* Shared element transitions (where applicable)
+
+Animations should enhance usability, not distract from it.
+
+⸻
+
+8. Responsive Testing
+
+Verify layouts across:
+
+* Large desktop
+* Laptop
+* Tablet
+* Mobile
+
+Check for:
+
+* Layout breaks
+* Overflow
+* Hidden controls
+* Touch target sizing
+* Navigation usability
+
+⸻
+
+9. Data & State Validation
+
+Test:
+
+* Empty datasets
+* Single-item datasets
+* Large datasets
+* Missing values
+* Long company names
+* Long comments
+* Large documents
+* Failed API responses
+* Slow loading
+* Offline/network interruptions (where supported)
+
+The application should remain usable under all states.
+
+⸻
+
+10. Accessibility Review
+
+Validate:
+
+* Keyboard navigation
+* Focus order
+* Focus visibility
+* Color contrast
+* Screen reader labels
+* Semantic structure
+* Form validation
+* Error messaging
+* Touch target sizes
+
+⸻
+
+11. Performance Review
+
+Identify:
+
+* Slow renders
+* Unnecessary re-renders
+* Layout shifts
+* Animation lag
+* Long loading times
+* Heavy components
+* Unoptimized images
+* Memory-intensive interactions
+
+⸻
+
+12. Design Polish Pass
+
+Continuously refine the interface by:
+
+* Improving visual balance
+* Reducing unnecessary clutter
+* Increasing information density where appropriate
+* Tightening spacing
+* Improving readability
+* Enhancing hierarchy
+* Elevating premium feel
+* Removing visual inconsistencies
+
+The objective is to make every screen feel intentional and polished.
+
+⸻
+
+13. Regression Testing
+
+After each fix:
+
+* Re-test affected workflows.
+* Verify no new issues have been introduced.
+* Confirm consistency across related screens.
+
+⸻
+
+14. Deliverables
+
+Produce a structured QA report that includes:
+
+1. All issues found.
+2. Severity (Critical, High, Medium, Low).
+3. Recommended fix.
+4. Status after applying the fix.
+5. Screens affected.
+6. Screenshots or recordings where useful.
+7. Confirmation that the issue has been resolved.
+
+⸻
+
+Success Criteria
+
+The audit is complete only when:
+
+* No spelling, grammar, or placeholder text remains.
+* No broken layouts, excessive whitespace, overlaps, or alignment issues exist.
+* All user interactions work correctly.
+* Every component follows a consistent design system.
+* Animations are smooth and purposeful.
+* The application is visually polished, functionally reliable, and ready for enterprise production.
