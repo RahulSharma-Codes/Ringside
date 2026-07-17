@@ -955,6 +955,24 @@ export interface CreateIcSessionBody {
   notes?: string | null;
 }
 
+export type UpdateIcSessionBodyOutcome =
+  (typeof UpdateIcSessionBodyOutcome)[keyof typeof UpdateIcSessionBodyOutcome];
+
+export const UpdateIcSessionBodyOutcome = {
+  Approved: "Approved",
+  Conditional: "Conditional",
+  Rejected: "Rejected",
+  Deferred: "Deferred",
+} as const;
+
+export interface UpdateIcSessionBody {
+  sessionDate?: string;
+  attendees?: string | null;
+  outcome?: UpdateIcSessionBodyOutcome;
+  conditions?: string | null;
+  notes?: string | null;
+}
+
 export type IcBriefTargetHealthScore =
   (typeof IcBriefTargetHealthScore)[keyof typeof IcBriefTargetHealthScore];
 

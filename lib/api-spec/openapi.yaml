@@ -791,6 +791,29 @@ paths:
                 $ref: "#/components/schemas/IcSession"
 
   /ic-sessions/{id}:
+    put:
+      operationId: updateIcSession
+      tags: [ic]
+      summary: Update an IC session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateIcSessionBody"
+      responses:
+        "200":
+          description: Updated IC session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IcSession"
     delete:
       operationId: deleteIcSession
       tags: [ic]
@@ -4304,6 +4327,25 @@ components:
           type: string
           nullable: true
       required: [sessionDate, outcome]
+
+    UpdateIcSessionBody:
+      type: object
+      properties:
+        sessionDate:
+          type: string
+          format: date
+        attendees:
+          type: string
+          nullable: true
+        outcome:
+          type: string
+          enum: [Approved, Conditional, Rejected, Deferred]
+        conditions:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
 
     IcBriefTarget:
       type: object

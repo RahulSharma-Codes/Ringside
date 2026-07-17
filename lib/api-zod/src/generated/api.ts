@@ -1053,6 +1053,34 @@ export const CreateIcSessionBody = zod.object({
 });
 
 /**
+ * @summary Update an IC session
+ */
+export const UpdateIcSessionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateIcSessionBody = zod.object({
+  sessionDate: zod.coerce.date().optional(),
+  attendees: zod.string().nullish(),
+  outcome: zod
+    .enum(["Approved", "Conditional", "Rejected", "Deferred"])
+    .optional(),
+  conditions: zod.string().nullish(),
+  notes: zod.string().nullish(),
+});
+
+export const UpdateIcSessionResponse = zod.object({
+  id: zod.number(),
+  targetId: zod.number(),
+  sessionDate: zod.coerce.date(),
+  attendees: zod.string().nullish(),
+  outcome: zod.enum(["Approved", "Conditional", "Rejected", "Deferred"]),
+  conditions: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date().nullish(),
+});
+
+/**
  * @summary Delete an IC session
  */
 export const DeleteIcSessionParams = zod.object({

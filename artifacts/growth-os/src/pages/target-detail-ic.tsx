@@ -10,6 +10,7 @@ import {
   useUpdateIcCp,
   useListIcSessions, getListIcSessionsQueryKey,
   useCreateIcSession,
+  useUpdateIcSession,
   useDeleteIcSession,
   useGetIcMemo, getGetIcMemoQueryKey,
   useRunIcMemo,
@@ -38,7 +39,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Plus, Scale, CheckCircle2, XCircle, AlertTriangle, Clock, Users,
-  ChevronDown, ChevronRight, Trash2, Lock, Gavel, FileText, Flag,
+  ChevronDown, ChevronRight, Trash2, Pencil, Lock, Gavel, FileText, Flag,
   Target as TargetIcon, Sparkles, Copy, RefreshCw, Download, History,
 } from "lucide-react";
 import { format, parseISO, formatDistanceToNow } from "date-fns";
@@ -990,6 +991,15 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
   const [icConditions, setIcConditions] = useState("");
   const [icNotes, setIcNotes] = useState("");
 
+  // Edit session state
+  const [icEditOpen, setIcEditOpen] = useState(false);
+  const [icEditId, setIcEditId] = useState<number | null>(null);
+  const [icEditDate, setIcEditDate] = useState("");
+  const [icEditAttendees, setIcEditAttendees] = useState("");
+  const [icEditOutcome, setIcEditOutcome] = useState<"Approved" | "Conditional" | "Rejected" | "Deferred">("Approved");
+  const [icEditConditions, setIcEditConditions] = useState("");
+  const [icEditNotes, setIcEditNotes] = useState("");
+
   // IC memo state
   const [memoExpanded, setMemoExpanded] = useState(true);
   const [memoHistoryOpen, setMemoHistoryOpen] = useState(false);
@@ -1043,6 +1053,7 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
 
   const createProposal = useCreateIcProposal();
   const createIcSession = useCreateIcSession();
+  const updateIcSession = useUpdateIcSession();
   const deleteIcSession = useDeleteIcSession();
 
   const invalidateProposals = () =>
@@ -1121,6 +1132,41 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
           invalidateIcSessions();
         },
         onError: () => toast({ title: "Error", description: "Could not delete IC session", variant: "destructive" }),
+      }
+    );
+  };
+
+  const openEditIcSession = (session: { id: number; sessionDate: string; attendees?: string | null; outcome: "Approved" | "Conditional" | "Rejected" | "Deferred"; conditions?: string | null; notes?: string | null }) => {
+    setIcEditId(session.id);
+    setIcEditDate(session.sessionDate ?? "");
+    setIcEditAttendees(session.attendees ?? "");
+    setIcEditOutcome(session.outcome);
+    setIcEditConditions(session.conditions ?? "");
+    setIcEditNotes(session.notes ?? "");
+    setIcEditOpen(true);
+  };
+
+  const handleUpdateIcSession = () => {
+    if (!icEditId || !icEditDate || !icEditOutcome) return;
+    updateIcSession.mutate(
+      {
+        id: icEditId,
+        data: {
+          sessionDate: icEditDate,
+          attendees: icEditAttendees || null,
+          outcome: icEditOutcome,
+          conditions: icEditConditions || null,
+          notes: icEditNotes || null,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "IC Session Updated" });
+          setIcEditOpen(false);
+          setIcEditId(null);
+          invalidateIcSessions();
+        },
+        onError: () => toast({ title: "Error", description: "Could not update IC session", variant: "destructive" }),
       }
     );
   };
@@ -1212,14 +1258,26 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
                           </span>
                         )}
                       </div>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 text-destructive/60 hover:text-destructive md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0"
-                        onClick={() => { setIcDeleteId(session.id); setIcDeleteOpen(true); }}
-                      >
-                        <Trash2 size={12} />
-                      </Button>
+                      {canEditDealForIcTab && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-muted-foreground/60 hover:text-foreground md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0"
+                          onClick={() => openEditIcSession(session as Parameters<typeof openEditIcSession>[0])}
+                        >
+                          <Pencil size={12} />
+                        </Button>
+                      )}
+                      {canEditDealForIcTab && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-destructive/60 hover:text-destructive md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0"
+                          onClick={() => { setIcDeleteId(session.id); setIcDeleteOpen(true); }}
+                        >
+                          <Trash2 size={12} />
+                        </Button>
+                      )}
                     </div>
                   </CardHeader>
                   {(session.conditions || session.notes) && (
@@ -1529,6 +1587,55 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
             <Button variant="outline" onClick={() => { setIcAddOpen(false); resetIcForm(); }} className="rounded-sm font-mono text-[10px] uppercase">Cancel</Button>
             <Button onClick={handleCreateIcSession} disabled={!icDate || !icOutcome || createIcSession.isPending} className="rounded-sm font-mono text-[10px] uppercase">
               Save Session
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit IC Session */}
+      <Dialog open={icEditOpen} onOpenChange={setIcEditOpen}>
+        <DialogContent className="sm:max-w-md rounded-sm">
+          <DialogHeader>
+            <DialogTitle className="font-mono text-sm uppercase tracking-wider">Edit IC Session</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block mb-1">Session Date <span className="text-destructive">*</span></label>
+              <Input type="date" value={icEditDate} onChange={(e) => setIcEditDate(e.target.value)} className="rounded-sm font-mono text-sm" />
+            </div>
+            <div>
+              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block mb-1">Outcome <span className="text-destructive">*</span></label>
+              <Select value={icEditOutcome} onValueChange={(v) => setIcEditOutcome(v as typeof icEditOutcome)}>
+                <SelectTrigger className="rounded-sm font-mono text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Approved">Approved</SelectItem>
+                  <SelectItem value="Conditional">Conditional</SelectItem>
+                  <SelectItem value="Rejected">Rejected</SelectItem>
+                  <SelectItem value="Deferred">Deferred</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block mb-1">Attendees</label>
+              <Input placeholder="e.g. A. Smith, J. Doe" value={icEditAttendees} onChange={(e) => setIcEditAttendees(e.target.value)} className="rounded-sm font-mono text-sm" />
+            </div>
+            {icEditOutcome === "Conditional" && (
+              <div>
+                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block mb-1">Conditions</label>
+                <Textarea placeholder="List conditions..." value={icEditConditions} onChange={(e) => setIcEditConditions(e.target.value)} rows={3} className="rounded-sm font-mono text-sm resize-none" />
+              </div>
+            )}
+            <div>
+              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block mb-1">Notes</label>
+              <RichTextEditor value={icEditNotes} onChange={setIcEditNotes} placeholder="Session notes…" maxLength={5000} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIcEditOpen(false)} className="rounded-sm font-mono text-[10px] uppercase">Cancel</Button>
+            <Button onClick={handleUpdateIcSession} disabled={!icEditDate || !icEditOutcome || updateIcSession.isPending} className="rounded-sm font-mono text-[10px] uppercase">
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>

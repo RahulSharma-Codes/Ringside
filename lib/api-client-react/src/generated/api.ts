@@ -118,6 +118,7 @@ import type {
   UpdateCounterpartyBody,
   UpdateDocumentBody,
   UpdateIcCpBody,
+  UpdateIcSessionBody,
   UpdateInteractionBody,
   UpdateNdaRecordBody,
   UpdateRegulatoryClearanceBody,
@@ -3255,6 +3256,93 @@ export const useCreateIcSession = <
   TContext
 > => {
   return useMutation(getCreateIcSessionMutationOptions(options));
+};
+
+/**
+ * @summary Update an IC session
+ */
+export const getUpdateIcSessionUrl = (id: number) => {
+  return `/api/ic-sessions/${id}`;
+};
+
+export const updateIcSession = async (
+  id: number,
+  updateIcSessionBody: UpdateIcSessionBody,
+  options?: RequestInit,
+): Promise<IcSession> => {
+  return customFetch<IcSession>(getUpdateIcSessionUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateIcSessionBody),
+  });
+};
+
+export const getUpdateIcSessionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateIcSession>>,
+    TError,
+    { id: number; data: BodyType<UpdateIcSessionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateIcSession>>,
+  TError,
+  { id: number; data: BodyType<UpdateIcSessionBody> },
+  TContext
+> => {
+  const mutationKey = ["updateIcSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateIcSession>>,
+    { id: number; data: BodyType<UpdateIcSessionBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateIcSession(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateIcSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateIcSession>>
+>;
+export type UpdateIcSessionMutationBody = BodyType<UpdateIcSessionBody>;
+export type UpdateIcSessionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update an IC session
+ */
+export const useUpdateIcSession = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateIcSession>>,
+    TError,
+    { id: number; data: BodyType<UpdateIcSessionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateIcSession>>,
+  TError,
+  { id: number; data: BodyType<UpdateIcSessionBody> },
+  TContext
+> => {
+  return useMutation(getUpdateIcSessionMutationOptions(options));
 };
 
 /**
