@@ -19,6 +19,7 @@ import { StageChip } from "@/components/stage-chip";
 import { HealthDot } from "@/components/health-dot";
 import { PIPELINE_STAGE_ORDER } from "@/components/stage-rail";
 import { PipelineKanban } from "@/pages/pipeline-kanban";
+import { PipelineListTable } from "@/pages/pipeline-list-table";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 
@@ -447,143 +448,28 @@ export default function Pipeline() {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-2">
-              {[...(targets ?? [])].sort((a, b) => {
-                const ai = PIPELINE_STAGE_ORDER.indexOf(a.currentStage ?? "");
-                const bi = PIPELINE_STAGE_ORDER.indexOf(b.currentStage ?? "");
-                const stageA = ai === -1 ? 999 : ai;
-                const stageB = bi === -1 ? 999 : bi;
-                if (stageA !== stageB) return stageA - stageB;
-                const ka = (a as { kanbanSortOrder?: number | null }).kanbanSortOrder ?? 0;
-                const kb = (b as { kanbanSortOrder?: number | null }).kanbanSortOrder ?? 0;
-                return ka - kb;
-              }).map((target) => {
-                const isNeedsAttention = (target as { needsAttention?: boolean | null }).needsAttention;
-                const openCount    = (target as { openActionCount?: number | null }).openActionCount ?? 0;
-                const overdueCount = (target as { overdueActionCount?: number | null }).overdueActionCount ?? 0;
-                const lastInteraction = (target as { lastInteractionDate?: string | null }).lastInteractionDate;
-                const tierCardClass = getTierCardClass(target.priorityTier);
-                const healthScore = (target as { healthScore?: string | null }).healthScore as "healthy" | "watch" | "at_risk" | null | undefined;
-
-                const targetHref = aiMode
-                  ? `/targets/${target.id}?ai=${aiMode}`
-                  : `/targets/${target.id}`;
-
-                return (
-                  <MobileLongPressTray
-                    key={target.id}
-                    targetId={target.id}
-                    targetName={target.projectName ?? target.targetCode ?? ""}
-                    targetCode={target.targetCode}
-                    targetHref={targetHref}
-                  >
-                  <Link href={targetHref}>
-                    <Card className={`bg-card border-border/70 rounded-xl hover:shadow-md transition-all duration-150 cursor-pointer group ${tierCardClass}`}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                          <div className="flex-1 min-w-0 space-y-2">
-                            {/* Title row */}
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0 flex-1">
-                                <div className="font-semibold text-sm leading-snug truncate group-hover:text-primary transition-colors">
-                                  {target.projectName}
-                                </div>
-                                <div className="text-[10px] font-mono text-muted-foreground/60 uppercase mt-0.5 tracking-wider">
-                                  {target.targetCode}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <HealthDot score={healthScore} />
-                                {isNeedsAttention && (
-                                  <Badge className="font-mono text-[9px] uppercase rounded-md bg-destructive text-destructive-foreground border-0">
-                                    <AlertTriangle size={8} className="mr-1" /> Attn
-                                  </Badge>
-                                )}
-                                <Badge className={`font-mono text-[10px] uppercase rounded-md ${getTierBadgeColor(target.priorityTier)}`}>
-                                  {target.priorityTier}
-                                </Badge>
-                              </div>
-                            </div>
-
-                            {/* Stage + Score row */}
-                            <div className="flex flex-wrap gap-1.5 items-center">
-                              <StageChip stage={target.currentStage ?? ""} size="xs" />
-                              {target.dealType && NON_DEFAULT_DEAL_TYPES[target.dealType] && (
-                                <Badge className="font-mono text-[9px] uppercase rounded-sm px-1.5 py-0 h-4 bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-500/30">
-                                  {NON_DEFAULT_DEAL_TYPES[target.dealType]}
-                                </Badge>
-                              )}
-                              <Badge variant="outline" className="font-mono text-[10px] rounded-md border-border/60 text-muted-foreground">
-                                <Zap size={9} className="mr-1 text-primary/60" />{Math.round(target.priorityScore)}
-                              </Badge>
-                              {target.sector && (
-                                <span className="text-[10px] font-mono text-muted-foreground/70 uppercase">{target.sector}</span>
-                              )}
-                              {target.country && (
-                                <span className="text-[10px] font-mono text-muted-foreground/70 flex items-center gap-1">
-                                  <MapPin size={9} />{target.country}
-                                </span>
-                              )}
-                              {(() => {
-                                const daysStg = (target as { daysInCurrentStage?: number | null }).daysInCurrentStage;
-                                return daysStg != null ? (
-                                  <span className="text-[10px] font-mono text-muted-foreground/50 bg-muted/60 px-1.5 py-0 rounded-sm leading-4 inline-flex items-center">
-                                    {daysStg}d
-                                  </span>
-                                ) : null;
-                              })()}
-                              {(() => {
-                                const pct = (target as { diligencePct?: number | null }).diligencePct;
-                                return pct != null && pct > 0 ? (
-                                  <span className="inline-flex items-center gap-1">
-                                    <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden">
-                                      <div className="h-full rounded-full bg-primary/60" style={{ width: `${pct}%` }} />
-                                    </div>
-                                    <span className="text-[9px] font-mono text-muted-foreground/50">{pct}%</span>
-                                  </span>
-                                ) : null;
-                              })()}
-                              {target.dealOwner && (
-                                <span
-                                  className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/15 text-primary text-[9px] font-mono font-bold uppercase shrink-0"
-                                  title={target.dealOwner}
-                                >
-                                  {target.dealOwner.slice(0, 2)}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Action counts + quick-log */}
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                              {openCount > 0 ? (
-                                <span className={`text-[10px] font-mono font-medium ${overdueCount > 0 ? "text-destructive" : "text-amber-500"}`}>
-                                  {openCount} open action{openCount !== 1 ? "s" : ""}{overdueCount > 0 ? ` · ${overdueCount} overdue` : ""}
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-mono text-muted-foreground/50">No open actions</span>
-                              )}
-                              {lastInteraction && (
-                                <span className="text-[10px] font-mono text-muted-foreground/60 flex items-center gap-1">
-                                  <Calendar size={9} />
-                                  Last contact {format(parseISO(lastInteraction), "MMM d, yyyy")}
-                                </span>
-                              )}
-                              <QuickLogInteractionPopover
-                                targetId={target.id}
-                                targetName={target.projectName ?? target.targetCode ?? ""}
-                              />
-                            </div>
-                          </div>
-
-                          <ChevronRight size={15} className="text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 mt-1 transition-colors" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                  </MobileLongPressTray>
-                );
-              })}
-            </div>
+            <PipelineListTable
+              data={(targets ?? []).map((t) => ({
+                id: t.id,
+                targetCode: t.targetCode,
+                projectName: t.projectName ?? null,
+                currentStage: t.currentStage ?? null,
+                priorityTier: t.priorityTier,
+                priorityScore: t.priorityScore,
+                sector: (t as { sector?: string | null }).sector ?? null,
+                country: (t as { country?: string | null }).country ?? null,
+                dealOwner: (t as { dealOwner?: string | null }).dealOwner ?? null,
+                dealType: (t as { dealType?: string | null }).dealType ?? null,
+                needsAttention: (t as { needsAttention?: boolean | null }).needsAttention ?? null,
+                openActionCount: (t as { openActionCount?: number | null }).openActionCount ?? null,
+                overdueActionCount: (t as { overdueActionCount?: number | null }).overdueActionCount ?? null,
+                lastInteractionDate: (t as { lastInteractionDate?: string | null }).lastInteractionDate ?? null,
+                daysInCurrentStage: (t as { daysInCurrentStage?: number | null }).daysInCurrentStage ?? null,
+                diligencePct: (t as { diligencePct?: number | null }).diligencePct ?? null,
+                healthScore: (t as { healthScore?: string | null }).healthScore as "healthy" | "watch" | "at_risk" | null ?? null,
+              }))}
+              aiMode={aiMode}
+            />
           )}
         </div>
       )}
