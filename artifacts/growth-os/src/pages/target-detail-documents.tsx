@@ -21,10 +21,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Plus, ExternalLink, Pencil, FolderOpen,
+  Plus, ExternalLink, Pencil, Eye, FolderOpen,
   CheckCircle2, Clock, AlertCircle, FileText,
   Upload, Download, File, Info, Lock, ShieldAlert,
 } from "lucide-react";
+import { DocumentPreviewDrawer } from "@/components/document-preview-drawer";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -396,6 +397,7 @@ function DocCard({
   const [uploading, setUploading] = useState(false);
   const [opening, setOpening] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const pendingOpenRef = useRef<(() => Promise<void>) | null>(null);
 
   const hasFile = Boolean(doc.storagePath && doc.fileName);
@@ -528,7 +530,6 @@ function DocCard({
       });
       return;
     }
-    // For Restricted / Internal docs: show the watermark preview modal before opening
     if (isRestricted || classification === "Internal") {
       pendingOpenRef.current = doActualOpen;
       setPreviewOpen(true);
@@ -537,16 +538,27 @@ function DocCard({
     await doActualOpen();
   }, [doc.id, isHighlyRestricted, isRestricted, classification, doActualOpen, toast]);
 
+  const openDrawer = useCallback(() => {
+    if (isHighlyRestricted || isRestricted || classification === "Internal") {
+      pendingOpenRef.current = () => { setDrawerOpen(true); return Promise.resolve(); };
+      setPreviewOpen(true);
+      return;
+    }
+    setDrawerOpen(true);
+  }, [isHighlyRestricted, isRestricted, classification]);
+
   return (
     <>
     <div
       className={`relative bg-card/30 border rounded-sm p-3 flex items-start gap-3 group transition-colors overflow-hidden
+        ${hasFile ? "cursor-pointer" : ""}
         ${isHighlyRestricted
           ? "border-rose-500/30 hover:border-rose-500/50"
           : isRestricted
             ? "border-amber-500/20 hover:border-amber-500/40"
             : "border-border/60 hover:border-border"
         }`}
+      onClick={hasFile ? openDrawer : undefined}
     >
 
       {statusIcon(doc.status)}
@@ -555,7 +567,7 @@ function DocCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-mono text-[12px] text-foreground">{doc.title}</span>
-              {hasUrl && !isHighlyRestricted && (
+              {hasUrl && !isHighlyRestricted && !hasFile && (
                 <a
                   href={doc.url!}
                   target="_blank"
@@ -676,38 +688,47 @@ function DocCard({
             )}
 
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              {/* Highly-Restricted: show "Request Access" notice instead of download */}
-              {isHighlyRestricted ? (
+              {isHighlyRestricted && (
                 <div className="flex items-center gap-1.5 rounded-sm border border-rose-500/30 bg-rose-500/5 px-2 py-1">
                   <Lock size={9} className="text-rose-400" />
                   <span className="text-[10px] font-mono text-rose-400">
-                    Highly-Restricted — contact deal owner to access
+                    Highly-Restricted
                   </span>
                 </div>
-              ) : (
-                hasFile && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-6 rounded-sm font-mono text-[10px] uppercase border-border/60 px-2"
-                    onClick={handleOpen}
-                    disabled={opening}
-                  >
-                    <Download size={10} className="mr-1" />
-                    {opening ? "Opening..." : "Open File"}
-                  </Button>
-                )
               )}
-              {/* Upload allowed regardless of classification (admins manage classification) */}
+              {hasFile && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 rounded-sm font-mono text-[10px] uppercase border-border/60 px-2"
+                  onClick={(e) => { e.stopPropagation(); openDrawer(); }}
+                  disabled={opening}
+                >
+                  <Eye size={10} className="mr-1" />
+                  Preview
+                </Button>
+              )}
+              {hasFile && !isHighlyRestricted && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 rounded-sm text-muted-foreground/60 hover:text-foreground"
+                  title="Open in new tab"
+                  onClick={(e) => { e.stopPropagation(); void handleOpen(); }}
+                  disabled={opening}
+                >
+                  <ExternalLink size={11} />
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
                 className="h-6 rounded-sm font-mono text-[10px] uppercase border-border/60 px-2"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
                 disabled={uploading}
               >
                 <Upload size={10} className="mr-1" />
-                {uploading ? "Uploading..." : hasFile ? "Replace File" : "Upload File"}
+                {uploading ? "Uploading..." : hasFile ? "Replace" : "Upload"}
               </Button>
               <input
                 ref={fileInputRef}
@@ -723,7 +744,7 @@ function DocCard({
             variant="ghost"
             size="icon"
             className="h-7 w-7 opacity-0 group-hover:opacity-100 shrink-0 rounded-sm"
-            onClick={onEdit}
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
           >
             <Pencil size={12} />
           </Button>
@@ -745,6 +766,12 @@ function DocCard({
         setPreviewOpen(false);
         pendingOpenRef.current = null;
       }}
+    />
+    <DocumentPreviewDrawer
+      open={drawerOpen}
+      onClose={() => setDrawerOpen(false)}
+      doc={doc}
+      viewerIdentity={viewerIdentity}
     />
     </>
   );
