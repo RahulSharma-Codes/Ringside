@@ -9,7 +9,6 @@ import {
   getGetStageHistoryQueryKey,
   getGetTargetQueryKey,
 } from "@workspace/api-client-react";
-import { LinkifiedText } from "@/components/linkified-text";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,8 +17,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { SafeHtml } from "@/components/ui/safe-html";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Pencil, Trash2, MessageSquare, Sparkles } from "lucide-react";
 import { format, parseISO } from "date-fns";
@@ -244,9 +244,7 @@ export function InteractionsTab({ targetId, addOpen, onAddOpenChange }: Interact
                   </div>
                 </CardHeader>
                 <CardContent className="px-4 pb-4 space-y-2">
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                    <LinkifiedText text={inter.summary ?? ""} />
-                  </p>
+                  <SafeHtml html={inter.summary ?? ""} className="text-sm [&_p]:mb-1 [&_p:last-child]:mb-0" />
                   {(inter.participantsInternal || inter.participantsExternal) && (
                     <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
                       {inter.participantsInternal && (
@@ -306,7 +304,7 @@ export function InteractionsTab({ targetId, addOpen, onAddOpenChange }: Interact
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Summary <span className="text-destructive">*</span></label>
-              <Textarea value={interSummary} onChange={(e) => setInterSummary(e.target.value)} className="rounded-sm bg-background/50 resize-none h-24" placeholder="Key takeaways, decisions, next steps…" />
+              <RichTextEditor value={interSummary} onChange={setInterSummary} placeholder="Key takeaways, decisions, next steps…" maxLength={5000} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -358,7 +356,7 @@ export function InteractionsTab({ targetId, addOpen, onAddOpenChange }: Interact
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Summary <span className="text-destructive">*</span></label>
-              <Textarea value={editInterData.summary} onChange={(e) => setEditInterData((d) => ({ ...d, summary: e.target.value }))} className="rounded-sm bg-background/50 resize-none h-24" />
+              <RichTextEditor value={editInterData.summary} onChange={(html) => setEditInterData((d) => ({ ...d, summary: html }))} maxLength={5000} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

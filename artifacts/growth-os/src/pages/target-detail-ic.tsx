@@ -25,6 +25,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { SafeHtml } from "@/components/ui/safe-html";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -1229,7 +1231,7 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
                         </div>
                       )}
                       {session.notes && (
-                        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{session.notes}</p>
+                        <SafeHtml html={session.notes} className="text-sm text-muted-foreground [&_p]:mb-1 [&_p:last-child]:mb-0" />
                       )}
                     </CardContent>
                   )}
@@ -1520,7 +1522,7 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
             )}
             <div>
               <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block mb-1">Notes</label>
-              <Textarea placeholder="Session notes..." value={icNotes} onChange={(e) => setIcNotes(e.target.value)} rows={3} className="rounded-sm font-mono text-sm resize-none" />
+              <RichTextEditor value={icNotes} onChange={setIcNotes} placeholder="Session notes…" maxLength={5000} />
             </div>
           </div>
           <DialogFooter>

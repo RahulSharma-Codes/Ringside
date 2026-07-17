@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { stripHtmlTags } from "@/components/ui/safe-html";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Plus, CheckCircle2, RotateCcw, Pencil, Trash2,
@@ -145,7 +147,7 @@ function WorkstreamSection({ ws, items, onEdit, onToggle, onDelete, isPending }:
                       {item.description}
                     </div>
                     {item.notes && (
-                      <div className="text-[10px] text-muted-foreground mt-0.5 italic truncate">{item.notes}</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5 italic truncate">{stripHtmlTags(item.notes)}</div>
                     )}
                     {item.evidenceLinks && item.evidenceLinks.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
@@ -746,12 +748,7 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Notes</label>
-              <Textarea
-                value={addNotes}
-                onChange={(e) => setAddNotes(e.target.value)}
-                className="rounded-sm bg-background/50 resize-none h-16"
-                placeholder="Optional context or blockers…"
-              />
+              <RichTextEditor value={addNotes} onChange={setAddNotes} placeholder="Optional context or blockers…" maxLength={5000} />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Evidence Links</label>
@@ -853,11 +850,7 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Notes</label>
-              <Textarea
-                value={editData.notes}
-                onChange={(e) => setEditData((d) => ({ ...d, notes: e.target.value }))}
-                className="rounded-sm bg-background/50 resize-none h-16"
-              />
+              <RichTextEditor value={editData.notes} onChange={(html) => setEditData((d) => ({ ...d, notes: html }))} maxLength={5000} />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Evidence Links</label>

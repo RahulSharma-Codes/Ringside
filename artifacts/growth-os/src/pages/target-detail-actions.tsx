@@ -6,15 +6,15 @@ import {
   useUpdateAction,
   useDeleteAction,
 } from "@workspace/api-client-react";
-import { LinkifiedText } from "@/components/linkified-text";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { SafeHtml } from "@/components/ui/safe-html";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Pencil, Trash2, CheckCircle2, RotateCcw } from "lucide-react";
 import { format, parseISO } from "date-fns";
@@ -57,7 +57,7 @@ function ActionRow({ action, onEdit, onToggle, onDelete, isPending }: ActionRowP
     <div className="flex items-start gap-3 p-3 border border-border rounded-sm bg-card/20 group hover:bg-card/40 transition-colors">
       <div className="flex-1 min-w-0">
         <div className={`text-sm font-medium leading-snug ${isCompleted ? "line-through text-muted-foreground" : ""}`}>
-          <LinkifiedText text={action.description} />
+          <SafeHtml html={action.description} className="[&_p]:mb-0.5 [&_p:last-child]:mb-0 [&_ul]:my-0.5 [&_ol]:my-0.5" />
         </div>
         <div className="flex items-center gap-3 mt-1 flex-wrap">
           <span className={`text-[10px] font-mono uppercase ${
@@ -338,7 +338,7 @@ export function ActionsTab({ targetId, addOpen, onAddOpenChange }: ActionsTabPro
           <div className="py-4 space-y-4">
             <div className="space-y-2">
               <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Description <span className="text-destructive">*</span></label>
-              <Textarea value={actionDesc} onChange={(e) => setActionDesc(e.target.value)} className="rounded-sm bg-background/50 resize-none h-20" placeholder="What needs to be done?" />
+              <RichTextEditor value={actionDesc} onChange={setActionDesc} placeholder="What needs to be done?" maxLength={5000} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -374,7 +374,7 @@ export function ActionsTab({ targetId, addOpen, onAddOpenChange }: ActionsTabPro
           <div className="py-4 space-y-4">
             <div className="space-y-2">
               <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Description <span className="text-destructive">*</span></label>
-              <Textarea value={editActionData.description} onChange={(e) => setEditActionData((d) => ({ ...d, description: e.target.value }))} className="rounded-sm bg-background/50 resize-none h-20" />
+              <RichTextEditor value={editActionData.description} onChange={(html) => setEditActionData((d) => ({ ...d, description: html }))} maxLength={5000} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

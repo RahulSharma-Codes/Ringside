@@ -22,6 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SafeHtml } from "@/components/ui/safe-html";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -136,7 +137,7 @@ function buildColumns(
         const isOverdue = a.dueDate && a.dueDate < todayStr && a.status !== "Completed";
         return (
           <div className={`text-[12px] font-medium leading-snug ${isOverdue ? "text-destructive" : ""}`}>
-            {a.description}
+            <SafeHtml html={a.description} className="[&_p]:mb-0 [&_ul]:my-0 [&_ol]:my-0" />
             {isOverdue && <AlertTriangle size={10} className="inline ml-1 shrink-0" />}
           </div>
         );
