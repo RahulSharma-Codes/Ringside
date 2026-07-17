@@ -396,6 +396,40 @@ async function run() {
           }
         }
       }
+
+      // ─ Test G: target_access cross-tenant INSERT ────────────────────────────
+      // Simulates Company B granting itself access to a Company A target.
+      // GUC = Company B, target_id = Company A target, user_id = User B,
+      // company_id = Company A → RLS WITH CHECK must reject: company_id ≠ GUC.
+      // Uses a real Company A target_id so FK is satisfied; only RLS can block.
+      await client.query(`SELECT set_config('app.company_id', $1, false)`, [COMPANY_B_ID]);
+      if (companyATargetId === null) {
+        console.warn(
+          "  ⚠  No Company A target found — Test G skipped (fixture target unavailable).",
+        );
+      } else {
+        try {
+          await client.query(
+            `INSERT INTO target_access (target_id, user_id, company_id)
+             VALUES ($1, $2, $3)`,
+            [companyATargetId, USER_B_ID, DEFAULT_COMPANY_ID],
+          );
+          fail(
+            "Cross-tenant INSERT into target_access (Company A target_id + company_id, " +
+            "User B user_id, GUC = Company B) succeeded — " +
+            "RLS WITH CHECK is missing on target_access! Company B can grant itself " +
+            "visibility of Company A deals."
+          );
+        } catch (err: unknown) {
+          const msg = (err as Error).message ?? "";
+          // Accept only explicit RLS rejection — not FK or other constraint errors.
+          if (msg.includes("row-level security")) {
+            pass(`target_access cross-tenant INSERT blocked by RLS WITH CHECK: "${msg.split("\n")[0]}"`);
+          } else {
+            fail(`Unexpected error on target_access cross-tenant insert under app_rls (expected RLS rejection): ${msg}`);
+          }
+        }
+      }
     } finally {
       // Always reset role before returning the connection to the pool.
       await client.query(`RESET ROLE`).catch(() => {});
