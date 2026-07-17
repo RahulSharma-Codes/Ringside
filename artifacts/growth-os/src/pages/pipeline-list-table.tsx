@@ -275,6 +275,7 @@ export function PipelineListTable({
   data: PipelineRow[];
   aiMode: "meeting-notes" | "opportunity-brief" | null;
 }) {
+  const shouldReduce = useReducedMotion();
   const [sorting, setSorting] = useState<SortingState>(() => {
     try {
       const s = localStorage.getItem(SORT_KEY);
@@ -361,7 +362,10 @@ export function PipelineListTable({
           ))}
         </thead>
         <motion.tbody
-          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.035 } } }}
+          variants={{
+            hidden: {},
+            show: { transition: { staggerChildren: shouldReduce ? 0 : 0.035 } },
+          }}
           initial="hidden"
           animate="show"
         >
@@ -372,7 +376,11 @@ export function PipelineListTable({
             return (
               <motion.tr
                 key={row.id}
-                variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.18, ease: "easeOut" } } }}
+                variants={
+                  shouldReduce
+                    ? { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0 } } }
+                    : { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.18, ease: "easeOut" } } }
+                }
                 className={`group transition-colors hover:bg-muted/40 cursor-pointer ${
                   !isLast ? "border-b border-border/40" : ""
                 } ${r.needsAttention ? "bg-destructive/3" : ""}`}

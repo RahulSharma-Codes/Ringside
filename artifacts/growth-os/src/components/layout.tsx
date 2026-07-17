@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "next-themes";
 import {
@@ -139,6 +139,7 @@ function SidebarNav({
   isAdmin: boolean;
   overdueCount: number;
 }) {
+  const shouldReduceSidebarMotion = useReducedMotion();
   const visibleItems = NAV_ITEMS.filter((i) => i.group !== "Admin" || isAdmin);
   const visibleGroups = NAV_GROUPS.filter(
     (g) => g !== "Admin" || isAdmin,
@@ -249,7 +250,11 @@ function SidebarNav({
                                 <motion.span
                                   layoutId="sidebar-active"
                                   className="absolute left-0 top-1 bottom-1 w-1 bg-primary rounded-r-full"
-                                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                                  transition={
+                                    shouldReduceSidebarMotion
+                                      ? { duration: 0 }
+                                      : { type: "spring", stiffness: 500, damping: 35 }
+                                  }
                                 />
                               )}
                               <Icon size={14} className="shrink-0 ml-0.5" />

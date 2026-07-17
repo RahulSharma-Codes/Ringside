@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUpdateAction, customFetch } from "@workspace/api-client-react";
 import { Link } from "wouter";
@@ -278,6 +279,7 @@ function buildColumns(
 }
 
 export default function Actions() {
+  const shouldReduceActions = useReducedMotion();
   const { toast }      = useToast();
   const queryClient    = useQueryClient();
   const { user }       = useAuth();
@@ -602,8 +604,15 @@ export default function Actions() {
                         const isOverdue = row.original.dueDate && row.original.dueDate < todayStr && row.original.status !== "Completed";
                         const isLast = rowIdx === rows.length - 1;
                         return (
-                          <tr
+                          <motion.tr
                             key={row.id}
+                            initial={{ opacity: 0, y: shouldReduceActions ? 0 : 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{
+                              delay: shouldReduceActions ? 0 : rowIdx * 0.04,
+                              duration: shouldReduceActions ? 0 : 0.15,
+                              ease: "easeOut",
+                            }}
                             className={`transition-colors group ${!isLast ? "border-b border-border/30" : "border-b border-border/40"} ${
                               isOverdue ? "bg-destructive/5 hover:bg-destructive/8" : "hover:bg-muted/30"
                             }`}
@@ -617,7 +626,7 @@ export default function Actions() {
                                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
                               </td>
                             ))}
-                          </tr>
+                          </motion.tr>
                         );
                       })}
                     </React.Fragment>

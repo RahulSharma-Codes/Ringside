@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -535,6 +535,7 @@ export function PipelineKanban({
 }: PipelineKanbanProps) {
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const shouldReduceKanban = useReducedMotion();
 
   // Use a delay + tolerance constraint so dnd-kit defers drag activation on
   // touch devices. This prevents a slow finger-hold (meant as a tap) from
@@ -859,9 +860,13 @@ export function PipelineKanban({
           {activeStages.map((stage, colIdx) => (
             <motion.div
               key={stage}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: shouldReduceKanban ? 0 : 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: colIdx * 0.04, duration: 0.2, ease: "easeOut" }}
+              transition={{
+                delay: shouldReduceKanban ? 0 : colIdx * 0.04,
+                duration: shouldReduceKanban ? 0 : 0.2,
+                ease: "easeOut",
+              }}
               style={{ display: "contents" }}
             >
               <DroppableColumn

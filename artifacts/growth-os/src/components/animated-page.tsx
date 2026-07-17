@@ -1,5 +1,13 @@
-import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useReducedMotion, Variants } from "framer-motion";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  motion,
+  AnimatePresence,
+  useReducedMotion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  Variants,
+} from "framer-motion";
 
 // ── Page transition wrapper ───────────────────────────────────────────────────
 
@@ -91,52 +99,7 @@ export function StaggerItem({
   );
 }
 
-// ── Stagger container for <table> rows (tbody wrapper) ────────────────────────
-
-export function StaggerTbody({ children }: { children: React.ReactNode }) {
-  return (
-    <motion.tbody variants={staggerContainerVariants} initial="hidden" animate="show">
-      {children}
-    </motion.tbody>
-  );
-}
-
-// ── KPI animated counter ──────────────────────────────────────────────────────
-
-function easeOutCubic(t: number) {
-  return 1 - Math.pow(1 - t, 3);
-}
-
-export function useCountUp(target: number, durationMs = 800): number {
-  const shouldReduce = useReducedMotion();
-  const [count, setCount] = useState(0);
-  const rafRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (shouldReduce || target === 0) {
-      setCount(target);
-      return;
-    }
-    const startTime = performance.now();
-    const startValue = 0;
-
-    const tick = (now: number) => {
-      const elapsed = Math.min((now - startTime) / durationMs, 1);
-      const eased = easeOutCubic(elapsed);
-      setCount(Math.round(startValue + (target - startValue) * eased));
-      if (elapsed < 1) {
-        rafRef.current = requestAnimationFrame(tick);
-      }
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-    };
-  }, [target, durationMs, shouldReduce]);
-
-  return count;
-}
+// ── KPI animated counter — Framer Motion spring ───────────────────────────────
 
 export function AnimatedCounter({
   value,
@@ -145,8 +108,22 @@ export function AnimatedCounter({
   value: number;
   className?: string;
 }) {
-  const count = useCountUp(value);
-  return <span className={className}>{count}</span>;
+  const shouldReduce = useReducedMotion();
+
+  // Start at 0; spring to target value. Reduced-motion jumps instantly.
+  const motionValue = useMotionValue(shouldReduce ? value : 0);
+  const spring = useSpring(motionValue, {
+    stiffness: shouldReduce ? 10000 : 120,
+    damping:   shouldReduce ? 1000  : 30,
+    restDelta: 0.5,
+  });
+  const rounded = useTransform(spring, Math.round);
+
+  useEffect(() => {
+    motionValue.set(value);
+  }, [value, motionValue]);
+
+  return <motion.span className={className}>{rounded}</motion.span>;
 }
 
 // ── Notification badge with pulse on count change ─────────────────────────────
