@@ -8,6 +8,7 @@ import {
   storageEnabled,
   uploadFile,
   getSignedUrl,
+  deleteFile,
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE,
 } from "../lib/object-storage";
@@ -385,6 +386,8 @@ router.put("/:id/replace-file", upload.single("file"), async (req, res) => {
   if (!doc) return res.status(404).json({ error: "Document not found" });
   if (!(await canAccessTarget(req, doc.targetId))) return res.status(404).json({ error: "Document not found" });
 
+  const previousStoragePath = doc.storagePath ?? null;
+
   try {
     const { storagePath } = await uploadFile({
       targetId: doc.targetId,
@@ -407,6 +410,13 @@ router.put("/:id/replace-file", upload.single("file"), async (req, res) => {
       })
       .where(eq(dealDocumentsTable.id, id))
       .returning();
+
+    // Delete the old object only after DB is committed so we never lose both
+    if (previousStoragePath && previousStoragePath !== storagePath) {
+      deleteFile(previousStoragePath).catch(() => {
+        // Non-fatal: old object becomes orphaned but DB is already consistent
+      });
+    }
 
     return res.json(formatDoc(updated));
   } catch (err) {
