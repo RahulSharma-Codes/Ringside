@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -7,7 +7,7 @@ import {
   Plus, FileSpreadsheet, KeyRound, Building2, ChevronRight, Search,
 } from "lucide-react";
 import {
-  CommandDialog,
+  Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
@@ -62,6 +62,7 @@ function TierBadge({ tier }: { tier: string | null | undefined }) {
 export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const [, setLocation] = useLocation();
   const { isAdmin } = useAuth();
+  const backdropRef = useRef<HTMLDivElement>(null);
 
   const { data: targets } = useListTargets(
     {},
@@ -78,113 +79,150 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
 
   const navigate = (href: string) => {
     onClose();
-    setTimeout(() => setLocation(href), 50);
+    setTimeout(() => setLocation(href), 80);
   };
 
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { e.preventDefault(); onClose(); }
+    };
+    window.addEventListener("keydown", handleKey, { capture: true });
+    return () => window.removeEventListener("keydown", handleKey, { capture: true });
+  }, [open, onClose]);
+
   return (
-    <CommandDialog
-      open={open}
-      onOpenChange={(v) => { if (!v) onClose(); }}
-    >
-      <div className="flex items-center gap-2 px-3 border-b border-border/60">
-        <Search size={14} className="shrink-0 text-muted-foreground/50" />
-        <CommandInput
-          placeholder="Search deals, pages, actions…"
-          className="font-sans text-[13px] border-0 outline-none ring-0 focus:ring-0 shadow-none px-0"
-        />
-        <kbd className="hidden sm:flex items-center gap-0.5 text-[10px] font-mono text-muted-foreground/40 bg-muted px-1.5 py-0.5 rounded-md shrink-0">
-          ESC
-        </kbd>
-      </div>
-      <CommandList className="max-h-[420px]">
-        <CommandEmpty>
-          <div className="flex flex-col items-center gap-2 py-10">
-            <Search size={28} className="text-muted-foreground/20" />
-            <span className="font-sans text-[13px] text-muted-foreground/60">
-              No results found
-            </span>
-          </div>
-        </CommandEmpty>
+    <AnimatePresence>
+      {open && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            key="palette-backdrop"
+            ref={backdropRef}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+            onClick={onClose}
+          />
 
-        {/* ── Deals ─────────────────────────────────────────────── */}
-        {targets && targets.length > 0 && (
-          <CommandGroup heading="Deals">
-            {targets.slice(0, 8).map((t) => (
-              <CommandItem
-                key={t.id}
-                value={[t.projectName, t.targetCode, t.currentStage, t.priorityTier].filter(Boolean).join(" ")}
-                onSelect={() => navigate(`/targets/${t.id}`)}
-                className="flex items-center gap-2.5 cursor-pointer py-2.5 px-3 mx-1 rounded-xl"
-              >
-                <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/15 flex items-center justify-center shrink-0">
-                  <Building2 size={12} className="text-primary/70" />
+          {/* Panel */}
+          <motion.div
+            key="palette-panel"
+            initial={{ opacity: 0, scale: 0.96, y: -12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: -12 }}
+            transition={{ type: "spring", stiffness: 420, damping: 30, mass: 0.8 }}
+            className="fixed left-1/2 top-[18%] -translate-x-1/2 z-50 w-full max-w-[540px] px-4"
+          >
+            <div className="rounded-2xl border border-border/60 bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+              <Command className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[9px] [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.12em] [&_[cmdk-group-heading]]:text-muted-foreground/40">
+                {/* Search input */}
+                <div className="flex items-center gap-2 px-3 border-b border-border/50 py-1">
+                  <Search size={14} className="shrink-0 text-muted-foreground/40" />
+                  <CommandInput
+                    placeholder="Search deals, pages, actions…"
+                    className="font-sans text-[13px] border-0 outline-none ring-0 focus:ring-0 shadow-none px-0 h-10"
+                  />
+                  <kbd className="hidden sm:flex items-center gap-0.5 text-[10px] font-mono text-muted-foreground/30 bg-muted/60 px-1.5 py-0.5 rounded-md shrink-0">
+                    ESC
+                  </kbd>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-[13px] truncate">
-                    {t.projectName ?? t.targetCode ?? `Target #${t.id}`}
-                  </div>
-                  {t.currentStage && (
-                    <div className="text-[10px] font-mono text-muted-foreground/50 mt-0.5 truncate">{t.currentStage}</div>
+
+                <CommandList className="max-h-[420px] py-1.5">
+                  <CommandEmpty>
+                    <div className="flex flex-col items-center gap-2 py-10">
+                      <Search size={28} className="text-muted-foreground/20" />
+                      <span className="font-sans text-[13px] text-muted-foreground/50">No results found</span>
+                    </div>
+                  </CommandEmpty>
+
+                  {/* ── Recent Deals ─────────────────────────────────── */}
+                  {targets && targets.length > 0 && (
+                    <CommandGroup heading="Recent Deals">
+                      {targets.slice(0, 7).map((t) => (
+                        <CommandItem
+                          key={t.id}
+                          value={[t.projectName, t.targetCode, t.currentStage, t.priorityTier].filter(Boolean).join(" ")}
+                          onSelect={() => navigate(`/targets/${t.id}`)}
+                          className="flex items-center gap-2.5 cursor-pointer py-2 px-3 mx-1 rounded-xl data-[selected=true]:bg-primary/8 data-[selected=true]:text-primary"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/15 flex items-center justify-center shrink-0">
+                            <Building2 size={12} className="text-primary/70" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-sans font-medium text-[13px] truncate">
+                              {t.projectName ?? t.targetCode ?? `Target #${t.id}`}
+                            </div>
+                            {t.currentStage && (
+                              <div className="text-[10px] font-mono text-muted-foreground/50 mt-0.5 truncate">{t.currentStage}</div>
+                            )}
+                          </div>
+                          {t.priorityTier && <TierBadge tier={t.priorityTier} />}
+                          <ChevronRight size={11} className="shrink-0 text-muted-foreground/25" />
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
                   )}
+
+                  {targets && targets.length > 0 && <CommandSeparator className="my-1.5" />}
+
+                  {/* ── Pages ─────────────────────────────────────────── */}
+                  <CommandGroup heading="Pages">
+                    {visiblePages.map((p) => {
+                      const Icon = p.icon;
+                      return (
+                        <CommandItem
+                          key={p.href}
+                          value={p.label}
+                          onSelect={() => navigate(p.href)}
+                          className="flex items-center gap-2.5 cursor-pointer py-2 px-3 mx-1 rounded-xl data-[selected=true]:bg-primary/8 data-[selected=true]:text-primary"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-muted/80 border border-border/40 flex items-center justify-center shrink-0">
+                            <Icon size={13} className="text-muted-foreground/70" />
+                          </div>
+                          <span className="font-sans text-[13px]">{p.label}</span>
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+
+                  <CommandSeparator className="my-1.5" />
+
+                  {/* ── Quick Actions ─────────────────────────────────── */}
+                  <CommandGroup heading="Quick Actions">
+                    {QUICK_ACTIONS.map((a) => {
+                      const Icon = a.icon;
+                      return (
+                        <CommandItem
+                          key={a.label}
+                          value={a.label}
+                          onSelect={() => navigate(a.href)}
+                          className="flex items-center gap-2.5 cursor-pointer py-2 px-3 mx-1 rounded-xl data-[selected=true]:bg-primary/8 data-[selected=true]:text-primary"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/15 flex items-center justify-center shrink-0">
+                            <Icon size={13} className="text-primary/70" />
+                          </div>
+                          <span className="font-sans text-[13px]">{a.label}</span>
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                </CommandList>
+
+                {/* Footer */}
+                <div className="flex items-center gap-3 px-3 py-2 border-t border-border/40 text-[10px] font-mono text-muted-foreground/30">
+                  <span><kbd className="bg-muted/60 px-1.5 py-0.5 rounded-md text-[9px]">↑↓</kbd> navigate</span>
+                  <span><kbd className="bg-muted/60 px-1.5 py-0.5 rounded-md text-[9px]">↵</kbd> select</span>
+                  <span><kbd className="bg-muted/60 px-1.5 py-0.5 rounded-md text-[9px]">esc</kbd> close</span>
                 </div>
-                {t.priorityTier && <TierBadge tier={t.priorityTier} />}
-                <ChevronRight size={11} className="shrink-0 text-muted-foreground/25" />
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        )}
-
-        {targets && targets.length > 0 && <CommandSeparator />}
-
-        {/* ── Pages ─────────────────────────────────────────────── */}
-        <CommandGroup heading="Pages">
-          {visiblePages.map((p) => {
-            const Icon = p.icon;
-            return (
-              <CommandItem
-                key={p.href}
-                value={p.label}
-                onSelect={() => navigate(p.href)}
-                className="flex items-center gap-2.5 cursor-pointer py-2 px-3 mx-1 rounded-xl"
-              >
-                <div className="w-7 h-7 rounded-lg bg-muted/80 flex items-center justify-center shrink-0">
-                  <Icon size={13} className="text-muted-foreground/70" />
-                </div>
-                <span className="font-sans text-[13px]">{p.label}</span>
-              </CommandItem>
-            );
-          })}
-        </CommandGroup>
-
-        <CommandSeparator />
-
-        {/* ── Quick Actions ─────────────────────────────────────── */}
-        <CommandGroup heading="Quick Actions">
-          {QUICK_ACTIONS.map((a) => {
-            const Icon = a.icon;
-            return (
-              <CommandItem
-                key={a.label}
-                value={a.label}
-                onSelect={() => navigate(a.href)}
-                className="flex items-center gap-2.5 cursor-pointer py-2 px-3 mx-1 rounded-xl"
-              >
-                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <Icon size={13} className="text-primary/70" />
-                </div>
-                <span className="font-sans text-[13px]">{a.label}</span>
-              </CommandItem>
-            );
-          })}
-        </CommandGroup>
-      </CommandList>
-
-      {/* Footer hint */}
-      <div className="flex items-center gap-3 px-3 py-2 border-t border-border/40 text-[10px] font-mono text-muted-foreground/35">
-        <span><kbd className="bg-muted px-1 py-0.5 rounded text-[9px]">↑↓</kbd> navigate</span>
-        <span><kbd className="bg-muted px-1 py-0.5 rounded text-[9px]">↵</kbd> select</span>
-        <span><kbd className="bg-muted px-1 py-0.5 rounded text-[9px]">esc</kbd> close</span>
-      </div>
-    </CommandDialog>
+              </Command>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }

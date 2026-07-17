@@ -320,8 +320,11 @@ function DroppableColumn({
       <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
         <div className={`flex flex-col gap-2 min-h-[80px] p-2 rounded-xl border ${isOver ? "border-primary/30 bg-primary/5" : "border-transparent"} transition-colors`}>
           {count === 0 && (
-            <div className="flex items-center justify-center h-16 text-[10px] font-mono text-muted-foreground/30">
-              0 deals
+            <div className="flex flex-col items-center justify-center h-20 gap-1.5 rounded-lg border border-dashed border-border/30">
+              <div className="w-6 h-6 rounded-lg bg-muted/40 flex items-center justify-center">
+                <span className="text-[10px] text-muted-foreground/30">∅</span>
+              </div>
+              <span className="text-[10px] font-sans text-muted-foreground/30">No deals</span>
             </div>
           )}
           {targets.map(t => (
