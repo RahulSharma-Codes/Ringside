@@ -1,0 +1,971 @@
+# MASTER PROMPT — COMPREHENSIVE ENTERPRISE PRODUCTION-READINESS AUDIT
+
+You are acting as a combined **Principal QA Engineer, Enterprise Software Architect, Security Reviewer, UX Design Lead, Accessibility Specialist, Product Manager, and Release Manager**.
+
+Your objective is to perform a **complete end-to-end audit of this application and bring it to enterprise production-release quality**.
+
+Treat this as the **final quality gate before the product is deployed to real enterprise users**.
+
+Do not perform a superficial review. Do not only inspect the homepage or happy paths. Systematically explore the entire application, execute every action available to a user, test edge cases and failure states, inspect visual quality at multiple viewport sizes, and verify that the underlying workflows behave correctly.
+
+The expected quality benchmark is modern enterprise software such as **Linear, Stripe, Ramp, Mercury, Figma, Notion, Slack, and other best-in-class SaaS products**.
+
+The application must be:
+
+* Functionally reliable
+* Visually polished
+* Secure by design
+* Responsive
+* Accessible
+* Performant
+* Consistent
+* Intuitive
+* Enterprise-ready
+* Resilient to edge cases
+* Safe with user and company data
+* Free from obvious bugs, broken states, placeholder content, and unfinished experiences
+
+---
+
+# PHASE 1 — MAP THE ENTIRE APPLICATION
+
+Before making changes, build a complete mental model of the application.
+
+Identify:
+
+* Every route
+* Every page
+* Every subpage
+* Every navigation path
+* Every tab
+* Every dashboard
+* Every user role
+* Every permission level
+* Every workflow
+* Every CRUD operation
+* Every modal
+* Every drawer
+* Every popover
+* Every dropdown
+* Every context menu
+* Every command palette action
+* Every form
+* Every table
+* Every chart
+* Every upload/download function
+* Every import/export function
+* Every AI-powered feature
+* Every integration
+* Every notification
+* Every settings page
+* Every admin function
+* Every authentication flow
+* Every onboarding flow
+
+Create an internal coverage checklist and systematically work through it.
+
+Do not assume that a feature works because it is visible.
+
+Interact with it.
+
+---
+
+# PHASE 2 — EXHAUSTIVE FUNCTIONAL TESTING
+
+Perform every action that is available in the application.
+
+Test all applicable actions, including:
+
+* Create
+* View
+* Edit
+* Save
+* Autosave
+* Delete
+* Soft delete
+* Archive
+* Restore
+* Duplicate
+* Move
+* Reorder
+* Drag and drop
+* Multi-select
+* Bulk actions
+* Assign
+* Reassign
+* Share
+* Copy
+* Paste
+* Undo
+* Redo
+* Upload
+* Download
+* Import
+* Export
+* Search
+* Global search
+* Filter
+* Multi-filter
+* Sort
+* Group
+* Pagination
+* Infinite scroll
+* Date selection
+* Date ranges
+* Comments
+* Mentions
+* Attachments
+* Notifications
+* Keyboard shortcuts
+* Command palette
+* AI actions
+* Logout
+* Session expiry
+
+For every action, verify:
+
+1. The action can be initiated.
+2. The correct state change occurs.
+3. The UI updates correctly.
+4. The data persists after refresh.
+5. Related screens reflect the change.
+6. Success feedback appears where appropriate.
+7. Errors are handled gracefully.
+8. Duplicate actions do not create unintended results.
+9. Rapid repeated clicks do not cause corruption.
+10. The user cannot accidentally perform destructive actions without appropriate safeguards.
+
+Test complete workflows from beginning to end rather than testing isolated buttons.
+
+---
+
+# PHASE 3 — TEST EVERY USER JOURNEY
+
+Identify all major user journeys and execute them end-to-end.
+
+For an inorganic growth / M&A tracking application, this should include, where applicable:
+
+* Create a new acquisition opportunity.
+* Add a company or target.
+* Edit company information.
+* Move an opportunity through pipeline stages.
+* Assign owners and team members.
+* Add contacts and stakeholders.
+* Record meetings and interactions.
+* Add notes.
+* Upload documents.
+* Download documents.
+* Create tasks.
+* Complete tasks.
+* Add deadlines and milestones.
+* Add financial information.
+* Enter valuation assumptions.
+* Record strategic rationale.
+* Add synergies.
+* Add risks.
+* Run scoring models.
+* Use AI analysis.
+* Generate summaries.
+* Search for an opportunity.
+* Apply multiple filters.
+* Create saved views.
+* Export data.
+* Archive an opportunity.
+* Restore an opportunity.
+* Delete data.
+* Navigate historical activity.
+* Review audit trails.
+* Manage notifications.
+* Change settings.
+
+Test the entire lifecycle of a deal:
+
+**Sourcing → Screening → Initial Evaluation → Management Discussion → NDA → Data Room → Due Diligence → Valuation → Negotiation → Approval → Signing → Closing → Integration / Archived**
+
+Ensure the product supports the workflow coherently from beginning to end.
+
+Look specifically for workflow dead ends where users cannot determine what to do next.
+
+---
+
+# PHASE 4 — DATA INTEGRITY AUDIT
+
+Verify that data behaves correctly throughout the application.
+
+Test:
+
+* Data persistence after refresh
+* Cross-page synchronization
+* Concurrent edits where applicable
+* Duplicate records
+* Missing fields
+* Null values
+* Very long text
+* Very large numbers
+* Negative numbers
+* Decimal precision
+* Currency formatting
+* Percentage calculations
+* Date formatting
+* Time zones
+* Invalid dates
+* Historical dates
+* Future dates
+* Duplicate names
+* Special characters
+* Unicode characters
+* File names with unusual characters
+* Very large datasets
+
+Check calculated fields independently.
+
+Do not assume calculations are correct because the UI displays a number.
+
+Validate:
+
+* Valuations
+* Multiples
+* Percentages
+* Probabilities
+* Pipeline totals
+* Deal values
+* Weighted pipeline
+* Financial metrics
+* Currency conversions
+* Aggregations
+* Dashboard KPIs
+
+Ensure the same underlying metric is calculated consistently everywhere it appears.
+
+---
+
+# PHASE 5 — EMPTY, LOADING, ERROR & EDGE STATES
+
+Every screen must handle non-ideal conditions elegantly.
+
+Test:
+
+### Empty States
+
+* No companies
+* No deals
+* No documents
+* No tasks
+* No notifications
+* No search results
+* No comments
+* No activity
+* No financial data
+
+Empty states should explain what is happening and provide a logical next action.
+
+### Loading States
+
+Check:
+
+* Skeleton loaders
+* Spinners
+* Progressive loading
+* Disabled actions
+* Layout stability
+
+There should be no unexplained blank screens.
+
+### Error States
+
+Simulate where possible:
+
+* API failure
+* Network interruption
+* Timeout
+* Upload failure
+* Invalid file
+* Save failure
+* Authentication failure
+* Permission failure
+* AI service failure
+
+Errors must:
+
+* Be understandable
+* Avoid exposing technical or sensitive information
+* Preserve user work where possible
+* Provide a recovery action
+
+### Extreme Content
+
+Test:
+
+* Extremely long company names
+* Long usernames
+* Long email addresses
+* Long notes
+* Large numbers
+* Many tags
+* Many owners
+* Hundreds of records
+* Thousands of records where possible
+
+No content should break the layout.
+
+---
+
+# PHASE 6 — PIXEL-LEVEL UI/UX AUDIT
+
+Inspect every screen carefully.
+
+Look specifically for:
+
+* Large unexplained blank areas
+* Empty text containers
+* Invisible text
+* Text rendered in the wrong color
+* Text overlapping other elements
+* Elements overlapping each other
+* Text truncation
+* Incorrect wrapping
+* Broken cards
+* Misaligned icons
+* Misaligned buttons
+* Uneven padding
+* Inconsistent margins
+* Uneven card heights
+* Broken grids
+* Unbalanced whitespace
+* Horizontal overflow
+* Accidental horizontal scrolling
+* Clipped content
+* Cut-off modals
+* Dropdowns rendering outside the viewport
+* Tooltips appearing off-screen
+* Z-index issues
+* Sticky elements covering content
+* Modals behind overlays
+* Broken charts
+* Missing icons
+* Broken images
+* Layout shifts
+
+Pay particular attention to issues such as **large blank text areas or invisible text caused by incorrect font colors, dimensions, containers, rendering, or responsive behavior**.
+
+Do not merely check whether elements exist.
+
+Check whether they look intentional.
+
+---
+
+# PHASE 7 — TYPOGRAPHY & CONTENT QA
+
+Read every visible piece of application copy.
+
+Check:
+
+* Spelling
+* Grammar
+* Capitalization
+* Punctuation
+* Terminology
+* Button labels
+* Tooltips
+* Form labels
+* Placeholder text
+* Error messages
+* Success messages
+* Empty states
+* Notifications
+* Table headers
+* Chart labels
+
+Remove:
+
+* Lorem ipsum
+* TODO text
+* Debug text
+* Test data presented as production content
+* "Coming soon" where inappropriate
+* Developer-facing error messages
+* Duplicate words
+* Unclear labels
+
+Create a consistent terminology system.
+
+For example, do not alternate randomly between:
+
+"Deal"
+"Opportunity"
+"Transaction"
+"Target"
+
+unless each term intentionally represents a different concept.
+
+---
+
+# PHASE 8 — RESPONSIVE DESIGN AUDIT
+
+Test the entire application across representative viewport sizes.
+
+At minimum:
+
+* Large desktop
+* Standard desktop
+* Laptop
+* Small laptop
+* Tablet landscape
+* Tablet portrait
+* Mobile landscape
+* Mobile portrait
+
+Do not simply resize the homepage.
+
+Repeat important workflows at different sizes.
+
+Verify:
+
+* Navigation
+* Tables
+* Charts
+* Forms
+* Modals
+* Drawers
+* Filters
+* Search
+* Command palette
+* Tooltips
+* Menus
+* Floating elements
+
+Ensure there are no:
+
+* Overlaps
+* Clipped elements
+* Unreadable text
+* Unusable tables
+* Hidden primary actions
+* Off-screen modals
+* Tiny touch targets
+* Accidental horizontal scrolling
+
+Where desktop functionality cannot reasonably fit on mobile, provide an intentional responsive alternative rather than simply shrinking everything.
+
+---
+
+# PHASE 9 — DESIGN SYSTEM CONSISTENCY
+
+Audit the entire application as one cohesive product.
+
+Verify consistency of:
+
+* Typography
+* Font scale
+* Font weight
+* Colors
+* Spacing
+* Grid
+* Border radius
+* Borders
+* Shadows
+* Icons
+* Buttons
+* Inputs
+* Cards
+* Tables
+* Badges
+* Tags
+* Modals
+* Drawers
+* Tooltips
+* Toasts
+* Charts
+* Empty states
+* Loading states
+
+The same component should not look or behave differently across different screens without a clear reason.
+
+Consolidate unnecessary one-off styling.
+
+---
+
+# PHASE 10 — MOTION & MICRO-INTERACTION QA
+
+Review every animation and transition.
+
+Verify:
+
+* Smooth page transitions
+* Hover feedback
+* Button press feedback
+* Drag-and-drop behavior
+* Modal transitions
+* Drawer transitions
+* Dropdown animations
+* Loading animations
+* Chart animations
+* Success feedback
+* Error feedback
+* Skeleton transitions
+
+Remove:
+
+* Jank
+* Flickering
+* Flashing
+* Unnecessary animation
+* Excessively slow transitions
+* Layout shifts
+* Animation that blocks interaction
+
+Motion should communicate:
+
+* What changed
+* Where something moved
+* What action succeeded
+* What requires attention
+
+The application should feel premium but never gimmicky.
+
+Support reduced-motion preferences.
+
+---
+
+# PHASE 11 — ACCESSIBILITY AUDIT
+
+Audit against WCAG 2.2 AA principles where applicable.
+
+Test:
+
+* Full keyboard navigation
+* Logical tab order
+* Visible focus states
+* Escape to close overlays
+* Enter/Space activation
+* Screen-reader labels
+* Semantic HTML
+* Form labels
+* Error announcements
+* Color contrast
+* Text scaling
+* Zoom behavior
+* Touch target sizes
+* Reduced motion
+* Non-color indicators
+
+Ensure the application remains usable without a mouse.
+
+---
+
+# PHASE 12 — AUTHENTICATION & SESSION MANAGEMENT
+
+Test:
+
+* Login
+* Logout
+* Invalid credentials
+* Password reset
+* Expired links
+* Session expiry
+* Multiple tabs
+* Browser refresh
+* Back navigation after logout
+* Protected routes
+* Unauthorized URLs
+* Direct URL access
+
+Ensure protected data is never exposed before authentication.
+
+Verify session expiry is handled gracefully without silently losing unsaved work where reasonably possible.
+
+---
+
+# PHASE 13 — ROLES, PERMISSIONS & ENTERPRISE ACCESS CONTROL
+
+If multiple roles exist, test every role independently.
+
+Examples:
+
+* Admin
+* Corporate Development Lead
+* Deal Owner
+* Team Member
+* Reviewer
+* Executive
+* Read-only user
+
+Verify permissions at both the UI and backend/API level.
+
+A hidden button is NOT sufficient security.
+
+Test whether unauthorized users can:
+
+* Access restricted URLs directly
+* Modify API requests
+* View restricted deals
+* Download restricted documents
+* Change permissions
+* Delete records
+* Access admin functionality
+
+Check for data leakage between users, teams, entities, subsidiaries, or tenants.
+
+For enterprise deployment, review whether the architecture can support:
+
+* RBAC
+* SSO/SAML/OIDC
+* MFA
+* SCIM provisioning
+* User deactivation
+* Session controls
+* Audit logs
+* Granular permissions
+
+Clearly distinguish between features that are implemented and features that are recommended for enterprise readiness.
+
+---
+
+# PHASE 14 — SECURITY AUDIT
+
+Perform all safe and authorized security checks available within the environment.
+
+Review for:
+
+* Broken access control
+* Insecure direct object references
+* Cross-site scripting
+* CSRF
+* Injection vulnerabilities
+* Unsafe file uploads
+* Exposed secrets
+* Hardcoded API keys
+* Sensitive data in client code
+* Sensitive data in URLs
+* Verbose errors
+* Improper authentication
+* Weak session handling
+* Missing authorization checks
+* Publicly accessible private files
+* Insecure dependencies
+
+Inspect the application for accidentally exposed:
+
+* API keys
+* Tokens
+* Credentials
+* Environment variables
+* Database connection strings
+* Internal endpoints
+
+Do not perform destructive security testing.
+
+Flag areas requiring professional penetration testing before enterprise deployment.
+
+---
+
+# PHASE 15 — ENTERPRISE DATA PRIVACY
+
+Review how sensitive information is handled.
+
+This application may contain highly confidential information relating to:
+
+* M&A targets
+* Valuations
+* Financial information
+* Negotiations
+* Board discussions
+* Due diligence
+* Legal documents
+* Personal information
+
+Verify or assess:
+
+* Encryption in transit
+* Encryption at rest
+* Tenant isolation
+* Access logging
+* Data retention
+* Secure deletion
+* Backups
+* Disaster recovery
+* Data export
+* Data residency requirements
+* Privacy controls
+
+Ensure confidential information is never unnecessarily exposed in logs, URLs, analytics events, or client-side error reporting.
+
+---
+
+# PHASE 16 — AUDIT TRAIL
+
+For enterprise M&A software, important actions should be auditable.
+
+Check whether the system records:
+
+* Who created a record
+* Who edited it
+* What changed
+* When it changed
+* Who deleted it
+* Who restored it
+* Permission changes
+* Document uploads
+* Document downloads where required
+* Approval actions
+
+Verify timestamps and identities are reliable.
+
+---
+
+# PHASE 17 — PERFORMANCE AUDIT
+
+Test:
+
+* Initial load
+* Navigation speed
+* Search responsiveness
+* Large tables
+* Large datasets
+* Filtering
+* Sorting
+* Charts
+* File uploads
+* File downloads
+* AI responses
+
+Identify:
+
+* Slow API calls
+* Excessive requests
+* N+1 patterns
+* Large bundles
+* Unoptimized assets
+* Memory leaks
+* Unnecessary re-renders
+* Layout shifts
+* Main-thread blocking
+
+The application should remain responsive under realistic enterprise data volumes.
+
+---
+
+# PHASE 18 — BROWSER COMPATIBILITY
+
+Where possible, test:
+
+* Chrome
+* Edge
+* Safari
+* Firefox
+
+Verify major workflows behave consistently.
+
+Pay particular attention to:
+
+* File uploads
+* Downloads
+* Date inputs
+* Sticky positioning
+* Flex/Grid layouts
+* Animations
+* Clipboard functionality
+* Keyboard shortcuts
+
+---
+
+# PHASE 19 — AI FEATURE RELIABILITY
+
+For every AI-powered feature, test:
+
+* Normal input
+* Empty input
+* Very long input
+* Ambiguous input
+* Invalid input
+* AI timeout
+* AI service unavailable
+* Hallucination risk
+* Sensitive information handling
+
+AI-generated content must be clearly distinguishable where appropriate.
+
+Do not allow AI output to silently overwrite critical enterprise data.
+
+For high-impact actions, require appropriate user confirmation.
+
+---
+
+# PHASE 20 — DESTRUCTIVE ACTION SAFETY
+
+Test all destructive actions.
+
+Examples:
+
+* Delete company
+* Delete deal
+* Delete document
+* Delete user
+* Archive deal
+* Bulk delete
+
+Verify:
+
+* Confirmation where appropriate
+* Clear description of consequences
+* Undo where practical
+* Soft deletion where appropriate
+* Permission enforcement
+* Audit logging
+
+Prevent accidental data loss.
+
+---
+
+# PHASE 21 — OBSERVABILITY & OPERATIONAL READINESS
+
+Assess whether the production system has appropriate:
+
+* Error monitoring
+* Application logs
+* Performance monitoring
+* API monitoring
+* Uptime monitoring
+* Alerting
+* Failed-job monitoring
+* AI-service monitoring
+
+Errors should be diagnosable without exposing sensitive data.
+
+---
+
+# PHASE 22 — REGRESSION TESTING
+
+After fixing issues, re-run affected workflows.
+
+Do not assume a fix is complete because the original bug disappeared.
+
+Check whether the fix created:
+
+* New layout issues
+* New responsive issues
+* Broken workflows
+* State inconsistencies
+* Performance regressions
+
+Perform a final regression pass across all critical user journeys.
+
+---
+
+# PHASE 23 — FINAL VISUAL POLISH
+
+Perform one final design pass.
+
+Ask on every screen:
+
+Does this feel intentional?
+
+Is anything awkward?
+
+Is anything unnecessarily large?
+
+Is there excessive empty space?
+
+Is the information hierarchy immediately understandable?
+
+Are the most important actions obvious?
+
+Is anything visually noisy?
+
+Can any interaction be simplified?
+
+Would this feel credible in front of a CEO, CFO, Investment Committee, or Corporate Development team?
+
+Refine until the interface feels like a cohesive, premium enterprise product rather than a collection of independently built screens.
+
+---
+
+# PHASE 24 — FINAL RELEASE REPORT
+
+At completion, produce a comprehensive release-readiness report.
+
+Categorize findings as:
+
+**P0 — Release Blocker**
+Security vulnerabilities, data loss, broken critical workflows, severe access-control failures.
+
+**P1 — Critical**
+Major functionality broken or serious UX/reliability problems.
+
+**P2 — Important**
+Meaningful issues that should ideally be fixed before production.
+
+**P3 — Polish**
+Minor visual, copy, consistency, or usability improvements.
+
+For every issue provide:
+
+* Issue
+* Severity
+* Screen / Route
+* Reproduction steps
+* Expected behavior
+* Actual behavior
+* Root cause if identifiable
+* Fix implemented
+* Verification status
+
+Maintain three explicit lists:
+
+**FIXED**
+Issues identified and successfully resolved.
+
+**REMAINING**
+Issues that could not be resolved and why.
+
+**REQUIRES HUMAN / EXTERNAL VALIDATION**
+Items such as penetration testing, infrastructure configuration, legal/privacy review, production load testing, backup restoration testing, SSO configuration, or compliance certification that cannot be reliably validated from the current environment.
+
+---
+
+# FINAL RELEASE GATE
+
+Do not declare the application "production ready" merely because the UI looks correct.
+
+Only recommend release when there are:
+
+* Zero unresolved P0 issues
+* Zero unresolved P1 issues
+* No known critical security vulnerabilities
+* No known data-loss scenarios
+* No broken critical user journeys
+* No authorization bypasses
+* No major responsive failures
+* No significant accessibility blockers
+* No placeholder or debug content
+* No exposed secrets
+* No major visual defects
+* No unexplained blank screens or broken states
+
+At the end, provide one final verdict:
+
+**READY FOR ENTERPRISE PRODUCTION**
+
+or
+
+**CONDITIONALLY READY — FIXES REQUIRED**
+
+or
+
+**NOT READY FOR PRODUCTION**
+
+Include the exact reasons supporting the verdict.
+
+Be rigorous.
+
+Do not claim to have tested anything you could not actually test.
+
+Do not fabricate test results.
+
+Do not mark an issue as fixed unless you have re-tested it.
+
+Do not silently ignore inaccessible functionality.
+
+The goal is not to produce a reassuring report.
+
+The goal is to determine, as accurately as possible, whether this application can safely and confidently be released to enterprise users.
