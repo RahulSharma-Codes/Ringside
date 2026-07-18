@@ -523,8 +523,8 @@ export function ValuationTab({ targetId, currentStage }: { targetId: number; cur
           <CardContent className="px-4 pb-4">
             {loadingSanity ? (
               <div className="space-y-2">
-                <div className="h-4 bg-muted/40 rounded animate-pulse w-3/4" />
-                <div className="h-4 bg-muted/40 rounded animate-pulse w-1/2" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
               </div>
             ) : !sanityData?.result ? (
               <div className="border border-dashed border-border rounded-sm py-8 text-center text-muted-foreground font-mono text-[11px] uppercase tracking-widest">
@@ -683,7 +683,7 @@ export function ValuationTab({ targetId, currentStage }: { targetId: number; cur
       <Dialog open={addOpen} onOpenChange={(o) => { if (!o) resetAddForm(); setAddOpen(o); }}>
         <DialogContent className="sm:max-w-[500px] border-border bg-sidebar rounded-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg">Record Valuation</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-lg">Record Valuation</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -763,7 +763,7 @@ export function ValuationTab({ targetId, currentStage }: { targetId: number; cur
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="sm:max-w-[400px] border-border bg-sidebar rounded-sm">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight">Delete Entry?</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-destructive">Delete Entry?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground py-2">This valuation entry will be permanently deleted.</p>
           <DialogFooter>

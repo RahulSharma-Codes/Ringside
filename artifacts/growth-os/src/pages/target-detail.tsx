@@ -376,7 +376,7 @@ export default function TargetDetail() {
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="sm:max-w-[425px] border-destructive bg-sidebar rounded-sm">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg text-destructive">Archive Target</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-lg text-destructive">Archive Deal</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-muted-foreground">
@@ -400,7 +400,7 @@ export default function TargetDetail() {
               <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
                 <Bot size={13} className="text-primary" />
               </div>
-              <DialogTitle className="font-mono uppercase tracking-tight text-base">AI Opportunity Brief</DialogTitle>
+              <DialogTitle className="font-sans font-semibold text-base">AI Opportunity Brief</DialogTitle>
               {briefContent && (
                 <span className="text-[10px] font-mono text-muted-foreground/60 bg-muted/60 border border-border/50 px-2 py-0.5 rounded-md ml-auto">
                   {target.projectName}

@@ -199,7 +199,7 @@ function DocModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[560px] border-border bg-sidebar rounded-sm">
         <DialogHeader>
-          <DialogTitle className="font-mono uppercase tracking-tight text-base">{modalTitle}</DialogTitle>
+          <DialogTitle className="font-sans font-semibold text-base">{modalTitle}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
@@ -344,7 +344,7 @@ function RestrictedPreviewModal({
     <Dialog open={open} onOpenChange={(v) => { if (!v) onCancel(); }}>
       <DialogContent className="sm:max-w-[440px] border-amber-500/40 bg-sidebar rounded-sm">
         <DialogHeader>
-          <DialogTitle className="font-mono uppercase tracking-tight text-base text-amber-400 flex items-center gap-2">
+          <DialogTitle className="font-sans font-semibold text-base text-amber-400 flex items-center gap-2">
             <Lock size={14} /> Restricted Document
           </DialogTitle>
         </DialogHeader>

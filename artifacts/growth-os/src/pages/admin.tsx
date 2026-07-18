@@ -485,7 +485,7 @@ export default function AdminPage() {
       <Dialog open={inviteOpen} onOpenChange={(o) => { if (!o) closeInviteDialog(); }}>
         <DialogContent className="sm:max-w-md border-border bg-sidebar rounded-sm">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-base">
+            <DialogTitle className="font-sans font-semibold text-base">
               {inviteLink ? "Share Invite Link" : "Send Invite"}
             </DialogTitle>
           </DialogHeader>
@@ -626,7 +626,7 @@ export default function AdminPage() {
       <Dialog open={!!accessUser} onOpenChange={(o) => { if (!o) setAccessUser(null); }}>
         <DialogContent className="sm:max-w-md border-border bg-sidebar rounded-sm">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-base flex items-center gap-2">
+            <DialogTitle className="font-sans font-semibold text-base flex items-center gap-2">
               <Eye size={15} className="text-primary" /> Deal Access
             </DialogTitle>
           </DialogHeader>
@@ -698,7 +698,7 @@ export default function AdminPage() {
       <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
         <DialogContent className="sm:max-w-sm border-border bg-sidebar rounded-sm">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-base text-destructive">
+            <DialogTitle className="font-sans font-semibold text-base text-destructive">
               Remove User
             </DialogTitle>
           </DialogHeader>

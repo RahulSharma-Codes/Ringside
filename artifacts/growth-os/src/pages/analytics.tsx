@@ -49,7 +49,7 @@ function SectionCard({
         <div className="flex items-center gap-2.5">
           <span className="text-primary/70">{icon}</span>
           <div>
-            <CardTitle className="text-sm font-mono font-semibold uppercase tracking-wider">{title}</CardTitle>
+            <CardTitle className="text-sm font-sans font-semibold">{title}</CardTitle>
             {subtitle && <p className="text-[10px] text-muted-foreground font-mono mt-0.5">{subtitle}</p>}
           </div>
         </div>

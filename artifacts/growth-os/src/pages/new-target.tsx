@@ -118,7 +118,7 @@ export default function NewTarget() {
             <div className="md:col-span-2 space-y-6">
               <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
                 <CardHeader className="border-b border-border pb-4">
-                  <CardTitle className="font-mono text-sm uppercase tracking-wider text-primary">Core Identity</CardTitle>
+                  <CardTitle className="font-sans font-semibold text-sm text-primary">Core Identity</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -184,7 +184,7 @@ export default function NewTarget() {
 
               <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
                 <CardHeader className="border-b border-border pb-4">
-                  <CardTitle className="font-mono text-sm uppercase tracking-wider text-primary">Categorization</CardTitle>
+                  <CardTitle className="font-sans font-semibold text-sm text-primary">Categorization</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -285,7 +285,7 @@ export default function NewTarget() {
 
               <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
                 <CardHeader className="border-b border-border pb-4">
-                  <CardTitle className="font-mono text-sm uppercase tracking-wider text-primary">Deal Team &amp; Origination</CardTitle>
+                  <CardTitle className="font-sans font-semibold text-sm text-primary">Deal Team &amp; Origination</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-4">
                   <FormField
@@ -366,8 +366,8 @@ export default function NewTarget() {
                   <CollapsibleTrigger asChild>
                     <CardHeader className="border-b border-border pb-4 cursor-pointer hover:bg-muted/20 transition-colors rounded-t-sm">
                       <div className="flex items-center justify-between">
-                        <CardTitle className="font-mono text-sm uppercase tracking-wider text-muted-foreground">
-                          Scoring <span className="text-[10px] normal-case tracking-normal font-normal text-muted-foreground/60 ml-1">(optional — can be added later)</span>
+                        <CardTitle className="font-sans font-semibold text-sm text-muted-foreground">
+                          Scoring <span className="text-[10px] font-sans normal-case tracking-normal font-normal text-muted-foreground/60 ml-1">(optional — can be added later)</span>
                         </CardTitle>
                         {scoringOpen ? <ChevronDown size={14} className="text-muted-foreground" /> : <ChevronRight size={14} className="text-muted-foreground" />}
                       </div>
@@ -420,7 +420,7 @@ export default function NewTarget() {
             <div className="space-y-6">
               <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
                 <CardHeader className="border-b border-border pb-4">
-                  <CardTitle className="font-mono text-sm uppercase tracking-wider text-primary">Initial Assessment</CardTitle>
+                  <CardTitle className="font-sans font-semibold text-sm text-primary">Initial Assessment</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
                   <FormField

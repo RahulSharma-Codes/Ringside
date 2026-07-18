@@ -281,7 +281,7 @@ export function InteractionsTab({ targetId, addOpen, onAddOpenChange }: Interact
       <Dialog open={interactionOpen} onOpenChange={(open) => { if (!open) resetInterForm(); setInteractionOpen(open); }}>
         <DialogContent className="sm:max-w-[540px] border-border bg-sidebar rounded-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg">Record Deal Activity</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-lg">Record Deal Activity</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -335,7 +335,7 @@ export function InteractionsTab({ targetId, addOpen, onAddOpenChange }: Interact
       <Dialog open={editInterOpen} onOpenChange={setEditInterOpen}>
         <DialogContent className="sm:max-w-[540px] border-border bg-sidebar rounded-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg">Edit Interaction</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-lg">Edit Interaction</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -389,7 +389,7 @@ export function InteractionsTab({ targetId, addOpen, onAddOpenChange }: Interact
       <Dialog open={deleteInterOpen} onOpenChange={(open) => { if (!open) setDeleteInterId(null); setDeleteInterOpen(open); }}>
         <DialogContent className="sm:max-w-[400px] border-destructive bg-sidebar rounded-sm">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg text-destructive">Delete Interaction</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-lg text-destructive">Delete Interaction</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-muted-foreground">

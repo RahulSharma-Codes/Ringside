@@ -618,7 +618,7 @@ export function SynergiesTab({ targetId, currentStage }: { targetId: number; cur
       <Dialog open={addOpen} onOpenChange={(open) => { if (!open) setForm(emptyForm()); setAddOpen(open); }}>
         <DialogContent className="sm:max-w-[580px] border-border bg-sidebar rounded-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg">Add Synergy Hypothesis</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-lg">Add Synergy Hypothesis</DialogTitle>
           </DialogHeader>
           <SynergyFormFields form={form} onChange={patchForm} canEditStatus={canEditStatus} />
           <DialogFooter>
@@ -634,7 +634,7 @@ export function SynergiesTab({ targetId, currentStage }: { targetId: number; cur
       <Dialog open={editOpen} onOpenChange={(open) => { if (!open) { setForm(emptyForm()); setEditId(null); } setEditOpen(open); }}>
         <DialogContent className="sm:max-w-[580px] border-border bg-sidebar rounded-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg">Edit Synergy Hypothesis</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-lg">Edit Synergy Hypothesis</DialogTitle>
           </DialogHeader>
           <SynergyFormFields form={form} onChange={patchForm} canEditStatus={canEditStatus} />
           <DialogFooter>
@@ -650,7 +650,7 @@ export function SynergiesTab({ targetId, currentStage }: { targetId: number; cur
       <Dialog open={deleteOpen} onOpenChange={(open) => { setDeleteOpen(open); if (!open) setDeleteId(null); }}>
         <DialogContent className="sm:max-w-[400px] border-destructive bg-sidebar rounded-sm">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg text-destructive">Delete Synergy</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-lg text-destructive">Delete Synergy</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-muted-foreground">This will permanently remove this synergy hypothesis. This action cannot be undone.</p>

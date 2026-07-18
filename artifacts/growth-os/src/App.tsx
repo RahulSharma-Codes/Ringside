@@ -139,7 +139,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
           <p className="text-[9px] font-mono uppercase tracking-[0.25em] text-muted-foreground/40">
             Manipal Group · Corporate Development
           </p>
-          <h1 className="font-mono font-bold text-4xl uppercase tracking-[0.15em] text-foreground">
+          <h1 className="font-sans font-bold text-4xl uppercase tracking-[0.15em] text-foreground">
             Ringside
           </h1>
           <p className="text-[10px] font-mono text-muted-foreground/40 tracking-widest uppercase">

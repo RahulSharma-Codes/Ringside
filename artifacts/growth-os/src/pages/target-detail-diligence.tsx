@@ -500,8 +500,8 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
 
               {loadingDd ? (
                 <div className="space-y-2">
-                  <div className="h-4 bg-muted/40 rounded animate-pulse w-3/4" />
-                  <div className="h-4 bg-muted/40 rounded animate-pulse w-1/2" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
                 </div>
               ) : !ddData?.result ? (
                 <div className="border border-dashed border-border rounded-sm py-8 text-center text-muted-foreground font-mono text-[11px] uppercase tracking-widest">
@@ -698,7 +698,7 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
       <Dialog open={addOpen} onOpenChange={(o) => { if (!o) resetAddForm(); setAddOpen(o); }}>
         <DialogContent className="sm:max-w-[540px] border-border bg-sidebar rounded-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg">Add Diligence Item</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-lg">Add Diligence Item</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="space-y-2">
@@ -807,7 +807,7 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-[540px] border-border bg-sidebar rounded-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg">Edit Diligence Item</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-lg">Edit Diligence Item</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="space-y-2">
@@ -911,7 +911,7 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
       <Dialog open={deleteOpen} onOpenChange={(o) => { if (!o) setDeleteId(null); setDeleteOpen(o); }}>
         <DialogContent className="sm:max-w-[400px] border-destructive bg-sidebar rounded-sm">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg text-destructive">Delete Diligence Item</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-lg text-destructive">Delete Diligence Item</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-muted-foreground">This will permanently remove the diligence item. This action cannot be undone.</p>

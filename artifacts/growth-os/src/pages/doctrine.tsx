@@ -558,7 +558,7 @@ export default function Doctrine() {
         {/* Panel 1 — Verdict Accuracy by Sector */}
         <Card className="border-border/60 bg-card rounded-xl">
           <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="font-mono uppercase tracking-tight text-sm">
+            <CardTitle className="font-sans font-semibold text-sm">
               Phase 1 Accuracy by Sector
             </CardTitle>
           </CardHeader>
@@ -601,7 +601,7 @@ export default function Doctrine() {
         <Card className="border-border/60 bg-card rounded-xl">
           <CardHeader className="pb-2 pt-4 px-4">
             <div className="flex items-start justify-between gap-3 flex-wrap">
-              <CardTitle className="font-mono uppercase tracking-tight text-sm">
+              <CardTitle className="font-sans font-semibold text-sm">
                 Accuracy Over Time
               </CardTitle>
               <div className="flex items-center gap-2 flex-wrap">
@@ -744,7 +744,7 @@ export default function Doctrine() {
         <Card className="border-border/60 bg-card rounded-xl">
           <CardHeader className="pb-2 pt-4 px-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="font-mono uppercase tracking-tight text-sm">
+              <CardTitle className="font-sans font-semibold text-sm">
                 Win / Loss by Sector
               </CardTitle>
               <Link href="/analytics">
@@ -799,7 +799,7 @@ export default function Doctrine() {
         {/* Panel 3 — Most Common Miss Themes */}
         <Card className="border-border/60 bg-card rounded-xl">
           <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="font-mono uppercase tracking-tight text-sm">
+            <CardTitle className="font-sans font-semibold text-sm">
               Most Common Miss Themes
             </CardTitle>
           </CardHeader>
@@ -837,7 +837,7 @@ export default function Doctrine() {
         <Card className="border-border/60 bg-card rounded-xl">
           <CardHeader className="pb-2 pt-4 px-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="font-mono uppercase tracking-tight text-sm">
+              <CardTitle className="font-sans font-semibold text-sm">
                 Recent Closures
               </CardTitle>
               <Link href="/analytics">

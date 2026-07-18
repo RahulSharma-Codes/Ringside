@@ -5,6 +5,7 @@ import {
   ChevronDown, ChevronRight, Hash, RefreshCw, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { customFetch } from "@workspace/api-client-react";
 import { formatDistanceToNow } from "date-fns";
@@ -164,7 +165,7 @@ export function AuditTrailTab({ targetId }: { targetId: number }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-0.5">
-          <h3 className="font-mono text-sm font-semibold uppercase tracking-wider">Audit Trail</h3>
+          <h3 className="font-sans text-sm font-semibold">Audit Trail</h3>
           <p className="text-[10px] text-muted-foreground/60 font-mono">Immutable event log — IC and stage events are hash-chained</p>
         </div>
         <div className="flex items-center gap-2">
@@ -208,7 +209,7 @@ export function AuditTrailTab({ targetId }: { targetId: number }) {
       {isLoading && (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-14 rounded-sm bg-muted/20 animate-pulse" />
+            <Skeleton key={i} className="h-14 rounded-sm" />
           ))}
         </div>
       )}

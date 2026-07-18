@@ -336,7 +336,7 @@ export function ActionsTab({ targetId, addOpen, onAddOpenChange }: ActionsTabPro
       <Dialog open={actionOpen} onOpenChange={(open) => { if (!open) resetActionForm(); setActionOpen(open); }}>
         <DialogContent className="sm:max-w-[500px] border-border bg-sidebar rounded-sm">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg">Add Action Item</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-lg">Add Action Item</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="space-y-2">
@@ -374,7 +374,7 @@ export function ActionsTab({ targetId, addOpen, onAddOpenChange }: ActionsTabPro
       <Dialog open={editActionOpen} onOpenChange={setEditActionOpen}>
         <DialogContent className="sm:max-w-[500px] border-border bg-sidebar rounded-sm">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg">Edit Action Item</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-lg">Edit Action Item</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="space-y-2">
@@ -421,7 +421,7 @@ export function ActionsTab({ targetId, addOpen, onAddOpenChange }: ActionsTabPro
       <Dialog open={deleteActionOpen} onOpenChange={(open) => { if (!open) setDeleteActionId(null); setDeleteActionOpen(open); }}>
         <DialogContent className="sm:max-w-[400px] border-destructive bg-sidebar rounded-sm">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg text-destructive">Delete Action</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-lg text-destructive">Delete Action</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-muted-foreground">

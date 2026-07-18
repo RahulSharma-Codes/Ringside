@@ -487,7 +487,7 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
       <Dialog open={cpEditOpen} onOpenChange={setCpEditOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg">Edit Counterparty</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-lg">Edit Counterparty</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 gap-3 py-2">
             {([
@@ -543,7 +543,7 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
       <Dialog open={advisorAddOpen || advisorEditOpen} onOpenChange={(open) => { if (!open) { setAdvisorAddOpen(false); setAdvisorEditOpen(false); } }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg">{advisorEditOpen ? "Edit Advisor" : "Add Advisor"}</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-lg">{advisorEditOpen ? "Edit Advisor" : "Add Advisor"}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 gap-3 py-2">
             <div className="grid grid-cols-2 gap-3">
@@ -639,7 +639,7 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
       <AlertDialog open={advisorDeleteOpen} onOpenChange={setAdvisorDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-mono uppercase text-destructive">Remove Advisor?</AlertDialogTitle>
+            <AlertDialogTitle className="font-sans font-semibold text-destructive">Remove Advisor?</AlertDialogTitle>
             <AlertDialogDescription>This will permanently remove this advisor record.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -656,7 +656,7 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
       <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg">Add Resolution Note</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-lg">Add Resolution Note</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 gap-3 py-2">
             <div className="flex items-center gap-2 rounded-sm border border-border/50 bg-muted/30 px-3 py-2">
@@ -707,7 +707,7 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
       <Dialog open={sponsorAddOpen || sponsorEditOpen} onOpenChange={(open) => { if (!open) { setSponsorAddOpen(false); setSponsorEditOpen(false); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-tight text-lg">{sponsorEditOpen ? "Edit Sponsor" : "Add Sponsor"}</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-lg">{sponsorEditOpen ? "Edit Sponsor" : "Add Sponsor"}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 gap-3 py-2">
             {([
@@ -766,7 +766,7 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
       <AlertDialog open={sponsorDeleteOpen} onOpenChange={setSponsorDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-mono uppercase text-destructive">Remove Sponsor?</AlertDialogTitle>
+            <AlertDialogTitle className="font-sans font-semibold text-destructive">Remove Sponsor?</AlertDialogTitle>
             <AlertDialogDescription>This will permanently remove this sponsor record.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

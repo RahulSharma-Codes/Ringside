@@ -124,7 +124,7 @@ export function EditTargetDialog({ open, onOpenChange, targetId, target, onSucce
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] border-border bg-sidebar rounded-sm max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-mono uppercase tracking-tight text-lg">Edit Target</DialogTitle>
+          <DialogTitle className="font-sans font-semibold text-lg">Edit Deal</DialogTitle>
         </DialogHeader>
         <div className="py-4 space-y-5">
           <div>

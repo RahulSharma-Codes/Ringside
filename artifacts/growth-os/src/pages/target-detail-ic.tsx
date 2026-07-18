@@ -495,7 +495,7 @@ function ProposalCard({ proposal, targetId }: { proposal: IcProposal; targetId: 
       <Dialog open={addVoterOpen} onOpenChange={setAddVoterOpen}>
         <DialogContent className="sm:max-w-sm rounded-sm">
           <DialogHeader>
-            <DialogTitle className="font-mono text-sm uppercase tracking-wider">Add Voter</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-sm">Add Voter</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <Input
@@ -524,7 +524,7 @@ function ProposalCard({ proposal, targetId }: { proposal: IcProposal; targetId: 
       <Dialog open={voteDialogOpen} onOpenChange={setVoteDialogOpen}>
         <DialogContent className="sm:max-w-md rounded-sm">
           <DialogHeader>
-            <DialogTitle className="font-mono text-sm uppercase tracking-wider">Cast Vote</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-sm">Cast Vote</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -598,7 +598,7 @@ function ProposalCard({ proposal, targetId }: { proposal: IcProposal; targetId: 
       <AlertDialog open={resolveConfirmOpen} onOpenChange={setResolveConfirmOpen}>
         <AlertDialogContent className="rounded-sm">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-mono text-sm uppercase tracking-wider">Resolve Proposal?</AlertDialogTitle>
+            <AlertDialogTitle className="font-sans font-semibold text-sm">Resolve Proposal?</AlertDialogTitle>
             <AlertDialogDescription className="font-mono text-xs text-muted-foreground">
               This will compute the final outcome from all votes cast and lock the proposal. Outcome is immutable after resolving.
               {pendingCount > 0 && ` ${pendingCount} voter(s) haven't voted yet — only allowed if the voting deadline has passed.`}
@@ -620,7 +620,7 @@ function ProposalCard({ proposal, targetId }: { proposal: IcProposal; targetId: 
       <Dialog open={cpEditOpen} onOpenChange={(open) => { setCpEditOpen(open); if (!open) setCpEditId(null); }}>
         <DialogContent className="sm:max-w-sm rounded-sm">
           <DialogHeader>
-            <DialogTitle className="font-mono text-sm uppercase tracking-wider">Edit CP</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-sm">Edit CP</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -1484,7 +1484,7 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
       <Dialog open={proposalDialogOpen} onOpenChange={setProposalDialogOpen}>
         <DialogContent className="sm:max-w-lg rounded-sm">
           <DialogHeader>
-            <DialogTitle className="font-mono text-sm uppercase tracking-wider">Submit IC Proposal</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-sm">Submit IC Proposal</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
@@ -1556,7 +1556,7 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
       <Dialog open={icAddOpen} onOpenChange={setIcAddOpen}>
         <DialogContent className="sm:max-w-md rounded-sm">
           <DialogHeader>
-            <DialogTitle className="font-mono text-sm uppercase tracking-wider">Log IC Session</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-sm">Log IC Session</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -1607,7 +1607,7 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
       <Dialog open={icEditOpen} onOpenChange={setIcEditOpen}>
         <DialogContent className="sm:max-w-md rounded-sm">
           <DialogHeader>
-            <DialogTitle className="font-mono text-sm uppercase tracking-wider">Edit IC Session</DialogTitle>
+            <DialogTitle className="font-sans font-semibold text-sm">Edit IC Session</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -1658,7 +1658,7 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
       <AlertDialog open={icDeleteOpen} onOpenChange={setIcDeleteOpen}>
         <AlertDialogContent className="rounded-sm">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-mono text-sm uppercase tracking-wider">Delete IC Session?</AlertDialogTitle>
+            <AlertDialogTitle className="font-sans font-semibold text-sm">Delete IC Session?</AlertDialogTitle>
             <AlertDialogDescription className="font-mono text-xs text-muted-foreground">
               This action cannot be undone.
             </AlertDialogDescription>

@@ -83,7 +83,7 @@ export function ExportDialog({ open, onOpenChange, filterParams }: ExportDialogP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[420px]">
         <DialogHeader>
-          <DialogTitle className="font-mono tracking-wide text-sm uppercase">Export Pipeline</DialogTitle>
+          <DialogTitle className="font-sans font-semibold text-sm">Export Pipeline</DialogTitle>
         </DialogHeader>
 
         <div className="text-xs text-muted-foreground mb-3">

@@ -521,7 +521,7 @@ export default function ImportWizard() {
       {step === "upload" && (
         <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="font-mono text-sm uppercase tracking-wider">Upload File</CardTitle>
+            <CardTitle className="font-sans font-semibold text-sm">Upload File</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {!fileReady ? (
@@ -642,9 +642,9 @@ export default function ImportWizard() {
       {step === "map" && (
         <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="font-mono text-sm uppercase tracking-wider flex items-center justify-between">
+            <CardTitle className="font-sans font-semibold text-sm flex items-center justify-between">
               <span>Map Columns</span>
-              <span className="text-muted-foreground font-normal text-xs">{fileName} · {rows.length} rows</span>
+              <span className="text-muted-foreground font-sans font-normal text-xs">{fileName} · {rows.length} rows</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -751,7 +751,7 @@ export default function ImportWizard() {
           {validateResult.toCreate.length > 0 && (
             <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="font-mono text-xs uppercase tracking-wider flex items-center gap-2">
+                <CardTitle className="font-sans font-semibold text-xs flex items-center gap-2">
                   <Badge className="bg-green-500/20 text-green-600 dark:text-green-400 border-0 font-mono text-[9px]">New</Badge>
                   {validateResult.toCreate.length} target{validateResult.toCreate.length !== 1 ? "s" : ""} to create
                 </CardTitle>
@@ -774,10 +774,10 @@ export default function ImportWizard() {
           {validateResult.toUpdate.length > 0 && (
             <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="font-mono text-xs uppercase tracking-wider flex items-center gap-2">
+                <CardTitle className="font-sans font-semibold text-xs flex items-center gap-2">
                   <Badge className="bg-primary/20 text-primary border-0 font-mono text-[9px]">Update</Badge>
                   {validateResult.toUpdate.length} target{validateResult.toUpdate.length !== 1 ? "s" : ""} to update
-                  <span className="text-muted-foreground font-normal text-[9px] ml-1">(click a row to see before/after)</span>
+                  <span className="text-muted-foreground font-sans font-normal text-[9px] ml-1">(click a row to see before/after)</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -794,7 +794,7 @@ export default function ImportWizard() {
           {validateResult.toSkip.length > 0 && (
             <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="font-mono text-xs uppercase tracking-wider flex items-center gap-2">
+                <CardTitle className="font-sans font-semibold text-xs flex items-center gap-2">
                   <Badge variant="outline" className="font-mono text-[9px] rounded-sm border-muted-foreground text-muted-foreground">
                     Skipped
                   </Badge>
@@ -836,7 +836,7 @@ export default function ImportWizard() {
       {step === "apply" && validateResult && (
         <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="font-mono text-sm uppercase tracking-wider">Confirm Import</CardTitle>
+            <CardTitle className="font-sans font-semibold text-sm">Confirm Import</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             <p className="text-xs font-mono text-muted-foreground">

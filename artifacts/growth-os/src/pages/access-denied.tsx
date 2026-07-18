@@ -16,7 +16,7 @@ export default function AccessDenied() {
         </p>
       </div>
       <Link href="/">
-        <Button variant="outline" className="font-mono text-xs uppercase tracking-wider rounded-sm">
+        <Button variant="outline" className="font-sans text-xs rounded-sm">
           ← Back to Dashboard
         </Button>
       </Link>
