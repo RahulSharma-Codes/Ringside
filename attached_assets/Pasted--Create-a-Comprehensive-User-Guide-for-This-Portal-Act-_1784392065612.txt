@@ -1,0 +1,341 @@
+# Create a Comprehensive User Guide for This Portal
+
+Act as an expert **Product Documentation Lead, UX Writer, and Visual Designer**.
+
+Your task is to create a **complete, professional, visually appealing user guide for this portal**, based strictly on the functionality that actually exists in the application.
+
+The objective is simple:
+
+> A completely new user should be able to read this guide, understand what the portal does, navigate it confidently, and know how to use every available feature and important workflow.
+
+## 1. Explore the Portal First
+
+Before writing the guide, thoroughly explore the entire portal.
+
+Systematically visit every accessible page, section, tab, menu, view, modal, drawer, settings area, and other relevant interface.
+
+Interact with available features where safe and appropriate to understand how they actually work.
+
+Identify:
+
+* What the portal does
+* Who it appears to be designed for
+* The main sections and modules
+* Every available feature
+* The purpose of each feature
+* The actions users can perform
+* The important workflows connecting different parts of the portal
+* Any different views, states, or configurations that users need to understand
+
+Do not rely only on navigation labels. Open features and interact with them sufficiently to understand their actual purpose.
+
+**Only document functionality that you can verify exists.**
+
+Do not invent, assume, or describe features simply because similar applications normally have them.
+
+If something cannot be verified, either omit it or clearly identify it as unverified.
+
+---
+
+## 2. Understand the Portal as a Complete Product
+
+Before documenting individual features, develop a clear understanding of how the portal works as a whole.
+
+Determine:
+
+* The primary purpose of the portal
+* The key problems it helps users solve
+* The major areas of functionality
+* How information flows through the system
+* How different sections connect
+* The typical journeys a user is likely to follow
+
+Use this understanding to determine the most logical structure for the guide.
+
+Do not force the portal into a predetermined documentation structure. Let the **actual product architecture and user experience determine the structure of the guide**.
+
+---
+
+## 3. Create a Clear Introduction
+
+Begin the guide with a concise overview that explains:
+
+* What the portal is
+* What users can accomplish with it
+* How the portal is broadly organized
+* How users should think about the overall workflow
+
+Keep this section simple enough for a first-time user to understand.
+
+Where useful, include a visual overview, annotated screenshot, or simple workflow diagram to provide an immediate mental model of the product.
+
+---
+
+## 4. Explain Every Major Area of the Portal
+
+Create a dedicated section for each major area or module discovered during your exploration.
+
+For each area, explain:
+
+**What it is**
+A simple explanation of the feature or section.
+
+**What it is used for**
+Why and when a user would use it.
+
+**What the user sees**
+Explain the important information, controls, indicators, and interface elements.
+
+**What the user can do**
+Explain all meaningful actions available.
+
+**How to use it**
+Provide clear step-by-step instructions for actions that are not immediately obvious.
+
+**What happens next**
+Where relevant, explain how actions affect other parts of the portal or connect to subsequent workflows.
+
+Use practical language rather than technical descriptions.
+
+---
+
+## 5. Document Important Workflows
+
+Do not limit the guide to explaining individual screens.
+
+Identify the important end-to-end workflows that actually exist in the portal and explain them from beginning to end.
+
+For each workflow:
+
+1. Explain the objective.
+2. Explain where to begin.
+3. Walk through each step.
+4. Show the relevant screens where helpful.
+5. Explain the expected result.
+6. Explain what the user can or should do next.
+
+Where useful, create a simple visual flow showing how the steps connect.
+
+Only document workflows that can be verified in the application.
+
+---
+
+## 6. Use Screenshots Intelligently
+
+Capture and include screenshots wherever they materially improve understanding.
+
+Prioritize screenshots for:
+
+* Important screens
+* Complex interfaces
+* Key workflows
+* Features that may not be immediately intuitive
+* Actions involving multiple steps
+
+Do not include screenshots simply to increase the number of visuals.
+
+Where useful, annotate screenshots with:
+
+* Numbered callouts
+* Highlight boxes
+* Arrows
+* Short labels
+
+Annotations should help users understand exactly where to look or click.
+
+Use cropped screenshots when a full-screen image would make the relevant feature too small to understand.
+
+Maintain consistent screenshot sizing and annotation styles throughout the guide.
+
+Ensure screenshots are:
+
+* Clear
+* Current
+* High resolution
+* Properly aligned
+* Not stretched
+* Free from unnecessary browser clutter where possible
+
+Do not expose confidential, sensitive, or personal information in screenshots. Use appropriate safe or demonstration data where available.
+
+---
+
+## 7. Make the Guide Visually Engaging
+
+The final output should not look like a plain technical manual or a large wall of text.
+
+Create a polished, modern enterprise documentation experience.
+
+Use a combination of:
+
+* Clear headings
+* Short paragraphs
+* Screenshots
+* Annotated visuals
+* Step-by-step instructions
+* Tables where useful
+* Process diagrams where useful
+* Icons where appropriate
+* Callout boxes
+* Tips and notes
+* Visual separation between sections
+
+Use whitespace thoughtfully.
+
+Keep pages visually balanced and avoid:
+
+* Large unexplained blank spaces
+* Overcrowded pages
+* Excessive text
+* Tiny screenshots
+* Repetitive screenshots
+* Poorly aligned elements
+* Awkward page breaks
+* Images separated from their explanations
+
+The visual quality should feel comparable to documentation produced by a high-quality modern enterprise software company.
+
+---
+
+## 8. Write for a First-Time User
+
+Assume the reader has never used the portal before.
+
+Use clear, professional, easy-to-understand language.
+
+Do not assume that users understand what an icon or control does simply because it appears obvious.
+
+At the same time, avoid over-explaining basic actions unnecessarily.
+
+Focus on answering:
+
+> What is this?
+
+> Why would I use it?
+
+> How do I use it?
+
+> What happens when I do this?
+
+> What should I do next?
+
+Keep explanations concise but complete.
+
+---
+
+## 9. Include a Quick Start Section
+
+Create a short **Quick Start** section near the beginning of the guide.
+
+This should allow a new user to understand the essential functionality and begin using the portal without reading the complete guide.
+
+Determine the contents of the Quick Start based on the actual portal and its most important user journeys.
+
+---
+
+## 10. Create Useful Reference Sections
+
+Based on what actually exists in the portal, determine whether the guide would benefit from sections such as:
+
+* Frequently asked questions
+* Tips and best practices
+* Troubleshooting
+* Glossary
+* Quick reference
+
+Only include these sections when they add genuine value.
+
+Do not add generic or speculative content merely to make the guide longer.
+
+---
+
+## 11. Make the Guide Easy to Navigate
+
+Structure the document professionally.
+
+Where supported by the output format, include:
+
+* Cover page
+* Guide title
+* Version or date
+* Table of contents
+* Clear section numbering
+* Consistent headers and footers
+* Page numbers
+* Clickable internal navigation
+* Cross-references between related sections
+
+A user should be able to quickly find instructions for any feature without reading the entire guide.
+
+---
+
+## 12. Verify Completeness
+
+Before finalizing the guide, compare it against everything discovered during the initial portal exploration.
+
+Confirm that:
+
+* Every important section has been covered.
+* Every meaningful feature has been explained.
+* Every important user action has been documented.
+* Major workflows have been covered end-to-end.
+* Screenshots correspond to the current interface.
+* Instructions accurately reflect actual behavior.
+* Terminology matches the terminology used in the portal.
+* No functionality has been invented or assumed.
+
+If something was discovered but could not be fully understood or tested, explicitly flag it for review rather than guessing.
+
+---
+
+## 13. Perform a Final Quality Review
+
+Before delivering the final guide, carefully proofread and visually inspect the entire document.
+
+Check for:
+
+* Spelling and grammar errors
+* Inconsistent terminology
+* Duplicate content
+* Missing explanations
+* Incorrect instructions
+* Broken references
+* Poor screenshot quality
+* Incorrect annotations
+* Image distortion
+* Text-image overlaps
+* Awkward page breaks
+* Excessive whitespace
+* Misaligned elements
+* Inconsistent formatting
+
+Ensure the guide feels like **one professionally designed document**, not a collection of separately generated sections.
+
+---
+
+# Final Objective
+
+Deliver a **comprehensive, accurate, visually polished user guide based entirely on the portal as it actually exists**.
+
+The guide should serve as the definitive reference for users of the portal.
+
+A new user should finish reading it with a clear understanding of:
+
+1. What the portal does
+2. How it is organized
+3. What each major feature does
+4. How to perform important actions
+5. How to complete key workflows
+6. Where to find additional functionality when needed
+
+**Explore first. Understand second. Document third. Verify last.**
+
+Do not assume functionality.
+
+Do not invent features.
+
+Do not use generic descriptions where the actual portal can be examined.
+
+Use screenshots when they improve understanding.
+
+Prioritize accuracy, clarity, completeness, and visual quality over unnecessary length.

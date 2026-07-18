@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ringside — User Guide</title>
+<style>
+  :root {
+    --brand: #1a1a2e;
+    --accent: #4f46e5;
+    --accent-light: #818cf8;
+    --accent-muted: #eef2ff;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --text-light: #94a3b8;
+    --border: #e2e8f0;
+    --bg: #ffffff;
+    --bg-alt: #f8fafc;
+    --bg-card: #ffffff;
+    --danger: #dc2626;
+    --warning: #d97706;
+    --success: #059669;
+    --info: #0284c7;
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+    --sidebar-w: 260px;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+
+  /* ── Fonts (Google) ── */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  /* ─────────────────────────────────────────────────────────────────────
+     SIDEBAR NAV
+  ───────────────────────────────────────────────────────────────────── */
+  .doc-nav {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-w);
+    background: var(--brand);
+    color: #c8d3e8;
+    overflow-y: auto;
+    z-index: 100;
+    padding: 0 0 32px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .doc-nav::-webkit-scrollbar { width: 4px; }
+  .doc-nav::-webkit-scrollbar-thumb { background: #2d3561; border-radius: 2px; }
+
+  .nav-brand {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    margin-bottom: 12px;
+  }
+  .nav-brand .logo-mark {
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    color: #ffffff;
+    display: block;
+    text-transform: uppercase;
+  }
+  .nav-brand .logo-sub {
+    font-size: 10px;
+    letter-spacing: .15em;
+    color: #7b8ec8;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+  .nav-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: rgba(79,70,229,.35);
+    color: #a5b4fc;
+    margin-top: 8px;
+  }
+
+  .nav-section-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: #4d5f8a;
+    padding: 12px 20px 4px;
+  }
+
+  .doc-nav a {
+    display: block;
+    padding: 6px 20px;
+    font-size: 12.5px;
+    color: #8fa3cc;
+    text-decoration: none;
+    transition: color .15s, background .15s;
+    border-radius: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .doc-nav a:hover { color: #e2e8f0; background: rgba(255,255,255,.04); }
+  .doc-nav a.active { color: #a5b4fc; font-weight: 600; }
+  .doc-nav .sub-link { padding-left: 32px; font-size: 11.5px; color: #6378a8; }
+  .doc-nav .sub-link:hover { color: #c8d3e8; }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     MAIN CONTENT
+  ───────────────────────────────────────────────────────────────────── */
+  .doc-main {
+    margin-left: var(--sidebar-w);
+    min-height: 100vh;
+  }
+
+  /* Cover */
+  .cover {
+    background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #12122a 100%);
+    color: white;
+    padding: 80px 80px 100px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -120px; right: -80px;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(79,70,229,.25) 0%, transparent 70%);
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: 20%;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(129,140,248,.12) 0%, transparent 70%);
+  }
+  .cover-eyebrow {
+    font-size: 11px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: #818cf8;
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+  .cover h1 {
+    font-size: 56px;
+    font-weight: 900;
+    letter-spacing: -.02em;
+    line-height: 1.05;
+    margin-bottom: 12px;
+    position: relative; z-index: 1;
+  }
+  .cover h1 span { color: #818cf8; }
+  .cover-subtitle {
+    font-size: 18px;
+    color: #94a3b8;
+    margin-bottom: 40px;
+    position: relative; z-index: 1;
+    font-weight: 400;
+  }
+  .cover-meta {
+    display: flex;
+    gap: 32px;
+    position: relative; z-index: 1;
+    flex-wrap: wrap;
+  }
+  .cover-meta-item { font-size: 12px; color: #64748b; }
+  .cover-meta-item strong { display: block; color: #94a3b8; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 2px; }
+
+  /* Content wrapper */
+  .content-wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 48px 60px 80px;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     TYPOGRAPHY
+  ───────────────────────────────────────────────────────────────────── */
+  h1, h2, h3, h4 { font-weight: 700; line-height: 1.25; color: var(--text); }
+
+  .section-anchor { padding-top: 80px; margin-top: -40px; }
+
+  .section-number {
+    font-size: 11px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 6px; display: block;
+  }
+
+  h2.section-title {
+    font-size: 30px; font-weight: 800; letter-spacing: -.02em;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 14px; margin-bottom: 28px;
+  }
+
+  h3.sub-title {
+    font-size: 19px; font-weight: 700; margin: 36px 0 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  h3.sub-title .icon { font-size: 16px; }
+
+  h4.feature-title { font-size: 14px; font-weight: 700; margin: 20px 0 6px; color: var(--text); }
+
+  p { margin-bottom: 14px; color: var(--text); line-height: 1.7; }
+  p:last-child { margin-bottom: 0; }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  strong { font-weight: 600; }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--accent-muted);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(79,70,229,.15);
+  }
+
+  ul, ol { padding-left: 20px; margin-bottom: 14px; }
+  li { margin-bottom: 6px; line-height: 1.65; }
+  li::marker { color: var(--accent); }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     COMPONENTS
+  ───────────────────────────────────────────────────────────────────── */
+
+  /* Card */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  /* Feature Grid */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .feature-card {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    transition: box-shadow .15s;
+  }
+  .feature-card:hover { box-shadow: var(--shadow-md); }
+  .feature-card .fc-icon {
+    font-size: 20px; margin-bottom: 8px; display: block;
+  }
+  .feature-card .fc-title {
+    font-size: 13px; font-weight: 700; margin-bottom: 4px; color: var(--text);
+  }
+  .feature-card .fc-desc {
+    font-size: 12.5px; color: var(--text-muted); line-height: 1.55;
+  }
+
+  /* Step list */
+  .steps { counter-reset: step; list-style: none; padding: 0; margin: 16px 0; }
+  .steps li {
+    counter-increment: step;
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .steps li:last-child { border-bottom: none; }
+  .steps li::before {
+    content: counter(step);
+    min-width: 26px; height: 26px;
+    background: var(--accent); color: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .step-content { flex: 1; }
+  .step-content strong { display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 2px; }
+  .step-content span { font-size: 13px; color: var(--text-muted); }
+
+  /* Callout boxes */
+  .callout {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 14px 16px;
+    border-radius: 8px;
+    margin: 16px 0;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .callout .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .callout.tip { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+  .callout.note { background: var(--accent-muted); border: 1px solid rgba(79,70,229,.2); color: #3730a3; }
+  .callout.warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+  .callout.success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #14532d; }
+  .callout.danger { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+
+  /* Badge / Pill */
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 20px;
+    vertical-align: middle;
+  }
+  .pill.red    { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+  .pill.amber  { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+  .pill.green  { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+  .pill.blue   { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+  .pill.violet { background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; }
+  .pill.gray   { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+  .pill.indigo { background: var(--accent-muted); color: var(--accent); border: 1px solid rgba(79,70,229,.2); }
+
+  /* Table */
+  .data-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 13px; margin: 16px 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .data-table th {
+    background: var(--bg-alt);
+    font-weight: 600; font-size: 11px; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--text-muted); padding: 10px 14px;
+    text-align: left; border-bottom: 1px solid var(--border);
+  }
+  .data-table td {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    vertical-align: top; line-height: 1.55;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: var(--bg-alt); }
+
+  /* Screen mockup */
+  .screen-mock {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin: 20px 0;
+    box-shadow: var(--shadow-md);
+  }
+  .screen-mock-bar {
+    background: #1e293b;
+    padding: 8px 14px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .screen-mock-bar .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .screen-mock-bar .dot.r { background: #ef4444; }
+  .screen-mock-bar .dot.y { background: #f59e0b; }
+  .screen-mock-bar .dot.g { background: #22c55e; }
+  .screen-mock-bar .url {
+    flex: 1; text-align: center;
+    font-size: 10px; font-family: var(--font-mono);
+    color: #64748b; background: #0f172a;
+    padding: 3px 12px; border-radius: 4px; margin: 0 10px;
+  }
+  .screen-mock-body { padding: 20px; }
+
+  /* Pipeline stage rail */
+  .stage-rail {
+    display: flex; gap: 0; margin: 16px 0;
+    overflow-x: auto; padding-bottom: 4px;
+  }
+  .stage-chip {
+    font-size: 10px; font-weight: 600; letter-spacing: .04em;
+    padding: 6px 12px; white-space: nowrap;
+    background: var(--bg-alt); border: 1px solid var(--border);
+    color: var(--text-muted);
+    position: relative;
+  }
+  .stage-chip:first-child { border-radius: 6px 0 0 6px; }
+  .stage-chip:last-child { border-radius: 0 6px 6px 0; }
+  .stage-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .stage-chip + .stage-chip { border-left: none; }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  /* Nav tabs (for showing tab structure) */
+  .tab-list {
+    display: flex; flex-wrap: wrap; gap: 4px; margin: 14px 0;
+  }
+  .tab-chip {
+    font-size: 11.5px; font-weight: 600; padding: 5px 12px;
+    border-radius: 6px; background: var(--bg-alt);
+    border: 1px solid var(--border); color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .tab-chip.active { background: var(--accent-muted); color: var(--accent); border-color: rgba(79,70,229,.3); }
+
+  /* Workflow diagram */
+  .workflow {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 0;
+    margin: 20px 0; padding: 20px;
+    background: var(--bg-alt); border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  .wf-node {
+    background: white; border: 2px solid var(--accent);
+    border-radius: 8px; padding: 8px 14px;
+    font-size: 12px; font-weight: 600; color: var(--accent);
+    white-space: nowrap;
+  }
+  .wf-arrow {
+    color: var(--text-light); font-size: 18px;
+    padding: 0 6px; flex-shrink: 0;
+  }
+  .wf-node.dim { border-color: var(--border); color: var(--text-muted); }
+  .wf-node.done { border-color: var(--success); color: var(--success); background: #f0fdf4; }
+
+  /* KPI tile */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; }
+  .kpi-tile {
+    background: var(--bg-alt); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+  }
+  .kpi-tile .kpi-label { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+  .kpi-tile .kpi-value { font-size: 24px; font-weight: 800; color: var(--text); }
+  .kpi-tile .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* TOC */
+  .toc { column-count: 2; column-gap: 40px; margin: 24px 0; }
+  .toc-group { break-inside: avoid; margin-bottom: 20px; }
+  .toc-group h4 { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+  .toc-group a { display: block; font-size: 13px; color: var(--text); padding: 2px 0; text-decoration: none; }
+  .toc-group a:hover { color: var(--accent); }
+  .toc-group a .toc-num { color: var(--text-light); font-size: 11px; min-width: 24px; display: inline-block; }
+
+  /* Action group header mock */
+  .action-group-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border-radius: 6px; margin: 8px 0 4px;
+    font-size: 12px; font-weight: 700;
+  }
+  .ah-overdue  { background: #fef2f2; color: #dc2626; }
+  .ah-blocked  { background: #fff7ed; color: #ea580c; }
+  .ah-thisweek { background: #fffbeb; color: #d97706; }
+  .ah-upcoming { background: var(--accent-muted); color: var(--accent); }
+  .ah-complete { background: #f0fdf4; color: #16a34a; }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .doc-nav { display: none; }
+    .doc-main { margin-left: 0; }
+    .cover { padding: 48px 24px 60px; }
+    .cover h1 { font-size: 36px; }
+    .content-wrap { padding: 32px 24px 60px; }
+    .feature-grid { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .toc { column-count: 1; }
+  }
+
+  /* Print */
+  @media print {
+    .doc-nav { display: none; }
+    .doc-main { margin-left: 0; }
+    .cover { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SIDEBAR NAVIGATION
+═══════════════════════════════════════════════════════════════════════ -->
+<nav class="doc-nav">
+  <div class="nav-brand">
+    <span class="logo-mark">Ringside</span>
+    <span class="logo-sub">M&amp;A Deal Intelligence</span>
+    <span class="nav-badge">User Guide</span>
+  </div>
+
+  <div class="nav-section-label">Getting Started</div>
+  <a href="#introduction">Introduction</a>
+  <a href="#quickstart">Quick Start</a>
+  <a href="#navigation">Navigation &amp; Interface</a>
+
+  <div class="nav-section-label">Core Modules</div>
+  <a href="#dashboard">Dashboard</a>
+  <a href="#pipeline">Pipeline</a>
+  <a href="#target-detail">Target Detail</a>
+  <a class="sub-link" href="#tab-overview">→ Overview Tab</a>
+  <a class="sub-link" href="#tab-log">→ Interaction Log</a>
+  <a class="sub-link" href="#tab-actions">→ Actions Tab</a>
+  <a class="sub-link" href="#tab-diligence">→ Diligence Tab</a>
+  <a class="sub-link" href="#tab-documents">→ Documents Tab</a>
+  <a class="sub-link" href="#tab-valuation">→ Valuation Tab</a>
+  <a class="sub-link" href="#tab-synergies">→ Synergies Tab</a>
+  <a class="sub-link" href="#tab-ic">→ IC Tab</a>
+  <a class="sub-link" href="#tab-stakeholders">→ Stakeholders Tab</a>
+  <a class="sub-link" href="#tab-compliance">→ Compliance Tab</a>
+  <a class="sub-link" href="#tab-audit">→ Timeline &amp; Audit</a>
+
+  <div class="nav-section-label">Review Cadence</div>
+  <a href="#actions-center">Actions Command Center</a>
+  <a href="#weekly-review">Weekly Review</a>
+  <a href="#diligence-review">Diligence Review</a>
+  <a href="#document-review">Document Review</a>
+
+  <div class="nav-section-label">Intelligence</div>
+  <a href="#analytics">Analytics</a>
+  <a href="#copilot">AI Copilot</a>
+  <a href="#doctrine">Doctrine</a>
+
+  <div class="nav-section-label">Data &amp; Admin</div>
+  <a href="#import">Import Wizard</a>
+  <a href="#notifications">Notifications</a>
+  <a href="#admin">Admin Console</a>
+
+  <div class="nav-section-label">Reference</div>
+  <a href="#workflows">Key Workflows</a>
+  <a href="#glossary">Glossary</a>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     MAIN CONTENT
+═══════════════════════════════════════════════════════════════════════ -->
+<main class="doc-main">
+
+  <!-- COVER -->
+  <div class="cover">
+    <div class="cover-eyebrow">Manipal Group · Corporate Development</div>
+    <h1>RING<span>SIDE</span></h1>
+    <div class="cover-subtitle">M&amp;A Deal Intelligence Platform — Complete User Guide</div>
+    <div class="cover-meta">
+      <div class="cover-meta-item"><strong>Version</strong>v1.0</div>
+      <div class="cover-meta-item"><strong>Audience</strong>All Platform Users</div>
+      <div class="cover-meta-item"><strong>Access</strong>Invitation Only · Confidential</div>
+    </div>
+  </div>
+
+  <div class="content-wrap">
+
+    <!-- ─────────────────────────────────────────────────────────────────
+         TABLE OF CONTENTS
+    ───────────────────────────────────────────────────────────────────── -->
+    <div class="section-anchor" id="toc"></div>
+    <div class="card">
+      <h3 style="margin-bottom:16px;font-size:16px;">Table of Contents</h3>
+      <div class="toc">
+        <div class="toc-group">
+          <h4>Getting Started</h4>
+          <a href="#introduction"><span class="toc-num">1</span> Introduction</a>
+          <a href="#quickstart"><span class="toc-num">2</span> Quick Start</a>
+          <a href="#navigation"><span class="toc-num">3</span> Navigation &amp; Interface</a>
+        </div>
+        <div class="toc-group">
+          <h4>Core Modules</h4>
+          <a href="#dashboard"><span class="toc-num">4</span> Dashboard</a>
+          <a href="#pipeline"><span class="toc-num">5</span> Pipeline</a>
+          <a href="#target-detail"><span class="toc-num">6</span> Target Detail</a>
+        </div>
+        <div class="toc-group">
+          <h4>Review Cadence</h4>
+          <a href="#actions-center"><span class="toc-num">7</span> Actions Command Center</a>
+          <a href="#weekly-review"><span class="toc-num">8</span> Weekly Review</a>
+          <a href="#diligence-review"><span class="toc-num">9</span> Diligence Review</a>
+          <a href="#document-review"><span class="toc-num">10</span> Document Review</a>
+        </div>
+        <div class="toc-group">
+          <h4>Intelligence &amp; Data</h4>
+          <a href="#analytics"><span class="toc-num">11</span> Analytics</a>
+          <a href="#copilot"><span class="toc-num">12</span> AI Copilot</a>
+          <a href="#doctrine"><span class="toc-num">13</span> Doctrine</a>
+          <a href="#import"><span class="toc-num">14</span> Import Wizard</a>
+        </div>
+        <div class="toc-group">
+          <h4>Admin &amp; Reference</h4>
+          <a href="#notifications"><span class="toc-num">15</span> Notifications</a>
+          <a href="#admin"><span class="toc-num">16</span> Admin Console</a>
+          <a href="#workflows"><span class="toc-num">17</span> Key Workflows</a>
+          <a href="#glossary"><span class="toc-num">18</span> Glossary</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         1. INTRODUCTION
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-anchor" id="introduction"></div>
+    <span class="section-number">Section 1</span>
+    <h2 class="section-title">Introduction</h2>
+
+    <p><strong>Ringside</strong> is Manipal Group's proprietary M&amp;A deal intelligence platform. It gives the Corporate Development team a single, structured workspace to track every acquisition target — from first identification through to deal closing — replacing scattered spreadsheets, email threads, and disparate tools with one authoritative system of record.</p>
+
+    <p>The platform is designed around the reality of how deals actually move: iteratively, with many stakeholders, long time horizons, and a constant need to prioritise attention across a live pipeline. Ringside makes the entire pipeline visible at a glance, ensures no deal falls through the cracks, and provides the analytical depth required for IC-level decision-making.</p>
+
+    <h3 class="sub-title"><span class="icon">🗺️</span> How Ringside is organised</h3>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <span class="fc-icon">📊</span>
+        <div class="fc-title">Pipeline Management</div>
+        <div class="fc-desc">Track every deal through a structured 12-stage pipeline. Switch between a list view and a visual Kanban board. Filter, search, and export.</div>
+      </div>
+      <div class="feature-card">
+        <span class="fc-icon">🎯</span>
+        <div class="fc-title">Target Intelligence</div>
+        <div class="fc-desc">A dedicated workspace per deal covering interactions, actions, diligence checklists, documents, valuation, IC sessions, stakeholders, and compliance.</div>
+      </div>
+      <div class="feature-card">
+        <span class="fc-icon">📋</span>
+        <div class="fc-title">Review Cadence</div>
+        <div class="fc-desc">Weekly Review, Diligence Review, and Document Review pages provide structured summaries for recurring governance meetings.</div>
+      </div>
+      <div class="feature-card">
+        <span class="fc-icon">🤖</span>
+        <div class="fc-title">AI Intelligence</div>
+        <div class="fc-desc">The AI Copilot answers questions about your pipeline, parses meeting notes, and generates ready-to-send IC briefs — all grounded in live deal data.</div>
+      </div>
+      <div class="feature-card">
+        <span class="fc-icon">📈</span>
+        <div class="fc-title">Analytics</div>
+        <div class="fc-desc">Pipeline funnel, time-in-stage analysis, win/loss breakdown, and origination channel performance — all from your actual deal history.</div>
+      </div>
+      <div class="feature-card">
+        <span class="fc-icon">🔐</span>
+        <div class="fc-title">Access Control</div>
+        <div class="fc-desc">Non-admin users see only the deals they've been granted access to. Admins manage users, roles, and deal-level visibility from the Admin Console.</div>
+      </div>
+    </div>
+
+    <h3 class="sub-title"><span class="icon">🔑</span> Access &amp; login</h3>
+    <p>Ringside is <strong>invitation-only</strong>. You will receive an email invite from your administrator. Clicking the invite link takes you through a one-time account setup where you choose your password. Subsequent logins use your email address and password at the Ringside sign-in page.</p>
+    <div class="callout note">
+      <span class="callout-icon">ℹ️</span>
+      <div>If you need an account, contact your Ringside administrator. Self-registration is not available. All activity on the platform is logged.</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         2. QUICK START
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-anchor" id="quickstart"></div>
+    <span class="section-number">Section 2</span>
+    <h2 class="section-title">Quick Start</h2>
+
+    <p>This section gets you productive in under 10 minutes. Read the full guide to understand each feature in depth.</p>
+
+    <ol class="steps">
+      <li>
+        <div class="step-content">
+          <strong>Sign in</strong>
+          <span>Go to the Ringside URL, enter your email and password, and click <em>Sign In</em>. You land on the Dashboard.</span>
+        </div>
+      </li>
+      <li>
+        <div class="step-content">
+          <strong>Check the Dashboard for immediate priorities</strong>
+          <span>The KPI strip at the top shows your pipeline health. Scroll down to <em>Top Priority Deals</em> to see which deals need action today.</span>
+        </div>
+      </li>
+      <li>
+        <div class="step-content">
+          <strong>Open the Pipeline to browse all deals</strong>
+          <span>Click <em>Pipeline</em> in the sidebar. Use the filters to narrow by stage, tier, or owner. Click any deal row to open its full detail page.</span>
+        </div>
+      </li>
+      <li>
+        <div class="step-content">
+          <strong>Add a new target</strong>
+          <span>In Pipeline, click the <em>New</em> button (top right). Fill in the project code name, sector, priority tier, and key details. Click <em>Create Target</em>.</span>
+        </div>
+      </li>
+      <li>
+        <div class="step-content">
+          <strong>Log an interaction on a deal</strong>
+          <span>Open any target. On the <em>Log</em> tab, click <em>Log Interaction</em>. Select the type (Call, Meeting, Email…), add your notes, and save. This timestamps the last contact automatically.</span>
+        </div>
+      </li>
+      <li>
+        <div class="step-content">
+          <strong>Run your Weekly Review</strong>
+          <span>Click <em>Weekly Review</em> in the sidebar for a structured summary of must-win deals, overdue actions, recent stage changes, and deals with no recent activity.</span>
+        </div>
+      </li>
+      <li>
+        <div class="step-content">
+          <strong>Ask the AI Copilot a question</strong>
+          <span>Click <em>AI Copilot</em> in the sidebar. Type a question like "Which Must-Win deals have no open actions?" and the AI responds with live pipeline data.</span>
+        </div>
+      </li>
+    </ol>
+
+    <div class="callout tip">
+      <span class="callout-icon">💡</span>
+      <div>Press <code>⌘K</code> (Mac) or <code>Ctrl+K</code> (Windows) from anywhere in the app to open the Command Palette — a fast way to jump to any deal or page without using the sidebar.</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         3. NAVIGATION & INTERFACE
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-anchor" id="navigation"></div>
+    <span class="section-number">Section 3</span>
+    <h2 class="section-title">Navigation &amp; Interface</h2>
+
+    <h3 class="sub-title"><span class="icon">🧭</span> Sidebar</h3>
+    <p>The sidebar is the primary navigation. On desktop it appears as a floating glass panel on the left. On mobile it opens as a full-width drawer via the hamburger menu at the top of the screen.</p>
+
+    <table class="data-table">
+      <thead><tr><th>Group</th><th>Items</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td>Operating System</td><td>Dashboard · Pipeline · Actions</td><td>Day-to-day deal management</td></tr>
+        <tr><td>Review Cadence</td><td>Weekly Review · Diligence Review · Document Review</td><td>Structured governance meeting prep</td></tr>
+        <tr><td>Intelligence</td><td>Analytics · AI Copilot · Doctrine</td><td>Insight and decision support</td></tr>
+        <tr><td>Data</td><td>Import</td><td>Bulk data ingestion</td></tr>
+        <tr><td>Admin</td><td>Admin Console</td><td>Users, roles, access (Admin role only)</td></tr>
+      </tbody>
+    </table>
+
+    <p>The <strong>sidebar footer</strong> contains: a live server status indicator (pulsing green dot), a <em>light/dark theme toggle</em>, a <em>Change Password</em> button, and the <em>Logout</em> button.</p>
+
+    <h3 class="sub-title"><span class="icon">🔔</span> Notification bell</h3>
+    <p>A bell icon in the sidebar shows a red badge when you have unread notifications. Clicking it opens a dropdown with a scrollable list. Each notification has an icon indicating its type:</p>
+
+    <table class="data-table">
+      <thead><tr><th>Icon</th><th>Type</th><th>Triggered when…</th></tr></thead>
+      <tbody>
+        <tr><td>⏰ Clock</td><td>Stage stagnation</td><td>A deal has been in the same stage for more than 45 days</td></tr>
+        <tr><td>⚡ Zap</td><td>Must-Win no activity</td><td>A Must-Win deal has had no logged interaction for 14+ days</td></tr>
+        <tr><td>📄 File warning</td><td>NDA expiring</td><td>An active NDA expires within 30 days</td></tr>
+        <tr><td>⚠️ Alert</td><td>Action overdue</td><td>An open action item has passed its due date</td></tr>
+      </tbody>
+    </table>
+
+    <p>Click any notification to navigate directly to the relevant deal. Use <em>Mark all read</em> to clear the badge. Notifications are auto-generated every 15 minutes in the background.</p>
+
+    <h3 class="sub-title"><span class="icon">⌨️</span> Command Palette</h3>
+    <p>Press <code>⌘K</code> / <code>Ctrl+K</code> to open the Command Palette from any page. This gives you instant search across all deals and navigates directly to any target or page without using the mouse.</p>
+
+    <h3 class="sub-title"><span class="icon">🌙</span> Theme</h3>
+    <p>Ringside supports light and dark modes. Use the sun/moon icon in the sidebar footer to toggle. Your preference is saved locally.</p>
+
+    <!-- ═══════════════════════════════════════════════════════
+         4. DASHBOARD
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-anchor" id="dashboard"></div>
+    <span class="section-number">Section 4</span>
+    <h2 class="section-title">Dashboard</h2>
+
+    <p>The Dashboard is the first page you see after logging in. It gives you an at-a-glance view of the entire pipeline — designed to surface what needs attention in under 30 seconds.</p>
+
+    <h3 class="sub-title"><span class="icon">📊</span> KPI strip</h3>
+    <div class="kpi-grid">
+      <div class="kpi-tile">
+        <div class="kpi-label">Total Pipeline</div>
+        <div class="kpi-value">—</div>
+        <div class="kpi-sub">+ new this week</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-label">Active Deals</div>
+        <div class="kpi-value">—</div>
+        <div class="kpi-sub">Must-Win &amp; Priority 1</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-label">Open Actions</div>
+        <div class="kpi-value">—</div>
+        <div class="kpi-sub">Overdue count</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-label">Avg Score</div>
+        <div class="kpi-value">—</div>
+        <div class="kpi-sub">Assessed deals only</div>
+      </div>
+    </div>
+
+    <h3 class="sub-title"><span class="icon">📈</span> Dashboard sections</h3>
+
+    <table class="data-table">
+      <thead><tr><th>Section</th><th>What it shows</th><th>How to use it</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Pipeline Stage Distribution</strong></td>
+          <td>Horizontal bar chart showing deal counts at each stage</td>
+          <td>Spot bottlenecks — stages with large bars need attention</td>
+        </tr>
+        <tr>
+          <td><strong>Pipeline Health</strong></td>
+          <td>Counts of deals labelled <span class="pill green">Healthy</span>, <span class="pill amber">Watch</span>, <span class="pill red">At Risk</span></td>
+          <td>Click any health category to jump to the filtered Pipeline view</td>
+        </tr>
+        <tr>
+          <td><strong>Deal Intake Velocity</strong></td>
+          <td>Sparkline of new deals added over the past 8 weeks</td>
+          <td>Track whether deal origination is trending up or down</td>
+        </tr>
+        <tr>
+          <td><strong>Top Priority Deals</strong></td>
+          <td>Table of highest-priority active deals with stage, score, and health</td>
+          <td>Click any row to open that deal's detail page</td>
+        </tr>
+        <tr>
+          <td><strong>Recent Activity</strong></td>
+          <td>Feed of the latest interactions, stage changes, and updates across all deals</td>
+          <td>Stay informed without having to check every deal individually</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout tip">
+      <span class="callout-icon">💡</span>
+      <div><strong>Daily habit:</strong> Start each day on the Dashboard. The KPI strip and Top Priority Deals table tell you where to focus. Then open the Actions Command Center to see your task queue.</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         5. PIPELINE
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-anchor" id="pipeline"></div>
+    <span class="section-number">Section 5</span>
+    <h2 class="section-title">Pipeline</h2>
+
+    <p>The Pipeline page is the central directory of all deals. Every target in the system lives here. You can view deals as a sortable table or as a visual Kanban board.</p>
+
+    <h3 class="sub-title"><span class="icon">🔍</span> Filters &amp; search</h3>
+    <p>Filters across the top let you narrow the view by:</p>
+    <ul>
+      <li><strong>Search</strong> — fuzzy search by deal name or target code</li>
+      <li><strong>Stage</strong> — any of the 12 active pipeline stages</li>
+      <li><strong>Tier</strong> — Must-Win, Priority 1, Priority 2, Watchlist, On Hold, Dropped</li>
+      <li><strong>Owner</strong> — filter to a specific deal owner</li>
+      <li><strong>Country</strong> — geography filter</li>
+      <li><strong>Type</strong> — deal type (Acquisition, Minority Investment, Divestiture, JV, Partnership, Strategic Alliance)</li>
+      <li><strong>Attn</strong> — show only deals flagged as <em>Needs Attention</em></li>
+      <li><strong>My Deals / All Deals</strong> — toggle between your deals and the full pipeline</li>
+    </ul>
+
+    <p>Click <em>Clear Filters</em> to reset all filters at once.</p>
+
+    <h3 class="sub-title"><span class="icon">📋</span> List view</h3>
+    <p>The list view shows all deals in a sortable table. Key columns:</p>
+
+    <table class="data-table">
+      <thead><tr><th>Column</th><th>What it means</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Company</strong></td><td>Project code name + target code identifier</td></tr>
+        <tr><td><strong>Stage</strong></td><td>Current pipeline stage + how many days the deal has been in that stage</td></tr>
+        <tr><td><strong>Tier</strong></td><td>Priority classification (Must-Win through Dropped)</td></tr>
+        <tr><td><strong>Score</strong></td><td>Composite deal score (Strategic Fit + Synergy + Financial Attractiveness + Process Maturity − Risk)</td></tr>
+        <tr><td><strong>Owner</strong></td><td>Deal lead responsible for progression</td></tr>
+        <tr><td><strong>Country</strong></td><td>Target's operating geography</td></tr>
+        <tr><td><strong>Health</strong></td><td>Coloured dot: green (Healthy), amber (Watch), red (At Risk)</td></tr>
+        <tr><td><strong>Actions</strong></td><td>Open action count / overdue action count</td></tr>
+        <tr><td><strong>Last Contact</strong></td><td>Date of last logged interaction</td></tr>
+        <tr><td><strong>Diligence %</strong></td><td>Percentage of diligence checklist items marked complete</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title"><span class="icon">🗂️</span> Kanban board view</h3>
+    <p>Switch to the Board view using the toggle in the top-right corner. Each column represents a pipeline stage. Deal cards show the target name, tier badge, health indicator, and days in stage.</p>
+
+    <h4 class="feature-title">Drag-and-drop stage changes</h4>
+    <p>In Kanban view, active deal cards can be dragged between columns. When you drop a card on a new stage column, a <em>Confirm Stage Change</em> dialog appears — select a reason (or type a custom one) and confirm. The deal moves to the new stage and the change is recorded in the audit trail.</p>
+
+    <div class="callout note">
+      <span class="callout-icon">ℹ️</span>
+      <div>Cards in the <em>On Hold</em>, <em>Dropped</em>, and <em>Rejected</em> columns are not draggable — click them to open the deal detail page.</div>
+    </div>
+
+    <h3 class="sub-title"><span class="icon">➕</span> Creating a new target</h3>
+    <ol class="steps">
+      <li><div class="step-content"><strong>Click the <em>New</em> button</strong><span>Top-right of the Pipeline page.</span></div></li>
+      <li><div class="step-content"><strong>Fill in Core Identity</strong><span>Project Code Name (internal alias), Identifier (target code), Legal Entity Name, and a Strategic Rationale.</span></div></li>
+      <li><div class="step-content"><strong>Set Categorisation</strong><span>Sector, Subsector, Country, Region, Deal Type, and Business Unit.</span></div></li>
+      <li><div class="step-content"><strong>Assign Team</strong><span>Deal Owner, Deal Champion, Executive Sponsor, Sourcing Channel, Sourcing Firm.</span></div></li>
+      <li><div class="step-content"><strong>Score the deal</strong><span>Drag the five scoring sliders: Strategic Fit, Synergy Potential, Financial Attractiveness, Process Maturity, Risk Penalty.</span></div></li>
+      <li><div class="step-content"><strong>Set Priority Tier and Confidentiality</strong><span>Choose a tier and toggle strict confidentiality if required.</span></div></li>
+      <li><div class="step-content"><strong>Click <em>Create Target</em></strong><span>The deal is created at the <em>Sourcing</em> stage and appears in the Pipeline.</span></div></li>
+    </ol>
+
+    <h3 class="sub-title"><span class="icon">📤</span> Export &amp; Import</h3>
+    <p>Use the <em>Export</em> button to download the current filtered view as a spreadsheet. Use <em>Import</em> to bulk-upload deals via the 5-step Import Wizard (see <a href="#import">Section 14</a>).</p>
+
+    <!-- ═══════════════════════════════════════════════════════
+         6. TARGET DETAIL
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-anchor" id="target-detail"></div>
+    <span class="section-number">Section 6</span>
+    <h2 class="section-title">Target Detail</h2>
+
+    <p>Clicking any deal in the Pipeline opens its <strong>Target Detail</strong> page — the full workspace for that deal. Think of it as the deal's "dossier": every piece of information, every task, every document, and every decision is recorded here.</p>
+
+    <h3 class="sub-title"><span class="icon">🏷️</span> Header</h3>
+    <p>The header shows the deal's project name, target code, and a set of quick-action buttons: <em>IC Brief</em> (print a formatted brief), <em>AI Brief</em> (generate an AI summary), <em>Edit</em> (update deal fields), and <em>Change Stage</em>.</p>
+
+    <p>Below the header, <strong>stat pills</strong> surface the most important facts at a glance: current stage, priority tier, composite score, days in current stage, sector, country, diligence completion percentage, and last contact date.</p>
+
+    <h3 class="sub-title"><span class="icon">🛤️</span> Stage progression rail</h3>
+    <p>A visual timeline below the header shows all pipeline stages in order, with the current stage highlighted. This gives an instant sense of how far through the process the deal has progressed.</p>
+
+    <p>The full stage sequence is:</p>
+    <div class="stage-rail">
+      <div class="stage-chip">Sourcing</div>
+      <div class="stage-chip">Outreach</div>
+      <div class="stage-chip">Intro Discussion</div>
+      <div class="stage-chip">NDA / CIM</div>
+      <div class="stage-chip">Pre-DD</div>
+      <div class="stage-chip">Mgmt Meeting</div>
+      <div class="stage-chip active">NBO</div>
+      <div class="stage-chip">Conf DD</div>
+      <div class="stage-chip">Binding Offer</div>
+      <div class="stage-chip">SPA Negotiation</div>
+      <div class="stage-chip">Integration</div>
+      <div class="stage-chip">Closed</div>
+    </div>
+
+    <h3 class="sub-title"><span class="icon">📑</span> Tabs</h3>
+    <p>All deal information is organised into 13 tabs:</p>
+    <div class="tab-list">
+      <div class="tab-chip active">Overview</div>
+      <div class="tab-chip">Log</div>
+      <div class="tab-chip">Actions</div>
+      <div class="tab-chip">Timeline</div>
+      <div class="tab-chip">Diligence</div>
+      <div class="tab-chip">Documents</div>
+      <div class="tab-chip">Valuation</div>
+      <div class="tab-chip">Synergies</div>
+      <div class="tab-chip">Activity</div>
+      <div class="tab-chip">IC</div>
+      <div class="tab-chip">Stakeholders</div>
+      <div class="tab-chip">Compliance</div>
+      <div class="tab-chip">Audit</div>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- Tab: Overview -->
+    <div class="section-anchor" id="tab-overview"></div>
+    <h3 class="sub-title"><span class="icon">🗃️</span> Overview tab</h3>
+    <p>The Overview tab contains the deal's foundational information: the <strong>Strategic Rationale</strong>, key facts (sector, deal type, ownership structure, sourcing details), the <strong>Score Card</strong> (each scoring dimension visualised as a bar with the overall composite score), and — for closed or dropped deals — a <strong>Verdict</strong> section capturing the outcome and rationale.</p>
+
+    <hr class="divider" />
+
+    <!-- Tab: Log -->
+    <div class="section-anchor" id="tab-log"></div>
+    <h3 class="sub-title"><span class="icon">💬</span> Log tab (Interaction Log)</h3>
+    <p>Every touchpoint with or about the target is recorded here: calls, meetings, emails, and general notes. The log is sorted chronologically and drives the <em>Last Contact</em> date shown in the Pipeline list and Dashboard.</p>
+
+    <h4 class="feature-title">Logging an interaction</h4>
+    <ol class="steps">
+      <li><div class="step-content"><strong>Click <em>Log Interaction</em></strong><span>Button at the top of the Log tab, or tap the Log quick-action in the mobile bottom bar.</span></div></li>
+      <li><div class="step-content"><strong>Select the interaction type</strong><span>Call, Meeting, Email, Note, or other type as configured.</span></div></li>
+      <li><div class="step-content"><strong>Write your notes</strong><span>Use the rich text editor for structured notes with formatting.</span></div></li>
+      <li><div class="step-content"><strong>Save</strong><span>The interaction is timestamped and added to the log. Last Contact date updates immediately.</span></div></li>
+    </ol>
+
+    <div class="callout tip">
+      <span class="callout-icon">💡</span>
+      <div>Use the <strong>AI Copilot's meeting notes parser</strong> if you have raw meeting notes you'd like automatically structured before logging. See <a href="#copilot">Section 12</a>.</div>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- Tab: Actions -->
+    <div class="section-anchor" id="tab-actions"></div>
+    <h3 class="sub-title"><span class="icon">✅</span> Actions tab</h3>
+    <p>The Actions tab holds the task list for this specific deal — next steps, outstanding items, and follow-ups assigned to team members. Actions here appear in the pipeline-wide <a href="#actions-center">Actions Command Center</a>.</p>
+
+    <h4 class="feature-title">Adding an action</h4>
+    <ol class="steps">
+      <li><div class="step-content"><strong>Click <em>Add Action</em></strong><span>Or tap the + quick-action in the mobile bottom bar.</span></div></li>
+      <li><div class="step-content"><strong>Fill in the fields</strong><span><strong>Description</strong> (rich text), <strong>Priority</strong> (Critical / High / Medium / Low), <strong>Due Date</strong>, <strong>Owner</strong>.</span></div></li>
+      <li><div class="step-content"><strong>Save</strong><span>The action appears in the list and in the Actions Command Center.</span></div></li>
+    </ol>
+
+    <p>You can mark actions <em>Complete</em> or reopen them using the quick buttons on each action card. Completed actions are shown separately at the bottom of the list.</p>
+
+    <hr class="divider" />
+
+    <!-- Tab: Diligence -->
+    <div class="section-anchor" id="tab-diligence"></div>
+    <h3 class="sub-title"><span class="icon">🔎</span> Diligence tab</h3>
+    <p>The Diligence tab contains a structured due-diligence checklist organised into 10 workstreams. A <strong>Readiness Score card</strong> at the top shows overall completion percentage, blocked items, overdue items, and missing workstreams.</p>
+
+    <p>Workstreams available:</p>
+    <ul>
+      <li>Commercial · Financial · Legal · Tax · HR · Technology · Operations · Integration · ESG · Regulatory</li>
+    </ul>
+
+    <h4 class="feature-title">Adding a diligence item</h4>
+    <ol class="steps">
+      <li><div class="step-content"><strong>Click <em>Add Item</em></strong><span>Opens the Add Diligence Item dialog.</span></div></li>
+      <li><div class="step-content"><strong>Select the workstream</strong><span>Commercial, Financial, Legal, etc.</span></div></li>
+      <li><div class="step-content"><strong>Fill in the details</strong><span>Description, Owner, Due Date, Priority (Critical/High/Medium/Low), Status (Open/In Progress/Blocked/Completed), Notes (rich text), and optional Evidence Links.</span></div></li>
+      <li><div class="step-content"><strong>Save</strong><span>The item appears in the correct workstream section and updates the Readiness Score.</span></div></li>
+    </ol>
+
+    <p>Each workstream section is collapsible. Quick <em>Complete</em> and <em>Reopen</em> buttons appear on each item card. Items can be edited or deleted at any time.</p>
+
+    <div class="callout warning">
+      <span class="callout-icon">⚠️</span>
+      <div>Diligence items are separate from Actions. They appear in the <a href="#diligence-review">Diligence Review</a> page, not the Actions Command Center.</div>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- Tab: Documents -->
+    <div class="section-anchor" id="tab-documents"></div>
+    <h3 class="sub-title"><span class="icon">📁</span> Documents tab</h3>
+    <p>The Documents tab is a deal-level document vault. Files are uploaded to secure cloud storage and organised by category. Each document record has a title, category (e.g. CIM, Financial Model, Legal, NDA, Management Presentation), classification level, owner, and optional notes.</p>
+
+    <h4 class="feature-title">Supported file types</h4>
+    <p>PDF, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), CSV, JPEG, PNG, TIFF, ZIP, MP4 — up to 25 MB per file.</p>
+
+    <h4 class="feature-title">Uploading a document</h4>
+    <ol class="steps">
+      <li><div class="step-content"><strong>Click <em>Upload Document</em></strong><span>Fill in the title, category, and classification. Then attach your file.</span></div></li>
+      <li><div class="step-content"><strong>Click <em>Upload</em></strong><span>The file is stored securely and a preview link is generated.</span></div></li>
+    </ol>
+
+    <div class="callout danger">
+      <span class="callout-icon">🔒</span>
+      <div><strong>Highly Restricted</strong> documents can only be downloaded by Admins or the verified deal owner. All other users see the document record but cannot download the file.</div>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- Tab: Valuation -->
+    <div class="section-anchor" id="tab-valuation"></div>
+    <h3 class="sub-title"><span class="icon">💰</span> Valuation tab</h3>
+    <p>The Valuation tab is used to record and track financial modelling outputs and price discussions for the deal — entry price assumptions, valuation multiples, IRR targets, and related financial metrics as the deal progresses.</p>
+
+    <hr class="divider" />
+
+    <!-- Tab: Synergies -->
+    <div class="section-anchor" id="tab-synergies"></div>
+    <h3 class="sub-title"><span class="icon">✨</span> Synergies tab</h3>
+    <p>The Synergies tab captures the strategic value creation thesis for the acquisition — revenue synergies, cost synergies, capability additions, and integration value estimates. Tracking synergies separately from valuation allows the team to explicitly document the strategic premium paid for a target.</p>
+
+    <hr class="divider" />
+
+    <!-- Tab: IC -->
+    <div class="section-anchor" id="tab-ic"></div>
+    <h3 class="sub-title"><span class="icon">⚖️</span> IC tab (Investment Committee)</h3>
+    <p>The IC tab tracks all Investment Committee sessions related to this deal. It records when the deal was presented, who attended, what the outcome was, and any conditions imposed.</p>
+
+    <h4 class="feature-title">IC Session outcomes</h4>
+    <ul>
+      <li><span class="pill green">Approved</span> — IC gave full approval to proceed</li>
+      <li><span class="pill red">Rejected</span> — IC declined; deal moves to Dropped/Rejected stage</li>
+      <li><span class="pill amber">Conditional</span> — Approved subject to specific conditions</li>
+      <li><span class="pill gray">Deferred</span> — Decision postponed; further information required</li>
+    </ul>
+
+    <h4 class="feature-title">Adding an IC session</h4>
+    <ol class="steps">
+      <li><div class="step-content"><strong>Click <em>Add Session</em></strong><span>Opens the Add IC Session dialog.</span></div></li>
+      <li><div class="step-content"><strong>Fill in the details</strong><span>Session Date, Type (Preliminary Review / Stage Gate / Final Approval / Post-Mortem), Location/Link, Agenda/Notes (rich text), and Participants list.</span></div></li>
+      <li><div class="step-content"><strong>Save</strong><span>The session is recorded with a timestamp.</span></div></li>
+    </ol>
+
+    <div class="callout note">
+      <span class="callout-icon">ℹ️</span>
+      <div>When you initiate a stage change, Ringside automatically runs a <strong>Stage Gate Advisory</strong> check and shows a pre-flight banner (pass / warn / block) with a checklist of items to review before confirming the stage move.</div>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- Tab: Stakeholders -->
+    <div class="section-anchor" id="tab-stakeholders"></div>
+    <h3 class="sub-title"><span class="icon">👥</span> Stakeholders tab</h3>
+    <p>The Stakeholders tab captures all the people and organisations involved in the deal — from the target's own leadership to the advisors on both sides of the table.</p>
+
+    <h4 class="feature-title">Counterparty section</h4>
+    <p>A single structured record for the target company: Legal entity name, CIN / Registration number, Founders, Key Management team, Controlling Shareholders, Website, and free-form Notes.</p>
+
+    <h4 class="feature-title">Internal Sponsors</h4>
+    <p>A list of internal Manipal Group champions and sponsors for the deal. Each entry has Name, Role/Title, Email, and Notes. Add, edit, or delete sponsors at any time.</p>
+
+    <h4 class="feature-title">Advisors</h4>
+    <p>Two separate sections — <strong>External Advisors (Buy-side)</strong> and <strong>Counterparty Advisors (Sell-side)</strong>. Each advisor record includes Advisor Type, Firm Name, Contact Name and Email, Engagement Date, Fee Structure, Conflicts Status (<span class="pill gray">Pending</span> / <span class="pill green">Cleared</span> / <span class="pill red">Flagged</span>), and Notes.</p>
+
+    <div class="callout danger">
+      <span class="callout-icon">⚠️</span>
+      <div>If any advisor has a <span class="pill red">Flagged</span> conflicts status, a warning banner appears at the top of the Stakeholders tab as a reminder that a conflicts issue needs resolution before proceeding.</div>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- Tab: Compliance -->
+    <div class="section-anchor" id="tab-compliance"></div>
+    <h3 class="sub-title"><span class="icon">🛡️</span> Compliance tab</h3>
+    <p>The Compliance tab has two sections for tracking the legal and regulatory obligations of a deal.</p>
+
+    <h4 class="feature-title">NDA Register</h4>
+    <p>A table of all NDA records for the deal. Each record shows: Counterparty, Effective Date, Expiry Date, Scope (One-way / Mutual), Confidentiality Term (months), Status (Active / Expired / Extended), and Document Reference link.</p>
+    <ul>
+      <li>NDAs expiring within <strong>30 days</strong> are flagged with an <span class="pill amber">amber badge</span></li>
+      <li>Expired NDAs show in <span class="pill red">red</span></li>
+      <li>A global alert banner appears at the top of the tab when any NDA requires attention</li>
+    </ul>
+
+    <h4 class="feature-title">Regulatory Clearance Map</h4>
+    <p>A structured list of required regulatory approvals. Each item has:</p>
+    <table class="data-table">
+      <thead><tr><th>Field</th><th>Options / Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Category</td><td>Antitrust-CCI · RBI · SEBI · IRDAI · FEMA-FDI · DPDP · Sanctions-PEP · ABAC · Other</td></tr>
+        <tr><td>Status</td><td>Not Required · Pending · Filed · Cleared · Blocked</td></tr>
+        <tr><td>Description</td><td>Free text</td></tr>
+        <tr><td>Owner</td><td>Name of responsible person</td></tr>
+        <tr><td>Target Clearance Date</td><td>Deadline date; overdue items are flagged red</td></tr>
+        <tr><td>Evidence Reference / Link</td><td>URL to supporting document</td></tr>
+      </tbody>
+    </table>
+
+    <hr class="divider" />
+
+    <!-- Tab: Timeline / Audit -->
+    <div class="section-anchor" id="tab-audit"></div>
+    <h3 class="sub-title"><span class="icon">📅</span> Timeline &amp; Audit tabs</h3>
+    <p>The <strong>Timeline</strong> tab shows the chronological audit trail of all stage changes — when the deal moved from stage to stage, who changed it, and the reason given. The <strong>Audit</strong> tab provides a broader log of all significant events and field changes on the deal record.</p>
+    <p>These tabs are read-only and serve as the permanent record of how a deal progressed through the pipeline.</p>
+
+    <!-- ═══════════════════════════════════════════════════════
+         7. ACTIONS COMMAND CENTER
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-anchor" id="actions-center"></div>
+    <span class="section-number">Section 7</span>
+    <h2 class="section-title">Actions Command Center</h2>
+
+    <p>The Actions Command Center (accessed via <em>Actions</em> in the sidebar) is a pipeline-wide view of every open action item across all deals you have access to. Use it to manage your task queue and that of your team.</p>
+
+    <h3 class="sub-title"><span class="icon">🗂️</span> Action groups</h3>
+    <p>Actions are automatically sorted into collapsible groups based on status and due date:</p>
+
+    <div class="action-group-header ah-overdue">⚠️ Overdue — past their due date and not completed</div>
+    <div class="action-group-header ah-blocked">🚫 Blocked — marked as Blocked by the owner</div>
+    <div class="action-group-header ah-thisweek">📅 Due This Week — due within the next 7 days</div>
+    <div class="action-group-header ah-upcoming">🔜 Upcoming — due further in the future</div>
+    <div class="action-group-header ah-complete" style="margin-bottom:12px">✅ Recently Completed — completed in the last 14 days (collapsed by default)</div>
+
+    <h3 class="sub-title"><span class="icon">🔧</span> Filters</h3>
+    <p>Use the filter bar to narrow the action list:</p>
+    <ul>
+      <li><strong>Owner</strong> — filter to a specific team member</li>
+      <li><strong>Priority</strong> — Critical / High / Medium / Low</li>
+      <li><strong>Must-Win Only</strong> — toggle to show only actions on Must-Win deals</li>
+      <li><strong>Overdue Only</strong> — toggle to show only overdue actions</li>
+      <li><strong>Search</strong> — text search across action descriptions</li>
+      <li><strong>Deal Type</strong> — filter by the type of deal the action belongs to</li>
+      <li><strong>My Deals / All Deals</strong> — toggle to see your personal queue vs. the full team queue</li>
+    </ul>
+
+    <h3 class="sub-title"><span class="icon">⚡</span> Quick actions</h3>
+    <p>Each action card shows the target name, stage, priority tier badge, owner, due date, and priority. Use the <em>Complete</em> button to mark an action done, or <em>Reopen</em> to bring a completed action back to open status. Click the deal name to open that target's detail page.</p>
+
+    <!-- ═══════════════════════════════════════════════════════
+         8. WEEKLY REVIEW
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-anchor" id="weekly-review"></div>
+    <span class="section-number">Section 8</span>
+    <h2 class="section-title">Weekly Review</h2>
+
+    <p>The Weekly Review page (<em>Weekly Review</em> in the sidebar) compiles a structured agenda for your recurring deal review meeting. All eight sections are always shown — with clear empty states when nothing needs attention in a particular area.</p>
+
+    <table class="data-table">
+      <thead><tr><th>Section</th><th>What it contains</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Must-Win Opportunities</strong></td><td>All deals classified as Must-Win in the active pipeline</td></tr>
+        <tr><td><strong>Needs Attention</strong></td><td>Deals flagged with a health warning — overdue actions, stale stage, no recent interaction</td></tr>
+        <tr><td><strong>Overdue Actions</strong></td><td>All open actions past their due date</td></tr>
+        <tr><td><strong>Actions Due This Week</strong></td><td>Open actions due within the next 7 days</td></tr>
+        <tr><td><strong>Stage Changes — Last 7 Days</strong></td><td>Every deal that moved to a new stage in the past week</td></tr>
+        <tr><td><strong>Recently Updated Opportunities</strong></td><td>Deals with any data update in the recent period</td></tr>
+        <tr><td><strong>Opportunities Without Open Actions</strong></td><td>Active deals that have no open actions — potential drift risk</td></tr>
+        <tr><td><strong>No Interaction in 30+ Days</strong></td><td>Active deals where the last logged contact is 30 or more days ago (newly created deals under 30 days old are excluded)</td></tr>
+      </tbody>
+    </table>
+
+    <p>Each section is <strong>collapsible</strong> — click the section header to expand or collapse it during the meeting.</p>
+
+    <h3 class="sub-title"><span class="icon">🤖</span> AI Weekly Brief</h3>
+    <p>Click <em>AI Brief</em> at the top of the page to generate an AI-written narrative summary of the week's pipeline activity. The AI reads the same data driving the sections above and produces a concise, structured brief you can copy and share. Requires an active OpenAI integration.</p>
+
+    <!-- ═══════════════════════════════════════════════════════
+         9. DILIGENCE REVIEW
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-anchor" id="diligence-review"></div>
+    <span class="section-number">Section 9</span>
+    <h2 class="section-title">Diligence Review</h2>
+
+    <p>The Diligence Review page (<em>Diligence Review</em> in the sidebar) shows the due-diligence health across the entire pipeline — not just one deal. Use it to identify where diligence is blocked, overdue, or incomplete across Must-Win deals.</p>
+
+    <table class="data-table">
+      <thead><tr><th>Section</th><th>What it contains</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Must-Win Incomplete</strong></td><td>Must-Win deals that still have open or in-progress diligence items</td></tr>
+        <tr><td><strong>Blocked Items</strong></td><td>Any diligence item with status Blocked, across all deals</td></tr>
+        <tr><td><strong>Overdue Items</strong></td><td>Diligence items past their due date and not completed</td></tr>
+        <tr><td><strong>Completion by Target</strong></td><td>Progress bars showing each deal's diligence completion %, coloured from red → amber → blue → green</td></tr>
+        <tr><td><strong>Missing Workstreams</strong></td><td>Active deals with no diligence items in one or more expected workstreams</td></tr>
+        <tr><td><strong>Recently Completed</strong></td><td>Diligence items completed in the past 14 days</td></tr>
+      </tbody>
+    </table>
+
+    <p>Every row links directly to that deal's Diligence tab. Click the deal name to open the full diligence workspace.</p>
+
+    <!-- ═══════════════════════════════════════════════════════
+         10. DOCUMENT REVIEW
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-anchor" id="document-review"></div>
+    <span class="section-number">Section 10</span>
+    <h2 class="section-title">Document Review</h2>
+
+    <p>The Document Review page (<em>Document Review</em> in the sidebar) aggregates documents across all deals for review governance. It surfaces Must-Win deals with missing required documents and shows documents by their review status.</p>
+
+    <p>Each document entry shows: deal name, document title, category, review status, owner, date, and a direct link to the file. Status values are:</p>
+    <ul>
+      <li><span class="pill amber">Requested</span> — document has been requested from the counterparty</li>
+      <li><span class="pill blue">Received</span> — document received but not yet reviewed</li>
+      <li><span class="pill violet">Under Review</span> — actively being reviewed by the team</li>
+      <li><span class="pill green">Reviewed</span> — review complete</li>
+      <li><span class="pill red">Missing</span> — required document not yet received</li>
+      <li><span class="pill gray">Not Applicable</span> — not required for this deal</li>
+    </ul>
+
+    <!-- ═══════════════════════════════════════════════════════
+         11. ANALYTICS
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-anchor" id="analytics"></div>
+    <span class="section-number">Section 11</span>
+    <h2 class="section-title">Analytics</h2>
+
+    <p>The Analytics page (<em>Analytics</em> in the sidebar) provides historical and structural insight into your M&amp;A pipeline. Filters let you slice by Deal Type and Sector. Use the Refresh button to reload all charts from current data.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <span class="fc-icon">🔽</span>
+        <div class="fc-title">Pipeline Funnel</div>
+        <div class="fc-desc">Bar chart showing deal counts at each stage. Shows how many deals convert from stage to stage — where the funnel narrows most indicates conversion challenges.</div>
+      </div>
+      <div class="feature-card">
+        <span class="fc-icon">⏱️</span>
+        <div class="fc-title">Time in Stage</div>
+        <div class="fc-desc">How long deals typically dwell at each stage, compared to current pipeline aging. Stale deals (in a stage too long) are flagged for attention.</div>
+      </div>
+      <div class="feature-card">
+        <span class="fc-icon">🏆</span>
+        <div class="fc-title">Win / Loss Analysis</div>
+        <div class="fc-desc">Pie chart and breakdown of concluded deals by outcome — Closed, Dropped, Rejected — including reasons for loss where recorded.</div>
+      </div>
+      <div class="feature-card">
+        <span class="fc-icon">🧭</span>
+        <div class="fc-title">Origination Channel</div>
+        <div class="fc-desc">Deal volume and win rate by sourcing channel (e.g. advisor-introduced, proprietary, referral). Helps optimise how the team sources new deals.</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         12. AI COPILOT
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-anchor" id="copilot"></div>
+    <span class="section-number">Section 12</span>
+    <h2 class="section-title">AI Copilot</h2>
+
+    <p>The AI Copilot (<em>AI Copilot</em> in the sidebar) is a chat interface backed by GPT-4. It has real-time access to your pipeline data — targets, actions, interactions — and can answer questions, parse notes, and generate documents in natural language.</p>
+
+    <h3 class="sub-title"><span class="icon">🗨️</span> Chat interface</h3>
+    <p>Type any question in the chat input. The Copilot responds with pipeline-grounded answers. Suggested prompts at the top give you a quick starting point:</p>
+    <ul>
+      <li>"Which Must-Win opportunities need attention?"</li>
+      <li>"Which deals have overdue actions?"</li>
+      <li>"Summarise the status of [deal name]"</li>
+    </ul>
+
+    <h3 class="sub-title"><span class="icon">📋</span> Workflow cards</h3>
+    <p>Four pre-built workflow cards automate common tasks:</p>
+
+    <table class="data-table">
+      <thead><tr><th>Workflow</th><th>How it works</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Ask about pipeline</strong></td>
+          <td>General Q&amp;A about your live pipeline data</td>
+        </tr>
+        <tr>
+          <td><strong>Parse meeting notes</strong></td>
+          <td>Paste raw meeting notes; the AI extracts key points, action items, and deal-relevant insights in structured form</td>
+        </tr>
+        <tr>
+          <td><strong>Generate opportunity brief</strong></td>
+          <td>Select a target; the AI drafts a one-page opportunity brief from the deal's recorded information</td>
+        </tr>
+        <tr>
+          <td><strong>Generate weekly review brief</strong></td>
+          <td>Produces a narrative summary of the week's pipeline activity ready to share with leadership</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout warning">
+      <span class="callout-icon">⚠️</span>
+      <div>The AI Copilot requires a configured OpenAI integration. If you see a "Billing issue" or "API key missing" status badge, contact your administrator.</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         13. DOCTRINE
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-anchor" id="doctrine"></div>
+    <span class="section-number">Section 13</span>
+    <h2 class="section-title">Doctrine</h2>
+
+    <p>The Doctrine page (<em>Doctrine</em> in the sidebar) is a historical learning record — a systematic review of past deals to extract lessons and improve future decision-making accuracy. It shows concluded deals alongside the initial assessments made at the time and whether those assessments proved correct.</p>
+
+    <p>Each entry records: deal outcome (Closed / Dropped / Rejected), the initial scoring and rationale, and an accuracy assessment (Correct / Partially-correct / Wrong) of the team's original judgement. A downloadable <strong>Doctrine Report PDF</strong> can be generated for offline sharing.</p>
+
+    <div class="callout tip">
+      <span class="callout-icon">💡</span>
+      <div>Review the Doctrine page quarterly to build team calibration — understanding where initial assessments were wrong is as valuable as understanding where they were right.</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         14. IMPORT WIZARD
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-anchor" id="import"></div>
+    <span class="section-number">Section 14</span>
+    <h2 class="section-title">Import Wizard</h2>
+
+    <p>The Import Wizard (<em>Import</em> button in the Pipeline header, or <em>Import</em> in the sidebar) allows you to bulk-upload deal targets from a CSV or Excel file. It walks you through 5 steps:</p>
+
+    <div class="workflow">
+      <div class="wf-node">1. Upload</div>
+      <div class="wf-arrow">→</div>
+      <div class="wf-node">2. Map Columns</div>
+      <div class="wf-arrow">→</div>
+      <div class="wf-node">3. Preview</div>
+      <div class="wf-arrow">→</div>
+      <div class="wf-node">4. Apply</div>
+      <div class="wf-arrow">→</div>
+      <div class="wf-node done">5. Done</div>
+    </div>
+
+    <ol class="steps">
+      <li>
+        <div class="step-content">
+          <strong>Upload</strong>
+          <span>Drag and drop or browse for a <code>.csv</code>, <code>.xlsx</code>, or <code>.xls</code> file. A raw file preview appears immediately so you can verify the data looks correct before proceeding.</span>
+        </div>
+      </li>
+      <li>
+        <div class="step-content">
+          <strong>Map Columns</strong>
+          <span>Ringside auto-detects which of your spreadsheet columns maps to which deal field. Review and adjust the mapping dropdowns where auto-detection guessed wrong. Set any column to <em>Skip</em> to ignore it.</span>
+        </div>
+      </li>
+      <li>
+        <div class="step-content">
+          <strong>Preview</strong>
+          <span>See a classification of every row: <span class="pill green">Create</span> (new target), <span class="pill blue">Update</span> (existing target, showing which fields will change), or <span class="pill gray">Skip</span> (row ignored due to missing required data or safety rules).</span>
+        </div>
+      </li>
+      <li>
+        <div class="step-content">
+          <strong>Apply</strong>
+          <span>Click <em>Apply Import</em>. Ringside creates and updates targets row-by-row. Each row succeeds or fails independently — a problem in one row doesn't affect the others.</span>
+        </div>
+      </li>
+      <li>
+        <div class="step-content">
+          <strong>Done</strong>
+          <span>A summary shows how many targets were created, updated, and skipped, plus per-row error details for any rows that failed.</span>
+        </div>
+      </li>
+    </ol>
+
+    <h3 class="sub-title"><span class="icon">🛡️</span> Import safety rules</h3>
+    <ul>
+      <li>Blank values in the import file <strong>never overwrite</strong> existing non-blank data in the database</li>
+      <li>A target's code identifier (<em>targetCode</em>) is never updated on existing records</li>
+      <li>Rows with invalid tier or stage values are skipped with an explanatory reason</li>
+    </ul>
+
+    <!-- ═══════════════════════════════════════════════════════
+         15. NOTIFICATIONS
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-anchor" id="notifications"></div>
+    <span class="section-number">Section 15</span>
+    <h2 class="section-title">Notifications</h2>
+
+    <p>The notification system automatically monitors your pipeline for conditions that require attention and surfaces them as in-app alerts. Notifications are generated every 15 minutes (checked via a local timer — no extra setup required).</p>
+
+    <h3 class="sub-title"><span class="icon">📬</span> Notification types</h3>
+
+    <table class="data-table">
+      <thead><tr><th>Type</th><th>Trigger</th><th>Icon</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Stage stagnation</strong></td>
+          <td>An active deal has been in the same stage for more than 45 days with no progression</td>
+          <td>⏰</td>
+        </tr>
+        <tr>
+          <td><strong>Action overdue</strong></td>
+          <td>An open action item has passed its due date</td>
+          <td>⚠️</td>
+        </tr>
+        <tr>
+          <td><strong>NDA expiring</strong></td>
+          <td>An active NDA has an expiry date within the next 30 days</td>
+          <td>📄</td>
+        </tr>
+        <tr>
+          <td><strong>Must-Win no activity</strong></td>
+          <td>A Must-Win deal has had no logged interaction in 14 or more days</td>
+          <td>⚡</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Notifications are deduplicated — you won't get the same alert for the same deal and condition more than once per 24 hours. Clicking a notification navigates directly to the relevant deal and marks the notification as read.</p>
+
+    <!-- ═══════════════════════════════════════════════════════
+         16. ADMIN CONSOLE
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-anchor" id="admin"></div>
+    <span class="section-number">Section 16</span>
+    <h2 class="section-title">Admin Console</h2>
+
+    <p>The Admin Console (<em>Admin</em> in the sidebar) is only visible to users with the <strong>Admin</strong> role. It provides user management and deal access control for the entire platform.</p>
+
+    <div class="callout danger">
+      <span class="callout-icon">🔐</span>
+      <div>Only Administrators can access the Admin Console. Non-admin users cannot see this section of the sidebar.</div>
+    </div>
+
+    <h3 class="sub-title"><span class="icon">👤</span> User management</h3>
+    <p>The Admin Console shows a list of all platform users with their email address, display name, and current role. From here you can:</p>
+
+    <table class="data-table">
+      <thead><tr><th>Action</th><th>How</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Invite a new user</strong></td><td>Click <em>Invite User</em>. Enter their email, display name, and role. The system sends them an invite email; you can also copy the invite link to send manually.</td></tr>
+        <tr><td><strong>Change a user's role</strong></td><td>Use the role dropdown in the user's row to change their role instantly.</td></tr>
+        <tr><td><strong>Manage deal access</strong></td><td>Click the key icon in a user's row to open the Access dialog — a checklist of all deals. Tick the deals the user should be able to see. Admins bypass this; access grants are for non-admin roles only.</td></tr>
+        <tr><td><strong>Remove a user</strong></td><td>Click the delete icon in the user's row and confirm. This removes the user's account and all their sessions.</td></tr>
+        <tr><td><strong>Generate an OTP for a user</strong></td><td>Use the OTP button to generate a one-time password for a user who is locked out.</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title"><span class="icon">🔑</span> Roles</h3>
+    <table class="data-table">
+      <thead><tr><th>Role</th><th>Capabilities</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill indigo">Admin</span></td><td>Full access to all deals and the Admin Console. Can manage users, roles, and access grants. Sees the entire pipeline regardless of access grants.</td></tr>
+        <tr><td><span class="pill blue">Deal Lead</span></td><td>Can create and manage deals they have been granted access to. Can add IC sessions.</td></tr>
+        <tr><td><span class="pill gray">Member</span></td><td>Can view and interact with deals they have been explicitly granted access to.</td></tr>
+        <tr><td><span class="pill violet">IC Voter</span></td><td>Read access to granted deals; participates in IC sessions as a voter.</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title"><span class="icon">🔒</span> Deal-level access</h3>
+    <p>By default, non-admin users see <strong>no deals</strong> until an Admin explicitly grants them access. This ensures that confidential deals are only visible to authorised team members. Admins always see all deals.</p>
+    <p>When a user creates a new target, they are automatically granted access to it.</p>
+
+    <!-- ═══════════════════════════════════════════════════════
+         17. KEY WORKFLOWS
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-anchor" id="workflows"></div>
+    <span class="section-number">Section 17</span>
+    <h2 class="section-title">Key Workflows</h2>
+
+    <h3 class="sub-title"><span class="icon">🎯</span> Workflow A — Adding and progressing a new deal</h3>
+    <ol class="steps">
+      <li><div class="step-content"><strong>Create the target</strong><span>Pipeline → New → fill in identity, categorisation, team, scoring, tier → Create Target.</span></div></li>
+      <li><div class="step-content"><strong>Log the first interaction</strong><span>Open the deal → Log tab → Log Interaction → record the initial outreach.</span></div></li>
+      <li><div class="step-content"><strong>Add next-step actions</strong><span>Actions tab → Add Action → assign owner, priority, due date.</span></div></li>
+      <li><div class="step-content"><strong>Move the deal to the next stage</strong><span>Click <em>Change Stage</em> in the header → review Stage Gate Advisory → select reason → Confirm.</span></div></li>
+      <li><div class="step-content"><strong>Review in Weekly Review</strong><span>The deal appears in the relevant Weekly Review sections automatically.</span></div></li>
+    </ol>
+
+    <div class="workflow">
+      <div class="wf-node">Sourcing</div>
+      <div class="wf-arrow">→</div>
+      <div class="wf-node">Outreach</div>
+      <div class="wf-arrow">→</div>
+      <div class="wf-node">NDA / CIM</div>
+      <div class="wf-arrow">→</div>
+      <div class="wf-node">Pre-DD</div>
+      <div class="wf-arrow">→</div>
+      <div class="wf-node">NBO</div>
+      <div class="wf-arrow">→</div>
+      <div class="wf-node done">Closed</div>
+    </div>
+
+    <hr class="divider" />
+
+    <h3 class="sub-title"><span class="icon">📝</span> Workflow B — Weekly deal review meeting</h3>
+    <ol class="steps">
+      <li><div class="step-content"><strong>Open Weekly Review</strong><span>Navigate to Weekly Review in the sidebar before your meeting.</span></div></li>
+      <li><div class="step-content"><strong>Generate the AI Brief</strong><span>Click <em>AI Brief</em> to produce a written narrative summary. Copy and share it in advance if needed.</span></div></li>
+      <li><div class="step-content"><strong>Work through sections in order</strong><span>Must-Win Opportunities first, then Needs Attention, then Overdue Actions, then Due This Week.</span></div></li>
+      <li><div class="step-content"><strong>Assign actions in real time</strong><span>For each flagged deal, open it in a new tab and log any decisions or add actions directly during the meeting.</span></div></li>
+      <li><div class="step-content"><strong>Check No Interaction &gt;30 Days</strong><span>For each deal in this section, assign a team member to make contact this week.</span></div></li>
+    </ol>
+
+    <hr class="divider" />
+
+    <h3 class="sub-title"><span class="icon">📦</span> Workflow C — Bulk importing a deal list</h3>
+    <ol class="steps">
+      <li><div class="step-content"><strong>Prepare your spreadsheet</strong><span>Include at minimum a project name and target code column. Optional columns: sector, country, priority tier, deal owner, strategic rationale.</span></div></li>
+      <li><div class="step-content"><strong>Open the Import Wizard</strong><span>Pipeline → Import button.</span></div></li>
+      <li><div class="step-content"><strong>Upload and map</strong><span>Drag in your file. Review and correct the auto-mapped column assignments.</span></div></li>
+      <li><div class="step-content"><strong>Preview and verify</strong><span>Check the Create/Update/Skip classification for each row. Fix any obvious mapping errors by going back to the Map step.</span></div></li>
+      <li><div class="step-content"><strong>Apply and review the summary</strong><span>Click Apply. Read the Done step summary. Any row-level errors show with reasons.</span></div></li>
+    </ol>
+
+    <hr class="divider" />
+
+    <h3 class="sub-title"><span class="icon">🤖</span> Workflow D — Using AI to parse meeting notes</h3>
+    <ol class="steps">
+      <li><div class="step-content"><strong>Open AI Copilot</strong><span>Click <em>AI Copilot</em> in the sidebar.</span></div></li>
+      <li><div class="step-content"><strong>Select the <em>Parse meeting notes</em> workflow card</strong><span>The Copilot prompts you to paste your raw notes.</span></div></li>
+      <li><div class="step-content"><strong>Paste your notes and send</strong><span>The AI returns a structured summary with key discussion points, decisions made, and action items identified.</span></div></li>
+      <li><div class="step-content"><strong>Log the structured summary</strong><span>Copy the AI-generated summary. Open the relevant deal → Log tab → Log Interaction → paste the summary as your notes.</span></div></li>
+    </ol>
+
+    <hr class="divider" />
+
+    <h3 class="sub-title"><span class="icon">⚖️</span> Workflow E — Preparing for an IC presentation</h3>
+    <ol class="steps">
+      <li><div class="step-content"><strong>Complete the deal's Overview</strong><span>Make sure strategic rationale, scoring, and key facts are up to date.</span></div></li>
+      <li><div class="step-content"><strong>Ensure diligence is reflected</strong><span>Update Diligence tab items to current status. The Readiness Score on the tab gives IC a completion view.</span></div></li>
+      <li><div class="step-content"><strong>Add the IC session</strong><span>IC tab → Add Session → set date, type (Stage Gate or Final Approval), attendees, agenda.</span></div></li>
+      <li><div class="step-content"><strong>Generate the IC Brief</strong><span>Click <em>IC Brief</em> in the deal header to generate a print-ready formatted brief, or use <em>AI Brief</em> for an AI-drafted version.</span></div></li>
+      <li><div class="step-content"><strong>Record the IC outcome</strong><span>After the session, edit the IC session record to set the outcome (Approved / Conditional / Rejected / Deferred) and notes.</span></div></li>
+    </ol>
+
+    <!-- ═══════════════════════════════════════════════════════
+         18. GLOSSARY
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-anchor" id="glossary"></div>
+    <span class="section-number">Section 18</span>
+    <h2 class="section-title">Glossary</h2>
+
+    <table class="data-table">
+      <thead><tr><th style="width:180px">Term</th><th>Definition</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Target</strong></td><td>Any company under consideration for acquisition, investment, or partnership — a deal in the pipeline.</td></tr>
+        <tr><td><strong>Target Code</strong></td><td>A short alphanumeric identifier assigned to a deal (e.g. <code>MGP-042</code>). Unique, immutable, and used as the primary reference.</td></tr>
+        <tr><td><strong>Project Code Name</strong></td><td>The confidential internal alias for a deal used to discuss it without revealing the company name externally.</td></tr>
+        <tr><td><strong>Priority Tier</strong></td><td>The strategic importance classification of a deal: Must-Win &gt; Priority 1 &gt; Priority 2 &gt; Watchlist &gt; On Hold &gt; Dropped.</td></tr>
+        <tr><td><strong>Health</strong></td><td>The automated health flag for a deal. <span class="pill green">Healthy</span> = all clear. <span class="pill amber">Watch</span> = minor issues. <span class="pill red">At Risk</span> = one or more serious flags.</td></tr>
+        <tr><td><strong>Stage Gate</strong></td><td>The advisory check that runs when you initiate a stage change — verifying the deal meets key criteria before advancing.</td></tr>
+        <tr><td><strong>Composite Score</strong></td><td>A weighted sum of five scoring dimensions: Strategic Fit + Synergy Potential + Financial Attractiveness + Process Maturity − Risk Penalty.</td></tr>
+        <tr><td><strong>Workstream</strong></td><td>One of the 10 due-diligence tracks: Commercial, Financial, Legal, Tax, HR, Technology, Operations, Integration, ESG, Regulatory.</td></tr>
+        <tr><td><strong>Action</strong></td><td>A task or next step assigned to a team member within the context of a specific deal. Distinct from a Diligence item.</td></tr>
+        <tr><td><strong>Interaction</strong></td><td>A logged contact with or about a target — call, meeting, email, or note. Updates the Last Contact date.</td></tr>
+        <tr><td><strong>IC</strong></td><td>Investment Committee — the approval body for deal progressions. IC sessions are tracked in the IC tab of each deal.</td></tr>
+        <tr><td><strong>NBO</strong></td><td>Non-Binding Offer — a letter of intent submitted before confirmatory due diligence.</td></tr>
+        <tr><td><strong>SPA</strong></td><td>Share Purchase Agreement — the binding legal document executed at deal closing.</td></tr>
+        <tr><td><strong>CIM</strong></td><td>Confidential Information Memorandum — the detailed information pack provided by the target post-NDA.</td></tr>
+        <tr><td><strong>Doctrine</strong></td><td>Ringside's historical learning record — reviewing past deal assessments for accuracy.</td></tr>
+        <tr><td><strong>Copilot</strong></td><td>The AI assistant within Ringside, backed by GPT-4, with access to live pipeline data.</td></tr>
+        <tr><td><strong>Needs Attention</strong></td><td>An automated flag set when a deal has an overdue action, stale stage, or no recent interaction.</td></tr>
+        <tr><td><strong>Must-Win</strong></td><td>The highest priority tier — deals that are considered essential to the group's strategic agenda.</td></tr>
+      </tbody>
+    </table>
+
+    <hr class="divider" />
+
+    <!-- FOOTER -->
+    <div style="text-align:center; padding: 20px 0; color: var(--text-light); font-size: 12px;">
+      <div style="font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">RINGSIDE</div>
+      <div>M&amp;A Deal Intelligence Platform · Manipal Group Corporate Development</div>
+      <div style="margin-top: 4px;">Confidential · Authorised Users Only · All Activity is Logged</div>
+    </div>
+
+  </div><!-- /content-wrap -->
+</main>
+
+<script>
+  // Highlight active nav link on scroll
+  const links = document.querySelectorAll('.doc-nav a');
+  const sections = Array.from(document.querySelectorAll('.section-anchor')).map(a => ({
+    el: a, id: a.id, top: () => a.getBoundingClientRect().top
+  }));
+
+  function updateActive() {
+    const scrollY = window.scrollY + 80;
+    let active = sections[0]?.id;
+    for (const s of sections) {
+      if (s.el.offsetTop <= scrollY) active = s.id;
+    }
+    links.forEach(l => {
+      const href = l.getAttribute('href')?.slice(1);
+      l.classList.toggle('active', href === active);
+    });
+  }
+
+  window.addEventListener('scroll', updateActive, { passive: true });
+  updateActive();
+</script>
+</body>
+</html>
