@@ -166,7 +166,7 @@ export default function Dashboard() {
   if (loadingSummary) {
     return (
       <div className="p-6 md:p-8 space-y-6">
-        <div className="h-20 w-full bg-muted rounded-xl animate-pulse" />
+        <Skeleton className="h-20 w-full rounded-xl" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}
         </div>
@@ -376,7 +376,7 @@ export default function Dashboard() {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex h-44 items-center justify-center text-xs font-mono text-muted-foreground uppercase tracking-widest">
+                <div className="flex h-44 items-center justify-center text-sm font-sans text-muted-foreground/60">
                   No active deals in pipeline
                 </div>
               )}
@@ -735,8 +735,8 @@ export default function Dashboard() {
             </Card>
           ) : (
             <Card className="bg-card border-border/80 rounded-xl">
-              <CardContent className="p-6 text-center text-xs font-mono text-muted-foreground uppercase tracking-widest">
-                No active targets
+              <CardContent className="p-6 text-center text-sm font-sans text-muted-foreground/60">
+                No active deals yet
               </CardContent>
             </Card>
           )}

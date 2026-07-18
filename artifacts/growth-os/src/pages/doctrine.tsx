@@ -546,7 +546,7 @@ export default function Doctrine() {
           <Card className="border-border/60 bg-card rounded-xl">
             <CardContent className="p-6 text-center space-y-2">
               <Lightbulb size={32} className="text-muted-foreground/30 mx-auto" />
-              <p className="text-sm font-mono text-muted-foreground">No verdict data yet.</p>
+              <p className="text-sm font-sans text-muted-foreground">No verdict data yet.</p>
               <p className="text-[11px] text-muted-foreground/60 max-w-sm mx-auto">
                 When deals are closed or dropped, the stage-change dialog will ask for a Phase 1 accuracy verdict.
                 Those verdicts will appear here.
@@ -566,7 +566,7 @@ export default function Doctrine() {
             {isLoading ? (
               <Skeleton className="h-48 w-full rounded-lg" />
             ) : chartData.length === 0 ? (
-              <p className="text-[11px] text-muted-foreground font-mono py-6 text-center">
+              <p className="text-[11px] text-muted-foreground font-sans py-6 text-center">
                 No sector accuracy data — close or drop deals with Phase 1 verdicts to populate this chart.
               </p>
             ) : (
@@ -651,7 +651,7 @@ export default function Doctrine() {
             {isLoading ? (
               <Skeleton className="h-48 w-full rounded-lg" />
             ) : accuracyTrendData.length === 0 ? (
-              <p className="text-[11px] text-muted-foreground font-mono py-6 text-center">
+              <p className="text-[11px] text-muted-foreground font-sans py-6 text-center">
                 {rolling90
                   ? "No verdicts recorded in the last 90 days."
                   : "No accuracy trend data yet — close deals with Phase 1 verdicts to populate this chart."}
@@ -758,7 +758,7 @@ export default function Doctrine() {
             {isLoading ? (
               <Skeleton className="h-40 w-full rounded-lg" />
             ) : (data?.winLossBySector ?? []).length === 0 ? (
-              <p className="text-[11px] text-muted-foreground font-mono py-4 text-center">
+              <p className="text-[11px] text-muted-foreground font-sans py-4 text-center">
                 No closed deals yet.
               </p>
             ) : (
@@ -807,7 +807,7 @@ export default function Doctrine() {
             {isLoading ? (
               <Skeleton className="h-32 w-full rounded-lg" />
             ) : (data?.missThemes ?? []).length === 0 ? (
-              <p className="text-[11px] text-muted-foreground font-mono py-4 text-center">
+              <p className="text-[11px] text-muted-foreground font-sans py-4 text-center">
                 No miss themes tagged yet.
               </p>
             ) : (
@@ -851,7 +851,7 @@ export default function Doctrine() {
             {isLoading ? (
               <Skeleton className="h-40 w-full rounded-lg" />
             ) : (data?.recentClosures ?? []).length === 0 ? (
-              <p className="text-[11px] text-muted-foreground font-mono py-4 text-center">
+              <p className="text-[11px] text-muted-foreground font-sans py-4 text-center">
                 No closed or dropped deals yet.
               </p>
             ) : (

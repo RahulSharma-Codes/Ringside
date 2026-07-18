@@ -87,7 +87,7 @@ export default function SettingsPasswordPage() {
           <KeyRound size={18} className="text-primary" />
           Change Password
         </h1>
-        <p className="text-[11px] text-muted-foreground/60 font-mono mt-0.5">
+        <p className="text-[11px] text-muted-foreground/60 font-sans mt-0.5">
           Update the password you use to sign in
         </p>
       </div>
@@ -99,10 +99,10 @@ export default function SettingsPasswordPage() {
               <CheckCircle2 size={18} className="text-green-500" />
             </div>
             <div>
-              <p className="font-mono font-semibold text-sm uppercase tracking-tight text-green-600">
+              <p className="font-sans font-semibold text-sm text-green-600">
                 Password Updated
               </p>
-              <p className="text-[11px] font-mono text-muted-foreground/60 mt-1">
+              <p className="text-[11px] font-sans text-muted-foreground/60 mt-1">
                 Your new password is active. Use it next time you sign in.
               </p>
             </div>

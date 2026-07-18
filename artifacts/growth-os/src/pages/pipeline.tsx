@@ -22,6 +22,7 @@ import { HealthDot } from "@/components/health-dot";
 import { PIPELINE_STAGE_ORDER } from "@/components/stage-rail";
 import { PipelineKanban } from "@/pages/pipeline-kanban";
 import { PipelineListTable } from "@/pages/pipeline-list-table";
+import { EmptyState } from "@/components/empty-state";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 
@@ -430,13 +431,14 @@ export default function Pipeline() {
       {view === "board" && !isLoading && (
         <div className="px-4 md:px-6 pt-4">
           {(targets?.length ?? 0) === 0 && hasActiveFilters ? (
-            <div className="border border-dashed border-border rounded-xl py-16 text-center">
-              <p className="text-sm font-mono text-muted-foreground uppercase tracking-widest">
-                No targets match the selected filters
-              </p>
-              <Button variant="outline" size="sm" className="mt-4 rounded-lg font-mono text-[10px] uppercase" onClick={clearFilters}>
-                Clear Filters
-              </Button>
+            <div className="py-8">
+              <EmptyState
+                icon={SlidersHorizontal}
+                title="No deals match the selected filters"
+                description="Try adjusting your stage, tier, owner, or deal type filters."
+                action={{ label: "Clear Filters", onClick: clearFilters }}
+                size="md"
+              />
             </div>
           ) : (
             <PipelineKanban targets={targets ?? []} aiMode={aiMode} stageFilter={stage} dealTypeFilter={dealType} />
@@ -462,18 +464,13 @@ export default function Pipeline() {
           {isLoading ? (
             <SkeletonTable rows={8} />
           ) : (targets?.length ?? 0) === 0 ? (
-            <Card className="bg-card border-border rounded-xl">
-              <CardContent className="p-12 text-center">
-                <p className="text-sm font-mono text-muted-foreground uppercase tracking-widest">
-                  No targets match the selected filters
-                </p>
-                {hasActiveFilters && (
-                  <Button variant="outline" size="sm" className="mt-4 rounded-lg font-mono text-[10px] uppercase" onClick={clearFilters}>
-                    Clear Filters
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={SlidersHorizontal}
+              title="No deals match the selected filters"
+              description="Try adjusting your stage, tier, owner, or deal type filters."
+              action={hasActiveFilters ? { label: "Clear Filters", onClick: clearFilters } : undefined}
+              size="md"
+            />
           ) : (
             <PipelineListTable
               data={(targets ?? []).map((t) => ({

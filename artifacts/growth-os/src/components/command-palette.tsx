@@ -35,12 +35,12 @@ const PAGE_ITEMS = [
   { href: "/analytics",        label: "Analytics",        icon: LineChart,      adminOnly: false },
   { href: "/copilot",          label: "AI Copilot",       icon: Bot,            adminOnly: false },
   { href: "/doctrine",         label: "Doctrine",         icon: Lightbulb,      adminOnly: false },
-  { href: "/import",           label: "Import Targets",   icon: Upload,         adminOnly: false },
+  { href: "/import",           label: "Import",           icon: Upload,         adminOnly: false },
   { href: "/admin",            label: "Admin",            icon: ShieldCheck,    adminOnly: true  },
 ];
 
 const QUICK_ACTIONS = [
-  { label: "Add New Target", icon: Plus,           href: "/targets/new"       },
+  { label: "Add New Deal",   icon: Plus,           href: "/targets/new"       },
   { label: "Import CSV",     icon: FileSpreadsheet, href: "/import"            },
   { label: "Change Password",icon: KeyRound,        href: "/settings/password" },
 ];

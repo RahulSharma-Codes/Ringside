@@ -386,7 +386,7 @@ export default function DiligenceReview() {
                 defaultOpen={data.targetSummaries.length <= 10}
               >
                 {data.targetSummaries.length === 0 ? (
-                  <EmptyState icon={ClipboardCheck} title="No targets with diligence items yet" size="sm" />
+                  <EmptyState icon={ClipboardCheck} title="No deals with diligence items yet" size="sm" />
                 ) : (
                   data.targetSummaries.map((t) => (
                     <ItemRow key={t.id} href={`/targets/${t.id}`}>

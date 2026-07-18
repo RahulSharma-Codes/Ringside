@@ -92,7 +92,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/analytics",        label: "Analytics",         icon: LineChart,      group: "Intelligence"     },
   { href: "/copilot",          label: "AI Copilot",        icon: Bot,            group: "Intelligence"     },
   { href: "/doctrine",         label: "Doctrine",          icon: Lightbulb,      group: "Intelligence"     },
-  { href: "/import",           label: "Import Targets",    icon: Upload,         group: "Data"             },
+  { href: "/import",           label: "Import",            icon: Upload,         group: "Data"             },
   { href: "/admin",            label: "Admin",             icon: ShieldCheck,    group: "Admin"            },
 ];
 
@@ -341,7 +341,7 @@ function MobileSidebarNav({
         </div>
         <Link href="/targets/new" onClick={onNavigate}>
           <Button className="w-full justify-center gap-2 h-8 text-[11px] font-sans font-medium rounded-xl" size="sm">
-            <Plus size={13} /> New Opportunity
+            <Plus size={13} /> New Deal
           </Button>
         </Link>
       </div>

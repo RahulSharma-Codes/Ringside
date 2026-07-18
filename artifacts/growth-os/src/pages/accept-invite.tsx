@@ -123,7 +123,7 @@ export default function AcceptInvitePage({ onLogin }: AcceptInvitePageProps) {
           <p className="text-[9px] font-mono uppercase tracking-[0.25em] text-muted-foreground/40">
             Manipal Group · Corporate Development
           </p>
-          <h1 className="font-mono font-bold text-4xl uppercase tracking-[0.15em] text-foreground">
+          <h1 className="font-sans font-bold text-4xl uppercase tracking-[0.15em] text-foreground">
             Ringside
           </h1>
           <p className="text-[11px] font-mono text-muted-foreground/50 tracking-wider uppercase">
@@ -146,7 +146,7 @@ export default function AcceptInvitePage({ onLogin }: AcceptInvitePageProps) {
           {phase === "invalid" && (
             <>
               <div className="px-7 pt-7 pb-5 border-b border-border/40">
-                <h2 className="font-mono font-semibold text-base text-foreground tracking-tight">
+                <h2 className="font-sans font-semibold text-base text-foreground tracking-tight">
                   Invite link invalid
                 </h2>
               </div>
@@ -154,7 +154,7 @@ export default function AcceptInvitePage({ onLogin }: AcceptInvitePageProps) {
                 <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
                   <AlertTriangle size={20} className="text-destructive" />
                 </div>
-                <p className="text-[12px] font-mono text-muted-foreground/70 leading-relaxed max-w-xs">
+                <p className="text-[12px] font-sans text-muted-foreground/70 leading-relaxed max-w-xs">
                   {errorMsg}
                 </p>
               </div>
@@ -165,15 +165,15 @@ export default function AcceptInvitePage({ onLogin }: AcceptInvitePageProps) {
           {phase === "done" && (
             <>
               <div className="px-7 pt-7 pb-5 border-b border-border/40">
-                <h2 className="font-mono font-semibold text-base text-foreground tracking-tight">Account created</h2>
+                <h2 className="font-sans font-semibold text-base text-foreground tracking-tight">Account created</h2>
               </div>
               <div className="px-7 py-8 flex flex-col items-center gap-4 text-center">
                 <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
                   <CheckCircle2 size={20} className="text-green-500" />
                 </div>
                 <div>
-                  <p className="font-mono font-semibold text-sm text-green-500">You're in!</p>
-                  <p className="text-[11px] font-mono text-muted-foreground/50 mt-1">Redirecting to the dashboard…</p>
+                  <p className="font-sans font-semibold text-sm text-green-500">You're in!</p>
+                  <p className="text-[11px] font-sans text-muted-foreground/50 mt-1">Redirecting to the dashboard…</p>
                 </div>
               </div>
             </>
@@ -185,10 +185,10 @@ export default function AcceptInvitePage({ onLogin }: AcceptInvitePageProps) {
               {/* Card header */}
               <div className="px-7 pt-7 pb-5 border-b border-border/40 space-y-3">
                 <div>
-                  <h2 className="font-mono font-semibold text-base text-foreground tracking-tight">
+                  <h2 className="font-sans font-semibold text-base text-foreground tracking-tight">
                     You've been invited
                   </h2>
-                  <p className="text-[11px] font-mono text-muted-foreground/50 mt-0.5">
+                  <p className="text-[11px] font-sans text-muted-foreground/50 mt-0.5">
                     Create your account to get started.
                   </p>
                 </div>
