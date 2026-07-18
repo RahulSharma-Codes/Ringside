@@ -407,7 +407,7 @@ export default function WeeklyReview() {
   const d = data;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full animate-in fade-in duration-300">
       {/* Compact sticky header */}
       <div className="page-hero px-4 md:px-6 pt-3.5 pb-3 shrink-0">
         <div className="flex items-center justify-between gap-3">

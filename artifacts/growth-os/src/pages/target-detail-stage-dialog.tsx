@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 import {
   useUpdateTargetStage, useGetStageGate,
   getGetTargetQueryKey, getGetStageHistoryQueryKey,
@@ -246,9 +247,11 @@ export function StageChangeDialog({ open, onOpenChange, targetId, target, onSucc
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={handleClose} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-          <Button onClick={handleUpdateStage} disabled={!stageVal || !stageReason.trim() || verdictIncomplete || updateStage.isPending} className="rounded-sm font-mono uppercase text-[10px]">
-            {stageVal ? `Move to ${stageVal}` : "Select a Stage"}
-          </Button>
+          <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+            <Button onClick={handleUpdateStage} disabled={!stageVal || !stageReason.trim() || verdictIncomplete || updateStage.isPending} className="rounded-sm font-mono uppercase text-[10px]">
+              {stageVal ? `Move to ${stageVal}` : "Select a Stage"}
+            </Button>
+          </motion.div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

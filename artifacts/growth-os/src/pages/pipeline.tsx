@@ -212,7 +212,7 @@ export default function Pipeline() {
   }
 
   return (
-    <div className="pb-20 md:pb-8">
+    <div className="pb-20 md:pb-8 animate-in fade-in duration-300">
 
       {/* Sticky header + filter bar */}
       <div className="page-hero-sticky px-4 md:px-6 pt-4 pb-3 space-y-3">
@@ -282,9 +282,11 @@ export default function Pipeline() {
               <SlidersHorizontal size={12} />
             </button>
             <Link href="/targets/new">
-              <Button size="sm" className="rounded-xl font-sans text-[11px] gap-1.5 h-7 px-2.5">
-                <Plus size={12} /> New
-              </Button>
+              <motion.div whileTap={{ scale: 0.95 }} style={{ display: "inline-flex" }}>
+                <Button size="sm" className="rounded-xl font-sans text-[11px] gap-1.5 h-7 px-2.5">
+                  <Plus size={12} /> New
+                </Button>
+              </motion.div>
             </Link>
           </div>
         </div>

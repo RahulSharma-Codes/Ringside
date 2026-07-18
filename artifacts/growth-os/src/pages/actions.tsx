@@ -30,6 +30,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonCard } from "@/components/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
 const SORT_KEY  = "ringside_actions_sort_v1";
@@ -256,24 +257,28 @@ function buildColumns(
       cell: ({ row }) => {
         const a = row.original;
         return a.status !== "Completed" ? (
-          <Button
-            size="sm"
-            className="h-6 text-[9px] font-mono uppercase rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 px-2"
-            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onComplete(a.id); }}
-            disabled={isPending}
-          >
-            <CheckCircle2 size={10} className="mr-0.5" /> Done
-          </Button>
+          <motion.div whileTap={{ scale: 0.93 }} style={{ display: "inline-flex" }}>
+            <Button
+              size="sm"
+              className="h-6 text-[9px] font-mono uppercase rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 px-2"
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onComplete(a.id); }}
+              disabled={isPending}
+            >
+              <CheckCircle2 size={10} className="mr-0.5" /> Done
+            </Button>
+          </motion.div>
         ) : (
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-6 text-[9px] font-mono uppercase rounded-lg shrink-0 px-2"
-            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onReopen(a.id); }}
-            disabled={isPending}
-          >
-            <RotateCcw size={10} className="mr-0.5" /> Reopen
-          </Button>
+          <motion.div whileTap={{ scale: 0.93 }} style={{ display: "inline-flex" }}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 text-[9px] font-mono uppercase rounded-lg shrink-0 px-2"
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onReopen(a.id); }}
+              disabled={isPending}
+            >
+              <RotateCcw size={10} className="mr-0.5" /> Reopen
+            </Button>
+          </motion.div>
         );
       },
     },
@@ -412,7 +417,7 @@ export default function Actions() {
   }, [table]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full animate-in fade-in duration-300">
       {/* Sticky compact header */}
       <div className="page-hero px-4 md:px-6 pt-3.5 pb-3 shrink-0">
         <div className="flex items-center justify-between gap-3 mb-2.5">
@@ -509,11 +514,27 @@ export default function Actions() {
 
       <div className="flex-1 overflow-auto p-4 md:p-6">
         {isLoading ? (
-          <div className="space-y-2">
-            {Array(3).fill(0).map((_, i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-12 w-full rounded-xl" />
-                <Skeleton className="h-24 w-full rounded-xl" />
+          <div className="rounded-xl border border-border/60 bg-card overflow-hidden space-y-0">
+            {Array(4).fill(0).map((_, g) => (
+              <div key={g} className="border-b border-border/40 last:border-b-0">
+                {/* Group header skeleton */}
+                <div className="flex items-center gap-2 px-3 py-2 bg-muted/30">
+                  <Skeleton className="h-3 w-3 rounded" />
+                  <Skeleton className="h-2.5 w-24" />
+                  <Skeleton className="h-4 w-6 rounded-full ml-auto" />
+                </div>
+                {/* Row skeletons */}
+                {g < 2 && Array(g === 0 ? 2 : 3).fill(0).map((_, r) => (
+                  <div key={r} className="flex items-center gap-4 px-3 py-2.5 border-t border-border/20">
+                    <Skeleton className="h-3 w-56" />
+                    <Skeleton className="h-3 w-28" />
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-3 w-20 ml-auto" />
+                    <Skeleton className="h-5 w-14 rounded-lg" />
+                  </div>
+                ))}
               </div>
             ))}
           </div>
