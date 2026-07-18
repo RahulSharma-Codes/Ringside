@@ -385,7 +385,9 @@ export default function TargetDetail() {
           </div>
           <DialogFooter>
             <Btn variant="outline" onClick={() => setDeleteOpen(false)} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Btn>
-            <Btn variant="destructive" onClick={handleDeleteTarget} disabled={deleteTarget.isPending} className="rounded-sm font-mono uppercase text-[10px]">Archive</Btn>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Btn variant="destructive" onClick={handleDeleteTarget} disabled={deleteTarget.isPending} className="rounded-sm font-mono uppercase text-[10px]">Archive</Btn>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

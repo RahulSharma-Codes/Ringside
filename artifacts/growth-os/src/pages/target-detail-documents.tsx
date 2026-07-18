@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
 import {
   useListDocuments,
   getListDocumentsQueryKey,
@@ -309,14 +310,16 @@ function DocModal({
           >
             Cancel
           </Button>
-          <Button
-            size="sm"
-            onClick={() => onSave(form)}
-            disabled={!form.title.trim() || isPending}
-            className="rounded-sm font-mono text-[10px] uppercase"
-          >
-            {isPending ? "Saving..." : "Save"}
-          </Button>
+          <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+            <Button
+              size="sm"
+              onClick={() => onSave(form)}
+              disabled={!form.title.trim() || isPending}
+              className="rounded-sm font-mono text-[10px] uppercase"
+            >
+              {isPending ? "Saving..." : "Save"}
+            </Button>
+          </motion.div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -373,10 +376,12 @@ function RestrictedPreviewModal({
             className="rounded-sm font-mono text-[10px] uppercase border-border">
             Cancel
           </Button>
-          <Button size="sm" onClick={onConfirm}
-            className="rounded-sm font-mono text-[10px] uppercase bg-amber-600 hover:bg-amber-700 text-white border-0">
-            Continue — Open Document
-          </Button>
+          <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+            <Button size="sm" onClick={onConfirm}
+              className="rounded-sm font-mono text-[10px] uppercase bg-amber-600 hover:bg-amber-700 text-white border-0">
+              Continue — Open Document
+            </Button>
+          </motion.div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

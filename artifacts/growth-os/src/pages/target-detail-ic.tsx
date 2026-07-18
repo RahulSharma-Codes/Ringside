@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
 import {
   useListIcProposals, getListIcProposalsQueryKey,
@@ -506,13 +507,15 @@ function ProposalCard({ proposal, targetId }: { proposal: IcProposal; targetId: 
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddVoterOpen(false)} className="rounded-sm font-mono text-[10px] uppercase">Cancel</Button>
-            <Button
-              onClick={handleAddVoter}
-              disabled={!voterName.trim() || addVoter.isPending}
-              className="rounded-sm font-mono text-[10px] uppercase"
-            >
-              Add
-            </Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button
+                onClick={handleAddVoter}
+                disabled={!voterName.trim() || addVoter.isPending}
+                className="rounded-sm font-mono text-[10px] uppercase"
+              >
+                Add
+              </Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -570,21 +573,23 @@ function ProposalCard({ proposal, targetId }: { proposal: IcProposal; targetId: 
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setVoteDialogOpen(false)} className="rounded-sm font-mono text-[10px] uppercase">Cancel</Button>
-            <Button
-              onClick={handleCastVote}
-              disabled={
-                !voteRationale.trim() ||
-                castVote.isPending ||
-                (voteChoice === "Approve with Conditions" &&
-                  voteConditions.split("\n").map((s) => s.trim()).filter(Boolean).length === 0)
-              }
-              className={`rounded-sm font-mono text-[10px] uppercase ${
-                voteChoice === "Approve" ? "bg-emerald-600 hover:bg-emerald-700" :
-                voteChoice === "Reject" ? "bg-destructive hover:bg-destructive/90" : ""
-              }`}
-            >
-              {castVote.isPending ? "Saving..." : "Cast Vote"}
-            </Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button
+                onClick={handleCastVote}
+                disabled={
+                  !voteRationale.trim() ||
+                  castVote.isPending ||
+                  (voteChoice === "Approve with Conditions" &&
+                    voteConditions.split("\n").map((s) => s.trim()).filter(Boolean).length === 0)
+                }
+                className={`rounded-sm font-mono text-[10px] uppercase ${
+                  voteChoice === "Approve" ? "bg-emerald-600 hover:bg-emerald-700" :
+                  voteChoice === "Reject" ? "bg-destructive hover:bg-destructive/90" : ""
+                }`}
+              >
+                {castVote.isPending ? "Saving..." : "Cast Vote"}
+              </Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -639,13 +644,15 @@ function ProposalCard({ proposal, targetId }: { proposal: IcProposal; targetId: 
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCpEditOpen(false)} className="rounded-sm font-mono text-[10px] uppercase">Cancel</Button>
-            <Button
-              onClick={handleSaveCpEdit}
-              disabled={updateCp.isPending}
-              className="rounded-sm font-mono text-[10px] uppercase"
-            >
-              Save
-            </Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button
+                onClick={handleSaveCpEdit}
+                disabled={updateCp.isPending}
+                className="rounded-sm font-mono text-[10px] uppercase"
+              >
+                Save
+              </Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1532,6 +1539,7 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setProposalDialogOpen(false); resetProposalForm(); }} className="rounded-sm font-mono text-[10px] uppercase">Cancel</Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
             <Button
               onClick={handleCreateProposal}
               disabled={createProposal.isPending}
@@ -1539,6 +1547,7 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
             >
               {createProposal.isPending ? "Submitting..." : "Submit Proposal"}
             </Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1585,9 +1594,11 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setIcAddOpen(false); resetIcForm(); }} className="rounded-sm font-mono text-[10px] uppercase">Cancel</Button>
-            <Button onClick={handleCreateIcSession} disabled={!icDate || !icOutcome || createIcSession.isPending} className="rounded-sm font-mono text-[10px] uppercase">
-              Save Session
-            </Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button onClick={handleCreateIcSession} disabled={!icDate || !icOutcome || createIcSession.isPending} className="rounded-sm font-mono text-[10px] uppercase">
+                Save Session
+              </Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1634,9 +1645,11 @@ export function IcTab({ targetId, dealName }: IcTabProps) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIcEditOpen(false)} className="rounded-sm font-mono text-[10px] uppercase">Cancel</Button>
-            <Button onClick={handleUpdateIcSession} disabled={!icEditDate || !icEditOutcome || updateIcSession.isPending} className="rounded-sm font-mono text-[10px] uppercase">
-              Save Changes
-            </Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button onClick={handleUpdateIcSession} disabled={!icEditDate || !icEditOutcome || updateIcSession.isPending} className="rounded-sm font-mono text-[10px] uppercase">
+                Save Changes
+              </Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

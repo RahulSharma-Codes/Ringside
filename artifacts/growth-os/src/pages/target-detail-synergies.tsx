@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListSynergies,
@@ -622,7 +623,9 @@ export function SynergiesTab({ targetId, currentStage }: { targetId: number; cur
           <SynergyFormFields form={form} onChange={patchForm} canEditStatus={canEditStatus} />
           <DialogFooter>
             <Button variant="outline" onClick={() => { setAddOpen(false); setForm(emptyForm()); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button onClick={handleAdd} disabled={!form.description.trim() || createSynergy.isPending} className="rounded-sm font-mono uppercase text-[10px]">Add Hypothesis</Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button onClick={handleAdd} disabled={!form.description.trim() || createSynergy.isPending} className="rounded-sm font-mono uppercase text-[10px]">Add Hypothesis</Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -636,7 +639,9 @@ export function SynergiesTab({ targetId, currentStage }: { targetId: number; cur
           <SynergyFormFields form={form} onChange={patchForm} canEditStatus={canEditStatus} />
           <DialogFooter>
             <Button variant="outline" onClick={() => { setEditOpen(false); setForm(emptyForm()); setEditId(null); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button onClick={handleEdit} disabled={!form.description.trim() || updateSynergy.isPending} className="rounded-sm font-mono uppercase text-[10px]">Save Changes</Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button onClick={handleEdit} disabled={!form.description.trim() || updateSynergy.isPending} className="rounded-sm font-mono uppercase text-[10px]">Save Changes</Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -652,7 +657,9 @@ export function SynergiesTab({ targetId, currentStage }: { targetId: number; cur
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setDeleteOpen(false); setDeleteId(null); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleteSynergy.isPending} className="rounded-sm font-mono uppercase text-[10px]">Delete</Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button variant="destructive" onClick={handleDelete} disabled={deleteSynergy.isPending} className="rounded-sm font-mono uppercase text-[10px]">Delete</Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListInteractions, getListInteractionsQueryKey,
@@ -323,7 +324,9 @@ export function InteractionsTab({ targetId, addOpen, onAddOpenChange }: Interact
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setInteractionOpen(false); resetInterForm(); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button onClick={handleCreateInteraction} disabled={!interSummary || createInteraction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Save Log</Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button onClick={handleCreateInteraction} disabled={!interSummary || createInteraction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Save Log</Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -375,7 +378,9 @@ export function InteractionsTab({ targetId, addOpen, onAddOpenChange }: Interact
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditInterOpen(false)} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button onClick={handleUpdateInteraction} disabled={!editInterData.summary || updateInteraction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Save Changes</Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button onClick={handleUpdateInteraction} disabled={!editInterData.summary || updateInteraction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Save Changes</Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -393,7 +398,9 @@ export function InteractionsTab({ targetId, addOpen, onAddOpenChange }: Interact
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setDeleteInterOpen(false); setDeleteInterId(null); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button variant="destructive" onClick={handleDeleteInteraction} disabled={deleteInteraction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Delete</Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button variant="destructive" onClick={handleDeleteInteraction} disabled={deleteInteraction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Delete</Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

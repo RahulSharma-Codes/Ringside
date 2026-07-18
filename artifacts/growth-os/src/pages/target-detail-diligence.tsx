@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 import {
   useGetDiligenceForTarget, getGetDiligenceForTargetQueryKey,
   useCreateDiligenceItem,
@@ -795,7 +796,9 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setAddOpen(false); resetAddForm(); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button onClick={handleAdd} disabled={!addDesc.trim() || createDiligenceItem.isPending} className="rounded-sm font-mono uppercase text-[10px]">Add Item</Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button onClick={handleAdd} disabled={!addDesc.trim() || createDiligenceItem.isPending} className="rounded-sm font-mono uppercase text-[10px]">Add Item</Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -897,7 +900,9 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button onClick={handleEdit} disabled={!editData.description.trim() || updateAction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Save Changes</Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button onClick={handleEdit} disabled={!editData.description.trim() || updateAction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Save Changes</Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -913,7 +918,9 @@ export function DiligenceTab({ targetId }: { targetId: number }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setDeleteOpen(false); setDeleteId(null); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleteAction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Delete</Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button variant="destructive" onClick={handleDelete} disabled={deleteAction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Delete</Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

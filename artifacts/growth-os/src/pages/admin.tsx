@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Shield, UserPlus, RefreshCw, Loader2, CheckCircle2,
@@ -556,14 +557,16 @@ export default function AdminPage() {
                 >
                   Cancel
                 </Button>
-                <Button
-                  onClick={() => sendInvite.mutate({ email: inviteEmail, displayName: inviteDisplayName, role: inviteRole })}
-                  disabled={!inviteEmail.trim() || sendInvite.isPending}
-                  className="rounded-sm font-mono text-[10px] uppercase"
-                >
-                  {sendInvite.isPending ? <Loader2 size={10} className="animate-spin mr-1" /> : <UserPlus size={10} className="mr-1" />}
-                  Send Invite
-                </Button>
+                <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+                  <Button
+                    onClick={() => sendInvite.mutate({ email: inviteEmail, displayName: inviteDisplayName, role: inviteRole })}
+                    disabled={!inviteEmail.trim() || sendInvite.isPending}
+                    className="rounded-sm font-mono text-[10px] uppercase"
+                  >
+                    {sendInvite.isPending ? <Loader2 size={10} className="animate-spin mr-1" /> : <UserPlus size={10} className="mr-1" />}
+                    Send Invite
+                  </Button>
+                </motion.div>
               </DialogFooter>
             </>
           )}
@@ -605,12 +608,14 @@ export default function AdminPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button
-                  onClick={closeInviteDialog}
-                  className="rounded-sm font-mono text-[10px] uppercase"
-                >
-                  Done
-                </Button>
+                <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+                  <Button
+                    onClick={closeInviteDialog}
+                    className="rounded-sm font-mono text-[10px] uppercase"
+                  >
+                    Done
+                  </Button>
+                </motion.div>
               </DialogFooter>
             </>
           )}
@@ -675,14 +680,16 @@ export default function AdminPage() {
             >
               Cancel
             </Button>
-            <Button
-              onClick={() => accessUser && saveAccess.mutate({ id: accessUser.id, targetIds: [...accessSelectedIds] })}
-              disabled={saveAccess.isPending}
-              className="rounded-sm font-mono text-[10px] uppercase"
-            >
-              {saveAccess.isPending ? <Loader2 size={10} className="animate-spin mr-1" /> : null}
-              Save Access
-            </Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button
+                onClick={() => accessUser && saveAccess.mutate({ id: accessUser.id, targetIds: [...accessSelectedIds] })}
+                disabled={saveAccess.isPending}
+                className="rounded-sm font-mono text-[10px] uppercase"
+              >
+                {saveAccess.isPending ? <Loader2 size={10} className="animate-spin mr-1" /> : null}
+                Save Access
+              </Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -725,15 +732,17 @@ export default function AdminPage() {
             >
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={() => deleteTarget && deleteUser.mutate(deleteTarget.id)}
-              disabled={deleteUser.isPending}
-              className="rounded-sm font-mono text-[10px] uppercase"
-            >
-              {deleteUser.isPending ? <Loader2 size={10} className="animate-spin mr-1" /> : null}
-              Remove User
-            </Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button
+                variant="destructive"
+                onClick={() => deleteTarget && deleteUser.mutate(deleteTarget.id)}
+                disabled={deleteUser.isPending}
+                className="rounded-sm font-mono text-[10px] uppercase"
+              >
+                {deleteUser.isPending ? <Loader2 size={10} className="animate-spin mr-1" /> : null}
+                Remove User
+              </Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

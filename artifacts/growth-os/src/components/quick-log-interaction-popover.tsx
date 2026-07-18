@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { MessageSquarePlus } from "lucide-react";
 import { format } from "date-fns";
@@ -85,7 +86,8 @@ export function QuickLogInteractionPopover({
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <button
+        <motion.button
+          whileTap={{ scale: 0.9 }}
           aria-label={`Log interaction for ${targetName}`}
           title="Quick-log interaction"
           onPointerDown={(e) => e.stopPropagation()}
@@ -97,7 +99,7 @@ export function QuickLogInteractionPopover({
           className="inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground/50 hover:text-primary hover:bg-primary/10 transition-colors"
         >
           <MessageSquarePlus size={14} />
-        </button>
+        </motion.button>
       </PopoverTrigger>
       <PopoverContent
         className="w-80 p-4"
@@ -155,14 +157,16 @@ export function QuickLogInteractionPopover({
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              size="sm"
-              className="h-7 text-[11px] font-mono"
-              disabled={!summary.trim() || createInteraction.isPending}
-            >
-              {createInteraction.isPending ? "Logging…" : "Log"}
-            </Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button
+                type="submit"
+                size="sm"
+                className="h-7 text-[11px] font-mono"
+                disabled={!summary.trim() || createInteraction.isPending}
+              >
+                {createInteraction.isPending ? "Logging…" : "Log"}
+              </Button>
+            </motion.div>
           </div>
         </form>
       </PopoverContent>

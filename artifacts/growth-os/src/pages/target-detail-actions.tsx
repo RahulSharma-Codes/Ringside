@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListActions, getListActionsQueryKey,
@@ -273,14 +274,16 @@ export function ActionsTab({ targetId, addOpen, onAddOpenChange }: ActionsTabPro
     <>
       <div className="space-y-4">
         <div className="flex justify-end">
-          <Button
-            size="sm"
-            variant="outline"
-            className="hidden md:flex rounded-sm font-mono text-[10px] uppercase border-border"
-            onClick={() => setActionOpen(true)}
-          >
-            <Plus size={13} className="mr-1" /> Add Action
-          </Button>
+          <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="hidden md:flex rounded-sm font-mono text-[10px] uppercase border-border"
+              onClick={() => setActionOpen(true)}
+            >
+              <Plus size={13} className="mr-1" /> Add Action
+            </Button>
+          </motion.div>
         </div>
 
         {loadingActions ? (
@@ -360,7 +363,9 @@ export function ActionsTab({ targetId, addOpen, onAddOpenChange }: ActionsTabPro
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setActionOpen(false); resetActionForm(); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button onClick={handleCreateAction} disabled={!actionDesc || createAction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Add Action</Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button onClick={handleCreateAction} disabled={!actionDesc || createAction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Add Action</Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -405,7 +410,9 @@ export function ActionsTab({ targetId, addOpen, onAddOpenChange }: ActionsTabPro
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditActionOpen(false)} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button onClick={handleUpdateAction} disabled={!editActionData.description || updateAction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Save Changes</Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button onClick={handleUpdateAction} disabled={!editActionData.description || updateAction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Save Changes</Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -423,7 +430,9 @@ export function ActionsTab({ targetId, addOpen, onAddOpenChange }: ActionsTabPro
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setDeleteActionOpen(false); setDeleteActionId(null); }} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-            <Button variant="destructive" onClick={handleDeleteAction} disabled={deleteAction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Delete</Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button variant="destructive" onClick={handleDeleteAction} disabled={deleteAction.isPending} className="rounded-sm font-mono uppercase text-[10px]">Delete</Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

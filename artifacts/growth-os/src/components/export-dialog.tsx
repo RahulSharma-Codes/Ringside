@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -146,15 +147,18 @@ export function ExportDialog({ open, onOpenChange, filterParams }: ExportDialogP
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button
-            size="sm"
-            onClick={handleDownload}
-            disabled={selected.size === 0 || downloading}
-            className="gap-1.5"
-          >
-            <Download size={13} />
-            {downloading ? "Exporting…" : `Download (${selected.size} cols)`}
-          </Button>
+
+          <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+            <Button
+              size="sm"
+              onClick={handleDownload}
+              disabled={selected.size === 0 || downloading}
+              className="gap-1.5"
+            >
+              <Download size={13} />
+              {downloading ? "Exporting…" : `Download (${selected.size} cols)`}
+            </Button>
+          </motion.div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
   useListValuations, getListValuationsQueryKey,
   useCreateValuation,
@@ -744,14 +745,16 @@ export function ValuationTab({ targetId, currentStage }: { targetId: number; cur
           </div>
           <DialogFooter>
             <Button variant="outline" className="rounded-sm" onClick={() => { resetAddForm(); setAddOpen(false); }}>Cancel</Button>
-            <Button
-              className="rounded-sm"
-              onClick={handleAdd}
-              disabled={!addMethodology || createValuation.isPending}
-            >
-              {createValuation.isPending ? <Loader2 size={13} className="animate-spin mr-1" /> : null}
-              Record Valuation
-            </Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button
+                className="rounded-sm"
+                onClick={handleAdd}
+                disabled={!addMethodology || createValuation.isPending}
+              >
+                {createValuation.isPending ? <Loader2 size={13} className="animate-spin mr-1" /> : null}
+                Record Valuation
+              </Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -765,14 +768,16 @@ export function ValuationTab({ targetId, currentStage }: { targetId: number; cur
           <p className="text-sm text-muted-foreground py-2">This valuation entry will be permanently deleted.</p>
           <DialogFooter>
             <Button variant="outline" className="rounded-sm" onClick={() => setDeleteOpen(false)}>Cancel</Button>
-            <Button
-              variant="destructive"
-              className="rounded-sm"
-              onClick={handleDelete}
-              disabled={deleteValuation.isPending}
-            >
-              Delete
-            </Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+              <Button
+                variant="destructive"
+                className="rounded-sm"
+                onClick={handleDelete}
+                disabled={deleteValuation.isPending}
+              >
+                Delete
+              </Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useUpdateTarget, getGetTargetQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -222,7 +223,9 @@ export function EditTargetDialog({ open, onOpenChange, targetId, target, onSucce
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-sm font-mono uppercase text-[10px]">Cancel</Button>
-          <Button onClick={handleUpdateTarget} disabled={updateTarget.isPending} className="rounded-sm font-mono uppercase text-[10px]">Save Changes</Button>
+          <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+            <Button onClick={handleUpdateTarget} disabled={updateTarget.isPending} className="rounded-sm font-mono uppercase text-[10px]">Save Changes</Button>
+          </motion.div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

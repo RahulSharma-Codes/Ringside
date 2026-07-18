@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetCounterparty, getGetCounterpartyQueryKey, useUpdateCounterparty,
@@ -519,6 +520,7 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCpEditOpen(false)}>Cancel</Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
             <Button
               disabled={updateCp.isPending}
               onClick={() => updateCp.mutate({ id: targetId, data: {
@@ -532,6 +534,7 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
             >
               Save
             </Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -603,6 +606,7 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => { setAdvisorAddOpen(false); setAdvisorEditOpen(false); }}>Cancel</Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
             <Button
               disabled={!advisorForm.firmName || createAdvisor.isPending || updateAdvisor.isPending}
               onClick={() => {
@@ -626,6 +630,7 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
             >
               {advisorEditOpen ? "Save" : "Add Advisor"}
             </Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -680,6 +685,7 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setNoteDialogOpen(false)}>Cancel</Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
             <Button
               disabled={!noteForm.note.trim() || !noteForm.author.trim() || createConflictNote.isPending}
               onClick={() => {
@@ -692,6 +698,7 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
             >
               Save Note
             </Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -731,6 +738,7 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => { setSponsorAddOpen(false); setSponsorEditOpen(false); }}>Cancel</Button>
+            <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
             <Button
               disabled={!sponsorForm.name || createSponsor.isPending || updateSponsor.isPending}
               onClick={() => {
@@ -749,6 +757,7 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
             >
               {sponsorEditOpen ? "Save" : "Add Sponsor"}
             </Button>
+            </motion.div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

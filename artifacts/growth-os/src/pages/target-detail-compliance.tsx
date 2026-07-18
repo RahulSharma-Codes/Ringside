@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListNdaRecords,
@@ -239,9 +240,11 @@ function NdaDialog({ open, onClose, initial, onSave, saving }: NdaDialogProps) {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(form)} disabled={saving}>
-            {saving ? "Saving…" : (initial ? "Save Changes" : "Add NDA")}
-          </Button>
+          <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+            <Button onClick={() => onSave(form)} disabled={saving}>
+              {saving ? "Saving…" : (initial ? "Save Changes" : "Add NDA")}
+            </Button>
+          </motion.div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -343,9 +346,11 @@ function ClearanceDialog({ open, onClose, initial, onSave, saving }: ClearanceDi
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(form)} disabled={saving}>
-            {saving ? "Saving…" : (initial ? "Save Changes" : "Add Item")}
-          </Button>
+          <motion.div whileTap={{ scale: 0.96 }} style={{ display: "inline-flex" }}>
+            <Button onClick={() => onSave(form)} disabled={saving}>
+              {saving ? "Saving…" : (initial ? "Save Changes" : "Add Item")}
+            </Button>
+          </motion.div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
