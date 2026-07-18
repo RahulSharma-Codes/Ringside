@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response, type NextFunction } from "express";
 import { eq, desc } from "drizzle-orm";
 import multer from "multer";
 import { db } from "@workspace/db";
@@ -20,11 +20,12 @@ const router = Router();
 const CRITICAL_DOC_TYPES = ["NDA", "CIM", "Financials", "Legal", "Tax", "Integration"];
 
 // ─── GET /api/documents/storage-config ──────────────────────────────────────
-// Returns whether Supabase Storage is configured. Registered before /:id routes.
+// Returns whether object storage is configured. Registered before /:id routes.
+// NOTE: bucket name intentionally omitted — it is an internal infrastructure
+// detail and must not be surfaced to clients.
 router.get("/storage-config", (_req, res) => {
   return res.json({
     storageEnabled,
-    bucket: storageEnabled ? process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID : null,
     missingSecrets: storageEnabled ? [] : ["DEFAULT_OBJECT_STORAGE_BUCKET_ID"],
   });
 });
@@ -303,8 +304,8 @@ router.get("/:id/download-url", async (req, res) => {
       classification: doc.classification ?? "Restricted",
     });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    return res.status(500).json({ error: msg });
+    req.log.error({ err }, "Storage error generating signed URL");
+    return res.status(500).json({ error: "Could not generate download link. Please try again." });
   }
 });
 
@@ -357,8 +358,8 @@ router.post("/:id/upload", upload.single("file"), async (req, res) => {
 
     return res.json(formatDoc(updated));
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    return res.status(500).json({ error: msg });
+    req.log.error({ err }, "Storage error uploading file");
+    return res.status(500).json({ error: "File upload failed. Please try again." });
   }
 });
 
@@ -420,8 +421,8 @@ router.put("/:id/replace-file", upload.single("file"), async (req, res) => {
 
     return res.json(formatDoc(updated));
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    return res.status(500).json({ error: msg });
+    req.log.error({ err }, "Storage error replacing file");
+    return res.status(500).json({ error: "File replacement failed. Please try again." });
   }
 });
 
@@ -458,6 +459,28 @@ router.put("/:id", async (req, res) => {
 
   if (!doc) return res.status(404).json({ error: "Not found" });
   return res.json(formatDoc(doc));
+});
+
+// ─── Multer error handler ────────────────────────────────────────────────────
+// Must be placed after all upload routes so multer validation errors (MIME type
+// rejected, file too large) return 400/413 instead of falling through to the
+// global 500 error handler.
+router.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
+  if (err && typeof err === "object" && "code" in err) {
+    const multerErr = err as { code: string; message: string };
+    if (multerErr.code === "LIMIT_FILE_SIZE") {
+      return res.status(413).json({
+        error: `File too large. Maximum allowed size is ${MAX_FILE_SIZE / (1024 * 1024)} MB.`,
+      });
+    }
+    if (multerErr.code === "LIMIT_UNEXPECTED_FILE") {
+      return res.status(400).json({ error: "Unexpected file field." });
+    }
+  }
+  if (err instanceof Error && err.message.startsWith("File type not allowed:")) {
+    return res.status(400).json({ error: err.message });
+  }
+  return next(err);
 });
 
 export default router;

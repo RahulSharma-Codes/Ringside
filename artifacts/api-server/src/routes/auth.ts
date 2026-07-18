@@ -136,6 +136,15 @@ router.post("/set-password", async (req, res) => {
     return res.status(401).json({ error: "Invalid or expired session." });
   }
 
+  // Enforce session blocklist — a logged-out token must not be reusable for
+  // password changes (would allow account takeover via a captured JWT).
+  const [blocked] = await db
+    .select({ id: sessionBlocklistTable.id })
+    .from(sessionBlocklistTable)
+    .where(eq(sessionBlocklistTable.jti, claims.jti))
+    .limit(1);
+  if (blocked) return res.status(401).json({ error: "Session has been revoked. Please log in again." });
+
   const password = typeof req.body?.password === "string" ? req.body.password : "";
   const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
   if (password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters." });

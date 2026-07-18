@@ -142,13 +142,14 @@ async function companyContextMiddleware(req: Request, res: Response, next: NextF
 
 app.use("/api", requireAuth, companyContextMiddleware, router);
 
-// Error handler — surfaces cause so we can see the underlying Postgres error
+// Error handler — logs full detail server-side; returns a generic message to
+// the client so internal Postgres errors and stack traces are never exposed.
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   const message = err instanceof Error ? err.message : String(err);
   const cause = err instanceof Error && (err as NodeJS.ErrnoException & { cause?: unknown }).cause;
   const causeMsg = cause instanceof Error ? cause.message : undefined;
   logger.error({ err, cause: causeMsg }, "unhandled error");
-  res.status(500).json({ error: message, cause: causeMsg });
+  res.status(500).json({ error: "Internal server error" });
 });
 
 export default app;

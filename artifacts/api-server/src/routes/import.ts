@@ -8,6 +8,7 @@ import {
 } from "@workspace/db";
 import { VALID_TIERS, VALID_STAGES, TERMINAL_STAGES } from "../constants";
 import { getAccessScope, grantTargetAccess } from "../lib/target-access";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -398,8 +399,8 @@ router.post("/apply", async (req, res) => {
 
       created++;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      errors.push({ rowIndex, message: msg });
+      logger.error({ err, rowIndex }, "Import create row failed");
+      errors.push({ rowIndex, message: "Row could not be created. Check for duplicate target codes or invalid data." });
       skipped++;
     }
   }
@@ -513,8 +514,8 @@ router.post("/apply", async (req, res) => {
 
       updated++;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      errors.push({ rowIndex, message: msg });
+      logger.error({ err, rowIndex }, "Import update row failed");
+      errors.push({ rowIndex, message: "Row could not be updated. Please check the data and try again." });
       skipped++;
     }
   }
