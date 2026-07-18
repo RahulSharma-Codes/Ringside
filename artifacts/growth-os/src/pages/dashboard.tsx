@@ -13,46 +13,38 @@ import {
 import { computeAvgAssessedScore } from "@/lib/score-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DealCard, type DealCardData } from "@/components/deal-card";
+import { type DealCardData } from "@/components/deal-card";
 import { SkeletonCard } from "@/components/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   AlertCircle, Target, TrendingUp, AlertOctagon, CheckCircle2,
-  XCircle, ArrowRight, AlertTriangle, Clock, Zap, GitBranch, ListTodo,
-  ArrowUp, ArrowDown, Minus, RefreshCw,
+  XCircle, ArrowRight, AlertTriangle, Clock, Zap, ListTodo,
+  ArrowUp, ArrowDown, Minus, RefreshCw, BarChart2,
 } from "lucide-react";
 import { format, parseISO, formatDistanceToNow } from "date-fns";
-import { StageRail, PIPELINE_STAGE_ORDER } from "@/components/stage-rail";
+import { PIPELINE_STAGE_ORDER } from "@/components/stage-rail";
 import { StageChip } from "@/components/stage-chip";
 import { HealthDot } from "@/components/health-dot";
 import { useAuth } from "@/contexts/auth-context";
-import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  LineChart, Line, Cell,
+} from "recharts";
 
 const FLAG_LABELS: Record<string, { label: string; color: string }> = {
-  overdue_action:       { label: "Overdue Action",       color: "text-destructive border-destructive/30" },
-  no_recent_interaction:{ label: "No Recent Interaction", color: "text-amber-500 border-amber-500/30" },
-  must_win_no_action:   { label: "Must-Win / No Action",  color: "text-destructive border-destructive/30" },
-  stale_stage:          { label: "Stale Stage",           color: "text-orange-500 border-orange-500/30" },
+  overdue_action:        { label: "Overdue Action",       color: "text-destructive border-destructive/30" },
+  no_recent_interaction: { label: "No Recent Interaction", color: "text-amber-500 border-amber-500/30" },
+  must_win_no_action:    { label: "Must-Win / No Action",  color: "text-destructive border-destructive/30" },
+  stale_stage:           { label: "Stale Stage",           color: "text-orange-500 border-orange-500/30" },
 };
 
-function getTierColor(tier: string) {
+function tierBadgeClass(tier: string | null | undefined) {
   switch (tier) {
-    case "Must-Win":   return "bg-destructive text-destructive-foreground border-0";
-    case "Priority 1": return "bg-amber-500 text-white border-0";
-    case "Priority 2": return "bg-primary text-primary-foreground border-0";
-    default:           return "bg-muted text-muted-foreground";
+    case "Must-Win":   return "bg-destructive/10 text-destructive border-destructive/25";
+    case "Priority 1": return "bg-amber-500/10 text-amber-600 border-amber-500/25";
+    case "Priority 2": return "bg-primary/10 text-primary border-primary/25";
+    default:           return "bg-muted text-muted-foreground border-border";
   }
-}
-
-function SectionLabel({ icon, label, children }: { icon: React.ReactNode; label: string; children?: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-muted-foreground/70">{icon}</span>
-      <h2 className="text-[11px] font-mono font-semibold uppercase tracking-wider text-muted-foreground">{label}</h2>
-      {children}
-    </div>
-  );
 }
 
 interface CommandCenterAction {
@@ -68,6 +60,21 @@ interface CommandCenterAction {
   priorityTier: string | null;
   currentStage: string;
 }
+
+/* Thin bar fill colors keyed to stage progression index */
+const STAGE_BAR_COLOR = (idx: number) => {
+  const palette = [
+    "hsl(var(--chart-1))",
+    "hsl(var(--chart-2))",
+    "hsl(var(--chart-3))",
+    "hsl(var(--chart-4))",
+    "hsl(var(--chart-5))",
+    "hsl(221 83% 53%)",
+    "hsl(38 82% 50%)",
+    "hsl(160 57% 38%)",
+  ];
+  return palette[idx % palette.length];
+};
 
 export default function Dashboard() {
   const [, navigate] = useLocation();
@@ -144,28 +151,30 @@ export default function Dashboard() {
     }))
   );
 
-  const totalActive = (stageData ?? []).reduce((sum, s) => sum + (s.count ?? 0), 0);
-  const distributionItems = (stageData ?? []).map((s) => ({
-    stage: s.stage,
-    count: s.count ?? 0,
-    hasFlagged: false,
-  }));
+  /* Stage chart data — ordered by pipeline progression */
+  const stageChartData = useMemo(() => {
+    if (!stageData) return [];
+    const stageOrder = PIPELINE_STAGE_ORDER;
+    const stageMap = new Map((stageData).map((s) => [s.stage, s.count ?? 0]));
+    return stageOrder
+      .map((stage) => ({ stage, count: stageMap.get(stage) ?? 0 }))
+      .filter((s) => s.count > 0);
+  }, [stageData]);
 
-  const attentionStages = new Set(
-    (attentionTargets ?? []).map((t) => t.currentStage).filter(Boolean)
-  );
-  const distributionWithFlags = distributionItems.map((item) => ({
-    ...item,
-    hasFlagged: attentionStages.has(item.stage),
-  }));
+  const totalActive = (stageData ?? []).reduce((sum, s) => sum + (s.count ?? 0), 0);
 
   if (loadingSummary) {
     return (
       <div className="p-6 md:p-8 space-y-6">
-        <div className="h-24 w-full bg-muted rounded-xl animate-pulse" />
+        <div className="h-20 w-full bg-muted rounded-xl animate-pulse" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}
         </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <Skeleton className="lg:col-span-2 h-52 w-full rounded-xl" />
+          <Skeleton className="h-52 w-full rounded-xl" />
+        </div>
+        <Skeleton className="h-40 w-full rounded-xl" />
       </div>
     );
   }
@@ -173,13 +182,15 @@ export default function Dashboard() {
   return (
     <div className="pb-20 md:pb-8">
 
-      {/* Executive hero header */}
+      {/* ── Hero header ───────────────────────────────────────── */}
       <div className="page-hero-sticky px-4 md:px-8 pt-4 pb-4">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="metadata-label text-primary/70">Manipal Group · Corporate Development</p>
             <h1 className="text-xl md:text-2xl font-bold font-sans tracking-tight mt-0.5">Dashboard</h1>
-            <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed hidden md:block font-sans">A leadership-ready view of active opportunities, execution risk, and pipeline movement.</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed hidden md:block font-sans">
+              Mission control — pipeline health, stage distribution, and top-priority deals at a glance.
+            </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {(summary?.needsAttentionCount ?? 0) > 0 && (
@@ -201,72 +212,58 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="p-4 md:p-6 space-y-6">
+      <div className="px-4 md:px-6 space-y-4 md:space-y-5">
 
-        {/* Primary KPI row — 2-up on mobile, 4-up on desktop */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        {/* ── 4-up KPI strip ────────────────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* 1 · Total Pipeline */}
           <Card className="kpi-accent-blue rounded-xl bg-card border-border/80 overflow-hidden">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4 pt-5">
-              <CardTitle className="metadata-label">Active</CardTitle>
-              <Target size={14} className="text-primary/70 shrink-0" />
+            <CardHeader className="pb-1 flex flex-row items-center justify-between space-y-0 p-4 pt-4">
+              <CardTitle className="metadata-label">Total Pipeline</CardTitle>
+              <Target size={14} className="text-primary/60 shrink-0" />
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
-              <div className="metric-number"><AnimatedCounter value={summary?.activeTargets ?? 0} /></div>
+              <div className="metric-number">
+                <AnimatedCounter value={(allTargets ?? []).length || (summary?.activeTargets ?? 0)} />
+              </div>
               {(summary?.newDealsThisWeek ?? 0) > 0 ? (
                 <p className="flex items-center gap-0.5 text-[9px] font-mono text-emerald-500 mt-1.5">
                   <ArrowUp size={9} />{summary!.newDealsThisWeek} new this week
                 </p>
               ) : (
                 <p className="flex items-center gap-0.5 text-[9px] font-mono text-muted-foreground/50 mt-1.5">
-                  <Minus size={9} />no new this week
+                  <Minus size={9} />no additions this week
                 </p>
               )}
             </CardContent>
           </Card>
 
-          <Card className="kpi-accent-red rounded-xl bg-card border-border/80 overflow-hidden">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4 pt-5">
-              <CardTitle className="metadata-label">Must-Win</CardTitle>
-              <AlertOctagon size={14} className="text-destructive/70 shrink-0" />
-            </CardHeader>
-            <CardContent className="px-4 pb-4 pt-0">
-              <div className="metric-number text-destructive"><AnimatedCounter value={summary?.mustWinCount ?? 0} /></div>
-              {(summary?.newMustWinThisWeek ?? 0) > 0 ? (
-                <p className="flex items-center gap-0.5 text-[9px] font-mono text-amber-500 mt-1.5">
-                  <ArrowUp size={9} />{summary!.newMustWinThisWeek} added · {summary?.priority1Count ?? 0} P1
-                </p>
-              ) : (
-                <p className="metadata-label mt-1.5">+ {summary?.priority1Count ?? 0} Priority&nbsp;1</p>
-              )}
-            </CardContent>
-          </Card>
-
+          {/* 2 · Active Deals */}
           <Card className="kpi-accent-emerald rounded-xl bg-card border-border/80 overflow-hidden">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4 pt-5">
-              <CardTitle className="metadata-label">Avg Score</CardTitle>
-              <TrendingUp size={14} className="text-emerald-500/70 shrink-0" />
+            <CardHeader className="pb-1 flex flex-row items-center justify-between space-y-0 p-4 pt-4">
+              <CardTitle className="metadata-label">Active Deals</CardTitle>
+              <CheckCircle2 size={14} className="text-emerald-500/60 shrink-0" />
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
-              {loadingRecent ? (
-                <div className="metric-number text-muted-foreground/30">—</div>
-              ) : avgAssessedScore !== null ? (
-                <div className="metric-number"><AnimatedCounter value={Math.round(avgAssessedScore)} /></div>
-              ) : (
-                <div className="metric-number text-muted-foreground/50 text-lg">—</div>
-              )}
+              <div className="metric-number text-emerald-500">
+                <AnimatedCounter value={summary?.activeTargets ?? 0} />
+              </div>
               <p className="flex items-center gap-0.5 text-[9px] font-mono text-muted-foreground/50 mt-1.5">
-                <Minus size={9} />{avgAssessedScore !== null ? "assessed deals" : "pending assessment"}
+                <Minus size={9} />{summary?.mustWinCount ?? 0} Must-Win · {summary?.priority1Count ?? 0} P1
               </p>
             </CardContent>
           </Card>
 
+          {/* 3 · Open Actions */}
           <Card className="kpi-accent-amber rounded-xl bg-card border-border/80 overflow-hidden">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4 pt-5">
+            <CardHeader className="pb-1 flex flex-row items-center justify-between space-y-0 p-4 pt-4">
               <CardTitle className="metadata-label">Open Actions</CardTitle>
-              <AlertCircle size={14} className="text-amber-500/70 shrink-0" />
+              <AlertCircle size={14} className="text-amber-500/60 shrink-0" />
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
-              <div className="metric-number text-amber-500"><AnimatedCounter value={summary?.openActionsCount ?? 0} /></div>
+              <div className="metric-number text-amber-500">
+                <AnimatedCounter value={summary?.openActionsCount ?? 0} />
+              </div>
               {(summary?.overdueActionsCount ?? 0) > 0 ? (
                 <p className="flex items-center gap-0.5 text-[9px] font-mono text-destructive mt-1.5">
                   <ArrowDown size={9} />{summary!.overdueActionsCount} overdue
@@ -278,9 +275,302 @@ export default function Dashboard() {
               )}
             </CardContent>
           </Card>
+
+          {/* 4 · Avg Score */}
+          <Card className="kpi-accent-muted rounded-xl bg-card border-border/80 overflow-hidden">
+            <CardHeader className="pb-1 flex flex-row items-center justify-between space-y-0 p-4 pt-4">
+              <CardTitle className="metadata-label">Avg Score</CardTitle>
+              <TrendingUp size={14} className="text-muted-foreground/50 shrink-0" />
+            </CardHeader>
+            <CardContent className="px-4 pb-4 pt-0">
+              {loadingRecent ? (
+                <div className="metric-number text-muted-foreground/30">—</div>
+              ) : avgAssessedScore !== null ? (
+                <div className="metric-number">
+                  <AnimatedCounter value={Math.round(avgAssessedScore)} />
+                </div>
+              ) : (
+                <div className="metric-number text-muted-foreground/50 text-lg">—</div>
+              )}
+              <p className="flex items-center gap-0.5 text-[9px] font-mono text-muted-foreground/50 mt-1.5">
+                <Minus size={9} />{avgAssessedScore !== null ? "composite · assessed deals" : "pending assessment"}
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* My Open Actions — personalized urgency strip */}
+        {/* ── Primary chart row ─────────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+          {/* Stage distribution bar chart — primary, 2/3 width */}
+          <Card className="lg:col-span-2 rounded-xl bg-card border-border/80 overflow-hidden">
+            <CardHeader className="p-4 pb-3 border-b border-border/40">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-[11px] font-medium text-muted-foreground uppercase font-mono tracking-wider flex items-center gap-2">
+                  <BarChart2 size={13} />
+                  Pipeline Stage Distribution
+                </CardTitle>
+                <span className="text-[10px] font-mono text-muted-foreground/40">
+                  {totalActive} active deal{totalActive !== 1 ? "s" : ""}
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent className="px-2 pt-3 pb-2">
+              {loadingStages ? (
+                <Skeleton className="w-full h-44" />
+              ) : stageChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={stageChartData.length * 36 + 16}>
+                  <BarChart
+                    data={stageChartData}
+                    layout="vertical"
+                    margin={{ top: 0, right: 48, bottom: 0, left: 0 }}
+                    barSize={14}
+                  >
+                    <XAxis
+                      type="number"
+                      hide
+                      domain={[0, Math.max(...stageChartData.map((s) => s.count), 1)]}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="stage"
+                      width={148}
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))", fontFamily: "var(--font-mono)" }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
+                      contentStyle={{
+                        fontSize: 10,
+                        padding: "4px 8px",
+                        background: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "6px",
+                      }}
+                      itemStyle={{ fontSize: 10, color: "hsl(var(--foreground))" }}
+                      formatter={(val: number, _name: string, props: { payload?: { stage: string } }) => [
+                        `${val} deal${val !== 1 ? "s" : ""}`,
+                        props.payload?.stage ?? "",
+                      ]}
+                      labelFormatter={() => ""}
+                    />
+                    <Bar
+                      dataKey="count"
+                      radius={[0, 3, 3, 0]}
+                      onClick={(d: { stage: string }) => navigate(`/pipeline?stage=${encodeURIComponent(d.stage)}`)}
+                      style={{ cursor: "pointer" }}
+                      label={{
+                        position: "right",
+                        fontSize: 11,
+                        fontFamily: "var(--font-mono)",
+                        fontWeight: 700,
+                        fill: "hsl(var(--foreground))",
+                        offset: 6,
+                      }}
+                    >
+                      {stageChartData.map((_, idx) => (
+                        <Cell key={idx} fill={STAGE_BAR_COLOR(idx)} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-44 items-center justify-center text-xs font-mono text-muted-foreground uppercase tracking-widest">
+                  No active deals in pipeline
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Right panel — secondary metrics + velocity sparkline */}
+          <div className="flex flex-col gap-4">
+            {/* Secondary stat trio */}
+            <Card className="rounded-xl bg-card border-border/80 overflow-hidden">
+              <CardContent className="p-0 divide-y divide-border/40">
+                {[
+                  {
+                    label: "Needs Attention",
+                    value: summary?.needsAttentionCount ?? 0,
+                    cls: (summary?.needsAttentionCount ?? 0) > 0 ? "text-destructive" : "text-muted-foreground",
+                    icon: <AlertTriangle size={12} className={(summary?.needsAttentionCount ?? 0) > 0 ? "text-destructive/70" : "text-muted-foreground/40"} />,
+                  },
+                  {
+                    label: "Closed",
+                    value: summary?.closedDealsCount ?? 0,
+                    cls: "text-emerald-500",
+                    icon: <CheckCircle2 size={12} className="text-emerald-500/70" />,
+                  },
+                  {
+                    label: "Dropped",
+                    value: summary?.droppedDealsCount ?? 0,
+                    cls: "text-muted-foreground",
+                    icon: <XCircle size={12} className="text-muted-foreground/40" />,
+                  },
+                ].map((s) => (
+                  <div key={s.label} className="flex items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      {s.icon}
+                      <span className="metadata-label">{s.label}</span>
+                    </div>
+                    <span className={`font-mono font-bold text-base leading-none ${s.cls}`}>{s.value}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Pipeline Health */}
+            {!loadingRecent && (allTargets ?? []).length > 0 && (() => {
+              const healthy = (allTargets ?? []).filter((t) => (t as { healthScore?: string | null }).healthScore === "healthy").length;
+              const watch   = (allTargets ?? []).filter((t) => (t as { healthScore?: string | null }).healthScore === "watch").length;
+              const atRisk  = (allTargets ?? []).filter((t) => (t as { healthScore?: string | null }).healthScore === "at_risk").length;
+              return (
+                <Card className="rounded-xl bg-card border-border/80 overflow-hidden">
+                  <CardHeader className="p-3 pb-2 border-b border-border/40">
+                    <CardTitle className="metadata-label">Pipeline Health</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-3 pt-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <HealthDot score="healthy" />
+                        <span className="font-mono font-bold text-base text-emerald-500">{healthy}</span>
+                        <span className="metadata-label">OK</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <HealthDot score="watch" />
+                        <span className="font-mono font-bold text-base text-amber-400">{watch}</span>
+                        <span className="metadata-label">Watch</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <HealthDot score="at_risk" />
+                        <span className={`font-mono font-bold text-base ${atRisk > 0 ? "text-destructive" : "text-muted-foreground"}`}>{atRisk}</span>
+                        <span className="metadata-label">Risk</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
+            {/* Deal Intake Velocity sparkline */}
+            {velocityData && velocityData.length > 0 && (
+              <Card className="rounded-xl bg-card border-border/80 overflow-hidden flex-1">
+                <CardHeader className="p-3 pb-2 border-b border-border/40">
+                  <CardTitle className="metadata-label flex items-center justify-between">
+                    <span>Deal Intake Velocity</span>
+                    <span className="text-muted-foreground/40 normal-case font-sans font-normal">8 wks</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-3 pt-2 pb-2">
+                  <ResponsiveContainer width="100%" height={52}>
+                    <LineChart data={velocityData} margin={{ top: 4, right: 4, bottom: 0, left: -32 }}>
+                      <XAxis
+                        dataKey="weekLabel"
+                        tick={{ fontSize: 8, fill: "hsl(var(--muted-foreground))", opacity: 0.5 }}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          fontSize: 10,
+                          padding: "4px 8px",
+                          background: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "6px",
+                        }}
+                        itemStyle={{ fontSize: 10, color: "hsl(var(--primary))" }}
+                        formatter={(val: number) => [val, "new deals"]}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="count"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={1.5}
+                        dot={{ r: 2, fill: "hsl(var(--primary))", strokeWidth: 0 }}
+                        activeDot={{ r: 3.5, strokeWidth: 0 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+
+        {/* ── Top Priority Deals — compact table strip ──────────── */}
+        <Card className="rounded-xl bg-card border-border/80 overflow-hidden">
+          <CardHeader className="p-4 pb-2 border-b border-border/40">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-[11px] font-medium text-muted-foreground uppercase font-mono tracking-wider flex items-center gap-2">
+                <Zap size={13} className="text-amber-500" />
+                Top Priority Deals
+              </CardTitle>
+              <Link href="/pipeline">
+                <span className="text-[10px] font-mono text-primary hover:underline flex items-center gap-1 cursor-pointer">
+                  Full pipeline <ArrowRight size={10} />
+                </span>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {loadingTop ? (
+              <div className="p-3 space-y-2">
+                {Array(5).fill(0).map((_, i) => <SkeletonCard key={i} />)}
+              </div>
+            ) : topTargets && topTargets.length > 0 ? (
+              <div className="divide-y divide-border/40">
+                {topTargets.map((target, idx) => (
+                  <Link key={target.id} href={`/targets/${target.id}`}>
+                    <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors group cursor-pointer">
+                      {/* Rank */}
+                      <span className="text-[10px] font-mono text-muted-foreground/30 tabular-nums w-4 shrink-0 text-right">
+                        {idx + 1}
+                      </span>
+                      {/* Name + code */}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-medium truncate group-hover:text-primary transition-colors leading-snug">
+                          {target.projectName}
+                        </div>
+                        {target.targetCode && (
+                          <span className="text-[10px] font-mono text-muted-foreground/40">{target.targetCode}</span>
+                        )}
+                      </div>
+                      {/* Stage chip */}
+                      <div className="shrink-0 hidden sm:block">
+                        <StageChip stage={target.currentStage ?? ""} size="xs" />
+                      </div>
+                      {/* Tier badge */}
+                      {target.priorityTier && (
+                        <Badge
+                          variant="outline"
+                          className={`shrink-0 text-[9px] font-mono uppercase rounded-sm px-1.5 py-0 h-4 hidden md:flex ${tierBadgeClass(target.priorityTier)}`}
+                        >
+                          {target.priorityTier === "Must-Win" ? "MW" : target.priorityTier === "Priority 1" ? "P1" : target.priorityTier === "Priority 2" ? "P2" : target.priorityTier}
+                        </Badge>
+                      )}
+                      {/* Score pill */}
+                      {target.priorityScore != null && (
+                        <div className="shrink-0 flex items-center gap-1">
+                          <span className="text-[11px] font-mono font-bold tabular-nums text-foreground/80">
+                            {Math.round(target.priorityScore as number)}
+                          </span>
+                          <span className="text-[9px] font-mono text-muted-foreground/40">pts</span>
+                        </div>
+                      )}
+                      <ArrowRight size={12} className="text-muted-foreground opacity-0 group-hover:opacity-60 transition-opacity shrink-0" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="flex h-24 items-center justify-center p-8">
+                <p className="text-[11px] font-sans text-muted-foreground/40 text-center">No evaluated targets yet</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── My Open Actions — personalized urgency strip ───────── */}
         {user && myUrgentActions.length > 0 && (
           <Card className="rounded-xl bg-card border-border/80 overflow-hidden">
             <CardHeader className="p-4 pb-2 border-b border-border/40">
@@ -308,7 +598,9 @@ export default function Dashboard() {
                         </div>
                         <div className="metadata-label mt-0.5 flex items-center gap-1.5">
                           <span>{action.targetName}</span>
-                          {action.targetCode && <><span className="w-1 h-1 bg-border rounded-full" /><span className="font-mono text-muted-foreground/50">{action.targetCode}</span></>}
+                          {action.targetCode && (
+                            <><span className="w-1 h-1 bg-border rounded-full" /><span className="font-mono text-muted-foreground/50">{action.targetCode}</span></>
+                          )}
                         </div>
                       </div>
                       <div className="shrink-0 flex items-center gap-2">
@@ -328,196 +620,7 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* Pipeline Health tile — computed from allTargets */}
-        {!loadingRecent && (allTargets ?? []).length > 0 && (() => {
-          const healthy = (allTargets ?? []).filter((t) => (t as { healthScore?: string | null }).healthScore === "healthy").length;
-          const watch   = (allTargets ?? []).filter((t) => (t as { healthScore?: string | null }).healthScore === "watch").length;
-          const atRisk  = (allTargets ?? []).filter((t) => (t as { healthScore?: string | null }).healthScore === "at_risk").length;
-          return (
-            <Card className="rounded-xl bg-card border-border/80 overflow-hidden">
-              <CardHeader className="pb-1 flex flex-row items-center justify-between space-y-0 p-4 pt-4">
-                <CardTitle className="metadata-label">Pipeline Health</CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 pb-4 pt-1">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5">
-                    <HealthDot score="healthy" />
-                    <span className="font-mono font-bold text-lg text-emerald-500">{healthy}</span>
-                    <span className="metadata-label">Healthy</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <HealthDot score="watch" />
-                    <span className="font-mono font-bold text-lg text-amber-400">{watch}</span>
-                    <span className="metadata-label">Watch</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <HealthDot score="at_risk" />
-                    <span className={`font-mono font-bold text-lg ${atRisk > 0 ? "text-destructive" : "text-muted-foreground"}`}>{atRisk}</span>
-                    <span className="metadata-label">At Risk</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })()}
-
-        {/* Deal Intake Velocity sparkline */}
-        {velocityData && velocityData.length > 0 && (
-          <Card className="rounded-xl bg-card border-border/80 overflow-hidden">
-            <CardHeader className="p-4 pb-2 border-b border-border/40">
-              <CardTitle className="text-[11px] font-medium text-muted-foreground uppercase font-mono tracking-wider flex items-center justify-between">
-                <span className="flex items-center gap-2"><TrendingUp size={13} /> Deal Intake Velocity</span>
-                <span className="text-[10px] font-mono text-muted-foreground/40 normal-case">new deals · last 8 weeks</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pt-3 pb-3">
-              <ResponsiveContainer width="100%" height={56}>
-                <LineChart data={velocityData} margin={{ top: 4, right: 4, bottom: 0, left: -32 }}>
-                  <XAxis
-                    dataKey="weekLabel"
-                    tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))", opacity: 0.6 }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      fontSize: 10,
-                      padding: "4px 8px",
-                      background: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "6px",
-                    }}
-                    itemStyle={{ fontSize: 10, color: "hsl(var(--primary))" }}
-                    formatter={(val: number) => [val, "new deals"]}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="count"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={1.5}
-                    dot={{ r: 2.5, fill: "hsl(var(--primary))", strokeWidth: 0 }}
-                    activeDot={{ r: 4, strokeWidth: 0 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Secondary KPI strip — compact 3-stat bar */}
-        <div className="grid grid-cols-3 gap-2 md:gap-3">
-          {[
-            {
-              label: "Needs Attention",
-              value: summary?.needsAttentionCount ?? 0,
-              cls: (summary?.needsAttentionCount ?? 0) > 0 ? "text-destructive" : "text-muted-foreground",
-              accent: (summary?.needsAttentionCount ?? 0) > 0 ? "kpi-accent-red" : "kpi-accent-muted",
-              icon: <AlertTriangle size={13} className={(summary?.needsAttentionCount ?? 0) > 0 ? "text-destructive/70" : "text-muted-foreground/40"} />,
-              sub: "flagged",
-            },
-            {
-              label: "Closed",
-              value: summary?.closedDealsCount ?? 0,
-              cls: "text-emerald-500",
-              accent: "kpi-accent-emerald",
-              icon: <CheckCircle2 size={13} className="text-emerald-500/70" />,
-              sub: "closed",
-            },
-            {
-              label: "Dropped",
-              value: summary?.droppedDealsCount ?? 0,
-              cls: "text-muted-foreground",
-              accent: "kpi-accent-muted",
-              icon: <XCircle size={13} className="text-muted-foreground/50" />,
-              sub: "dropped",
-            },
-          ].map((s) => (
-            <Card key={s.label} className={`${s.accent} rounded-xl bg-card border-border/70 overflow-hidden`}>
-              <CardContent className="p-3.5">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="metadata-label">{s.label}</span>
-                  {s.icon}
-                </div>
-                <div className={`font-mono font-bold text-2xl tracking-tight leading-none ${s.cls}`}>{s.value}</div>
-                <p className="metadata-label mt-1">{s.sub}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Stage Distribution Board + Top Opportunities */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2 rounded-xl bg-card border-border/80 overflow-hidden">
-            <CardHeader className="p-4 pb-2 border-b border-border/40">
-              <CardTitle className="text-[11px] font-medium text-muted-foreground uppercase font-mono tracking-wider flex items-center gap-2">
-                <GitBranch size={13} />
-                Pipeline Stage Distribution
-              </CardTitle>
-              <p className="text-[10px] text-muted-foreground/60 mt-1 font-mono leading-relaxed">
-                Stage distribution across active opportunities, highlighting where execution attention is concentrated.
-              </p>
-            </CardHeader>
-            <CardContent className="px-4 pt-4 pb-4">
-              {loadingStages ? (
-                <Skeleton className="w-full h-24" />
-              ) : (distributionWithFlags.some((s) => s.count > 0)) ? (
-                <StageRail
-                  mode="distribution"
-                  stages={distributionWithFlags}
-                  totalActive={totalActive}
-                  onStageClick={(stage) => navigate(`/pipeline?stage=${encodeURIComponent(stage)}`)}
-                />
-              ) : (
-                <div className="flex h-24 items-center justify-center text-xs font-mono text-muted-foreground uppercase tracking-widest">
-                  No active targets in pipeline
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-xl bg-card border-border/80 flex flex-col overflow-hidden">
-            <CardHeader className="p-4 pb-2 border-b border-border/40">
-              <CardTitle className="text-[11px] font-medium text-muted-foreground uppercase font-mono tracking-wider flex items-center gap-2">
-                <Zap size={13} /> Top Opportunities
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col px-0 pb-0 pt-0">
-              {loadingTop ? (
-                <div className="p-3 space-y-2">
-                  {Array(5).fill(0).map((_, i) => <SkeletonCard key={i} />)}
-                </div>
-              ) : topTargets && topTargets.length > 0 ? (
-                <div className="p-3 space-y-2">
-                  {topTargets.map((target, idx) => {
-                    const deal: DealCardData = {
-                      id: target.id,
-                      targetCode: target.targetCode,
-                      projectName: target.projectName,
-                      currentStage: target.currentStage,
-                      priorityTier: target.priorityTier,
-                      priorityScore: target.priorityScore,
-                      healthScore: (target as { healthScore?: string | null }).healthScore as DealCardData["healthScore"],
-                      daysInCurrentStage: (target as { daysInCurrentStage?: number | null }).daysInCurrentStage,
-                    };
-                    return (
-                      <DealCard key={target.id} deal={deal} animDelay={idx * 0.05}>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[9px] font-mono text-muted-foreground/30 tabular-nums">#{idx + 1}</span>
-                        </div>
-                      </DealCard>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="flex h-full items-center justify-center p-8">
-                  <p className="text-[11px] font-sans text-muted-foreground/40 text-center">No evaluated targets yet</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Needs Attention */}
+        {/* ── Needs Attention ───────────────────────────────────── */}
         {(loadingAttention || (attentionTargets?.length ?? 0) > 0) && (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
@@ -537,36 +640,38 @@ export default function Dashboard() {
                 {Array(3).fill(0).map((_, i) => <SkeletonCard key={i} />)}
               </div>
             ) : attentionTargets && attentionTargets.length > 0 ? (
-              <div className="space-y-2">
-                {attentionTargets.map((target, idx) => {
-                  const deal: DealCardData = {
-                    id: target.id,
-                    targetCode: target.targetCode,
-                    projectName: target.projectName,
-                    currentStage: target.currentStage,
-                    priorityTier: target.priorityTier,
-                    needsAttention: true,
-                    healthScore: (target as { healthScore?: string | null }).healthScore as DealCardData["healthScore"],
-                  };
-                  const flags = (target.flags as string[] | null | undefined) ?? [];
-                  return (
-                    <DealCard key={target.id} deal={deal} animDelay={idx * 0.04}>
-                      {flags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {flags.map((flag) => {
-                            const fl = FLAG_LABELS[flag];
-                            return fl ? (
-                              <Badge key={flag} variant="outline" className={`font-mono text-[9px] uppercase rounded-sm px-1.5 py-0 h-4 ${fl.color}`}>
-                                {fl.label}
-                              </Badge>
-                            ) : null;
-                          })}
+              <Card className="rounded-xl bg-card border-border/80 overflow-hidden">
+                <CardContent className="p-0 divide-y divide-border/40">
+                  {attentionTargets.map((target) => {
+                    const flags = (target.flags as string[] | null | undefined) ?? [];
+                    return (
+                      <Link key={target.id} href={`/targets/${target.id}`}>
+                        <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors group cursor-pointer">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[13px] font-medium truncate group-hover:text-primary transition-colors">
+                              {target.projectName}
+                            </div>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {flags.map((flag) => {
+                                const fl = FLAG_LABELS[flag];
+                                return fl ? (
+                                  <Badge key={flag} variant="outline" className={`font-mono text-[9px] uppercase rounded-sm px-1.5 py-0 h-4 ${fl.color}`}>
+                                    {fl.label}
+                                  </Badge>
+                                ) : null;
+                              })}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <StageChip stage={target.currentStage ?? ""} size="xs" />
+                            <ArrowRight size={12} className="text-muted-foreground opacity-0 group-hover:opacity-60 transition-opacity" />
+                          </div>
                         </div>
-                      )}
-                    </DealCard>
-                  );
-                })}
-              </div>
+                      </Link>
+                    );
+                  })}
+                </CardContent>
+              </Card>
             ) : null}
           </div>
         )}
@@ -584,15 +689,17 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* Recently Updated */}
+        {/* ── Recently Updated ──────────────────────────────────── */}
         <div className="space-y-3">
-          <SectionLabel icon={<RefreshCw size={13} />} label="Recently Updated">
+          <div className="flex items-center gap-2">
+            <RefreshCw size={13} className="text-muted-foreground/70" />
+            <h2 className="text-[11px] font-mono font-semibold uppercase tracking-wider text-muted-foreground">Recently Updated</h2>
             {(summary?.recentlyUpdatedCount ?? 0) > 0 && (
               <Badge variant="outline" className="font-mono text-[10px]">
                 {summary!.recentlyUpdatedCount} in 7d
               </Badge>
             )}
-          </SectionLabel>
+          </div>
 
           {loadingRecent ? (
             <div className="space-y-2">
