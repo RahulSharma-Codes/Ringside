@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RefreshCw, TrendingUp, Clock, Trophy, Compass, AlertTriangle, ArrowRight } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
 import { useQueryClient } from "@tanstack/react-query";
 
 const CHART_COLORS = {
@@ -61,13 +62,6 @@ function SectionCard({
   );
 }
 
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="flex items-center justify-center h-40 text-[11px] font-mono text-muted-foreground/50 uppercase tracking-widest">
-      {message}
-    </div>
-  );
-}
 
 const ChartTooltip = ({
   active, payload, label,
@@ -177,7 +171,7 @@ function FunnelPanel({ filters }: { filters: Filters }) {
   if (!entries.length) {
     return (
       <SectionCard icon={<TrendingUp size={15} />} title="Pipeline Funnel" subtitle="Stage-to-stage conversion">
-        <EmptyState message="No stage data available" />
+        <EmptyState icon={TrendingUp} title="No stage data available" size="sm" />
       </SectionCard>
     );
   }
@@ -261,7 +255,7 @@ function TimeInStagePanel({ filters }: { filters: Filters }) {
   if (!historical.length && !currentDeals.length) {
     return (
       <SectionCard icon={<Clock size={15} />} title="Time in Stage" subtitle="Stage dwell times and current deal aging">
-        <EmptyState message="No stage transition data yet" />
+        <EmptyState icon={Clock} title="No stage transition data yet" size="sm" />
       </SectionCard>
     );
   }
@@ -347,7 +341,7 @@ function WinLossPanel({ filters }: { filters: Filters }) {
   if (!data) {
     return (
       <SectionCard icon={<Trophy size={15} />} title="Win / Loss Analysis">
-        <EmptyState message="No data available" />
+        <EmptyState icon={Trophy} title="No data available" size="sm" />
       </SectionCard>
     );
   }
@@ -461,7 +455,7 @@ function OriginationPanel({ filters }: { filters: Filters }) {
   if (!entries.length) {
     return (
       <SectionCard icon={<Compass size={15} />} title="Origination Channel" subtitle="Deal volume and win rate by sourcing channel">
-        <EmptyState message="No sourcing channel data" />
+        <EmptyState icon={Compass} title="No sourcing channel data" size="sm" />
       </SectionCard>
     );
   }

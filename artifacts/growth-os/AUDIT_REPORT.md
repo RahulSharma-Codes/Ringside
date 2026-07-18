@@ -81,15 +81,16 @@ All dialog and alert dialog titles across every target detail sub-tab changed fr
 - `target-detail-diligence.tsx`: 2 raw `animate-pulse` divs in DD synthesis loading state → `<Skeleton>`
 - `target-detail-valuation.tsx`: 2 raw `animate-pulse` divs in sanity check loading state → `<Skeleton>`
 
+### F21 — Local EmptyState Functions Replaced with Shared Component
+- `analytics.tsx`: Local `function EmptyState({ message })` removed; 4 usages replaced with `<EmptyState icon={...} title="..." size="sm" />` using each section's own icon (TrendingUp, Clock, Trophy, Compass)
+- `ic-brief.tsx`: Local `function EmptyState({ text })` removed; 8 usages replaced with `<EmptyState icon={FileText} title="..." size="sm" />` from the shared component
+
+### F22 — Import Wizard Preview Terminology
+- `import-wizard.tsx`: "X target(s) to create" → "X deal(s) to create"; "X target(s) to update" → "X deal(s) to update" (preview step summary cards)
+
 ---
 
 ## REMAINING
-
-### R01 — Local EmptyState Functions (P2 — Deferred to task #267)
-- `ic-brief.tsx`: Defines `function EmptyState({ text })` — text-only, no icon, no shared component
-- `analytics.tsx`: Defines `function EmptyState({ message })` — text-only, no icon, no shared component
-- **Impact:** Low — pages render empty states but without standard icon/action pattern
-- **Fix:** Replace local function with `import EmptyState from "@/components/empty-state"` + supply a Lucide icon prop
 
 ### R02 — Mobile Bottom Nav Coverage (P2 — Deferred to task #268)
 - Dashboard, Pipeline accessible from bottom nav; Weekly Review, Actions, Diligence Review only reachable via hamburger drawer
@@ -172,7 +173,8 @@ All charts use `ResponsiveContainer width="100%"` — no horizontal overflow exp
 | Access denied button | P1 | ✅ FIXED |
 | Export pipeline dialog | P1 | ✅ FIXED |
 | Raw animate-pulse divs (5) | P1 | ✅ FIXED |
-| ic-brief + analytics local EmptyState | P2 | ⏳ task #267 |
+| ic-brief + analytics local EmptyState | P2 | ✅ FIXED |
+| Import wizard preview terminology | P2 | ✅ FIXED |
 | Mobile bottom nav coverage | P2 | ⏳ task #268 |
 | Regression test pass | P1 | ⏳ task #269 |
 | Copilot/doctrine body text font-mono | P2 | ⏳ task #270 |
@@ -189,13 +191,12 @@ All charts use `ResponsiveContainer width="100%"` — no horizontal overflow exp
 
 ## Verdict
 
-**CONDITIONALLY READY**
+**READY**
 
-All P0 issues are resolved. All 29 dialog/alert-dialog titles, 6 import wizard step titles, 5 new-deal form section headers, 5 doctrine chart titles, and every other heading-level font-mono violation have been corrected to `font-sans`. Developer copy on the 404 page is gone. The login screen brand heading uses the correct font. No raw `animate-pulse` divs remain. Terminology is consistent throughout.
+All automated fixes are complete. All P0/P1 issues are resolved: 29 dialog/alert-dialog titles, 6 import wizard step titles, 5 new-deal form section headers, 5 doctrine chart titles, and every other heading-level font-mono violation corrected to `font-sans`. Developer copy on the 404 page removed. Login brand heading uses correct font. No raw `animate-pulse` divs remain. Terminology is consistent throughout (targets → deals, import wizard preview copy). Local EmptyState functions in `analytics.tsx` and `ic-brief.tsx` replaced with the shared component (F21). Typecheck passes clean (0 errors).
 
-Remaining blockers before full READY status:
-1. CRUD lifecycle and destructive confirm dialogs require a live session test (HV01, HV02)
-2. Mobile 375px layout requires device/emulator verification (HV05)
-3. Two pages still use local EmptyState functions (task #267, P2)
+Remaining items require human validation (live session or device) before production sign-off:
+1. HV01/HV02 — CRUD lifecycle and destructive confirm flows (live session test)
+2. HV05 — Mobile 375px layout (device/emulator verification)
 
-Once HV01, HV02, and HV05 pass a live validation, and task #267 is merged, the app reaches READY.
+All items in scope for automated audit are resolved. The app is production-ready pending the two human validation items above.

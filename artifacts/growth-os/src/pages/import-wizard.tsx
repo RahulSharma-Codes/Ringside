@@ -753,7 +753,7 @@ export default function ImportWizard() {
               <CardHeader className="pb-2">
                 <CardTitle className="font-sans font-semibold text-xs flex items-center gap-2">
                   <Badge className="bg-green-500/20 text-green-600 dark:text-green-400 border-0 font-mono text-[9px]">New</Badge>
-                  {validateResult.toCreate.length} target{validateResult.toCreate.length !== 1 ? "s" : ""} to create
+                  {validateResult.toCreate.length} deal{validateResult.toCreate.length !== 1 ? "s" : ""} to create
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -776,7 +776,7 @@ export default function ImportWizard() {
               <CardHeader className="pb-2">
                 <CardTitle className="font-sans font-semibold text-xs flex items-center gap-2">
                   <Badge className="bg-primary/20 text-primary border-0 font-mono text-[9px]">Update</Badge>
-                  {validateResult.toUpdate.length} target{validateResult.toUpdate.length !== 1 ? "s" : ""} to update
+                  {validateResult.toUpdate.length} deal{validateResult.toUpdate.length !== 1 ? "s" : ""} to update
                   <span className="text-muted-foreground font-sans font-normal text-[9px] ml-1">(click a row to see before/after)</span>
                 </CardTitle>
               </CardHeader>

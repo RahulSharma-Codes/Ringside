@@ -1,4 +1,6 @@
 import React, { useEffect } from "react";
+import { FileText } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
 import { useParams } from "wouter";
 import {
   useGetIcBrief,
@@ -82,13 +84,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function EmptyState({ text }: { text: string }) {
-  return (
-    <div style={{ padding: "12px 0", fontSize: 11, color: "#9ca3af", fontStyle: "italic" }}>
-      {text}
-    </div>
-  );
-}
 
 function DealHeader({ target, generatedAt }: { target: IcBriefTarget; generatedAt: string }) {
   const meta: string[] = [];
@@ -226,7 +221,7 @@ function ValuationSection({ valuations, economics }: { valuations: Valuation[]; 
   return (
     <Section title="Valuation & Economics">
       {valuations.length === 0 && !economics ? (
-        <EmptyState text="No valuation entries or deal economics recorded yet." />
+        <EmptyState icon={FileText} title="No valuation entries or deal economics recorded yet." size="sm" />
       ) : (
         <>
           {latest && (
@@ -324,7 +319,7 @@ function SynergiesSection({ synergies }: { synergies: SynergyEntry[] }) {
   return (
     <Section title={`Synergy Case (${positive.length} synerg${positive.length !== 1 ? "ies" : "y"})`}>
       {synergies.length === 0 ? (
-        <EmptyState text="No synergy case recorded yet. Add synergies in the Synergies tab." />
+        <EmptyState icon={FileText} title="No synergy case recorded yet." size="sm" />
       ) : (
         <>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
@@ -386,7 +381,7 @@ function DiligenceSection({ diligence }: { diligence: IcBriefDiligence }) {
         </div>
       </div>
       {diligence.total === 0 && (
-        <EmptyState text="No diligence items recorded. Add workstream items in the Diligence tab." />
+        <EmptyState icon={FileText} title="No diligence items recorded." size="sm" />
       )}
       {diligence.missingWorkstreams.length > 0 && diligence.missingWorkstreams.length < 10 && diligence.total > 0 && (
         <div style={{ fontSize: 11, color: "#9ca3af", fontFamily: "monospace", marginTop: 4 }}>
@@ -401,7 +396,7 @@ function IcHistorySection({ icSessions }: { icSessions: IcSession[] }) {
   return (
     <Section title={`IC History (${icSessions.length} session${icSessions.length !== 1 ? "s" : ""})`}>
       {icSessions.length === 0 ? (
-        <EmptyState text="No IC sessions recorded for this deal." />
+        <EmptyState icon={FileText} title="No IC sessions recorded for this deal." size="sm" />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {icSessions.map(s => (
@@ -430,7 +425,7 @@ function AdvisorsSection({ advisors }: { advisors: Advisor[] }) {
       <div style={{ marginBottom: rows.length && sellAdvisors.length ? 14 : 0 }}>
         <div style={{ fontSize: 9, fontFamily: "monospace", textTransform: "uppercase", color, marginBottom: 6 }}>{label}</div>
         {rows.length === 0 ? (
-          <EmptyState text={`No ${label.toLowerCase()} advisors on record.`} />
+          <EmptyState icon={FileText} title={`No ${label.toLowerCase()} advisors on record.`} size="sm" />
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
             <thead>
@@ -461,7 +456,7 @@ function AdvisorsSection({ advisors }: { advisors: Advisor[] }) {
   return (
     <Section title={`Advisors (${advisors.length})`}>
       {advisors.length === 0 ? (
-        <EmptyState text="No advisors recorded. Add buy-side or sell-side advisors in the Stakeholders tab." />
+        <EmptyState icon={FileText} title="No advisors recorded." size="sm" />
       ) : (
         <>
           <AdvisorTable rows={buyAdvisors} label="Buy-side" color="#2563eb" />
@@ -476,7 +471,7 @@ function OpenActionsSection({ openActions }: { openActions: ActionItem[] }) {
   return (
     <Section title={`Open Actions (${openActions.length})`}>
       {openActions.length === 0 ? (
-        <EmptyState text="No open actions — all actions are completed or none have been created." />
+        <EmptyState icon={FileText} title="No open actions." size="sm" />
       ) : (
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
           <thead>
@@ -512,7 +507,7 @@ function RecentInteractionsSection({ recentInteractions }: { recentInteractions:
   return (
     <Section title={`Recent Interactions (last ${recentInteractions.length})`}>
       {recentInteractions.length === 0 ? (
-        <EmptyState text="No interactions recorded. Log calls and meetings in the Interactions tab." />
+        <EmptyState icon={FileText} title="No interactions recorded." size="sm" />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           {recentInteractions.map(i => (
