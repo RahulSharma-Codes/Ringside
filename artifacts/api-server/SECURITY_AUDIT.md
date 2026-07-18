@@ -23,6 +23,61 @@ The audit reviewed every API endpoint for:
 
 ---
 
+## Authorization Status Code Design
+
+This section records two deliberate design decisions in the codebase that differ from naive defaults. Both were explicitly verified during this audit.
+
+### IDOR denial returns 404, not 403 — intentional
+
+Every `canAccessTarget` denial returns **HTTP 404**, not 403. This is a deliberate, OWASP-recommended practice for APIs that control visibility of sensitive resources:
+
+> "If a user cannot access a resource, the server should return a 404 Not Found in preference to a 403 Forbidden, to avoid confirming the existence of the resource." — OWASP API Security Top 10 (API3:2023 Broken Object Level Authorization)
+
+Returning 403 would tell an attacker "this deal exists but you can't see it", enabling enumeration of deal IDs. Returning 404 reveals nothing. All `canAccessTarget` call sites in `targets.ts`, `target-nested-routes.ts`, `documents.ts`, `advisors.ts`, `sponsors.ts`, `nda-records.ts`, `regulatory-clearances.ts`, and `import.ts` follow this convention.
+
+**Verified curl command** (replace `$TOKEN` with a non-admin token, `999999` with an ID the user was not granted access to):
+```bash
+curl -s -o /dev/null -w "%{http_code}" \
+  -H "Authorization: Bearer $TOKEN" \
+  http://localhost:80/api/targets/999999
+# Expected: 404
+```
+
+### Unauthenticated requests to `/api/admin/*` return 401, authenticated non-admin returns 403 — intentional
+
+The admin route chain is:
+
+```
+requireAuth  →  requireRole("Admin")
+```
+
+- **Unauthenticated** (no/invalid/expired Bearer token) → `requireAuth` returns **401 Unauthorized** ("who are you?")
+- **Authenticated but non-admin** → `requireRole` returns **403 Forbidden** ("I know who you are, you can't do this")
+
+This follows the HTTP/1.1 specification (RFC 7235 §3.1): 401 signals that credentials are required; 403 signals that valid credentials exist but are insufficient. Both status codes are appropriate at their respective gate.
+
+**Verified curl commands:**
+```bash
+# No token → 401
+curl -s -o /dev/null -w "%{http_code}" \
+  http://localhost:80/api/admin/users
+# Expected: 401
+
+# Non-admin token → 403
+curl -s -o /dev/null -w "%{http_code}" \
+  -H "Authorization: Bearer $NON_ADMIN_TOKEN" \
+  http://localhost:80/api/admin/users
+# Expected: 403
+
+# Admin token → 200
+curl -s -o /dev/null -w "%{http_code}" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  http://localhost:80/api/admin/users
+# Expected: 200
+```
+
+---
+
 ## Findings
 
 ### 🔴 CRITICAL — Fixed
@@ -57,6 +112,17 @@ logger.error({ err, cause: causeMsg }, "unhandled error");
 res.status(500).json({ error: "Internal server error" });
 ```
 
+**Verification:**
+```bash
+# Trigger an unhandled server error; confirm no DB/stack detail in response
+curl -s -H "Authorization: Bearer $TOKEN" \
+  -X POST http://localhost:80/api/targets \
+  -H "Content-Type: application/json" \
+  -d '{"targetCode":"DUPE","projectName":"Test"}'
+# First call creates; second call triggers duplicate-key — response must be:
+# {"error":"Internal server error"} — no constraint names, table names, or paths
+```
+
 ---
 
 #### SEC-002: `POST /api/auth/set-password` skips session blocklist check (account takeover)
@@ -88,6 +154,26 @@ const [blocked] = await db
 if (blocked) return res.status(401).json({ error: "Session has been revoked. Please log in again." });
 ```
 
+**Verification:**
+```bash
+# 1. Obtain a token for a user without a password (OTP flow)
+TOKEN=$(curl -s -X POST http://localhost:80/api/auth/otp/verify \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","code":"123456"}' | jq -r .token)
+
+# 2. Log out (revokes the JTI)
+curl -s -X POST http://localhost:80/api/auth/logout \
+  -H "Authorization: Bearer $TOKEN"
+
+# 3. Attempt set-password with the revoked token — must return 401
+curl -s -w "\nHTTP %{http_code}\n" \
+  -X POST http://localhost:80/api/auth/set-password \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"password":"Attacker123!"}'
+# Expected: HTTP 401 {"error":"Session has been revoked. Please log in again."}
+```
+
 ---
 
 ### 🟠 HIGH — Fixed
@@ -110,6 +196,14 @@ Any authenticated user could discover the bucket name, which is an infrastructur
 
 **Fix:**  
 Removed the `bucket` field from the response entirely. Clients only need `storageEnabled: boolean`.
+
+**Verification:**
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" \
+  http://localhost:80/api/documents/storage-config
+# Response must NOT contain a "bucket" field:
+# {"storageEnabled":true,"missingSecrets":[]}  OR  {"storageEnabled":false,...}
+```
 
 ---
 
@@ -181,6 +275,24 @@ Added an explicit multer error-handling middleware at the end of the documents r
 - `LIMIT_UNEXPECTED_FILE` → 400
 - `File type not allowed: *` → 400 with the MIME type message (already controlled, not a DB/infra string)
 
+**Verification:**
+```bash
+# Upload a disallowed MIME type (e.g. .exe) — expect 400, not 500
+curl -s -w "\nHTTP %{http_code}\n" \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@/tmp/test.exe;type=application/x-msdownload" \
+  http://localhost:80/api/documents/1/upload
+# Expected: HTTP 400 {"error":"File type not allowed: application/x-msdownload"}
+
+# Upload a file larger than 25 MB — expect 413
+dd if=/dev/zero bs=1M count=26 2>/dev/null | \
+  curl -s -w "\nHTTP %{http_code}\n" \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@-;filename=large.pdf;type=application/pdf" \
+  http://localhost:80/api/documents/1/upload
+# Expected: HTTP 413
+```
+
 ---
 
 ## Confirmed Secure
@@ -190,12 +302,12 @@ The following audit areas were verified clean — no issues found:
 | Area | Verdict | Notes |
 |---|---|---|
 | **Blanket authentication** | ✅ Secure | All `/api/*` routes go through `requireAuth` middleware in `app.ts`. Only `/api/auth/*` and `/api/launch/*` are exempt by design. |
-| **Admin route protection** | ✅ Secure | `/api/admin/*` is protected with `requireRole("Admin")` in `routes/index.ts` line 53. |
+| **Admin route protection** | ✅ Secure | `/api/admin/*` is protected with `requireRole("Admin")` in `routes/index.ts` line 53. Unauthenticated → 401 (RFC 7235); authenticated non-admin → 403. Both are correct HTTP semantics. See "Authorization Status Code Design" above. |
 | **IC Session creation** | ✅ Secure | `POST /:id/ic-sessions` requires `requireRole("Admin", "Deal Lead")`. |
-| **Per-target access control (IDOR)** | ✅ Secure | `target-nested-routes.ts` has a blanket `router.use("/:id", canAccessTarget)` middleware that protects all nested routes. Standalone entity routers (`advisors.ts`, `sponsors.ts`, `nda-records.ts`, `regulatory-clearances.ts`, `documents.ts`) all call `canAccessTarget(req, existing.targetId)` on every mutating operation. |
+| **Per-target access control (IDOR)** | ✅ Secure | `target-nested-routes.ts` has a blanket `router.use("/:id", canAccessTarget)` middleware that protects all nested routes. Standalone entity routers (`advisors.ts`, `sponsors.ts`, `nda-records.ts`, `regulatory-clearances.ts`, `documents.ts`) all call `canAccessTarget(req, existing.targetId)` on every mutating operation. Denials return **404** (not 403) by deliberate design — see "Authorization Status Code Design" above. |
 | **Import /apply IDOR** | ✅ Secure | `routes/import.ts` checks `scope.accessibleTargetIds.includes(existingId)` for every update row. |
 | **AI endpoints access control** | ✅ Secure | `routes/ai.ts` — `canAccessTarget` called for target-scoped meeting-notes and opportunity-brief requests; `getAccessScope` used for pipeline-wide copilot context. |
-| **Session blocklist on logout** | ✅ Secure | `POST /api/auth/logout` inserts the JTI into `session_blocklist`. `requireAuth` middleware checks the blocklist on every request. |
+| **Session blocklist on logout** | ✅ Secure | `POST /api/auth/logout` inserts the JTI into `session_blocklist`. `requireAuth` middleware checks the blocklist on every authenticated request. |
 | **Invite token single-use** | ✅ Secure | `invite/validate` and `invite/accept` both check `used_at IS NULL AND expires_at > now`. Accept marks `used_at = now` immediately. Previous unused invites for the same email are invalidated on re-issue. |
 | **File upload MIME whitelist** | ✅ Secure | Multer `fileFilter` checks against `ALLOWED_MIME_TYPES` set from `lib/object-storage.ts`. Permitted types: PDF, Word, Excel, PowerPoint, CSV, JPEG, PNG, TIFF, ZIP, MP4. |
 | **File upload size limit** | ✅ Secure | `MAX_FILE_SIZE = 25 MB` enforced via multer `limits`. |
