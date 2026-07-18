@@ -56,11 +56,11 @@ export function DealCard({ deal, href, className = "", animate = true, animDelay
     <div
       className={`
         deal-card-lift group/dealcard relative
-        bg-card border-l-4 shadow-sm hover:shadow-md
+        bg-card border-l-4 shadow-sm
         ${getTierAccent(deal.priorityTier)}
         rounded-xl p-3.5 space-y-2.5
-        ${deal.needsAttention ? "ring-1 ring-amber-500/20" : ""}
-        transition-shadow duration-200
+        ${deal.needsAttention ? "ring-1 ring-amber-500/35 shadow-[0_0_14px_hsl(38_82%_50%_/_0.10)]" : ""}
+        transition-all duration-200
         ${className}
       `}
     >

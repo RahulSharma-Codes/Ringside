@@ -45,6 +45,15 @@ function getTierBadgeColor(tier: string) {
   }
 }
 
+function getTierFirstCellBorder(tier: string): string {
+  switch (tier) {
+    case "Must-Win":   return "border-l-4 border-l-destructive/60";
+    case "Priority 1": return "border-l-4 border-l-amber-500/60";
+    case "Priority 2": return "border-l-4 border-l-primary/60";
+    default:           return "border-l-4 border-l-transparent";
+  }
+}
+
 export type PipelineRow = {
   id: number;
   targetCode: string;
@@ -388,15 +397,19 @@ export function PipelineListTable({
                     ? { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0 } } }
                     : { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.18, ease: "easeOut" } } }
                 }
-                className={`group transition-all duration-150 hover:bg-muted/40 hover:shadow-sm cursor-pointer ${
+                className={`group transition-all duration-150 hover:bg-muted/40 cursor-pointer ${
                   !isLast ? "border-b border-border/40" : ""
-                } ${r.needsAttention ? "bg-amber-500/3 dark:bg-amber-500/5" : ""}`}
+                } ${r.needsAttention ? "bg-amber-500/[0.04] dark:bg-amber-500/[0.07]" : ""}`}
               >
-                {row.getVisibleCells().map((cell) => (
+                {row.getVisibleCells().map((cell, cellIdx) => (
                   <td
                     key={cell.id}
                     style={{ width: cell.column.getSize() }}
-                    className="px-3 py-2.5 align-middle overflow-hidden"
+                    className={`py-2.5 align-middle overflow-hidden ${
+                      cellIdx === 0
+                        ? `pl-2 pr-3 ${getTierFirstCellBorder(r.priorityTier)}`
+                        : "px-3"
+                    }`}
                   >
                     {cell.column.id === "_actions" ? (
                       flexRender(cell.column.columnDef.cell, cell.getContext())
