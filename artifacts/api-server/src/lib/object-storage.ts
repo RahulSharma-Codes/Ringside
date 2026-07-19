@@ -41,6 +41,11 @@ export const ALLOWED_MIME_TYPES = new Set([
   "image/png",
   "image/gif",
   "image/webp",
+  "image/tiff",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/x-zip",
+  "video/mp4",
 ]);
 
 export const MAX_FILE_SIZE = 25 * 1024 * 1024;
