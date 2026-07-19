@@ -121,7 +121,7 @@ export default function AcceptInvitePage({ onLogin }: AcceptInvitePageProps) {
         {/* Brand */}
         <div className="text-center space-y-2">
           <p className="text-[9px] font-mono uppercase tracking-[0.25em] text-muted-foreground/40">
-            Manipal Group · Corporate Development
+            The Manipal Group · Corporate Development &amp; Strategy
           </p>
           <h1 className="font-sans font-bold text-4xl uppercase tracking-[0.15em] text-foreground">
             Ringside

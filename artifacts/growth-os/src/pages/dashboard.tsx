@@ -186,7 +186,7 @@ export default function Dashboard() {
       <div className="page-hero-sticky px-4 md:px-8 pt-4 pb-4">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="metadata-label text-primary/70">Manipal Group · Corporate Development</p>
+            <p className="metadata-label text-primary/70">The Manipal Group · Corporate Development &amp; Strategy</p>
             <h1 className="text-xl md:text-2xl font-bold font-sans tracking-tight mt-0.5">Dashboard</h1>
             <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed hidden md:block font-sans">
               Mission control — pipeline health, stage distribution, and top-priority deals at a glance.
