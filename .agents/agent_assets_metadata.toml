@@ -1,0 +1,20 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "yWMi8gsFg-7U-8pxCrJJy"
+uri = "file://artifacts/mockup-sandbox/public/images/bg1.png"
+type = "image"
+title = "abstract data nodes"
+
+[[generated]]
+id = "BYozsC4SnIvzEAFpW8UqT"
+uri = "file://artifacts/mockup-sandbox/public/images/bg2.png"
+type = "image"
+title = "deal flow network"
+
+[[generated]]
+id = "J_dpK9pJKSf2zuF_433k-"
+uri = "file://artifacts/mockup-sandbox/public/images/bg3.png"
+type = "image"
+title = "dark glass morphism"
