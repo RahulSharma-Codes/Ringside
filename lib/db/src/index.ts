@@ -20,7 +20,10 @@ function getDatabaseUrl(): string {
   return url;
 }
 
-export const pool = new Pool({ connectionString: getDatabaseUrl() });
+export const pool = new Pool({
+  connectionString: getDatabaseUrl(),
+  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+});
 
 // ── Per-request client routing ────────────────────────────────────────────────
 // Stores the dedicated PoolClient for the current HTTP request so that every
