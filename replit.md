@@ -1,20 +1,23 @@
-# Workspace
+# Ringside — M&A Deal Intelligence Platform
+
+**Manipal Group · Corporate Development & Strategy**
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+Full-stack M&A deal management platform. pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces
 - **Node.js version**: 24
 - **Package manager**: pnpm
-- **TypeScript version**: 5.9
+- **Frontend**: React 19 + Vite + TailwindCSS + shadcn/ui
 - **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
+- **Database**: PostgreSQL + Drizzle ORM (Replit Postgres via PGHOST)
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
+- **API codegen**: Orval (from OpenAPI spec → React Query hooks + Zod schemas)
 - **Build**: esbuild (CJS bundle)
+- **Testing**: Playwright E2E (`tests/` workspace package)
 
 ## Key Commands
 
@@ -23,8 +26,11 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
+- `pnpm --filter @workspace/tests run test` — run Playwright E2E suite
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+
+---
 
 ## Features Implemented
 
@@ -88,8 +94,8 @@ Chat interface at `/copilot` backed by `POST /api/ai/ask`. Reads a live DB snaps
 - New backend endpoint: `GET /api/diligence/review` (diligence router)
 
 **Schema changes**:
-- `actions` table: added `workstream text` and `notes text` nullable columns (applied via direct SQL)
-- OpenAPI: new `diligence` tag, 3 new paths, 7 new schemas (DiligenceReadiness, DiligenceTabResponse, CreateDiligenceItemBody, DiligenceReviewTargetSummary, DiligenceReviewItem, DiligenceReviewResponse)
+- `actions` table: added `workstream text` and `notes text` nullable columns
+- OpenAPI: new `diligence` tag, 3 new paths, 7 new schemas
 - `workstream` and `notes` fields added to ActionItem, CreateActionBody, UpdateActionBody
 
 **Other updates**:
@@ -121,30 +127,6 @@ Chat interface at `/copilot` backed by `POST /api/ai/ask`. Reads a live DB snaps
 - `lib/db/src/index.ts` now prefers `PGHOST/PGUSER/PGPASSWORD/PGDATABASE` env vars over `DATABASE_URL` secret
 - `artifacts/api-server/src/index.ts` runs idempotent startup migrations (rename `action_items`→`actions`, create `milestones`, `deal_documents`, `ic_sessions` tables with IF NOT EXISTS guards)
 
-### Phase 9A — Stakeholders Tab (Counterparty & Advisor Management)
-
-**Stakeholders Tab** (per-target, inside Target Detail at `/targets/:id`):
-- 7th tab "Stakeholders" with Users icon in Target Detail
-- **Counterparty section**: structured record — legal entity name, CIN/reg no., founders, key management, controlling shareholders, website, notes; editable via Edit dialog
-- **Internal Sponsors section**: list of internal champions — name, role/title, email, notes; Add/Edit/Delete
-- **External Advisors (Buy-side)**: advisor type, firm name, contact, engagement date, fee structure, conflicts-check status (Pending/Cleared/Flagged); Add/Edit/Delete
-- **Counterparty Advisors (Sell-side)**: same structure; tracked for negotiation visibility
-- Flagged advisor warning banner shown at top of tab when any advisor has conflicts_status = "Flagged"
-- Component extracted to `target-detail-stakeholders.tsx`
-
-**Backend routes**:
-- `GET/PUT /api/targets/:id/counterparty` — structured counterparty fields
-- `GET/POST /api/targets/:id/advisors` — list and create advisors (buy-side and sell-side)
-- `PUT/DELETE /api/advisors/:id` — update/delete advisor
-- `GET/POST /api/targets/:id/sponsors` — list and create internal sponsors
-- `PUT/DELETE /api/sponsors/:id` — update/delete sponsor
-
-**Schema changes**:
-- `deal_advisors` table: id, target_id, side, advisor_type, firm_name, contact_name, contact_email, engagement_date, fee_structure, conflicts_status, notes, created_at
-- `deal_sponsors` table: id, target_id, name, role_title, email, notes, created_at
-- Counterparty columns added to `targets` via ALTER TABLE: cp_cin, cp_founders, cp_key_management, cp_controlling_shareholders, cp_website, cp_notes
-- OpenAPI: new `advisors` and `sponsors` tags; 7 new paths; 8 new schemas
-
 ### Phase 8F — NDA Register + Regulatory Clearance Map
 
 **Compliance Tab** (per-target, inside Target Detail at `/targets/:id`):
@@ -163,29 +145,7 @@ Chat interface at `/copilot` backed by `POST /api/ai/ask`. Reads a live DB snaps
 **Schema changes**:
 - `nda_records` table: id, target_id, counterparty, effective_date, expiry_date, scope, term_months, doc_reference, status, notes, created_at
 - `regulatory_clearances` table: id, target_id, category, description, owner_name, status, target_clearance_date, evidence_reference, notes, created_at, updated_at
-- OpenAPI: new `compliance` tag; 6 new paths; 6 new schemas (NdaRecord, CreateNdaRecordBody, UpdateNdaRecordBody, RegulatoryClearance, CreateRegulatoryClearanceBody, UpdateRegulatoryClearanceBody)
-
-### Phase 10A — Per-User Deal Visibility
-
-**Access model**:
-- Non-admin users see NO deals until an Admin explicitly grants access; Admins always see all deals.
-- `target_access` table: `id, targetId, userId, grantedBy, grantedAt` (+ `companyId` via RLS), unique on `(targetId, userId)`.
-- `getAccessScope(req)` / `canAccessTarget(req, targetId)` / `grantTargetAccess(...)` helpers in `artifacts/api-server/src/lib/target-access.ts`. Admin role bypasses; everyone else needs an explicit grant row.
-- Creating a target auto-grants the creator access to it.
-
-**Enforced in**: `routes/targets.ts` (list, summary, by-stage, top-priority, needs-attention, get-by-id), `routes/review.ts` (`/weekly` — all 4 parallel queries), `routes/diligence.ts` (`/review`), `routes/actions.ts` (`/open`, `/command-center`). Each short-circuits to an empty/zeroed response when a non-admin has zero grants, rather than passing an empty id list into `inArray(...)`.
-
-**Admin-only management routes**:
-- `GET/POST /api/targets/:id/access`, `DELETE /api/targets/:id/access/:userId` — per-target grant list.
-- `GET/PUT /api/admin/users/:id/access` — per-user checklist (replace-all-grants) — backs the Admin Console "Access" dialog on the Users list (`pages/admin.tsx`), a simple checkbox list of all deals.
-
-**OpenAPI**: new `access` tag; 4 new paths; `TargetAccessGrant`, `GrantTargetAccessBody`, `UserAccessList` schemas.
-
-## Checkpoints
-
-| Label | Commit | Notes |
-|---|---|---|
-| working-supabase-read-write-baseline | 7243ed55 | Full stack working: API + React frontend + seeded DB. DB uses Replit Postgres (helium) with fallback from any supabase DATABASE_URL secret. |
+- OpenAPI: new `compliance` tag; 6 new paths; 6 new schemas
 
 ### Phase 8H — In-App Notification Inbox
 
@@ -218,7 +178,51 @@ Chat interface at `/copilot` backed by `POST /api/ai/ask`. Reads a live DB snaps
 - On confirm: calls existing `PUT /api/targets/:id/stage` with `changeReason`; success toast + query invalidation; error toast on failure with card snapping back
 - Library: `@dnd-kit/core` + `@dnd-kit/utilities` added to `@workspace/growth-os`
 
-### Task #274 — Nav Bar Fix + Performance (code splitting)
+### Phase 9A — Stakeholders Tab (Counterparty & Advisor Management)
+
+**Stakeholders Tab** (per-target, inside Target Detail at `/targets/:id`):
+- 7th tab "Stakeholders" with Users icon in Target Detail
+- **Counterparty section**: structured record — legal entity name, CIN/reg no., founders, key management, controlling shareholders, website, notes; editable via Edit dialog
+- **Internal Sponsors section**: list of internal champions — name, role/title, email, notes; Add/Edit/Delete
+- **External Advisors (Buy-side)**: advisor type, firm name, contact, engagement date, fee structure, conflicts-check status (Pending/Cleared/Flagged); Add/Edit/Delete
+- **Counterparty Advisors (Sell-side)**: same structure; tracked for negotiation visibility
+- Flagged advisor warning banner shown at top of tab when any advisor has conflicts_status = "Flagged"
+- Component extracted to `target-detail-stakeholders.tsx`
+
+**Backend routes**:
+- `GET/PUT /api/targets/:id/counterparty` — structured counterparty fields
+- `GET/POST /api/targets/:id/advisors` — list and create advisors (buy-side and sell-side)
+- `PUT/DELETE /api/advisors/:id` — update/delete advisor
+- `GET/POST /api/targets/:id/sponsors` — list and create internal sponsors
+- `PUT/DELETE /api/sponsors/:id` — update/delete sponsor
+
+**Schema changes**:
+- `deal_advisors` table: id, target_id, side, advisor_type, firm_name, contact_name, contact_email, engagement_date, fee_structure, conflicts_status, notes, created_at
+- `deal_sponsors` table: id, target_id, name, role_title, email, notes, created_at
+- Counterparty columns added to `targets` via ALTER TABLE: cp_cin, cp_founders, cp_key_management, cp_controlling_shareholders, cp_website, cp_notes
+- OpenAPI: new `advisors` and `sponsors` tags; 7 new paths; 8 new schemas
+
+### Phase 10A — Per-User Deal Visibility
+
+**Access model**:
+- Non-admin users see NO deals until an Admin explicitly grants access; Admins always see all deals.
+- `target_access` table: `id, targetId, userId, grantedBy, grantedAt` (+ `companyId` via RLS), unique on `(targetId, userId)`.
+- `getAccessScope(req)` / `canAccessTarget(req, targetId)` / `grantTargetAccess(...)` helpers in `artifacts/api-server/src/lib/target-access.ts`. Admin role bypasses; everyone else needs an explicit grant row.
+- Creating a target auto-grants the creator access to it.
+
+**Enforced in**: `routes/targets.ts` (list, summary, by-stage, top-priority, needs-attention, get-by-id), `routes/review.ts` (`/weekly` — all 4 parallel queries), `routes/diligence.ts` (`/review`), `routes/actions.ts` (`/open`, `/command-center`). Each short-circuits to an empty/zeroed response when a non-admin has zero grants, rather than passing an empty id list into `inArray(...)`.
+
+**Admin-only management routes**:
+- `GET/POST /api/targets/:id/access`, `DELETE /api/targets/:id/access/:userId` — per-target grant list.
+- `GET/PUT /api/admin/users/:id/access` — per-user checklist (replace-all-grants) — backs the Admin Console "Access" dialog on the Users list (`pages/admin.tsx`), a simple checkbox list of all deals.
+
+**OpenAPI**: new `access` tag; 4 new paths; `TargetAccessGrant`, `GrantTargetAccessBody`, `UserAccessList` schemas.
+
+---
+
+## Engineering & Infrastructure
+
+### Nav Bar Fix + Performance (code splitting)
 
 **Floating rail sidebar icon clipping fix**:
 - Collapsed width increased from `w-12` (48px) to `w-[56px]` (56px) in `FloatingRail` (`components/layout.tsx`)
@@ -233,6 +237,77 @@ Chat interface at `/copilot` backed by `POST /api/ai/ask`. Reads a live DB snaps
 **Dashboard query cleanup** (`pages/dashboard.tsx`):
 - "Total Pipeline" KPI now reads `summary.activeTargets` (from the fast `/api/targets/summary` call) instead of waiting for the full `useListTargets` response
 
-### Corporate Video
+### Playwright E2E Test Suite (`tests/` workspace package)
 
-60-second animated brand video for Manipal Group M&A platform. Lives in the Canvas / mockup-sandbox artifact at `/__mockup`. Built with React, Framer Motion, and GSAP across 6 scenes (dark navy palette, Plus Jakarta Sans + Inter, clip-path reveals, seamless loop).
+25 tests across 4 groups, run with `pnpm --filter @workspace/tests run test`:
+
+**Login (1 test)**: fills email/password in headless Chromium, asserts dashboard appears.
+
+**Lazy-loaded route chunks (7 tests)**: direct URL navigation to each page asserts real content is rendered (not the Suspense spinner fallback) — covers Dashboard, Pipeline List, Pipeline Board (after toggle), Actions Command Center, AI Copilot, Weekly Review, Diligence Review.
+
+**Target Detail — all 13 tabs (13 tests)**: Overview, Log, Actions, Timeline, Diligence, Documents, Valuation, Synergies, Activity, IC, Stakeholders, Compliance, Audit. Tab assertion strategy: click → wait for `aria-selected="true"` → wait for `.animate-pulse` skeletons to detach → assert active panel has content. This avoids the race where the old panel's text satisfies a generic poll before the new panel finishes loading.
+
+**Navigation flows (4 tests)**: Dashboard → Pipeline, Dashboard → Actions, Pipeline → Target Detail (conditional skip if no cards visible), Target Detail → Actions tab.
+
+Key decisions:
+- Nav links selected by `href` attribute (`a[href="/pipeline"]`) not accessible name — collapsed rail hides label text with `display:none`
+- Chromium resolved via `which chromium` at config load time; env override takes priority
+- Global setup fetches a JWT once per suite run and caches it to avoid rate-limiter (30 req/15 min)
+- CORS: `api-server` always allows `http://localhost` so headless Chromium can reach the auth endpoint
+
+---
+
+## Target Detail — Tab Reference
+
+The target detail page (`/targets/:id`) has 13 tabs:
+
+| # | Tab | Icon | Phase |
+|---|---|---|---|
+| 1 | Overview | — | 1A |
+| 2 | Log | — | 1A |
+| 3 | Actions | — | 1A |
+| 4 | Timeline | — | 1A |
+| 5 | Diligence | ClipboardCheck | 4B |
+| 6 | Documents | — | — |
+| 7 | Valuation | — | — |
+| 8 | Synergies | — | — |
+| 9 | Activity | — | — |
+| 10 | IC | Scale | 7E |
+| 11 | Stakeholders | Users | 9A |
+| 12 | Compliance | ShieldCheck | 8F |
+| 13 | Audit | — | — |
+
+---
+
+## Corporate Brand Video
+
+60-second animated product launch film for Ringside. Lives in the Canvas / mockup-sandbox artifact at `/__mockup`. Stack: React + Framer Motion, dark navy palette (`#06090f`), Inter font.
+
+**Structure** — 6 scenes, 60 seconds total:
+
+| Scene | Duration | Headline copy | Feature shown |
+|---|---|---|---|
+| 1 — Opening | 9s | *"Every great acquisition starts with the right intelligence."* | RINGSIDE brand reveal + stat counters |
+| 2 — Dashboard | 10s | *"Your entire pipeline — scored, staged, and surfaced instantly."* | KPI tiles, stage distribution bars, attention banner |
+| 3 — Pipeline | 10s | *"Move deals forward. Drag, drop, and record your reasoning."* | Kanban board with deal cards and tier badges |
+| 4 — Diligence | 10s | *"8 workstreams, one view. Nothing falls through the cracks."* | Workstream grid with progress bars and blocked states |
+| 5 — AI Copilot | 10s | *"An AI advisor who has read every deal, action, and interaction."* | Chat panel with typing-dots animation |
+| 6 — Closing | 11s | *"Deal intelligence, built for the Manipal Group Corporate Development team."* | RINGSIDE wordmark + 8 feature chips |
+
+**Animation approach**: all transitions use GPU-composited `transform` + `opacity` only. No `filter:blur` or `clipPath` animations in continuous loops. Headline lines use `overflow:hidden` wrappers with `y: '105%' → 0` clip reveals. Numbers use a custom `Counter` component with RAF-based easing.
+
+**Audio**: AI-generated 65-second ambient instrumental track (`public/audio/ringside_bg.mp3`) — cinematic dark pads, 60 BPM. Auto-plays on load; mute toggle button (🔊) bottom-right. Scene counter (1/6) top-right; timeline progress bar at bottom.
+
+**Files**:
+- `artifacts/mockup-sandbox/src/components/video/VideoTemplate.tsx` — container, audio, progress bar
+- `artifacts/mockup-sandbox/src/components/video/Counter.tsx` — animated number counter
+- `artifacts/mockup-sandbox/src/lib/video/hooks.ts` — `useVideoPlayer` with elapsed-time tracking
+- `artifacts/mockup-sandbox/src/components/video/video_scenes/Scene{1–6}.tsx` — individual scenes
+
+---
+
+## Checkpoints
+
+| Label | Commit | Notes |
+|---|---|---|
+| working-supabase-read-write-baseline | 7243ed55 | Full stack working: API + React frontend + seeded DB. DB uses Replit Postgres (helium) with fallback from any supabase DATABASE_URL secret. |
