@@ -32,21 +32,30 @@ app.use(
 // In production (REPLIT_DOMAINS is set) only allow requests from known Replit
 // preview/deploy domains.  In dev (no REPLIT_DOMAINS) allow all origins so
 // local tools (curl, Postman, Vite HMR) work without friction.
+// http://localhost (with or without port) is always allowed — it is only
+// reachable from the machine itself and is needed for Playwright E2E tests
+// which run a headless Chromium browser that sends Origin: http://localhost.
 function buildAllowedOrigins(): RegExp[] {
   const raw = process.env.REPLIT_DOMAINS ?? "";
+  const always: RegExp[] = [
+    /^http:\/\/localhost(:\d+)?$/, // localhost dev + Playwright headless browser
+  ];
   if (!raw) return [];
-  return raw
-    .split(",")
-    .map((d) => d.trim())
-    .filter(Boolean)
-    .flatMap((d) => {
-      const escaped = d.replace(/\./g, "\\.");
-      return [
-        new RegExp(`^https://${escaped}$`),
-        // Also allow any *.replit.app deploy domain
-        /^https:\/\/[\w-]+\.replit\.app$/,
-      ];
-    });
+  return [
+    ...always,
+    ...raw
+      .split(",")
+      .map((d) => d.trim())
+      .filter(Boolean)
+      .flatMap((d) => {
+        const escaped = d.replace(/\./g, "\\.");
+        return [
+          new RegExp(`^https://${escaped}$`),
+          // Also allow any *.replit.app deploy domain
+          /^https:\/\/[\w-]+\.replit\.app$/,
+        ];
+      }),
+  ];
 }
 
 const allowedOrigins = buildAllowedOrigins();
