@@ -1,26 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export function useVideoPlayer({ durations }: { durations: Record<string, number> }) {
   const [currentScene, setCurrentScene] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
   const durationValues = Object.values(durations);
+  const startRef = useRef(Date.now());
 
   useEffect(() => {
-    // @ts-ignore
-    window.startRecording?.();
-
+    startRef.current = Date.now();
     let currentIndex = 0;
     let timeout: ReturnType<typeof setTimeout>;
 
     const playNext = () => {
       timeout = setTimeout(() => {
-        currentIndex++;
-        if (currentIndex === durationValues.length) {
-          // @ts-ignore
-          window.stopRecording?.();
-          setCurrentScene(0); // loop
-          currentIndex = 0;
-        } else {
-          setCurrentScene(currentIndex);
+        currentIndex = (currentIndex + 1) % durationValues.length;
+        setCurrentScene(currentIndex);
+        if (currentIndex === 0) {
+          startRef.current = Date.now();
+          setElapsed(0);
         }
         playNext();
       }, durationValues[currentIndex]);
@@ -28,8 +25,15 @@ export function useVideoPlayer({ durations }: { durations: Record<string, number
 
     playNext();
 
-    return () => clearTimeout(timeout);
+    const ticker = setInterval(() => {
+      setElapsed(Date.now() - startRef.current);
+    }, 80);
+
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(ticker);
+    };
   }, []);
 
-  return { currentScene };
+  return { currentScene, elapsed };
 }

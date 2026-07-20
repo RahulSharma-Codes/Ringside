@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "yWMi8gsFg-7U-8pxCrJJy"
@@ -18,3 +17,9 @@ id = "J_dpK9pJKSf2zuF_433k-"
 uri = "file://artifacts/mockup-sandbox/public/images/bg3.png"
 type = "image"
 title = "dark glass morphism"
+
+[[outputs]]
+id = "wZoHcrgTbRXlY5Sws5BWJ"
+uri = "file://artifacts/mockup-sandbox/public/audio/ringside_bg.mp3"
+type = "audio"
+title = "ringside_ambient"
