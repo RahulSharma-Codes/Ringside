@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
@@ -10,25 +10,29 @@ import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
+// Eagerly-loaded pages (always needed on auth'd entry)
 import Dashboard from "@/pages/dashboard";
-import Pipeline from "@/pages/pipeline";
-import NewTarget from "@/pages/new-target";
-import TargetDetail from "@/pages/target-detail";
-import Actions from "@/pages/actions";
-import ImportWizard from "@/pages/import-wizard";
-import Copilot from "@/pages/copilot";
-import WeeklyReview from "@/pages/weekly-review";
-import DiligenceReview from "@/pages/diligence-review";
-import DocumentReview from "@/pages/document-review";
-import LaunchReadiness from "@/pages/launch-readiness";
-import Analytics from "@/pages/analytics";
-import Doctrine from "@/pages/doctrine";
-import AdminPage from "@/pages/admin";
-import SettingsPasswordPage from "@/pages/settings-password";
-import AccessDenied from "@/pages/access-denied";
-import NotFound from "@/pages/not-found";
-import IcBriefPage from "@/pages/ic-brief";
-import AcceptInvitePage from "@/pages/accept-invite";
+
+// Lazy-loaded pages — split into their own chunks
+const Pipeline           = lazy(() => import("@/pages/pipeline"));
+const NewTarget          = lazy(() => import("@/pages/new-target"));
+const TargetDetail       = lazy(() => import("@/pages/target-detail"));
+const Actions            = lazy(() => import("@/pages/actions"));
+const ImportWizard       = lazy(() => import("@/pages/import-wizard"));
+const Copilot            = lazy(() => import("@/pages/copilot"));
+const WeeklyReview       = lazy(() => import("@/pages/weekly-review"));
+const DiligenceReview    = lazy(() => import("@/pages/diligence-review"));
+const DocumentReview     = lazy(() => import("@/pages/document-review"));
+const LaunchReadiness    = lazy(() => import("@/pages/launch-readiness"));
+const Analytics          = lazy(() => import("@/pages/analytics"));
+const Doctrine           = lazy(() => import("@/pages/doctrine"));
+const AdminPage          = lazy(() => import("@/pages/admin"));
+const SettingsPasswordPage = lazy(() => import("@/pages/settings-password"));
+const AccessDenied       = lazy(() => import("@/pages/access-denied"));
+const NotFound           = lazy(() => import("@/pages/not-found"));
+const IcBriefPage        = lazy(() => import("@/pages/ic-brief"));
+const AcceptInvitePage   = lazy(() => import("@/pages/accept-invite"));
 
 const queryClient = new QueryClient();
 
@@ -39,6 +43,16 @@ setAuthTokenGetter(() => {
   if (typeof window === "undefined") return null;
   return window.localStorage.getItem(AUTH_TOKEN_KEY);
 });
+
+// ── Page loading fallback ──────────────────────────────────────────────────────
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-[200px]">
+      <div className="h-5 w-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+    </div>
+  );
+}
 
 // ── Login screen ───────────────────────────────────────────────────────────────
 
@@ -193,59 +207,61 @@ function RequireAdmin({ children }: { children: React.ReactNode }) {
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/">
-        <Layout><Dashboard /></Layout>
-      </Route>
-      <Route path="/pipeline">
-        <Layout><Pipeline /></Layout>
-      </Route>
-      <Route path="/targets/new">
-        <Layout><NewTarget /></Layout>
-      </Route>
-      <Route path="/targets/:id/ic-brief">
-        <IcBriefPage />
-      </Route>
-      <Route path="/targets/:id">
-        <Layout><TargetDetail /></Layout>
-      </Route>
-      <Route path="/actions">
-        <Layout><Actions /></Layout>
-      </Route>
-      <Route path="/import">
-        <Layout><ImportWizard /></Layout>
-      </Route>
-      <Route path="/copilot">
-        <Layout><Copilot /></Layout>
-      </Route>
-      <Route path="/weekly-review">
-        <Layout><WeeklyReview /></Layout>
-      </Route>
-      <Route path="/diligence-review">
-        <Layout><DiligenceReview /></Layout>
-      </Route>
-      <Route path="/document-review">
-        <Layout><DocumentReview /></Layout>
-      </Route>
-      <Route path="/launch-readiness">
-        <Layout><LaunchReadiness /></Layout>
-      </Route>
-      <Route path="/analytics">
-        <Layout><Analytics /></Layout>
-      </Route>
-      <Route path="/doctrine">
-        <Layout><Doctrine /></Layout>
-      </Route>
-      <Route path="/admin">
-        <RequireAdmin><Layout><AdminPage /></Layout></RequireAdmin>
-      </Route>
-      <Route path="/settings/password">
-        <Layout><SettingsPasswordPage /></Layout>
-      </Route>
-      <Route path="*">
-        <Layout><NotFound /></Layout>
-      </Route>
-    </Switch>
+    <Suspense fallback={<PageLoader />}>
+      <Switch>
+        <Route path="/">
+          <Layout><Dashboard /></Layout>
+        </Route>
+        <Route path="/pipeline">
+          <Layout><Pipeline /></Layout>
+        </Route>
+        <Route path="/targets/new">
+          <Layout><NewTarget /></Layout>
+        </Route>
+        <Route path="/targets/:id/ic-brief">
+          <IcBriefPage />
+        </Route>
+        <Route path="/targets/:id">
+          <Layout><TargetDetail /></Layout>
+        </Route>
+        <Route path="/actions">
+          <Layout><Actions /></Layout>
+        </Route>
+        <Route path="/import">
+          <Layout><ImportWizard /></Layout>
+        </Route>
+        <Route path="/copilot">
+          <Layout><Copilot /></Layout>
+        </Route>
+        <Route path="/weekly-review">
+          <Layout><WeeklyReview /></Layout>
+        </Route>
+        <Route path="/diligence-review">
+          <Layout><DiligenceReview /></Layout>
+        </Route>
+        <Route path="/document-review">
+          <Layout><DocumentReview /></Layout>
+        </Route>
+        <Route path="/launch-readiness">
+          <Layout><LaunchReadiness /></Layout>
+        </Route>
+        <Route path="/analytics">
+          <Layout><Analytics /></Layout>
+        </Route>
+        <Route path="/doctrine">
+          <Layout><Doctrine /></Layout>
+        </Route>
+        <Route path="/admin">
+          <RequireAdmin><Layout><AdminPage /></Layout></RequireAdmin>
+        </Route>
+        <Route path="/settings/password">
+          <Layout><SettingsPasswordPage /></Layout>
+        </Route>
+        <Route path="*">
+          <Layout><NotFound /></Layout>
+        </Route>
+      </Switch>
+    </Suspense>
   );
 }
 
@@ -268,7 +284,9 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           {isAcceptInvite ? (
-            <AcceptInvitePage onLogin={() => setIsAuthenticated(true)} />
+            <Suspense fallback={<PageLoader />}>
+              <AcceptInvitePage onLogin={() => setIsAuthenticated(true)} />
+            </Suspense>
           ) : isAuthenticated ? (
             <AuthProvider>
               <WouterRouter base={base}>

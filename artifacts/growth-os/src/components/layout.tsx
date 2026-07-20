@@ -151,7 +151,7 @@ function FloatingRail({
         bg-sidebar/85 backdrop-blur-xl
         shadow-lg shadow-black/10
         transition-all duration-200 ease-out
-        w-12 hover:w-[220px]
+        w-[56px] hover:w-[220px]
         overflow-hidden
         select-none
       `}

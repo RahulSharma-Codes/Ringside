@@ -224,7 +224,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
               <div className="metric-number">
-                <AnimatedCounter value={(allTargets ?? []).length || (summary?.activeTargets ?? 0)} />
+                <AnimatedCounter value={summary?.activeTargets ?? 0} />
               </div>
               {(summary?.newDealsThisWeek ?? 0) > 0 ? (
                 <p className="flex items-center gap-0.5 text-[9px] font-mono text-emerald-500 mt-1.5">
