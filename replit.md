@@ -217,3 +217,22 @@ Chat interface at `/copilot` backed by `POST /api/ai/ask`. Reads a live DB snaps
 - Dropping on a different column opens **KanbanStageChangeDialog** — reason select with preset options plus "Other" with free-text fallback — before any API call is made
 - On confirm: calls existing `PUT /api/targets/:id/stage` with `changeReason`; success toast + query invalidation; error toast on failure with card snapping back
 - Library: `@dnd-kit/core` + `@dnd-kit/utilities` added to `@workspace/growth-os`
+
+### Task #274 — Nav Bar Fix + Performance (code splitting)
+
+**Floating rail sidebar icon clipping fix**:
+- Collapsed width increased from `w-12` (48px) to `w-[56px]` (56px) in `FloatingRail` (`components/layout.tsx`)
+- Root cause: 48px container − 2px border − 16px nav padding = 30px for a 32px (`w-8`) icon; fix gives 38px clear
+
+**Route-level code splitting** (`App.tsx`):
+- 17 page imports converted from static to `React.lazy()` dynamic imports
+- Dashboard stays eagerly loaded (always the first page after login)
+- All lazy routes share a single `<Suspense fallback={<PageLoader />}>` in `Router`
+- Eliminates parse/eval cost of all secondary pages on initial load
+
+**Dashboard query cleanup** (`pages/dashboard.tsx`):
+- "Total Pipeline" KPI now reads `summary.activeTargets` (from the fast `/api/targets/summary` call) instead of waiting for the full `useListTargets` response
+
+### Corporate Video
+
+60-second animated brand video for Manipal Group M&A platform. Lives in the Canvas / mockup-sandbox artifact at `/__mockup`. Built with React, Framer Motion, and GSAP across 6 scenes (dark navy palette, Plus Jakarta Sans + Inter, clip-path reveals, seamless loop).
