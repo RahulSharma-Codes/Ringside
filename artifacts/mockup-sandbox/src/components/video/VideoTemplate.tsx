@@ -13,22 +13,14 @@ export default function VideoTemplate() {
   const { currentScene } = useVideoPlayer({ durations: SCENE_DURATIONS });
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-background text-foreground">
-      {/* Persistent Background layers */}
-      <div className="absolute inset-0 z-0">
-        <motion.div 
-          className="absolute inset-0 bg-cover bg-center opacity-30"
-          style={{ backgroundImage: `url(${import.meta.env.BASE_URL}images/bg1.png)` }}
-          animate={{ scale: [1, 1.1, 1.05], opacity: [0.2, 0.4, 0.3] }}
-          transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
-        />
-        <motion.div 
-          className="absolute inset-0 bg-cover bg-center mix-blend-screen opacity-40"
-          style={{ backgroundImage: `url(${import.meta.env.BASE_URL}images/bg3.png)` }}
-          animate={{ rotate: [0, 2, -2, 0] }}
-          transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+    <div className="relative w-full h-screen overflow-hidden bg-[#080e1a] text-foreground" style={{ fontFamily: 'Inter, sans-serif' }}>
+      {/* Static background — no animations, just a gradient */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0d1526] via-[#080e1a] to-[#060b14]" />
+        <div className="absolute inset-0 opacity-[0.06]"
+          style={{ backgroundImage: 'linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)', backgroundSize: '64px 64px' }} />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full opacity-20"
+          style={{ background: 'radial-gradient(ellipse, #3b7fe8 0%, transparent 70%)', filter: 'blur(60px)' }} />
       </div>
 
       <AnimatePresence mode="popLayout">

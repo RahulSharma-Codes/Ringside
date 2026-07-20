@@ -6,57 +6,67 @@ export function Scene6() {
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 500),
-      setTimeout(() => setPhase(2), 2000),
-      setTimeout(() => setPhase(3), 11000), // exit
+      setTimeout(() => setPhase(1), 400),
+      setTimeout(() => setPhase(2), 1600),
     ];
     return () => timers.forEach(t => clearTimeout(t));
   }, []);
 
   return (
-    <motion.div 
-      className="absolute inset-0 flex items-center justify-center z-10 bg-background"
+    <motion.div
+      className="absolute inset-0 flex items-center justify-center z-10"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, filter: 'blur(20px)' }}
-      transition={{ duration: 1.5 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 1 }}
     >
-      <div className="text-center relative z-20">
-        <motion.h2 
-          className="text-[8vw] font-display font-bold tracking-tighter text-foreground"
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={phase >= 1 ? { scale: 1, opacity: 1 } : { scale: 0.8, opacity: 0 }}
-          transition={{ duration: 1.2, ease: "easeOut" }}
+      <div className="text-center relative z-20 px-8">
+        <motion.div
+          className="text-[10px] font-mono uppercase tracking-[0.3em] text-slate-600 mb-6"
+          initial={{ opacity: 0 }}
+          animate={phase >= 1 ? { opacity: 1 } : { opacity: 0 }}
+          transition={{ duration: 0.8 }}
+        >
+          The Manipal Group · Corporate Development &amp; Strategy
+        </motion.div>
+
+        <motion.h1
+          className="font-bold tracking-[-0.03em] text-white"
+          style={{ fontSize: 'clamp(48px, 8vw, 96px)' }}
+          initial={{ opacity: 0, scale: 0.92 }}
+          animate={phase >= 1 ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.92 }}
+          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
         >
           Ringside.
-        </motion.h2>
-        
-        <motion.div 
-          className="mt-4 text-[1.5vw] font-body text-muted-foreground tracking-wide"
-          initial={{ y: 20, opacity: 0 }}
-          animate={phase >= 2 ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
-          transition={{ duration: 1, delay: 0.2 }}
+        </motion.h1>
+
+        <motion.p
+          className="mt-4 text-slate-400 tracking-wide"
+          style={{ fontSize: 'clamp(13px, 1.6vw, 20px)' }}
+          initial={{ opacity: 0, y: 12 }}
+          animate={phase >= 2 ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+          transition={{ duration: 0.8 }}
         >
           Deal intelligence for the Manipal Group.
-        </motion.div>
-        
-        <motion.div 
-          className="mt-8 text-xs uppercase tracking-[0.2em] text-primary"
+        </motion.p>
+
+        <motion.div
+          className="mt-6 text-[10px] uppercase tracking-[0.25em] text-blue-400/70 font-mono"
           initial={{ opacity: 0 }}
           animate={phase >= 2 ? { opacity: 1 } : { opacity: 0 }}
-          transition={{ duration: 1, delay: 0.8 }}
+          transition={{ duration: 0.8, delay: 0.3 }}
         >
-          Corporate Development & Strategy
+          M&amp;A Intelligence · Diligence · AI Insights
         </motion.div>
+
+        {/* Horizontal rule */}
+        <motion.div
+          className="mt-8 mx-auto h-[1px] bg-blue-500/20"
+          initial={{ width: 0 }}
+          animate={phase >= 2 ? { width: '60%' } : { width: 0 }}
+          transition={{ duration: 1.5, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        />
       </div>
-      
-      {/* Decorative line work */}
-      <motion.div 
-        className="absolute bottom-0 left-0 w-full h-[1px] bg-primary/20"
-        initial={{ scaleX: 0 }}
-        animate={{ scaleX: phase >= 2 ? 1 : 0 }}
-        transition={{ duration: 2, ease: "easeInOut" }}
-      />
     </motion.div>
   );
 }
