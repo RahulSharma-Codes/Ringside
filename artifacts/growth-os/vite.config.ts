@@ -58,6 +58,22 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
+  optimizeDeps: {
+    include: [
+      "react",
+      "react-dom",
+      "react-dom/client",
+      "@tanstack/react-query",
+      "framer-motion",
+      "lucide-react",
+      "date-fns",
+      "wouter",
+      "next-themes",
+      "clsx",
+      "class-variance-authority",
+      "tailwind-merge",
+    ],
+  },
   server: {
     port,
     strictPort: true,

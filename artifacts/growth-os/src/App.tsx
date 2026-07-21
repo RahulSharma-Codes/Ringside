@@ -34,7 +34,15 @@ const NotFound           = lazy(() => import("@/pages/not-found"));
 const IcBriefPage        = lazy(() => import("@/pages/ic-brief"));
 const AcceptInvitePage   = lazy(() => import("@/pages/accept-invite"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 3 * 60 * 1000,      // data stays fresh for 3 min — no redundant refetches on nav
+      refetchOnWindowFocus: false,     // no query sweep on every Alt+Tab back
+      retry: 1,                        // fail fast on real errors (default is 3)
+    },
+  },
+});
 
 // Auth token storage — always a JWT issued by /api/auth/login or /api/auth/otp/verify
 const AUTH_TOKEN_KEY = "ig_os_auth_token";
@@ -198,7 +206,13 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 function RequireAdmin({ children }: { children: React.ReactNode }) {
   const { isAdmin } = useAuth();
   if (!isAdmin) {
-    return <Layout><AccessDenied /></Layout>;
+    return (
+      <Layout>
+        <Suspense fallback={<PageLoader />}>
+          <AccessDenied />
+        </Suspense>
+      </Layout>
+    );
   }
   return <>{children}</>;
 }

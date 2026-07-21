@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { PulsingBadge } from "@/components/animated-page";
 import { Bell, Check, CheckCheck, AlertTriangle, Clock, FileWarning, Zap, X } from "lucide-react";
+import { useAuth } from "@/contexts/auth-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -37,12 +38,13 @@ export function NotificationBell() {
   const btnRef = useRef<HTMLButtonElement>(null);
   const [, navigate] = useLocation();
   const qc = useQueryClient();
+  const { user } = useAuth();
 
   const unreadQ = useGetUnreadCount({
-    query: { queryKey: getGetUnreadCountQueryKey(), refetchInterval: 60_000 },
+    query: { queryKey: getGetUnreadCountQueryKey(), refetchInterval: 60_000, enabled: !!user },
   });
   const notifQ = useListNotifications({
-    query: { queryKey: getListNotificationsQueryKey(), enabled: open },
+    query: { queryKey: getListNotificationsQueryKey(), enabled: open && !!user },
   });
   const generate = useGenerateNotifications();
   const markRead = useMarkNotificationRead();
@@ -50,8 +52,9 @@ export function NotificationBell() {
 
   const unreadCount = unreadQ.data?.count ?? 0;
 
-  // On mount, generate if stale
+  // On mount, generate if stale (only when authenticated)
   useEffect(() => {
+    if (!user) return;
     const last = Number(localStorage.getItem(LAST_GENERATE_KEY) ?? 0);
     if (Date.now() - last > STALE_MS) {
       generate.mutate(undefined, {

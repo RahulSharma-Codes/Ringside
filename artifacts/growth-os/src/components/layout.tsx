@@ -35,13 +35,13 @@ function ThemeToggle({ slim }: { slim?: boolean }) {
           <button
             onClick={toggle}
             className="w-8 h-8 flex items-center justify-center rounded-xl text-sidebar-foreground/40 hover:text-sidebar-foreground/80 hover:bg-sidebar-accent/60 transition-all duration-150"
-            aria-label="Toggle theme"
+            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
           >
-            {isDark ? <Moon size={13} /> : <Sun size={13} />}
+            {isDark ? <Sun size={13} /> : <Moon size={13} />}
           </button>
         </TooltipTrigger>
         <TooltipContent side="right" sideOffset={14}>
-          <span className="font-sans text-[11px]">{isDark ? "Switch to light" : "Switch to dark"}</span>
+          <span className="font-sans text-[11px]">{isDark ? "Light mode" : "Dark mode"}</span>
         </TooltipContent>
       </Tooltip>
     );
@@ -51,10 +51,10 @@ function ThemeToggle({ slim }: { slim?: boolean }) {
     <button
       onClick={toggle}
       className="flex items-center gap-2 text-[11px] font-sans text-sidebar-foreground/45 hover:text-sidebar-foreground/75 transition-colors rounded-xl px-2 py-1.5 hover:bg-sidebar-accent/50 w-full"
-      aria-label="Toggle theme"
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
     >
-      {isDark ? <Moon size={12} /> : <Sun size={12} />}
-      <span className="truncate">{isDark ? "Dark mode" : "Light mode"}</span>
+      {isDark ? <Sun size={12} /> : <Moon size={12} />}
+      <span className="truncate">{isDark ? "Light mode" : "Dark mode"}</span>
     </button>
   );
 }
@@ -73,7 +73,7 @@ function MobileThemeToggle() {
       className="w-8 h-8 flex items-center justify-center rounded-xl text-sidebar-foreground/60 hover:text-foreground hover:bg-sidebar-accent/50 transition-all duration-150"
       aria-label="Toggle theme"
     >
-      {isDark ? <Moon size={15} /> : <Sun size={15} />}
+      {isDark ? <Sun size={15} /> : <Moon size={15} />}
     </button>
   );
 }
@@ -140,9 +140,21 @@ function FloatingRail({
   const visibleItems = NAV_ITEMS.filter((i) => i.group !== "Admin" || isAdmin);
   const visibleGroups = NAV_GROUPS.filter((g) => g !== "Admin" || isAdmin);
 
+  // Track hover/expanded state in JS so we can suppress tooltips when the rail
+  // is open — Radix Tooltip renders via Portal so CSS group-hover can't reach it
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Inline theme toggle for footer (avoids truncation in collapsed rail)
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [themeMounted, setThemeMounted] = useState(false);
+  useEffect(() => setThemeMounted(true), []);
+  const isDarkRail = themeMounted ? (theme ?? resolvedTheme) === "dark" : false;
+
   return (
     // Hover group — CSS-driven expand from 48px → 220px
     <div
+      onMouseEnter={() => setIsExpanded(true)}
+      onMouseLeave={() => setIsExpanded(false)}
       className={`
         group/rail
         fixed left-2 top-1/2 -translate-y-1/2 z-40
@@ -218,7 +230,7 @@ function FloatingRail({
                   const active = isActive(item.href, location);
                   const showBadge = item.href === "/actions" && overdueCount > 0;
                   return (
-                    <Tooltip key={item.href} delayDuration={0}>
+                    <Tooltip key={item.href} delayDuration={0} open={isExpanded ? false : undefined}>
                       <TooltipTrigger asChild>
                         <Link href={item.href}>
                           <div className={`
@@ -249,7 +261,7 @@ function FloatingRail({
                             <span className="flex items-center justify-center w-8 h-8 shrink-0 relative z-10">
                               <Icon size={14} />
                               {showBadge && (
-                                <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 rounded-full bg-destructive text-white text-[8px] font-mono font-bold flex items-center justify-center px-0.5">
+                                <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 rounded-full bg-destructive text-white text-[8px] font-mono font-bold flex items-center justify-center px-0.5">
                                   {overdueCount > 9 ? "9+" : overdueCount}
                                 </span>
                               )}
@@ -262,7 +274,7 @@ function FloatingRail({
                         </Link>
                       </TooltipTrigger>
                       {/* Tooltip shows only when rail is collapsed (CSS can't do this cleanly, use JS) */}
-                      <TooltipContent side="right" sideOffset={14} className="group-hover/rail:hidden">
+                      <TooltipContent side="right" sideOffset={14}>
                         <span className="font-sans text-[11px]">{item.label}</span>
                       </TooltipContent>
                     </Tooltip>
@@ -277,14 +289,25 @@ function FloatingRail({
       {/* Footer */}
       <div className="shrink-0 border-t border-sidebar-border/30 px-2 py-2 space-y-0.5">
         {/* Status dot */}
-        <div className="flex items-center gap-2 px-2 py-1">
+        <div className="hidden group-hover/rail:flex items-center gap-2 px-2 py-1">
           <span className="relative flex h-1.5 w-1.5 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
           </span>
-          <span className="hidden group-hover/rail:block text-[10px] font-mono text-sidebar-foreground/30 truncate">Live</span>
+          <span className="text-[10px] font-mono text-sidebar-foreground/30 truncate">Live</span>
         </div>
-        <ThemeToggle slim={false} />
+        <button
+          onClick={() => setTheme(isDarkRail ? "light" : "dark")}
+          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-xl text-sidebar-foreground/35 hover:text-sidebar-foreground/65 hover:bg-sidebar-accent/50 transition-all duration-150"
+          aria-label={isDarkRail ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          <span className="flex items-center justify-center w-4 h-4 shrink-0">
+            {isDarkRail ? <Sun size={12} /> : <Moon size={12} />}
+          </span>
+          <span className="hidden group-hover/rail:block text-[11px] font-sans truncate">
+            {isDarkRail ? "Light mode" : "Dark mode"}
+          </span>
+        </button>
         <a href="/user-guide.html" target="_blank" rel="noopener noreferrer" className="w-full flex items-center gap-2 px-2 py-1.5 rounded-xl text-sidebar-foreground/35 hover:text-sidebar-foreground/65 hover:bg-sidebar-accent/50 transition-all duration-150">
           <span className="flex items-center justify-center w-4 h-4 shrink-0"><BookOpen size={12} /></span>
           <span className="hidden group-hover/rail:block text-[11px] font-sans truncate">User Guide</span>
@@ -480,12 +503,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", handleKey);
   }, []);
 
-  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(NAV_GROUPS));
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem("ringside-nav-groups");
+      if (saved) return new Set(JSON.parse(saved) as string[]);
+    } catch {}
+    return new Set(NAV_GROUPS);
+  });
 
   const toggleGroup = (g: string) =>
     setOpenGroups((prev) => {
       const next = new Set(prev);
       next.has(g) ? next.delete(g) : next.add(g);
+      try { localStorage.setItem("ringside-nav-groups", JSON.stringify([...next])); } catch {}
       return next;
     });
 
