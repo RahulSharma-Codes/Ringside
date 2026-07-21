@@ -33,9 +33,24 @@ import { test, expect, type Page } from "@playwright/test";
 const AUTH_TOKEN_KEY = "ig_os_auth_token";
 const TOKEN_FILE = path.join(__dirname, "..", ".auth", "token.txt");
 const SAMPLE_TARGET_ID = 4; // TGT-004, seeded in the development database
-// Credentials from env vars; fall back to dev seed values only in non-production
-const EMAIL    = process.env.TEST_EMAIL    ?? "rahul.sharma@manipalgroup.info";
-const PASSWORD = process.env.TEST_PASSWORD ?? "Ringside@123";
+
+// In production, credentials must come from env vars — never fall back to hardcoded values.
+function getTestCredentials(): { email: string; password: string } {
+  if (process.env.NODE_ENV === "production") {
+    if (!process.env.TEST_EMAIL || !process.env.TEST_PASSWORD) {
+      throw new Error(
+        "TEST_EMAIL and TEST_PASSWORD must be set as environment variables in production."
+      );
+    }
+    return { email: process.env.TEST_EMAIL, password: process.env.TEST_PASSWORD };
+  }
+  return {
+    email:    process.env.TEST_EMAIL    ?? "rahul.sharma@manipalgroup.info",
+    password: process.env.TEST_PASSWORD ?? "Ringside@123",
+  };
+}
+
+const { email: EMAIL, password: PASSWORD } = getTestCredentials();
 
 // The spinner emitted by PageLoader while a lazy chunk resolves.
 const SPINNER = ".animate-spin";

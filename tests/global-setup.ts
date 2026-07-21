@@ -15,9 +15,25 @@ import * as fs from "fs";
 import * as path from "path";
 
 const BASE_URL = "http://localhost:80";
-// Credentials from env vars; fall back to dev seed values only in non-production
-const EMAIL    = process.env.TEST_EMAIL    ?? "rahul.sharma@manipalgroup.info";
-const PASSWORD = process.env.TEST_PASSWORD ?? "Ringside@123";
+
+// In production, TEST_EMAIL and TEST_PASSWORD must be explicit env vars — never fall back.
+function getTestCredentials(): { email: string; password: string } {
+  if (process.env.NODE_ENV === "production") {
+    if (!process.env.TEST_EMAIL || !process.env.TEST_PASSWORD) {
+      throw new Error(
+        "[global-setup] TEST_EMAIL and TEST_PASSWORD must be set as environment variables in production. " +
+        "Refusing to use hardcoded default credentials."
+      );
+    }
+    return { email: process.env.TEST_EMAIL, password: process.env.TEST_PASSWORD };
+  }
+  return {
+    email:    process.env.TEST_EMAIL    ?? "rahul.sharma@manipalgroup.info",
+    password: process.env.TEST_PASSWORD ?? "Ringside@123",
+  };
+}
+
+const { email: EMAIL, password: PASSWORD } = getTestCredentials();
 const TOKEN_FILE = path.join(__dirname, ".auth", "token.txt");
 
 function isTokenValid(token: string): boolean {

@@ -471,9 +471,11 @@ async function applyMigrations(): Promise<void> {
     const seedEmail    = bootstrapEmail    ?? "rahul.sharma@manipalgroup.info";
     const seedPassword = bootstrapPassword ?? "Ringside@123";
     const seedHash     = await bcrypt.hash(seedPassword, 10);
+    // Upsert by email — idempotent if the row already exists (e.g. concurrent starts)
     await db.execute(sql`
       INSERT INTO users (company_id, email, display_name, role, password_hash)
       VALUES ('00000000-0000-0000-0000-000000000001', ${seedEmail}, 'Admin', 'Admin', ${seedHash})
+      ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash
     `);
     logger.info({ email: seedEmail }, "Admin seed account created");
   } else if (isEmpty) {

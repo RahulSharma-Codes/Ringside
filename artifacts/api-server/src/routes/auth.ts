@@ -185,7 +185,7 @@ router.post("/otp/request", async (req, res) => {
 
   // In production with no SMTP, refuse immediately — never generate or store the code.
   if (process.env.NODE_ENV === "production" && !isSmtpConfigured() && !isSmtpPartiallyConfigured()) {
-    return res.status(503).json({ error: "Email service unavailable. Contact your administrator to configure SMTP." });
+    return res.status(503).json({ error: "Email service unavailable" });
   }
 
   const code = generateOtp();
