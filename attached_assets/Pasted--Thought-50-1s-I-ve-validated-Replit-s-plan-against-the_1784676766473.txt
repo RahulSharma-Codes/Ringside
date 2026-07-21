@@ -1,0 +1,26 @@
++ Thought: 50.1s
+I've validated Replit's plan against the audit. It's solid — covers 9 of 11 Sprint-1 items correctly — but has 1 design flaw in #282, 1 hidden contradiction in #280, and misses 2 tasks worth of work. Plus the execution-location question.
+Validation by task
+#280 — Security Credential Hardening · ✅ Mostly correct, 4 concerns
+#	Concern	Severity
+1	Internal contradiction on CRIT-1: "Done" says "no admin seeded + warn if users empty" but also defers CLI bootstrap. This locks you out of the next deploy — invite flow itself needs an admin to send invites.	🔴 Blocker
+2	CRIT-2 partial: JWT secret is referenced in 3 files (middlewares/auth.ts:6, routes/auth.ts:13, scripts/src/test-rls-isolation.ts:56) — plan only mentions the first two.	🟠
+3	CRIT-3 logging line is wrong: "logs the code server-side only" — logging OTP codes anywhere in prod is itself a leak (logs get shipped/retained). Should NOT generate the code at all if SMTP is down in prod; return 503.	🟠
+4	Missing siblings that should ship together: HIGH-7 audit-chain hash bug, Med notification-role restriction, L4 .gitignore for .env*. All auth/data-integrity surface, same blast radius.	🟡
+Recommended fix to concern #1: Env-gated seed — runs only when (a) NODE_ENV !== "production" OR (b) BOOTSTRAP_ADMIN_EMAIL + BOOTSTRAP_ADMIN_PASSWORD set AND users table empty. Idempotent. Zero-downtime cutover.
+#281 — Schema Integrity + API Hardening · ✅ Correct, 2 refinements
+#	Concern	Severity
+1	HIGH-2 helper design: withRlsTransaction(companyId, fn) should compose with the existing acquireRequestContext pattern (same GUC + SET ROLE app_rls dance), not be a parallel path. Otherwise you get two RLS mechanisms to maintain.	🟡
+2	HIGH-8 /readyz too shallow: SELECT 1 only confirms DB reachable. Should also confirm migrations completed (set a module-level migrationsComplete boolean from applyMigrations, check it in /readyz). Catches CRIT-4-style stale schema.	🟡
+Plus verify ai_phase_runs table — also missing from CORE_TABLES, same class of bug as stage_change_log.
+#282 — Nightly DB Backup · 🔴 1 design flaw, must reshape
+#	Concern	Severity
+1	Running pg_dump from inside the API server process is wrong: Autoscale may have N instances → concurrent backups; pg_dump child process pollutes the API server's permission surface; under load the backup times out; API server crash kills backup mid-write. Should be a separate Replit Scheduled Deployment or a dedicated worker.	🔴
+2	RPO=24h is too coarse for MNPI deal data. Manipal's own build spec called PITR "non-negotiable." Either get Replit's PITR answer first (§6.1 still pending) or run backup every 6h, not nightly.	🟠
+3	No restore verification. "Restore procedure documented" ≠ "restore verified to work." Done-looks-like should include a successful drill with recorded timing. An untested backup is worse than none (false confidence).	🟠
+4	No encryption-at-rest mention. Backups contain MNPI — confirm Replit Object Storage encryption, or client-side encrypt with a KMS key before upload.	🟠
+5	This task should be marked BLOCKED on Replit's answer to §6.1 (PITR availability). If managed PITR exists, this entire custom system is unnecessary.	🟠
+Missing tasks (2 gaps in the plan)
+Missing item	Why it matters	Effort
+#283 — Dependency hygiene + repo cleanup	7 unique CVEs (B7), legacy Python prototype at root (M1), dead supabase-storage.ts (M4), missing LICENSE/SECURITY.md/CONTRIBUTING.md (L1-3), missing .env.example (B6). All in my Sprint 1, none in Replit's plan.	~1 day
+#284 — Auth/data-integrity siblings for #280/#281	Audit-chain hash bug, notification endpoint role restriction, AI endpoint rate limit.	~0.5 day
