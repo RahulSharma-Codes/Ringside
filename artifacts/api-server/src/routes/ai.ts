@@ -745,9 +745,10 @@ router.post("/meeting-notes", async (req, res) => {
     req.log.info({ targetId, noteType: body.noteType }, "Meeting notes parsed");
     return res.json({ suggestions, model });
   } catch (err) {
-    const { setupRequired, billingRequired, message } = classifyAiError(err);
-    req.log.error({ err }, "Meeting notes AI error");
-    return res.json({ suggestions: null, setupRequired, billingRequired, error: message });
+    const { status, setupRequired, billingRequired, message } = classifyAiError(err);
+    req.log.error({ err, status }, "Meeting notes AI error");
+    const httpStatus = status === "key_invalid" ? 401 : status === "billing" ? 429 : 502;
+    return res.status(httpStatus).json({ suggestions: null, setupRequired, billingRequired, error: message });
   }
 });
 
@@ -783,9 +784,10 @@ router.post("/opportunity-brief", async (req, res) => {
     req.log.info({ targetId }, "Opportunity brief generated");
     return res.json({ brief, model });
   } catch (err) {
-    const { setupRequired, billingRequired, message } = classifyAiError(err);
-    req.log.error({ err }, "Opportunity brief AI error");
-    return res.json({ brief: null, setupRequired, billingRequired, error: message });
+    const { status, setupRequired, billingRequired, message } = classifyAiError(err);
+    req.log.error({ err, status }, "Opportunity brief AI error");
+    const httpStatus = status === "key_invalid" ? 401 : status === "billing" ? 429 : 502;
+    return res.status(httpStatus).json({ brief: null, setupRequired, billingRequired, error: message });
   }
 });
 
@@ -847,9 +849,10 @@ router.post("/weekly-brief", async (req, res) => {
     req.log.info("Weekly brief generated");
     return res.json({ brief, model });
   } catch (err) {
-    const { setupRequired, billingRequired, message } = classifyAiError(err);
-    req.log.error({ err }, "Weekly brief AI error");
-    return res.json({ brief: null, setupRequired, billingRequired, error: message });
+    const { status, setupRequired, billingRequired, message } = classifyAiError(err);
+    req.log.error({ err, status }, "Weekly brief AI error");
+    const httpStatus = status === "key_invalid" ? 401 : status === "billing" ? 429 : 502;
+    return res.status(httpStatus).json({ brief: null, setupRequired, billingRequired, error: message });
   }
 });
 
@@ -1056,9 +1059,10 @@ Rules:
     req.log.info({ targetId, tokensUsed }, "Valuation sanity-check completed");
     return res.json({ result, model });
   } catch (err) {
-    const { setupRequired, billingRequired, message } = classifyAiError(err);
-    req.log.error({ err }, "Valuation sanity-check AI error");
-    return res.json({ result: null, setupRequired, billingRequired, error: message });
+    const { status, setupRequired, billingRequired, message } = classifyAiError(err);
+    req.log.error({ err, status }, "Valuation sanity-check AI error");
+    const httpStatus = status === "key_invalid" ? 401 : status === "billing" ? 429 : 502;
+    return res.status(httpStatus).json({ result: null, setupRequired, billingRequired, error: message });
   }
 });
 
@@ -1196,9 +1200,10 @@ Rules:
     req.log.info({ targetId, tokensUsed }, "DD synthesis completed");
     return res.json({ result, model });
   } catch (err) {
-    const { setupRequired, billingRequired, message } = classifyAiError(err);
-    req.log.error({ err }, "DD synthesis AI error");
-    return res.json({ result: null, setupRequired, billingRequired, error: message });
+    const { status, setupRequired, billingRequired, message } = classifyAiError(err);
+    req.log.error({ err, status }, "DD synthesis AI error");
+    const httpStatus = status === "key_invalid" ? 401 : status === "billing" ? 429 : 502;
+    return res.status(httpStatus).json({ result: null, setupRequired, billingRequired, error: message });
   }
 });
 
@@ -1371,9 +1376,10 @@ Rules:
     req.log.info({ targetId, tokensUsed }, "IC memo draft generated");
     return res.json({ result, model });
   } catch (err) {
-    const { setupRequired, billingRequired, message } = classifyAiError(err);
-    req.log.error({ err }, "IC memo AI error");
-    return res.json({ result: null, setupRequired, billingRequired, error: message });
+    const { status, setupRequired, billingRequired, message } = classifyAiError(err);
+    req.log.error({ err, status }, "IC memo AI error");
+    const httpStatus = status === "key_invalid" ? 401 : status === "billing" ? 429 : 502;
+    return res.status(httpStatus).json({ result: null, setupRequired, billingRequired, error: message });
   }
 });
 

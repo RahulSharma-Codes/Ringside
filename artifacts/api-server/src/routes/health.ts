@@ -21,11 +21,17 @@ router.get("/readyz", async (_req, res) => {
   if (!_migrationsComplete) {
     return res.status(503).json({ status: "starting", ready: false });
   }
+  // Cast to the promise overload shape so TypeScript doesn't pick the
+  // callback overload (which returns void) when inferring client's type.
+  type DbClient = { query(sql: string): Promise<unknown>; release(): void };
   try {
-    const client = await pool.connect();
-    await client.query("SELECT 1");
-    client.release();
-    return res.json({ status: "ok", ready: true });
+    const client = await (pool.connect() as Promise<DbClient>);
+    try {
+      await client.query("SELECT 1");
+      return res.json({ status: "ok", ready: true });
+    } finally {
+      client.release(); // always release, even when query throws
+    }
   } catch {
     return res.status(503).json({ status: "db_unreachable", ready: false });
   }
