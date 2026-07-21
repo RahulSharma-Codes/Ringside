@@ -33,8 +33,9 @@ import { test, expect, type Page } from "@playwright/test";
 const AUTH_TOKEN_KEY = "ig_os_auth_token";
 const TOKEN_FILE = path.join(__dirname, "..", ".auth", "token.txt");
 const SAMPLE_TARGET_ID = 4; // TGT-004, seeded in the development database
-const EMAIL = "rahul.sharma@manipalgroup.info";
-const PASSWORD = "Ringside@123";
+// Credentials from env vars; fall back to dev seed values only in non-production
+const EMAIL    = process.env.TEST_EMAIL    ?? "rahul.sharma@manipalgroup.info";
+const PASSWORD = process.env.TEST_PASSWORD ?? "Ringside@123";
 
 // The spinner emitted by PageLoader while a lazy chunk resolves.
 const SPINNER = ".animate-spin";

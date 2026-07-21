@@ -3,7 +3,32 @@ import jwt from "jsonwebtoken";
 import { db, sessionBlocklistTable } from "@workspace/db";
 import { eq, lt } from "drizzle-orm";
 
-const JWT_SECRET = process.env.SESSION_SECRET ?? "dev-secret-change-me";
+/**
+ * Returns the JWT signing secret, enforcing a minimum-length requirement.
+ * In production: throws immediately (server will not start without a strong secret).
+ * In development: logs a loud warning and falls back to a local dev value.
+ */
+export function getJwtSecret(): string {
+  const secret = process.env.SESSION_SECRET;
+  const MIN_LEN = 32;
+
+  if (!secret || secret.length < MIN_LEN) {
+    const msg =
+      `SESSION_SECRET is ${secret ? `too short (${secret.length} chars, need ≥${MIN_LEN})` : "not set"}. ` +
+      "Set a strong random value in Replit Secrets before deploying.";
+    if (process.env.NODE_ENV === "production") {
+      // Hard fail — never serve tokens signed with a weak secret in production.
+      console.error(`[FATAL] ${msg}`);
+      process.exit(1);
+    }
+    console.warn(`[WARN] ${msg} Using insecure dev fallback.`);
+    return "dev-secret-change-me--padding-to-reach-minimum-length-ok";
+  }
+
+  return secret;
+}
+
+const JWT_SECRET = getJwtSecret();
 
 export interface JwtClaims {
   userId: string;

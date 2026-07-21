@@ -53,7 +53,21 @@ function getDatabaseUrl(): string {
 }
 
 const API_BASE = process.env.API_BASE ?? "http://localhost:80/api";
-const JWT_SECRET = process.env.SESSION_SECRET ?? "dev-secret-change-me";
+
+const _rawSecret = process.env.SESSION_SECRET;
+if (!_rawSecret || _rawSecret.length < 32) {
+  const msg =
+    `SESSION_SECRET is ${_rawSecret ? `too short (${_rawSecret.length} chars, need ≥32)` : "not set"}. ` +
+    "RLS isolation test requires the same secret as the running API server.";
+  if (process.env.NODE_ENV === "production") {
+    console.error(`[FATAL] ${msg}`);
+    process.exit(1);
+  }
+  console.warn(`[WARN] ${msg} Using insecure dev fallback.`);
+}
+const JWT_SECRET = _rawSecret && _rawSecret.length >= 32
+  ? _rawSecret
+  : "dev-secret-change-me--padding-to-reach-minimum-length-ok";
 const DEFAULT_COMPANY_ID = "00000000-0000-0000-0000-000000000001";
 
 const COMPANY_B_ID = "00000000-0000-0000-0000-000000000002";

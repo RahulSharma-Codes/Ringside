@@ -7,10 +7,11 @@ import nodemailer from "nodemailer";
 import { db, usersTable, otpAttemptsTable, sessionBlocklistTable } from "@workspace/db";
 import { writeAuditEvent } from "./audit";
 import type { JwtClaims } from "../middlewares/auth";
+import { getJwtSecret } from "../middlewares/auth";
 
 const router = Router();
 
-const JWT_SECRET = process.env.SESSION_SECRET ?? "dev-secret-change-me";
+const JWT_SECRET = getJwtSecret();
 const JWT_EXPIRY = "8h";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -180,6 +181,11 @@ router.post("/otp/request", async (req, res) => {
   if (!user) {
     // Don't reveal whether the email exists — return same success shape
     return res.json({ ok: true, message: "If this email is registered, a code has been generated." });
+  }
+
+  // In production with no SMTP, refuse immediately — never generate or store the code.
+  if (process.env.NODE_ENV === "production" && !isSmtpConfigured() && !isSmtpPartiallyConfigured()) {
+    return res.status(503).json({ error: "Email service unavailable. Contact your administrator to configure SMTP." });
   }
 
   const code = generateOtp();

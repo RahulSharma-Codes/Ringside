@@ -15,8 +15,9 @@ import * as fs from "fs";
 import * as path from "path";
 
 const BASE_URL = "http://localhost:80";
-const EMAIL = "rahul.sharma@manipalgroup.info";
-const PASSWORD = "Ringside@123";
+// Credentials from env vars; fall back to dev seed values only in non-production
+const EMAIL    = process.env.TEST_EMAIL    ?? "rahul.sharma@manipalgroup.info";
+const PASSWORD = process.env.TEST_PASSWORD ?? "Ringside@123";
 const TOKEN_FILE = path.join(__dirname, ".auth", "token.txt");
 
 function isTokenValid(token: string): boolean {

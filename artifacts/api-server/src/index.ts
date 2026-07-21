@@ -443,25 +443,46 @@ async function applyMigrations(): Promise<void> {
   await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email)`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_password_attempts integer NOT NULL DEFAULT 0`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_locked_until timestamptz`);
-  // Seed a default admin account with a known default password so first login works
-  // immediately without needing SMTP or OTP. Password can be changed from Settings.
-  const defaultPasswordHash = await bcrypt.hash("Ringside@123", 10);
+  // Rename the legacy seed email (safe to run when the table is otherwise empty)
   await db.execute(sql`
-    INSERT INTO users (company_id, email, display_name, role, password_hash)
-    SELECT '00000000-0000-0000-0000-000000000001', 'rahul.sharma@manipalgroup.info', 'Admin', 'Admin', ${defaultPasswordHash}
-    WHERE NOT EXISTS (SELECT 1 FROM users LIMIT 1)
-  `);
-  // Rename the legacy seed email and set the correct email + password in one step
-  await db.execute(sql`
-    UPDATE users SET email = 'rahul.sharma@manipalgroup.info', password_hash = ${defaultPasswordHash}
+    UPDATE users SET email = 'rahul.sharma@manipalgroup.info'
     WHERE email = 'admin@ringside.local'
   `);
-  // Also set the password on the existing admin if they have no password yet
-  // (handles the case where the account was already seeded without one)
-  await db.execute(sql`
-    UPDATE users SET password_hash = ${defaultPasswordHash}
-    WHERE email = 'rahul.sharma@manipalgroup.info' AND password_hash IS NULL
-  `);
+
+  // ── Admin bootstrap seed ──────────────────────────────────────────────────
+  // Runs only when:
+  //   (a) NODE_ENV !== "production"  — dev / staging convenience seed, OR
+  //   (b) BOOTSTRAP_ADMIN_EMAIL + BOOTSTRAP_ADMIN_PASSWORD are both set AND
+  //       the users table is empty  — production first-run bootstrap
+  //
+  // This is intentionally idempotent: a second run when the table already has
+  // rows is a no-op regardless of env vars.
+  const userCountResult = await db.execute(sql`SELECT COUNT(*) AS count FROM users`);
+  const isEmpty = parseInt(String((userCountResult.rows[0] as { count: string }).count), 10) === 0;
+
+  const bootstrapEmail    = process.env.BOOTSTRAP_ADMIN_EMAIL;
+  const bootstrapPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+
+  const shouldSeed =
+    (process.env.NODE_ENV !== "production") ||
+    (bootstrapEmail && bootstrapPassword && isEmpty);
+
+  if (shouldSeed && isEmpty) {
+    const seedEmail    = bootstrapEmail    ?? "rahul.sharma@manipalgroup.info";
+    const seedPassword = bootstrapPassword ?? "Ringside@123";
+    const seedHash     = await bcrypt.hash(seedPassword, 10);
+    await db.execute(sql`
+      INSERT INTO users (company_id, email, display_name, role, password_hash)
+      VALUES ('00000000-0000-0000-0000-000000000001', ${seedEmail}, 'Admin', 'Admin', ${seedHash})
+    `);
+    logger.info({ email: seedEmail }, "Admin seed account created");
+  } else if (isEmpty) {
+    // Production with no bootstrap env vars and no users — warn operator
+    logger.warn(
+      "No users exist and BOOTSTRAP_ADMIN_EMAIL/BOOTSTRAP_ADMIN_PASSWORD are not set. " +
+      "Set these env vars on first deploy to create the initial admin account."
+    );
+  }
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS otp_attempts (
       id            serial PRIMARY KEY,
