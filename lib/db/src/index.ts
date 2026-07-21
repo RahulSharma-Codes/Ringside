@@ -111,4 +111,50 @@ export function getRequestCompanyId(): string | undefined {
   return requestCompanyStorage.getStore();
 }
 
+/**
+ * Runs `fn` inside a PostgreSQL transaction where Row-Level Security is
+ * enforced for the given company.
+ *
+ * Uses the same acquire → GUC → SET ROLE → BEGIN → callback → COMMIT/ROLLBACK
+ * → RESET ROLE → release pattern as acquireRequestContext, so there is exactly
+ * one RLS mechanism in the codebase.  All db.* calls inside `fn` are routed
+ * through the transaction client via the AsyncLocalStorage interceptor.
+ */
+export async function withRlsTransaction<T>(
+  companyId: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  // pool.connect() is not intercepted — we get a dedicated PoolClient directly.
+  const client = await pool.connect();
+
+  try {
+    // Apply GUC and role before BEGIN so session-level settings are visible
+    // inside the transaction.
+    await client.query(`SELECT set_config($1, $2, false)`, ["app.company_id", companyId]);
+    await client.query(`SET ROLE app_rls`);
+    await client.query("BEGIN");
+
+    // Override AsyncLocalStorage so all db.* calls inside fn route to this
+    // transaction client, respecting the existing per-request interceptor pattern.
+    const result = await new Promise<T>((resolve, reject) => {
+      requestClientStorage.run(client, () => {
+        requestCompanyStorage.run(companyId, () => {
+          fn().then(resolve).catch(reject);
+        });
+      });
+    });
+
+    await client.query("COMMIT");
+    return result;
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw err;
+  } finally {
+    // Restore the connection to a clean state before returning it to the pool,
+    // mirroring the release() pattern in acquireRequestContext.
+    await client.query("RESET ROLE").catch(() => {});
+    client.release();
+  }
+}
+
 export * from "./schema";

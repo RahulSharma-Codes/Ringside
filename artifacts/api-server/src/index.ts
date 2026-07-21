@@ -3,6 +3,7 @@ import { logger } from "./lib/logger";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { setMigrationsComplete } from "./routes/health";
 
 const rawPort = process.env["PORT"];
 
@@ -23,6 +24,7 @@ async function runMigrationsWithRetry(): Promise<void> {
   for (let attempt = 0; attempt <= delays.length; attempt++) {
     try {
       await applyMigrations();
+      setMigrationsComplete();
       logger.info("Startup migrations complete");
       return;
     } catch (err) {
@@ -34,10 +36,11 @@ async function runMigrationsWithRetry(): Promise<void> {
         );
         await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
-        logger.warn(
+        logger.error(
           { err },
-          "Migration failed after all retries — schema may need manual intervention",
+          "Migration failed after all retries — exiting to prevent serving on stale schema",
         );
+        process.exit(1);
       }
     }
   }
@@ -48,6 +51,76 @@ const DEFAULT_COMPANY_ID = "00000000-0000-0000-0000-000000000001";
 async function applyMigrations(): Promise<void> {
   // Set GUC so RLS-enabled tables remain accessible during migration runs
   await db.execute(sql`SELECT set_config('app.company_id', ${DEFAULT_COMPANY_ID}, false)`);
+
+  // ── CRIT: Create foundational tables BEFORE any that reference them via FK ──
+  // These must precede the action_items rename and the actions CREATE TABLE
+  // because actions.target_id → targets(id), interactions.target_id → targets(id),
+  // and stage_change_log.target_id → targets(id).
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS targets (
+      id                              serial PRIMARY KEY,
+      target_code                     text NOT NULL UNIQUE,
+      project_name                    text NOT NULL,
+      legal_name                      text,
+      business_unit                   text,
+      sector                          text,
+      subsector                       text,
+      geography_region                text,
+      country                         text,
+      sourcing_channel                text,
+      sourcing_firm                   text,
+      deal_owner                      text,
+      deal_champion                   text,
+      executive_sponsor               text,
+      priority_tier                   text NOT NULL DEFAULT 'Watchlist',
+      strategic_rationale             text,
+      strategic_fit_score             integer,
+      synergy_score                   integer,
+      financial_attractiveness_score  integer,
+      process_maturity_score          integer,
+      risk_penalty_score              integer,
+      deal_type                       text,
+      close_reason_code               text,
+      phase1_verdict_accuracy         text,
+      phase1_verdict_note             text,
+      close_miss_theme                text,
+      is_active                       boolean NOT NULL DEFAULT true,
+      is_confidential                 boolean NOT NULL DEFAULT true,
+      kanban_sort_order               integer NOT NULL DEFAULT 0,
+      created_at                      timestamp NOT NULL DEFAULT now(),
+      updated_at                      timestamp NOT NULL DEFAULT now()
+    )
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS interactions (
+      id                    serial PRIMARY KEY,
+      target_id             integer NOT NULL REFERENCES targets(id),
+      interaction_type      text NOT NULL,
+      interaction_datetime  timestamp NOT NULL DEFAULT now(),
+      participants_internal text,
+      participants_external text,
+      summary               text NOT NULL,
+      sentiment             text,
+      promoter_willingness  text,
+      valuation_signal      text,
+      created_by            text,
+      created_at            timestamp NOT NULL DEFAULT now()
+    )
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS stage_change_log (
+      id              serial PRIMARY KEY,
+      target_id       integer NOT NULL REFERENCES targets(id),
+      previous_stage  text,
+      new_stage       text NOT NULL,
+      changed_by      text,
+      change_reason   text,
+      changed_at      timestamp NOT NULL DEFAULT now()
+    )
+  `);
 
   // Rename action_items → actions (idempotent)
   await db.execute(sql`
@@ -577,6 +650,7 @@ async function applyMigrations(): Promise<void> {
     "valuations", "deal_economics", "synergies",
     "nda_records", "regulatory_clearances", "deal_advisors", "advisor_conflict_notes",
     "deal_sponsors", "invite_tokens",
+    "stage_change_log", "ai_phase_runs",
     "audit_events", "notifications", "target_access",
   ] as const;
 
@@ -715,6 +789,7 @@ app.listen(port, (err) => {
   logger.info({ port }, "Server listening");
 });
 
-runMigrationsWithRetry().catch((err) =>
-  logger.warn({ err }, "runMigrations unhandled error"),
-);
+runMigrationsWithRetry().catch((err) => {
+  logger.error({ err }, "runMigrations unhandled rejection — exiting");
+  process.exit(1);
+});

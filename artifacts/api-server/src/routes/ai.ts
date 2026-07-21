@@ -549,9 +549,15 @@ router.post("/ask", async (req, res) => {
 
     return res.json({ answer, model });
   } catch (err) {
-    const { setupRequired, billingRequired, message } = classifyAiError(err);
-    req.log.error({ err }, "AI Copilot error");
-    return res.json({ answer: null, setupRequired, billingRequired, error: message });
+    const { status, setupRequired, billingRequired, message } = classifyAiError(err);
+    req.log.error({ err, status }, "AI Copilot error");
+    // Map provider error kinds to appropriate HTTP status codes so monitoring
+    // can distinguish outages from empty results.
+    const httpStatus =
+      status === "key_invalid" ? 401 :
+      status === "billing"     ? 429 :
+      502; // transient / unknown provider error
+    return res.status(httpStatus).json({ answer: null, setupRequired, billingRequired, error: message });
   }
 });
 

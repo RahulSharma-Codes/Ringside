@@ -3,7 +3,7 @@ import { requireRole } from "../middlewares/auth";
 import interactionsSubRouter from "./target-interactions";
 import actionsSubRouter from "./target-actions";
 import { eq, and, ilike, or, desc, isNull, isNotNull, inArray, type SQL } from "drizzle-orm";
-import { db, targetAccessTable } from "@workspace/db";
+import { db, targetAccessTable, withRlsTransaction } from "@workspace/db";
 import {
   targetsTable, milestonesTable, interactionsTable, actionItemsTable, stageChangeLogTable, usersTable,
 } from "@workspace/db";
@@ -84,12 +84,18 @@ router.get("/", async (req, res) => {
 
   if (await applyAccessScope(req, conditions)) return res.json([]);
 
+  // Hard cap: never return more than 500 rows in a single call.
+  const limit = Math.min(Number(req.query["limit"] ?? 200), 500);
+  const offset = Number(req.query["offset"] ?? 0);
+
   const rows = await db
     .select({ target: targetsTable, milestone: milestonesTable })
     .from(targetsTable)
     .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id))
     .where(and(...conditions))
-    .orderBy(desc(targetsTable.updatedAt));
+    .orderBy(desc(targetsTable.updatedAt))
+    .limit(limit)
+    .offset(offset);
 
   let enriched = await enrichTargetRows(rows);
   if (needsAttention) enriched = enriched.filter((t) => t.needsAttention);
@@ -118,10 +124,12 @@ router.put("/reorder", async (req, res) => {
     : orders.filter((o) => scope.accessibleTargetIds.includes(o.id));
   if (authorizedOrders.length === 0) return res.json({ updated: 0 });
 
-  // Run all updates in a single transaction so a partial failure leaves no mixed state
-  await db.transaction(async (tx) => {
+  // Run all updates inside an RLS-aware transaction so a partial failure
+  // leaves no mixed state and company isolation is maintained.
+  const companyId = req.jwtClaims?.companyId ?? "00000000-0000-0000-0000-000000000001";
+  await withRlsTransaction(companyId, async () => {
     for (const { id, sortOrder } of authorizedOrders) {
-      await tx
+      await db
         .update(targetsTable)
         .set({ kanbanSortOrder: sortOrder })
         .where(eq(targetsTable.id, id));
@@ -139,61 +147,70 @@ router.post("/", async (req, res) => {
   const data = parsed.data;
   const now = new Date();
 
-  const [target] = await db
-    .insert(targetsTable)
-    .values({
-      targetCode: data.targetCode,
-      projectName: data.projectName,
-      legalName: data.legalName ?? null,
-      businessUnit: data.businessUnit ?? null,
-      sector: data.sector ?? null,
-      subsector: data.subsector ?? null,
-      geographyRegion: data.geographyRegion ?? null,
-      country: data.country ?? null,
-      sourcingChannel: data.sourcingChannel ?? null,
-      sourcingFirm: data.sourcingFirm ?? null,
-      dealOwner: data.dealOwner ?? null,
-      dealChampion: data.dealChampion ?? null,
-      executiveSponsor: data.executiveSponsor ?? null,
-      priorityTier: data.priorityTier ?? "Watchlist",
-      strategicRationale: data.strategicRationale ?? null,
-      strategicFitScore: data.strategicFitScore ?? null,
-      synergyScore: data.synergyScore ?? null,
-      financialAttractivenessScore: data.financialAttractivenessScore ?? null,
-      processMaturityScore: data.processMaturityScore ?? null,
-      riskPenaltyScore: data.riskPenaltyScore ?? null,
-      dealType: data.dealType ?? null,
-      isActive: true,
-      isConfidential: data.isConfidential ?? true,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .returning();
-
-  const [milestone] = await db
-    .insert(milestonesTable)
-    .values(defaultMilestoneValues(target.id, now, "Sourcing"))
-    .returning();
-
-  await db.insert(stageChangeLogTable).values({
-    targetId: target.id,
-    previousStage: null,
-    newStage: "Sourcing",
-    changedBy: data.dealOwner ?? "System",
-    changeReason: "Initial opportunity creation",
-    changedAt: now,
-  });
-
-  await writeAuditEvent("deal_created", target.id, data.dealOwner ?? null, {
-    targetCode: target.targetCode,
-    projectName: target.projectName,
-    dealType: target.dealType,
-    initialStage: "Sourcing",
-  });
-
-  // Auto-grant the creator visibility into the deal they just created.
+  // Resolve access scope before the transaction (read-only, no DB call needed).
   const scope = await getAccessScope(req);
-  if (scope.userId) await grantTargetAccess(target.id, scope.userId, scope.userId);
+  const companyId = req.jwtClaims?.companyId ?? "00000000-0000-0000-0000-000000000001";
+
+  // Wrap all 5 writes in a single RLS-aware transaction so a partial failure
+  // (e.g. milestone insert failing) doesn't leave an orphan target row.
+  const { target, milestone } = await withRlsTransaction(companyId, async () => {
+    const [target] = await db
+      .insert(targetsTable)
+      .values({
+        targetCode: data.targetCode,
+        projectName: data.projectName,
+        legalName: data.legalName ?? null,
+        businessUnit: data.businessUnit ?? null,
+        sector: data.sector ?? null,
+        subsector: data.subsector ?? null,
+        geographyRegion: data.geographyRegion ?? null,
+        country: data.country ?? null,
+        sourcingChannel: data.sourcingChannel ?? null,
+        sourcingFirm: data.sourcingFirm ?? null,
+        dealOwner: data.dealOwner ?? null,
+        dealChampion: data.dealChampion ?? null,
+        executiveSponsor: data.executiveSponsor ?? null,
+        priorityTier: data.priorityTier ?? "Watchlist",
+        strategicRationale: data.strategicRationale ?? null,
+        strategicFitScore: data.strategicFitScore ?? null,
+        synergyScore: data.synergyScore ?? null,
+        financialAttractivenessScore: data.financialAttractivenessScore ?? null,
+        processMaturityScore: data.processMaturityScore ?? null,
+        riskPenaltyScore: data.riskPenaltyScore ?? null,
+        dealType: data.dealType ?? null,
+        isActive: true,
+        isConfidential: data.isConfidential ?? true,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+
+    const [milestone] = await db
+      .insert(milestonesTable)
+      .values(defaultMilestoneValues(target.id, now, "Sourcing"))
+      .returning();
+
+    await db.insert(stageChangeLogTable).values({
+      targetId: target.id,
+      previousStage: null,
+      newStage: "Sourcing",
+      changedBy: data.dealOwner ?? "System",
+      changeReason: "Initial opportunity creation",
+      changedAt: now,
+    });
+
+    await writeAuditEvent("deal_created", target.id, data.dealOwner ?? null, {
+      targetCode: target.targetCode,
+      projectName: target.projectName,
+      dealType: target.dealType,
+      initialStage: "Sourcing",
+    });
+
+    // Auto-grant the creator visibility into the deal they just created.
+    if (scope.userId) await grantTargetAccess(target.id, scope.userId, scope.userId);
+
+    return { target, milestone };
+  });
 
   return res.status(201).json(formatTarget(target, milestone));
 });

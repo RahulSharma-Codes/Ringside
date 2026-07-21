@@ -40,7 +40,21 @@ function buildAllowedOrigins(): RegExp[] {
   const always: RegExp[] = [
     /^http:\/\/localhost(:\d+)?$/, // localhost dev + Playwright headless browser
   ];
-  if (!raw) return [];
+  if (!raw) {
+    if (process.env.NODE_ENV === "production") {
+      // In production without REPLIT_DOMAINS, restrict to localhost only — do NOT
+      // fail-open. An empty allowedOrigins list would trigger the fallback that
+      // allows every origin, which is the opposite of what we want here.
+      console.error(
+        "[CORS] REPLIT_DOMAINS is not set in production — restricting to localhost only. " +
+          "Set REPLIT_DOMAINS in Replit Secrets to allow the deployed domain."
+      );
+      return always;
+    }
+    // Development: return empty list → the cors middleware fails-open (allow all).
+    // This is intentional for local dev and Playwright test runs.
+    return [];
+  }
   return [
     ...always,
     ...raw
@@ -133,7 +147,7 @@ app.use("/api", apiRateLimiter);
  * GUC visible for RLS enforcement.
  */
 async function companyContextMiddleware(req: Request, res: Response, next: NextFunction) {
-  if (req.method === "OPTIONS" || req.path === "/healthz" || req.path.startsWith("/auth/")) {
+  if (req.method === "OPTIONS" || req.path === "/healthz" || req.path === "/readyz" || req.path.startsWith("/auth/")) {
     return next();
   }
 
