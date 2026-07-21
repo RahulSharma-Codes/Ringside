@@ -7,7 +7,7 @@ import {
   Target, ListTodo, Briefcase, Plus, BarChart3, Bot, CalendarCheck,
   ClipboardCheck, Upload, ChevronDown, Menu,
   FolderOpen, LineChart, ShieldCheck, Lightbulb, LogOut, Sun, Moon, KeyRound,
-  Search,
+  Search, BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -285,6 +285,10 @@ function FloatingRail({
           <span className="hidden group-hover/rail:block text-[10px] font-mono text-sidebar-foreground/30 truncate">Live</span>
         </div>
         <ThemeToggle slim={false} />
+        <a href="/user-guide.html" target="_blank" rel="noopener noreferrer" className="w-full flex items-center gap-2 px-2 py-1.5 rounded-xl text-sidebar-foreground/35 hover:text-sidebar-foreground/65 hover:bg-sidebar-accent/50 transition-all duration-150">
+          <span className="flex items-center justify-center w-4 h-4 shrink-0"><BookOpen size={12} /></span>
+          <span className="hidden group-hover/rail:block text-[11px] font-sans truncate">User Guide</span>
+        </a>
         <Link href="/settings/password">
           <button className="w-full flex items-center gap-2 px-2 py-1.5 rounded-xl text-sidebar-foreground/35 hover:text-sidebar-foreground/65 hover:bg-sidebar-accent/50 transition-all duration-150">
             <span className="flex items-center justify-center w-4 h-4 shrink-0"><KeyRound size={12} /></span>
@@ -432,6 +436,9 @@ function MobileSidebarNav({
           </div>
           <div className="flex items-center gap-0.5">
             <ThemeToggle slim />
+            <a href="/user-guide.html" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] font-mono text-sidebar-foreground/30 hover:text-sidebar-foreground/60 transition-colors rounded-lg px-1.5 py-1 hover:bg-sidebar-accent/50" title="User Guide">
+              <BookOpen size={11} />
+            </a>
             <Link href="/settings/password">
               <button className="flex items-center gap-1 text-[10px] font-mono text-sidebar-foreground/30 hover:text-sidebar-foreground/60 transition-colors rounded-lg px-1.5 py-1 hover:bg-sidebar-accent/50" title="Change password">
                 <KeyRound size={11} />
