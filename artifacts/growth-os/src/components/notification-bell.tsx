@@ -41,7 +41,7 @@ export function NotificationBell() {
   const { user } = useAuth();
 
   const unreadQ = useGetUnreadCount({
-    query: { queryKey: getGetUnreadCountQueryKey(), refetchInterval: 60_000, enabled: !!user },
+    query: { queryKey: getGetUnreadCountQueryKey(), refetchInterval: (q) => q.state.status === "error" ? false : 60_000, enabled: !!user },
   });
   const notifQ = useListNotifications({
     query: { queryKey: getListNotificationsQueryKey(), enabled: open && !!user },
