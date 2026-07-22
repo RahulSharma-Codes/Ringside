@@ -299,19 +299,15 @@ test("Kanban drag — stage change persists in target detail after refetch", asy
   await expect(myCard).toBeVisible({ timeout: 15_000 });
 
   const cardBox = await myCard.boundingBox();
-  if (!cardBox) {
-    test.skip(true, "Could not get card bounding box — skipping");
-    return;
-  }
+  expect(cardBox, "Draggable card bounding box must be obtainable").not.toBeNull();
+  if (!cardBox) return; // TypeScript narrowing only — expect() above already fails
 
   // Find the "Outreach" column heading on the board.
   const outreachHeading = page.getByText(destinationStage, { exact: true }).first();
   await expect(outreachHeading).toBeVisible({ timeout: 8_000 });
   const headingBox = await outreachHeading.boundingBox();
-  if (!headingBox) {
-    test.skip(true, "Could not locate Outreach column heading — skipping");
-    return;
-  }
+  expect(headingBox, "Outreach column heading bounding box must be obtainable").not.toBeNull();
+  if (!headingBox) return; // TypeScript narrowing only — expect() above already fails
 
   // Simulate the drag.
   // dnd-kit's PointerSensor uses activationConstraint: { delay: 200, tolerance: 8 }.
@@ -332,15 +328,13 @@ test("Kanban drag — stage change persists in target detail after refetch", asy
   const dialog = page.getByRole("dialog");
   const dialogVisible = await dialog.isVisible({ timeout: 8_000 }).catch(() => false);
 
-  if (!dialogVisible) {
-    test.skip(
-      true,
-      "Stage-change dialog did not appear after drag — " +
-      "pointer-event simulation may not activate dnd-kit in this environment. " +
-      "See follow-up task #315."
-    );
-    return;
-  }
+  expect(
+    dialogVisible,
+    "Stage-change dialog must appear after Kanban drag. " +
+    "If this fails in CI it means the PointerSensor drag simulation did not " +
+    "activate dnd-kit. Investigate pointer-event timing or add a data-testid " +
+    "drag handle. See follow-up task #315."
+  ).toBe(true);
 
   await expect(page.getByText(/move to/i)).toBeVisible({ timeout: 5_000 });
 
