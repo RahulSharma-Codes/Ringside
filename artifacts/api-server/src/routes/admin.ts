@@ -2,6 +2,7 @@ import { Router } from "express";
 import { eq, and, inArray } from "drizzle-orm";
 import { db, usersTable, companiesTable, targetAccessTable, targetsTable } from "@workspace/db";
 import { grantTargetAccess } from "../lib/target-access";
+import { Storage } from "@google-cloud/storage";
 
 const router = Router();
 
@@ -200,6 +201,62 @@ router.put("/users/:id/access", async (req, res) => {
   }
 
   return res.json({ targetIds: [...desiredIds] });
+});
+
+// ── GET /api/admin/backup/status ─────────────────────────────────────────────
+// Returns metadata of the most recent backup stored in Object Storage.
+
+const BACKUP_SIDECAR = "http://127.0.0.1:1106";
+const BACKUP_PREFIX = "backups/db/";
+
+function makeBackupStorage(): Storage {
+  return new Storage({
+    credentials: {
+      audience: "replit",
+      subject_token_type: "access_token",
+      token_url: `${BACKUP_SIDECAR}/token`,
+      type: "external_account",
+      credential_source: {
+        url: `${BACKUP_SIDECAR}/credential`,
+        format: { type: "json", subject_token_field_name: "access_token" },
+      },
+      universe_domain: "googleapis.com",
+    },
+    projectId: "",
+  } as ConstructorParameters<typeof Storage>[0]);
+}
+
+router.get("/backup/status", async (_req, res) => {
+  const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
+  if (!bucketId) {
+    return res.status(503).json({ error: "Object Storage is not configured." });
+  }
+
+  try {
+    const gcs = makeBackupStorage();
+    const bucket = gcs.bucket(bucketId);
+    const [files] = await bucket.getFiles({ prefix: BACKUP_PREFIX });
+
+    if (files.length === 0) {
+      return res.json({ lastBackup: null, totalBackups: 0 });
+    }
+
+    const sorted = files.sort((a, b) => b.name.localeCompare(a.name));
+    const [newest] = sorted;
+    const [meta] = await newest.getMetadata();
+    const m = meta as { size?: string | number; timeCreated?: string };
+
+    return res.json({
+      lastBackup: {
+        key: newest.name,
+        sizeBytes: Number(m.size ?? 0),
+        createdAt: m.timeCreated ?? null,
+      },
+      totalBackups: files.length,
+    });
+  } catch (err) {
+    return res.status(502).json({ error: "Failed to read backup metadata from Object Storage." });
+  }
 });
 
 export default router;
