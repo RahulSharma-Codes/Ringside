@@ -41,7 +41,7 @@ RUN pnpm --filter @workspace/api-server run build
 # Workspace packages (@workspace/db, @workspace/api-zod) are already bundled
 # into dist/index.mjs by esbuild, so pnpm deploy is used purely for the
 # external npm packages (pdfkit, exceljs, nodemailer, @google-cloud/*, etc.).
-RUN pnpm deploy --filter @workspace/api-server --prod /deploy
+RUN pnpm deploy --filter @workspace/api-server --prod /deploy --legacy
 
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
