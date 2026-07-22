@@ -165,7 +165,8 @@ test("Create new deal — form persists project name after reload", async ({
   await page.reload();
 
   // The project name must be visible somewhere in the target detail header.
-  await expect(page.getByText(dealName, { exact: false })).toBeVisible({
+  // Use .first() — the name can appear in multiple places (header + breadcrumb).
+  await expect(page.getByText(dealName, { exact: false }).first()).toBeVisible({
     timeout: 15_000,
   });
 });
