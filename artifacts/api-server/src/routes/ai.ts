@@ -30,12 +30,11 @@ const aiWriteRateLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  // Keyed on userId so the limit is per-user, not per-IP. The validate flag
-  // suppresses express-rate-limit v8.5's ERR_ERL_KEY_GEN_IPV6 validation,
-  // which fires because req.ip appears in the fallback path. In practice
-  // requireAuth ensures userId is always present, so the IP path is dead code.
-  validate: { keyGenerator: false },
-  keyGenerator: (req) => req.jwtClaims?.userId ?? req.ip ?? "anonymous",
+  // requireAuth is applied globally, so jwtClaims.userId is always present —
+  // the req.ip fallback was dead code. Using req.ip in a custom keyGenerator
+  // trips express-rate-limit v8's startup validation; keying on userId only
+  // fixes the crash AND keeps the library's validation guard active.
+  keyGenerator: (req) => req.jwtClaims?.userId ?? "anonymous",
   message: { error: "Too many AI requests. Please wait a moment before trying again." },
 });
 
