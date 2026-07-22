@@ -1,0 +1,11 @@
+kind = "web"
+  title = "Backup Worker"
+  version = "1.0.0"
+  id = "backup-worker"
+
+  [[services]]
+  name = "Backup Worker"
+
+  [services.development]
+  run = "pnpm --filter @workspace/backup-worker run dev"
+  
