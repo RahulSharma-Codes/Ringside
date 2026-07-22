@@ -1,0 +1,17 @@
+.git
+.gitignore
+node_modules
+dist
+tests/.auth
+attached_assets
+.local
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+attached_assets/
+screenshots/
+coverage/
+.nyc_output/
+.cache/

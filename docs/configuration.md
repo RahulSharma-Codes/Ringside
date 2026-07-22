@@ -102,6 +102,81 @@ and Sentry variables as the API server.
 
 ---
 
+## Local development with Docker
+
+Run the full stack (API server, Postgres, backup worker) on any machine that has Docker Desktop or Docker Engine + Compose v2.
+
+### Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Mac/Windows) or Docker Engine + Docker Compose v2 (Linux)
+- `openssl` — to generate a secure `SESSION_SECRET`
+
+### Setup
+
+1. **Copy the env template:**
+   ```bash
+   cp .env.example .env
+   ```
+   Docker Compose automatically reads `.env` from the project root for variable substitution.
+
+2. **Fill in the required values** (at minimum):
+
+   | Variable | How to set |
+   |---|---|
+   | `SESSION_SECRET` | `openssl rand -hex 32` |
+   | `PGPASSWORD` | Any local Postgres password (e.g. `changeme`) |
+   | `BOOTSTRAP_ADMIN_EMAIL` | Email for the first admin account |
+   | `BOOTSTRAP_ADMIN_PASSWORD` | Strong password (≥ 12 chars) |
+
+3. **Build and start:**
+   ```bash
+   docker compose up --build
+   ```
+   The API server is available at **http://localhost:8080** once Postgres is healthy.
+   Schema migrations run automatically on first boot — no manual step needed.
+
+4. **Subsequent starts** (after the first build):
+   ```bash
+   docker compose up
+   ```
+
+### Services
+
+| Service | Image / Build | Port | Notes |
+|---|---|---|---|
+| `postgres` | `postgres:16-alpine` | 5432 | Persisted via the `postgres_data` named volume |
+| `api` | `Dockerfile` (multi-stage) | 8080 | Starts after Postgres health check passes |
+| `backup-worker` | `artifacts/backup-worker/Dockerfile` | — | Runs `pg_dump` every 6 hours — see note below |
+
+### Postgres data persistence
+
+Data lives in the `postgres_data` Docker volume. To reset the database:
+```bash
+docker compose down -v    # removes containers AND the volume
+docker compose up --build
+```
+
+### Backup worker — GCS credentials
+
+The backup worker uploads dumps to Google Cloud Storage. In production (Replit), it fetches credentials from a Replit-managed sidecar. **Outside Replit, one of the following is required:**
+
+- Set `GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/gcs-key.json` in `.env` and mount the service account key file into the container, or
+- Simply ignore the backup worker's error logs in local dev — the worker catches the error and retries every 6 hours without crashing the service.
+
+For local dev, database backups are rarely needed; the Postgres data volume already persists across restarts.
+
+### Running one-off commands inside the container
+
+```bash
+# Open a shell in the running API container
+docker compose exec api sh
+
+# Run a raw SQL query against Postgres
+docker compose exec postgres psql -U postgres -d ringside -c "SELECT count(*) FROM targets;"
+```
+
+---
+
 ## Branch protection (GitHub — manual step for Rahul)
 
 After the GitHub Actions CI workflows land (Task #305), enable the following on
