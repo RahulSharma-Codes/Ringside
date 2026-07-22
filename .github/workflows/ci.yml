@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck (all packages)
+        run: pnpm run typecheck
+
+      - name: Build — api-server
+        run: pnpm --filter @workspace/api-server run build
+        env:
+          PORT: 8080
+
+      - name: Build — growth-os frontend
+        run: pnpm --filter @workspace/growth-os run build
+        env:
+          PORT: 3000
+          BASE_PATH: /
+
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level high
