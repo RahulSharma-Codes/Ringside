@@ -91,8 +91,9 @@ const ALLOWED_FIELDS = new Set([
 ]);
 
 /** Map raw row through the column map, producing a typed ImportRow.
- *  Score fields are silently ignored — they are out of scope for import. */
-function applyColumnMap(
+ *  Score fields are silently ignored — they are out of scope for import.
+ *  Exported for unit testing. */
+export function applyColumnMap(
   rawRow: Record<string, unknown>,
   columnMap: Record<string, string>,
 ): ImportRow {

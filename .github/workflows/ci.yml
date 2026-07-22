@@ -37,6 +37,9 @@ jobs:
       - name: Typecheck (all packages)
         run: pnpm run typecheck
 
+      - name: Unit tests — api-server business logic
+        run: pnpm --filter @workspace/api-server run test
+
       - name: Build — api-server
         run: pnpm --filter @workspace/api-server run build
         env:
