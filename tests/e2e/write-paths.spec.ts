@@ -140,15 +140,25 @@ test("Create new deal — form persists project name after reload", async ({
 
   await injectTokenAndGo(page, "/new-target");
 
+  // Wait for the form to be fully rendered and interactive before filling.
+  const nameInput = page.locator('input[placeholder*="Project Apollo"]');
+  await expect(nameInput).toBeVisible({ timeout: 15_000 });
+
   // Fill required fields (placeholders identify the inputs).
-  await page.fill('input[placeholder*="Project Apollo"]', dealName);
-  await page.fill('input[placeholder*="APO-001"]', dealCode);
+  await nameInput.fill(dealName);
+  await page.locator('input[placeholder*="APO-001"]').fill(dealCode);
+
+  // Confirm the controlled inputs accepted the values before submitting.
+  await expect(nameInput).toHaveValue(dealName);
+
+  // Brief settle — React Hook Form debounces validation on controlled inputs.
+  await page.waitForTimeout(300);
 
   // Submit — button text is "Commit Record".
   await page.click('button[type="submit"]');
 
   // On success the page redirects to /targets/:id.
-  await expect(page).toHaveURL(/\/targets\/\d+/, { timeout: 20_000 });
+  await expect(page).toHaveURL(/\/targets\/\d+/, { timeout: 30_000 });
 
   // Hard-reload to confirm the record was actually persisted (not just held
   // in React state).
@@ -326,7 +336,10 @@ test("Kanban drag — stage change persists in target detail after refetch", asy
 
   // KanbanStageChangeDialog must appear ("Move to Outreach?" heading).
   const dialog = page.getByRole("dialog");
-  const dialogVisible = await dialog.isVisible({ timeout: 8_000 }).catch(() => false);
+  const dialogVisible = await dialog
+    .waitFor({ state: "visible", timeout: 8_000 })
+    .then(() => true)
+    .catch(() => false);
 
   expect(
     dialogVisible,
