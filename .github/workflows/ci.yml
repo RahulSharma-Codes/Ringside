@@ -124,16 +124,46 @@ jobs:
       # This mirrors the Replit shared proxy and lets Playwright use baseURL=http://localhost:80
       - name: Configure nginx reverse proxy
         run: |
-          printf 'server {\n  listen 80;\n  location /api {\n    proxy_pass http://localhost:8080;\n    proxy_set_header Host $http_host;\n    proxy_set_header X-Real-IP $remote_addr;\n  }\n  location / {\n    root %s/artifacts/growth-os/dist/public;\n    try_files $uri $uri/ /index.html;\n  }\n}\n' \
-            "$GITHUB_WORKSPACE" \
+          # Copy the Vite output to /tmp so nginx's www-data worker can read
+          # the files without needing to traverse /home/runner (which may be
+          # mode 700 and block the www-data user).
+          STATIC=/tmp/ringside-dist
+          sudo mkdir -p "$STATIC"
+          sudo cp -r "$GITHUB_WORKSPACE/artifacts/growth-os/dist/public/." "$STATIC/"
+          printf 'server {\n  listen 80;\n  location /api {\n    proxy_pass http://localhost:8080;\n    proxy_set_header Host $http_host;\n    proxy_set_header X-Real-IP $remote_addr;\n  }\n  location / {\n    root %s;\n    try_files $uri $uri/ /index.html;\n  }\n}\n' \
+            "$STATIC" \
             | sudo tee /etc/nginx/sites-available/ringside > /dev/null
           sudo ln -sf /etc/nginx/sites-available/ringside /etc/nginx/sites-enabled/ringside
           sudo rm -f /etc/nginx/sites-enabled/default
           sudo nginx -t
           sudo systemctl restart nginx
-          # Sanity check: proxy reaches the API health endpoint
+          # Sanity check 1: proxy reaches the API health endpoint
           curl -fs http://localhost:80/api/healthz \
             || { echo "ERROR: nginx proxy to /api not working"; exit 1; }
+          # Sanity check 2: SPA try_files fallback works for a non-root React route
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80/pipeline)
+          [ "$STATUS" = "200" ] \
+            || { echo "ERROR: nginx SPA try_files returned HTTP $STATUS for /pipeline (expected 200)"; exit 1; }
+
+      # ── Seed CI test data ─────────────────────────────────────────────────
+      # The E2E suite uses SAMPLE_TARGET_ID=4 for Target Detail tab tests.
+      # The Docker DB is empty on every run, so we create 4 minimal targets
+      # here; PostgreSQL serial assigns IDs 1-4 in insertion order.
+      - name: Seed CI test data (4 targets for Target Detail tests)
+        run: |
+          TOKEN=$(curl -sf -X POST http://localhost:80/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"rahul.sharma@manipalgroup.info","password":"Ringside@123"}' \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+          for i in 1 2 3 4; do
+            CODE=$(printf "TGT-%03d" "$i")
+            curl -sf -X POST http://localhost:80/api/targets \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $TOKEN" \
+              -d "{\"targetCode\":\"$CODE\",\"projectName\":\"CI Target $i\",\"priorityTier\":\"Priority 1\"}" \
+              > /dev/null
+          done
+          echo "Seeded 4 CI test targets (IDs 1–4)."
 
       - name: Install Playwright browsers (Chromium + system deps)
         run: pnpm --filter @workspace/tests run install:browsers
