@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/node";
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -9,6 +10,13 @@ import launchRouter from "./routes/launch";
 import { requireAuth } from "./middlewares/auth";
 import { logger } from "./lib/logger";
 import { acquireRequestContext } from "@workspace/db";
+
+// ── Sentry error monitoring ───────────────────────────────────────────────────
+// No-op when SENTRY_DSN is not set — the server starts normally without it.
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  enabled: !!process.env.SENTRY_DSN,
+});
 
 const DEFAULT_COMPANY_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -164,6 +172,10 @@ async function companyContextMiddleware(req: Request, res: Response, next: NextF
 }
 
 app.use("/api", requireAuth, companyContextMiddleware, router);
+
+// Sentry error handler — must come after routes and before any other error
+// middleware. It re-calls next(err) so the generic handler below still runs.
+Sentry.setupExpressErrorHandler(app);
 
 // Error handler — logs full detail server-side; returns a generic message to
 // the client so internal Postgres errors and stack traces are never exposed.

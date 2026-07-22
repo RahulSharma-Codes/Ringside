@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@google-cloud/storage": "^7.21.0",
+    "@sentry/node": "catalog:",
     "pino": "^9"
   },
   "devDependencies": {

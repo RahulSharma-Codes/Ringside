@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/node";
 import { spawn } from "child_process";
 import { createGzip } from "zlib";
 import { pipeline } from "stream/promises";
@@ -5,6 +6,12 @@ import { Storage } from "@google-cloud/storage";
 import pino from "pino";
 
 const logger = pino({ name: "backup-worker" });
+
+// No-op when SENTRY_DSN is not set.
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  enabled: !!process.env.SENTRY_DSN,
+});
 
 const SIDECAR = "http://127.0.0.1:1106";
 const BACKUP_PREFIX = "backups/db/";
@@ -131,6 +138,7 @@ async function tick(): Promise<void> {
     await runBackup();
   } catch (err) {
     logger.error({ err }, "backup: failed — will retry at next interval");
+    Sentry.captureException(err);
   }
 }
 

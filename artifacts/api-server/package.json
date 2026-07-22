@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@google-cloud/storage": "^7.21.0",
+    "@sentry/node": "catalog:",
     "@supabase/supabase-js": "^2.105.1",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",

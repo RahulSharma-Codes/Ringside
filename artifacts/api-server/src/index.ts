@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/node";
 import app from "./app";
 import { logger } from "./lib/logger";
 import { db } from "@workspace/db";
@@ -40,6 +41,8 @@ async function runMigrationsWithRetry(): Promise<void> {
           { err },
           "Migration failed after all retries — exiting to prevent serving on stale schema",
         );
+        Sentry.captureException(err);
+        await Sentry.flush(2000);
         process.exit(1);
       }
     }
