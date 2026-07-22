@@ -4,6 +4,8 @@ import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { setMigrationsComplete } from "./routes/health";
+import { spawn } from "child_process";
+import path from "path";
 
 const rawPort = process.env["PORT"];
 
@@ -779,7 +781,27 @@ function checkSmtpConfig(): void {
   }
 }
 
+function startBackupWorker(): void {
+  const workspaceRoot = path.resolve(__dirname, "../../..");
+  const worker = spawn(
+    "pnpm",
+    ["--filter", "@workspace/backup-worker", "run", "dev"],
+    {
+      cwd: workspaceRoot,
+      detached: true,
+      stdio: "inherit",
+      env: { ...process.env },
+    },
+  );
+  worker.on("error", (err) => {
+    logger.warn({ err }, "backup-worker: failed to spawn — backups will not run until the process is restarted");
+  });
+  worker.unref();
+  logger.info({ pid: worker.pid ?? "unknown" }, "backup-worker: started as detached child process");
+}
+
 checkSmtpConfig();
+startBackupWorker();
 
 app.listen(port, (err) => {
   if (err) {
