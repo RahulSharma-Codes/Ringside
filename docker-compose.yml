@@ -45,6 +45,9 @@ services:
       PGUSER: postgres
       PGPASSWORD: ${PGPASSWORD:-changeme}
       PGDATABASE: ringside
+      # Plain Docker postgres has no SSL; disable it so the production SSL branch
+      # in lib/db is not triggered by NODE_ENV=production in this environment.
+      PGSSLMODE: disable
       SESSION_SECRET: ${SESSION_SECRET:-}
       BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
       BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}

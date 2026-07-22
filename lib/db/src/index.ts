@@ -20,9 +20,18 @@ function getDatabaseUrl(): string {
   return url;
 }
 
+// Respect PGSSLMODE=disable for Docker/CI environments where postgres runs
+// without SSL. In production on Replit, PGSSLMODE is unset so we enable SSL
+// with rejectUnauthorized:false (self-signed cert on managed Replit Postgres).
+function getSslConfig(): pg.PoolConfig["ssl"] {
+  if (process.env["PGSSLMODE"] === "disable") return false;
+  if (process.env["NODE_ENV"] === "production") return { rejectUnauthorized: false };
+  return undefined;
+}
+
 export const pool = new Pool({
   connectionString: getDatabaseUrl(),
-  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+  ssl: getSslConfig(),
 });
 
 // ── Per-request client routing ────────────────────────────────────────────────
