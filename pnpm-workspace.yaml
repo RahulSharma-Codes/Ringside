@@ -42,7 +42,7 @@ packages:
   - tests
 
 catalog:
-  '@sentry/node': ^8
+  '@sentry/node': ^9
   '@replit/vite-plugin-cartographer': ^0.5.1
   '@replit/vite-plugin-dev-banner': ^0.1.1
   '@replit/vite-plugin-runtime-error-modal': ^0.0.6
@@ -172,16 +172,22 @@ overrides:
   # Security: fix brace-expansion DoS via exponential expansion (GHSA-3jxr-9vmj-r5cp)
   # Forces both the v1 and v2 vulnerable chains to a patched v2; brace-expansion v2 is
   # backwards-compatible for the glob patterns used by archiver/exceljs in this codebase.
-  brace-expansion: ">=2.1.2"
+  # Capped at <3 to prevent resolution to v5.x, which lacks the `default` ESM export
+  # that minimatch@9.x expects (would break esbuild bundling via @sentry/node@9.x).
+  brace-expansion: ">=2.1.2 <3"
   # Security: fix body-parser ReDoS (low severity) via express transitive dep
   "express>body-parser": ">=2.3.0"
   # Security: fix uuid entropy issue (moderate) — upgrade to v11+
   uuid: ">=11.1.1"
   # Security: fix qs prototype pollution (moderate) via express transitive dep
   "express>qs": ">=6.15.2"
-  # Security: @opentelemetry/core unbounded memory allocation (GHSA-8988-4f7v-96qf)
-  # Introduced via @sentry/node → @sentry/opentelemetry → @opentelemetry/core.
-  # Global override (no path prefix) forces all instances to the patched v2.x stream.
-  # @sentry/opentelemetry declares a ^1.30.1 peer dep but is functionally compatible
-  # with v2.x; the peer warning is cosmetic — Sentry works correctly at runtime.
+  # Security: @opentelemetry/core unbounded memory allocation via W3C Baggage headers
+  # (GHSA-8988-4f7v-96qf). Vulnerable path: @sentry/node → @opentelemetry/core directly.
+  # Patched in core@>=2.8.0. The global override fixes the CVE for all direct consumers.
+  #
+  # HOWEVER: @sentry/node@9 also uses sdk-trace-base@1.30.1 which imports TracesSamplerValues
+  # from @opentelemetry/core — an export that was REMOVED in core@2.x. We must give
+  # sdk-trace-base its own isolated core@^1.x via a more-specific path override (pnpm
+  # resolves path overrides with higher priority than the global one).
   "@opentelemetry/core": ">=2.8.0"
+  "@opentelemetry/sdk-trace-base>@opentelemetry/core": "^1.30.1"

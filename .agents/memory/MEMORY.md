@@ -1,3 +1,4 @@
+- [OTEL/Sentry override conflict](otel-sentry-override-conflict.md) — sdk-trace-base@1.x imports TracesSamplerValues from @opentelemetry/core (removed in 2.x); fix: dual pnpm override
 - [Replit Postgres vs Supabase](replit-postgres-migration.md) — Supabase pooler ENOTFOUND even from async tasks; DB layer now uses PGHOST (Replit Postgres)
 - [Startup migrations pattern](startup-migrations.md) — idempotent DDL runs at server start; psql/drizzle-kit push can't reach DB from shell
 - [RLS pool.query intercept](rls-pool-intercept.md) — pool.query overridden to route through per-request PoolClient; Proxy on db object is unreliable for Drizzle
