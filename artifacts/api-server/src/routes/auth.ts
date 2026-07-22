@@ -225,7 +225,18 @@ router.post("/otp/request", async (req, res) => {
     return res.status(500).json({ error: "Email not configured correctly — contact your administrator." });
   }
 
-  // SMTP not configured at all — return code in response for dev/internal use
+  // SMTP not configured at all.
+  // In production, never expose the code — return 503 so the operator knows to fix SMTP config.
+  if (process.env.NODE_ENV === "production") {
+    req.log?.error(
+      "OTP requested in production with SMTP entirely unconfigured — refusing to expose code. " +
+      "Set SMTP_HOST, SMTP_USER, SMTP_PASS in Replit Secrets.",
+    );
+    return res.status(503).json({
+      error: "Login is temporarily unavailable. Email delivery is not configured. Contact your administrator.",
+    });
+  }
+  // Dev/staging convenience — code returned in response body for local testing only.
   return res.json({ ok: true, code, message: "SMTP not configured. Code shown for development use only." });
 });
 

@@ -516,12 +516,6 @@ async function applyMigrations(): Promise<void> {
   await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email)`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_password_attempts integer NOT NULL DEFAULT 0`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_locked_until timestamptz`);
-  // Rename the legacy seed email (safe to run when the table is otherwise empty)
-  await db.execute(sql`
-    UPDATE users SET email = 'rahul.sharma@manipalgroup.info'
-    WHERE email = 'admin@ringside.local'
-  `);
-
   // ── Admin bootstrap seed ──────────────────────────────────────────────────
   // Runs only when:
   //   (a) NODE_ENV !== "production"  — dev / staging convenience seed, OR
@@ -541,8 +535,8 @@ async function applyMigrations(): Promise<void> {
     (bootstrapEmail && bootstrapPassword && isEmpty);
 
   if (shouldSeed && isEmpty) {
-    const seedEmail    = bootstrapEmail    ?? "rahul.sharma@manipalgroup.info";
-    const seedPassword = bootstrapPassword ?? "Ringside@123";
+    const seedEmail    = bootstrapEmail    ?? "admin@ringside.local";
+    const seedPassword = bootstrapPassword ?? "ChangeMe@Dev1";
     const seedHash     = await bcrypt.hash(seedPassword, 10);
     // Upsert by email — idempotent if the row already exists (e.g. concurrent starts)
     await db.execute(sql`

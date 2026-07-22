@@ -116,7 +116,7 @@ All dialog and alert dialog titles across every target detail sub-tab changed fr
 ### HV01 — CRUD Lifecycle End-to-End (Functional)
 Full deal lifecycle (create → interact → act → diligence → IC → NDA → stage change → archive) requires a live test session. No automated end-to-end test run against the API was performed.
 - **Confidence:** High (all routes implemented; UI flows correct by inspection)
-- **Action:** Manual test with `rahul.sharma@manipalgroup.info` / `Ringside@123`
+- **Action:** Manual test with the bootstrap admin credentials (see `BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD`)
 
 ### HV02 — Destructive Action Confirm Dialogs (Functional)
 All delete/archive actions audited by code inspection:
