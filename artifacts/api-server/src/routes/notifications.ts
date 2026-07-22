@@ -10,6 +10,7 @@ import {
   stageChangeLogTable,
   ndaRecordsTable,
 } from "@workspace/db";
+import { requireRole } from "../middlewares/auth";
 import { getAccessScope } from "../lib/target-access";
 
 function requireAuthScope(scope: Awaited<ReturnType<typeof getAccessScope>>) {
@@ -38,7 +39,7 @@ async function alreadyExists(type: string, targetId: number | null): Promise<boo
 }
 
 // ── POST /api/notifications/generate ──────────────────────────────────────────
-router.post("/generate", async (req, res) => {
+router.post("/generate", requireRole("Admin"), async (req, res) => {
   const scope = await getAccessScope(req);
   if (requireAuthScope(scope)) return res.status(401).json({ error: "Authentication required" });
   if (!scope.isAdmin) return res.status(403).json({ error: "Admin access required" });

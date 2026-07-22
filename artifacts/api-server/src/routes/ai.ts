@@ -1,4 +1,5 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import OpenAI from "openai";
 import { z } from "zod";
 import { buildAiContext } from "../lib/ai-context";
@@ -19,6 +20,19 @@ import { logger } from "../lib/logger";
 import { canAccessTarget, getAccessScope } from "../lib/target-access";
 
 const router = Router();
+
+// AI write endpoints: 10 requests per minute per authenticated user.
+// Keyed on the JWT subject (user id) so the limit is per-user, not per-IP.
+// Falls back to req.ip when no JWT is present (should not happen in practice
+// since requireAuth is applied globally, but avoids a null key edge case).
+const aiWriteRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.jwtClaims?.userId ?? req.ip ?? "anonymous",
+  message: { error: "Too many AI requests. Please wait a moment before trying again." },
+});
 
 const OPENAI_API_KEY = process.env["OPENAI_API_KEY"];
 const model = process.env["OPENAI_MODEL"] ?? "gpt-4o";
@@ -513,7 +527,7 @@ Rules:
 - Keep the brief under 500 words.`;
 
 // POST /api/ai/ask (existing)
-router.post("/ask", async (req, res) => {
+router.post("/ask", aiWriteRateLimiter, async (req, res) => {
   if (!openai) {
     return res.json({ answer: null, setupRequired: true, error: "OPENAI_API_KEY is not configured" });
   }
@@ -611,7 +625,7 @@ router.get("/status", async (req, res) => {
 });
 
 // POST /api/ai/meeting-notes
-router.post("/meeting-notes", async (req, res) => {
+router.post("/meeting-notes", aiWriteRateLimiter, async (req, res) => {
   if (!openai) {
     return res.json({ suggestions: null, setupRequired: true, billingRequired: false });
   }
@@ -771,7 +785,7 @@ router.post("/meeting-notes", async (req, res) => {
 });
 
 // POST /api/ai/opportunity-brief
-router.post("/opportunity-brief", async (req, res) => {
+router.post("/opportunity-brief", aiWriteRateLimiter, async (req, res) => {
   if (!openai) {
     return res.json({ brief: null, setupRequired: true, billingRequired: false });
   }
@@ -811,7 +825,7 @@ router.post("/opportunity-brief", async (req, res) => {
 });
 
 // POST /api/ai/weekly-brief
-router.post("/weekly-brief", async (req, res) => {
+router.post("/weekly-brief", aiWriteRateLimiter, async (req, res) => {
   if (!openai) {
     return res.json({ brief: null, setupRequired: true, billingRequired: false });
   }
@@ -952,8 +966,8 @@ router.get("/:targetId/valuation-sanity", async (req, res) => {
 });
 
 // POST /api/ai/:targetId/valuation-sanity  — run fresh analysis
-router.post("/:targetId/valuation-sanity", async (req, res) => {
-  const targetId = parseInt(req.params.targetId, 10);
+router.post("/:targetId/valuation-sanity", aiWriteRateLimiter, async (req, res) => {
+  const targetId = parseInt(String(req.params.targetId), 10);
   if (isNaN(targetId)) return res.status(400).json({ error: "Invalid targetId" });
   if (!(await canAccessTarget(req, targetId))) return res.status(404).json({ error: "Target not found" });
 
@@ -1100,8 +1114,8 @@ router.get("/:targetId/dd-synthesis", async (req, res) => {
 });
 
 // POST /api/ai/:targetId/dd-synthesis  — run fresh analysis
-router.post("/:targetId/dd-synthesis", async (req, res) => {
-  const targetId = parseInt(req.params.targetId, 10);
+router.post("/:targetId/dd-synthesis", aiWriteRateLimiter, async (req, res) => {
+  const targetId = parseInt(String(req.params.targetId), 10);
   if (isNaN(targetId)) return res.status(400).json({ error: "Invalid targetId" });
   if (!(await canAccessTarget(req, targetId))) return res.status(404).json({ error: "Target not found" });
 
@@ -1243,8 +1257,8 @@ router.get("/:targetId/ic-memo", async (req, res) => {
 });
 
 // POST /api/ai/:targetId/ic-memo  — generate fresh IC memo draft
-router.post("/:targetId/ic-memo", async (req, res) => {
-  const targetId = parseInt(req.params.targetId, 10);
+router.post("/:targetId/ic-memo", aiWriteRateLimiter, async (req, res) => {
+  const targetId = parseInt(String(req.params.targetId), 10);
   if (isNaN(targetId)) return res.status(400).json({ error: "Invalid targetId" });
   if (!(await canAccessTarget(req, targetId))) return res.status(404).json({ error: "Target not found" });
 

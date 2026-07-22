@@ -172,3 +172,9 @@ overrides:
   # Forces both the v1 and v2 vulnerable chains to a patched v2; brace-expansion v2 is
   # backwards-compatible for the glob patterns used by archiver/exceljs in this codebase.
   brace-expansion: ">=2.1.2"
+  # Security: fix body-parser ReDoS (low severity) via express transitive dep
+  "express>body-parser": ">=2.3.0"
+  # Security: fix uuid entropy issue (moderate) — upgrade to v11+
+  uuid: ">=11.1.1"
+  # Security: fix qs prototype pollution (moderate) via express transitive dep
+  "express>qs": ">=6.15.2"
