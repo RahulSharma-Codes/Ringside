@@ -130,7 +130,7 @@ jobs:
           sudo ln -sf /etc/nginx/sites-available/ringside /etc/nginx/sites-enabled/ringside
           sudo rm -f /etc/nginx/sites-enabled/default
           sudo nginx -t
-          sudo systemctl reload nginx
+          sudo systemctl restart nginx
           # Sanity check: proxy reaches the API health endpoint
           curl -fs http://localhost:80/api/healthz \
             || { echo "ERROR: nginx proxy to /api not working"; exit 1; }
