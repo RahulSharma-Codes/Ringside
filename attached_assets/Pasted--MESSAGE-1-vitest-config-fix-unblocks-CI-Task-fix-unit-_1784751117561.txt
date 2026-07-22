@@ -1,0 +1,61 @@
+✂️ MESSAGE 1 — vitest config fix (unblocks CI)
+Task: fix unit-test suite failing in CI (dummy DATABASE_URL)
+
+import.test.ts imports ./import, which transitively loads the DB client at module-load time. The DB module throws DATABASE_URL must be set whenever the var is absent — true in GitHub Actions and any fresh clone, so the Verify CI job fails at the "Unit tests" step and main is currently red. On Replit it passes only because Replit Postgres sets the var.
+
+The tests target pure functions (applyColumnMap, canAccessTarget, health-score) and never touch the DB; the coupling is incidental. Fix = inject a dummy DATABASE_URL into the vitest environment only (never affects production).
+
+Replace the entire contents of artifacts/api-server/vitest.config.ts with:
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    environment: "node",
+    include: ["src/**/*.test.ts"],
+    // Unit tests target pure functions and never connect to the DB, but importing
+    // route modules pulls in the db client at module-load time, which throws when
+    // DATABASE_URL is unset (CI, fresh clones). Inject a dummy value so modules
+    // load; no real connection is ever made.
+    env: {
+      DATABASE_URL: "postgresql://unit-test:unit-test@localhost:5432/unit-test",
+      NODE_ENV: "test",
+    },
+  },
+});
+
+Verify before committing: pnpm --filter @workspace/api-server run test → must show Test Files 3 passed (3) / Tests 44 passed (44) (was 1 failed | 2 passed, 32 tests, exit 1).
+
+Commit message: ci: unblock unit tests in CI — inject dummy DATABASE_URL so route modules load
+
+After push, the Verify job in GitHub Actions should go green for the first time. Do not change anything else.
+✂️ MESSAGE 2 — Option A: accept + document the moderate CVE
+Task: document the accepted moderate CVE (GHSA-8988-4f7v-96qf) in SECURITY.md
+
+The dual pnpm override in 2ed51c5 is correct and must stay (a single global @opentelemetry/core>=2.8.0 crashes the server at startup). Its one cost is a residual moderate finding on the isolated sdk-trace-base>core@1.x path. This is a deliberate, documented acceptance — record it so the IC/audit trail is clean. Do not modify pnpm-workspace.yaml.
+
+Append a new top-level section to the end of SECURITY.md:
+
+ Known Accepted Vulnerabilities
+
+Security findings deliberately accepted with documented rationale, pending upstream remediation. Each is reviewed at its stated trigger.
+
+ ACCEPTED — GHSA-8988-4f7v-96qf (moderate)
+
+| Field | Value |
+|---|---|
+| Advisory | [GHSA-8988-4f7v-96qf](https://github.com/advisories/GHSA-8988-4f7v-96qf) — OpenTelemetry Core: unbounded memory allocation in W3C Baggage propagation |
+| Severity | Moderate |
+| Affected path | `@sentry/node` → `@opentelemetry/sdk-trace-base` → `@opentelemetry/core@1.x` |
+| Status | Accepted (documented) |
+| Accepted | 2026-07-22 |
+| Owner | Rahul Sharma, Corp Dev & Strategy |
+
+**Why it is not patched.** Fixing the CVE requires `@opentelemetry/core >= 2.8.0`. But `@sentry/node@9` depends on `@opentelemetry/sdk-trace-base@1.30.1`, which imports `TracesSamplerValues` — an export **removed in core@2.x**. Forcing core@2.x globally crashes the api-server at startup. The current dual override keeps Sentry's direct dependency on patched core@2.x while isolating `sdk-trace-base` on core@1.x so the server boots; the vulnerable instance is that isolated consumer only.
+
+**Risk assessment.** This is a denial-of-service vector (memory exhaustion via crafted `baggage:` HTTP headers) — an **availability** issue, not confidentiality or integrity. It does not expose deal data (MNPI). Ringside is internal, behind authentication, and not internet-exposed in its deployment posture. Practical exploitability is low.
+
+**Compensating controls.** Authenticated access only; internal deployment; Sentry error monitoring active. CI runs `pnpm audit --prod --audit-level high`, so this moderate finding does not gate the pipeline by design — it is tracked here instead.
+
+**Review trigger.** Re-evaluate at every `@sentry/node` bump. When Sentry migrates `sdk-trace-base` to `core@2.x` (or OpenTelemetry backports the fix to 1.x), remove the path-specific override `@opentelemetry/sdk-trace-base>@opentelemetry/core` and restore a single global `@opentelemetry/core: ">=2.8.0"`; this finding then closes.
+
+Commit message: docs(security): record accepted moderate CVE GHSA-8988-4f7v-96qf (OTEL/Sentry dual-override)

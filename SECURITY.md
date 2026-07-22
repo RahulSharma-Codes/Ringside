@@ -71,3 +71,28 @@ CVEs are remediated before release.
 - Social engineering or phishing attacks targeting Manipal Group employees
   (report to HR / InfoSec directly)
 - Issues requiring physical access to Manipal Group facilities
+
+---
+
+## Known Accepted Vulnerabilities
+
+Security findings deliberately accepted with documented rationale, pending upstream remediation. Each is reviewed at its stated trigger.
+
+### ACCEPTED — GHSA-8988-4f7v-96qf (moderate)
+
+| Field | Value |
+|---|---|
+| Advisory | [GHSA-8988-4f7v-96qf](https://github.com/advisories/GHSA-8988-4f7v-96qf) — OpenTelemetry Core: unbounded memory allocation in W3C Baggage propagation |
+| Severity | Moderate |
+| Affected path | `@sentry/node` → `@opentelemetry/sdk-trace-base` → `@opentelemetry/core@1.x` |
+| Status | Accepted (documented) |
+| Accepted | 2026-07-22 |
+| Owner | Rahul Sharma, Corp Dev & Strategy |
+
+**Why it is not patched.** Fixing the CVE requires `@opentelemetry/core >= 2.8.0`. But `@sentry/node@9` depends on `@opentelemetry/sdk-trace-base@1.30.1`, which imports `TracesSamplerValues` — an export **removed in core@2.x**. Forcing core@2.x globally crashes the api-server at startup. The current dual override keeps Sentry's direct dependency on patched core@2.x while isolating `sdk-trace-base` on core@1.x so the server boots; the vulnerable instance is that isolated consumer only.
+
+**Risk assessment.** This is a denial-of-service vector (memory exhaustion via crafted `baggage:` HTTP headers) — an **availability** issue, not confidentiality or integrity. It does not expose deal data (MNPI). Ringside is internal, behind authentication, and not internet-exposed in its deployment posture. Practical exploitability is low.
+
+**Compensating controls.** Authenticated access only; internal deployment; Sentry error monitoring active. CI runs `pnpm audit --prod --audit-level high`, so this moderate finding does not gate the pipeline by design — it is tracked here instead.
+
+**Review trigger.** Re-evaluate at every `@sentry/node` bump. When Sentry migrates `sdk-trace-base` to `core@2.x` (or OpenTelemetry backports the fix to 1.x), remove the path-specific override `@opentelemetry/sdk-trace-base>@opentelemetry/core` and restore a single global `@opentelemetry/core: ">=2.8.0"`; this finding then closes.
