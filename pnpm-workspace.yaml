@@ -165,3 +165,10 @@ overrides:
   "vite>picomatch": ">=4.0.4"
   # Security: fix memory exhaustion DoS in ws <8.21.0 (CVE-2026-48779)
   ws: ">=8.21.0"
+  # Security: fix path-to-regexp DoS via sequential optional groups and multiple wildcards
+  # (GHSA-j3q9-mxjg-w52f, GHSA-27v5-c462-wpq7) — only consumer in prod is express>router
+  path-to-regexp: ">=8.4.0"
+  # Security: fix brace-expansion DoS via exponential expansion (GHSA-3jxr-9vmj-r5cp)
+  # Forces both the v1 and v2 vulnerable chains to a patched v2; brace-expansion v2 is
+  # backwards-compatible for the glob patterns used by archiver/exceljs in this codebase.
+  brace-expansion: ">=2.1.2"
