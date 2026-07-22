@@ -39,7 +39,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useUpdateTargetStage, useReorderTargets } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useUpdateTargetStage, useReorderTargets, getListTargetsQueryKey } from "@workspace/api-client-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -545,6 +546,7 @@ export function PipelineKanban({
   // Snapshot of the stage's order at drag-start — used to rollback on cancel/failure
   const preDragOrderRef = useRef<{ stage: string; order: number[] } | null>(null);
 
+  const queryClient = useQueryClient();
   const changeStage = useUpdateTargetStage();
   const reorderMutation = useReorderTargets();
 
@@ -805,6 +807,7 @@ export function PipelineKanban({
         title: "Stage updated",
         description: `${pending.target.projectName ?? pending.target.targetCode} moved to ${newStage}.`,
       });
+      void queryClient.invalidateQueries({ queryKey: getListTargetsQueryKey() });
       onRefresh?.();
     } catch {
       setOptimisticStages(prev => {

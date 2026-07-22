@@ -230,7 +230,9 @@ export function ActionsTab({ targetId, addOpen, onAddOpenChange }: ActionsTabPro
       {
         onSuccess: () => {
           toast({ title: "Action Updated" });
-          setEditActionOpen(false); invalidateActions();
+          setEditActionOpen(false);
+          invalidateActions();
+          qc.invalidateQueries({ queryKey: ["actions-command-center"] });
         },
         onError: () => toast({ title: "Error", description: "Could not update action", variant: "destructive" }),
       }
@@ -245,6 +247,7 @@ export function ActionsTab({ targetId, addOpen, onAddOpenChange }: ActionsTabPro
         onSuccess: () => {
           toast({ title: newStatus === "Completed" ? "Marked Complete" : "Reopened" });
           invalidateActions();
+          qc.invalidateQueries({ queryKey: ["actions-command-center"] });
         },
         onError: () => toast({ title: "Error", description: "Could not update action", variant: "destructive" }),
       }

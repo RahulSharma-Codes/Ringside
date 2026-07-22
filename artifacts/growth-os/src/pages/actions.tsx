@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useUpdateAction, customFetch } from "@workspace/api-client-react";
+import { useUpdateAction, customFetch, getListActionsQueryKey } from "@workspace/api-client-react";
 import { Link } from "wouter";
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -336,17 +336,21 @@ export default function Actions() {
   const updateAction = useUpdateAction();
 
   const handleStatus = useCallback((id: number, status: string) => {
+    const action = actions?.find((a) => a.id === id);
     updateAction.mutate(
       { id, data: { status } },
       {
         onSuccess: () => {
           toast({ title: status === "Completed" ? "Action completed" : "Action reopened" });
           queryClient.invalidateQueries({ queryKey: ["actions-command-center"] });
+          if (action?.targetId) {
+            queryClient.invalidateQueries({ queryKey: getListActionsQueryKey(action.targetId) });
+          }
         },
         onError: () => toast({ title: "Error updating action", variant: "destructive" }),
       },
     );
-  }, [updateAction, toast, queryClient]);
+  }, [updateAction, toast, queryClient, actions]);
 
   const handleComplete = useCallback((id: number) => handleStatus(id, "Completed"), [handleStatus]);
   const handleReopen   = useCallback((id: number) => handleStatus(id, "Open"), [handleStatus]);

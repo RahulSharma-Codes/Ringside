@@ -13,6 +13,7 @@ import {
 import { computeAvgAssessedScore } from "@/lib/score-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { type DealCardData } from "@/components/deal-card";
 import { SkeletonCard } from "@/components/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -116,20 +117,20 @@ export default function Dashboard() {
       .slice(0, 5);
   }, [myActions, todayStr, weekEndStr]);
 
-  const { data: summary, isLoading: loadingSummary } = useGetDashboardSummary({
+  const { data: summary, isLoading: loadingSummary, isError: errorSummary, refetch: refetchSummary } = useGetDashboardSummary({
     query: { queryKey: getGetDashboardSummaryQueryKey() },
   });
 
-  const { data: stageData, isLoading: loadingStages } = useGetTargetsByStage({
+  const { data: stageData, isLoading: loadingStages, isError: errorStages, refetch: refetchStages } = useGetTargetsByStage({
     query: { queryKey: getGetTargetsByStageQueryKey() },
   });
 
-  const { data: topTargets, isLoading: loadingTop } = useGetTopPriorityTargets(
+  const { data: topTargets, isLoading: loadingTop, isError: errorTop, refetch: refetchTop } = useGetTopPriorityTargets(
     { limit: 5 },
     { query: { queryKey: getGetTopPriorityTargetsQueryKey({ limit: 5 }) } },
   );
 
-  const { data: attentionTargets, isLoading: loadingAttention } = useGetTargetsNeedingAttention({
+  const { data: attentionTargets, isLoading: loadingAttention, isError: errorAttention, refetch: refetchAttention } = useGetTargetsNeedingAttention({
     query: { queryKey: getGetTargetsNeedingAttentionQueryKey() },
   });
 
@@ -215,6 +216,21 @@ export default function Dashboard() {
       <div className="px-4 md:px-6 space-y-4 md:space-y-5">
 
         {/* ── 4-up KPI strip ────────────────────────────────────── */}
+        {errorSummary ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {(["Total Pipeline", "Active Deals", "Open Actions", "Avg Score"] as const).map((label) => (
+              <Card key={label} className="rounded-xl bg-card border-border/80 overflow-hidden">
+                <CardContent className="px-4 py-5 flex flex-col items-center justify-center gap-2 text-center min-h-[84px]">
+                  <AlertCircle size={14} className="text-destructive/50" />
+                  <p className="text-[11px] font-sans text-muted-foreground">Couldn't load.</p>
+                  <Button size="sm" variant="outline" className="h-6 text-[10px] rounded-lg px-2" onClick={() => void refetchSummary()}>
+                    <RefreshCw size={9} className="mr-1" /> Retry
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {/* 1 · Total Pipeline */}
           <Card className="kpi-accent-blue rounded-xl bg-card border-border/80 overflow-hidden">
@@ -298,6 +314,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+        )}
 
         {/* ── Primary chart row ─────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -316,7 +333,15 @@ export default function Dashboard() {
               </div>
             </CardHeader>
             <CardContent className="px-2 pt-3 pb-2">
-              {loadingStages ? (
+              {errorStages ? (
+                <div className="flex h-44 flex-col items-center justify-center gap-2 text-center">
+                  <AlertCircle size={14} className="text-destructive/50" />
+                  <p className="text-[11px] font-sans text-muted-foreground">Couldn't load stage data.</p>
+                  <Button size="sm" variant="outline" className="h-6 text-[10px] rounded-lg px-2" onClick={() => void refetchStages()}>
+                    <RefreshCw size={9} className="mr-1" /> Retry
+                  </Button>
+                </div>
+              ) : loadingStages ? (
                 <Skeleton className="w-full h-44" />
               ) : stageChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={stageChartData.length * 36 + 16}>
@@ -517,6 +542,14 @@ export default function Dashboard() {
               <div className="p-3 space-y-2">
                 {Array(5).fill(0).map((_, i) => <SkeletonCard key={i} />)}
               </div>
+            ) : errorTop ? (
+              <div className="flex h-24 flex-col items-center justify-center gap-2 text-center p-4">
+                <AlertCircle size={14} className="text-destructive/50" />
+                <p className="text-[11px] font-sans text-muted-foreground">Couldn't load top deals.</p>
+                <Button size="sm" variant="outline" className="h-6 text-[10px] rounded-lg px-2" onClick={() => void refetchTop()}>
+                  <RefreshCw size={9} className="mr-1" /> Retry
+                </Button>
+              </div>
             ) : topTargets && topTargets.length > 0 ? (
               <div className="divide-y divide-border/40">
                 {topTargets.map((target, idx) => (
@@ -638,6 +671,14 @@ export default function Dashboard() {
             {loadingAttention ? (
               <div className="space-y-2">
                 {Array(3).fill(0).map((_, i) => <SkeletonCard key={i} />)}
+              </div>
+            ) : errorAttention ? (
+              <div className="flex items-center justify-center gap-3 p-4 rounded-xl border border-destructive/20 bg-destructive/5">
+                <AlertCircle size={14} className="text-destructive/50 shrink-0" />
+                <p className="text-[11px] font-sans text-muted-foreground">Couldn't load attention data.</p>
+                <Button size="sm" variant="outline" className="h-6 text-[10px] rounded-lg px-2" onClick={() => void refetchAttention()}>
+                  <RefreshCw size={9} className="mr-1" /> Retry
+                </Button>
               </div>
             ) : attentionTargets && attentionTargets.length > 0 ? (
               <Card className="rounded-xl bg-card border-border/80 overflow-hidden">
