@@ -353,22 +353,30 @@ test("Kanban drag — stage change persists in target detail after refetch", asy
   // Dialog must close after the API call succeeds.
   await expect(dialog).not.toBeVisible({ timeout: 15_000 });
 
-  // ── Persistence check via target detail page ──────────────────────────
+  // Allow React-Query invalidation to propagate so the DB write is durable.
+  // (The dialog close is triggered client-side after the API 200 — a short
+  // settle wait avoids checking the DB before the write is flushed.)
+  await page.waitForTimeout(800);
 
-  // Navigate to the target's detail page (fresh GET, not cached state).
-  await page.goto(`/targets/${targetId}`);
-  await expect(page.locator('[role="tablist"]')).toBeVisible({ timeout: 15_000 });
-
-  // The target's name must be visible (confirms correct page loaded).
-  await expect(page.getByText(targetName, { exact: false })).toBeVisible({
-    timeout: 10_000,
+  // ── Persistence check via API (proves DB mutation, not React state) ────
+  //
+  // GET /api/targets/:id returns { currentStage, ... } directly from the DB.
+  // This is the only reliable check — target detail's stage rail lists ALL
+  // pipeline stages visually, so getByText(destinationStage) can match even
+  // when the record's currentStage hasn't changed.
+  const apiResp = await request.get(`/api/targets/${targetId}`, {
+    headers: authHeader(),
   });
+  expect(
+    apiResp.ok(),
+    `GET /api/targets/${targetId} must succeed after stage change`
+  ).toBe(true);
 
-  // The stage indicator must show the new stage ("Outreach").
-  // Target detail renders the current stage as a badge/button in the header area.
-  await expect(
-    page.getByText(destinationStage, { exact: false }).first()
-  ).toBeVisible({ timeout: 10_000 });
+  const apiBody = (await apiResp.json()) as { currentStage?: string };
+  expect(
+    apiBody.currentStage,
+    `DB must record currentStage="${destinationStage}" after Kanban drag-confirm`
+  ).toBe(destinationStage);
 });
 
 // ══════════════════════════════════════════════════════════════════════════
