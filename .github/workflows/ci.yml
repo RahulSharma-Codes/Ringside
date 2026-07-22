@@ -50,3 +50,102 @@ jobs:
 
       - name: Audit production dependencies
         run: pnpm audit --prod --audit-level high
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: verify
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build — api-server
+        run: pnpm --filter @workspace/api-server run build
+        env:
+          PORT: 8080
+
+      - name: Build — growth-os frontend
+        run: pnpm --filter @workspace/growth-os run build
+        env:
+          PORT: 3000
+          BASE_PATH: /
+
+      - name: Start PostgreSQL via Docker Compose
+        run: docker compose up -d postgres
+
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          for i in $(seq 1 30); do
+            docker compose exec -T postgres pg_isready -U postgres && break
+            echo "Waiting for postgres... ($i/30)"
+            sleep 2
+          done
+
+      - name: Start API server
+        env:
+          PORT: "8080"
+          NODE_ENV: development
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGUSER: postgres
+          PGPASSWORD: changeme
+          PGDATABASE: ringside
+          SESSION_SECRET: "${{ github.sha }}-ci-test-session-secret-extra"
+          BOOTSTRAP_ADMIN_EMAIL: rahul.sharma@manipalgroup.info
+          BOOTSTRAP_ADMIN_PASSWORD: "Ringside@123"
+        run: |
+          node --enable-source-maps artifacts/api-server/dist/index.mjs &
+          echo $! > /tmp/api.pid
+
+      - name: Configure nginx reverse proxy
+        run: |
+          # Write nginx config: /api → api-server, / → built growth-os static files
+          printf 'server {\n  listen 80;\n  location /api {\n    proxy_pass http://localhost:8080;\n    proxy_set_header Host $http_host;\n    proxy_set_header X-Real-IP $remote_addr;\n  }\n  location / {\n    root %s/artifacts/growth-os/dist/public;\n    try_files $uri $uri/ /index.html;\n  }\n}\n' \
+            "$GITHUB_WORKSPACE" \
+            | sudo tee /etc/nginx/sites-available/ringside > /dev/null
+          sudo ln -sf /etc/nginx/sites-available/ringside /etc/nginx/sites-enabled/ringside
+          sudo rm -f /etc/nginx/sites-enabled/default
+          sudo nginx -t
+          sudo systemctl reload nginx
+
+      - name: Wait for API to be fully ready (migrations complete)
+        run: |
+          echo "Waiting for /api/readyz..."
+          for i in $(seq 1 40); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/readyz || true)
+            [ "$STATUS" = "200" ] && echo "API ready." && break
+            echo "  attempt $i: HTTP $STATUS — retrying in 3s"
+            sleep 3
+          done
+          # Final check — fail fast if API never became ready
+          curl -fs http://localhost:8080/api/readyz || { echo "API did not become ready"; exit 1; }
+
+      - name: Install Playwright browsers (Chromium + system deps)
+        run: pnpm --filter @workspace/tests run install:browsers
+
+      - name: Run E2E tests
+        run: pnpm --filter @workspace/tests run test
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: tests/playwright-report/
+          retention-days: 7
