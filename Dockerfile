@@ -5,7 +5,10 @@
 FROM node:24-alpine AS builder
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+# Pin pnpm to the same version used in Replit (10.26.1). Without an explicit
+# pin, corepack downloads the latest pnpm (11.x), which treats ERR_PNPM_IGNORED_BUILDS
+# as a fatal error and breaks `pnpm install --frozen-lockfile` in the build stage.
+RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
 
 WORKDIR /workspace
 
