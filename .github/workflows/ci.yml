@@ -54,7 +54,7 @@ jobs:
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     needs: verify
 
     steps:
@@ -75,47 +75,52 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build — api-server
-        run: pnpm --filter @workspace/api-server run build
-        env:
-          PORT: 8080
-
-      - name: Build — growth-os frontend
+      - name: Build growth-os frontend (static files for nginx)
         run: pnpm --filter @workspace/growth-os run build
         env:
           PORT: 3000
           BASE_PATH: /
 
-      - name: Start PostgreSQL via Docker Compose
-        run: docker compose up -d postgres
-
-      - name: Wait for PostgreSQL to be ready
-        run: |
-          for i in $(seq 1 30); do
-            docker compose exec -T postgres pg_isready -U postgres && break
-            echo "Waiting for postgres... ($i/30)"
-            sleep 2
-          done
-
-      - name: Start API server
+      # ── Backend stack via Docker Compose ─────────────────────────────────
+      # docker-compose.yml (Task #306) builds the api image from the repo
+      # Dockerfile and starts postgres + api as a health-checked pair.
+      # We skip backup-worker because it requires GCS credentials not needed
+      # for functional E2E testing.
+      - name: Build and start backend stack via Docker Compose
         env:
-          PORT: "8080"
-          NODE_ENV: development
-          PGHOST: localhost
-          PGPORT: "5432"
-          PGUSER: postgres
+          # postgres container password — must match the api service's PGPASSWORD
           PGPASSWORD: changeme
-          PGDATABASE: ringside
-          SESSION_SECRET: "${{ github.sha }}-ci-test-session-secret-extra"
+          # SESSION_SECRET must be ≥ 32 chars; github.sha is 40 hex chars
+          SESSION_SECRET: "${{ github.sha }}-ci-ringside-secret"
+          # Bootstrap admin account — must match the playwright global-setup
+          # dev-fallback credentials (rahul.sharma@manipalgroup.info / Ringside@123)
+          # so tests can log in without requiring TEST_EMAIL / TEST_PASSWORD overrides.
           BOOTSTRAP_ADMIN_EMAIL: rahul.sharma@manipalgroup.info
           BOOTSTRAP_ADMIN_PASSWORD: "Ringside@123"
-        run: |
-          node --enable-source-maps artifacts/api-server/dist/index.mjs &
-          echo $! > /tmp/api.pid
+        run: docker compose up --build -d postgres api
 
+      - name: Wait for API readiness (migrations complete + DB reachable)
+        run: |
+          echo "Waiting for /api/readyz to return 200..."
+          for i in $(seq 1 60); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/readyz || true)
+            if [ "$STATUS" = "200" ]; then
+              echo "API ready after attempt $i."
+              break
+            fi
+            echo "  attempt $i: HTTP $STATUS — retrying in 5s"
+            sleep 5
+          done
+          # Hard fail if API never became ready
+          curl -fs http://localhost:8080/api/readyz \
+            || { echo "ERROR: API did not become ready after 5 minutes"; docker compose logs api; exit 1; }
+
+      # ── nginx reverse proxy ───────────────────────────────────────────────
+      # Routes /api → Docker api container on host port 8080
+      # Routes /    → built growth-os static files (dist/public)
+      # This mirrors the Replit shared proxy and lets Playwright use baseURL=http://localhost:80
       - name: Configure nginx reverse proxy
         run: |
-          # Write nginx config: /api → api-server, / → built growth-os static files
           printf 'server {\n  listen 80;\n  location /api {\n    proxy_pass http://localhost:8080;\n    proxy_set_header Host $http_host;\n    proxy_set_header X-Real-IP $remote_addr;\n  }\n  location / {\n    root %s/artifacts/growth-os/dist/public;\n    try_files $uri $uri/ /index.html;\n  }\n}\n' \
             "$GITHUB_WORKSPACE" \
             | sudo tee /etc/nginx/sites-available/ringside > /dev/null
@@ -123,18 +128,9 @@ jobs:
           sudo rm -f /etc/nginx/sites-enabled/default
           sudo nginx -t
           sudo systemctl reload nginx
-
-      - name: Wait for API to be fully ready (migrations complete)
-        run: |
-          echo "Waiting for /api/readyz..."
-          for i in $(seq 1 40); do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/readyz || true)
-            [ "$STATUS" = "200" ] && echo "API ready." && break
-            echo "  attempt $i: HTTP $STATUS — retrying in 3s"
-            sleep 3
-          done
-          # Final check — fail fast if API never became ready
-          curl -fs http://localhost:8080/api/readyz || { echo "API did not become ready"; exit 1; }
+          # Sanity check: proxy reaches the API health endpoint
+          curl -fs http://localhost:80/api/healthz \
+            || { echo "ERROR: nginx proxy to /api not working"; exit 1; }
 
       - name: Install Playwright browsers (Chromium + system deps)
         run: pnpm --filter @workspace/tests run install:browsers
@@ -149,3 +145,7 @@ jobs:
           name: playwright-report
           path: tests/playwright-report/
           retention-days: 7
+
+      - name: Print Docker Compose logs on failure
+        if: failure()
+        run: docker compose logs api postgres

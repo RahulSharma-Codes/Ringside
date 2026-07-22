@@ -3,20 +3,19 @@
  *
  * Covers the 5 highest-traffic mutation operations:
  *   1. Create new deal  (/new-target form → redirects to target detail)
- *   2. Add diligence item  (Diligence tab → item persists after reload)
+ *   2. Edit diligence item status  (toggle Open → Done, persists after reload)
  *   3. Add IC session  (IC tab → session persists after reload)
- *   4. Kanban drag-to-stage  (Board view → stage change confirmed & persisted)
- *   5. CSV import  (Import Wizard full flow → Done step shows created count)
+ *   4. Kanban drag-to-stage  (Board view → stage change confirmed, persists in target detail)
+ *   5. CSV import  (Import Wizard full flow → target appears in pipeline list)
  *
  * Each test:
  *   - Injects a pre-fetched JWT via localStorage (written by global-setup).
  *   - Performs the write through the UI.
- *   - Asserts the persisted result is visible after a hard reload or navigation,
- *     not just that the dialog closed.
+ *   - Asserts the persisted result is visible after a hard reload or fresh
+ *     navigation, not just that the dialog closed.
  *
- * Self-contained: tests that need an existing target create one via the
- * Playwright APIRequestContext rather than relying on seeded fixtures.
- * This means the suite works against a completely empty CI database.
+ * Self-contained: tests that need an existing target / item create one via
+ * the Playwright APIRequestContext so the suite works against an empty CI DB.
  *
  * Data isolation: unique 6-digit timestamp suffix in all synthetic names.
  * No teardown — data accumulates in the dev/CI DB across runs.
@@ -84,9 +83,32 @@ async function createTestTarget(
   });
   if (!resp.ok()) {
     const body = await resp.text();
-    throw new Error(
-      `createTestTarget failed ${resp.status()}: ${body}`
-    );
+    throw new Error(`createTestTarget failed ${resp.status()}: ${body}`);
+  }
+  const body = (await resp.json()) as { id: number };
+  return body.id;
+}
+
+/**
+ * Create a diligence item via the API and return the item id.
+ * Requires an existing target.
+ */
+async function createDiligenceItem(
+  request: APIRequestContext,
+  targetId: number,
+  description: string
+): Promise<number> {
+  const resp = await request.post(`/api/targets/${targetId}/diligence`, {
+    headers: authHeader(),
+    data: {
+      workstream: "Commercial",
+      description,
+      status: "Open",
+    },
+  });
+  if (!resp.ok()) {
+    const body = await resp.text();
+    throw new Error(`createDiligenceItem failed ${resp.status()}: ${body}`);
   }
   const body = (await resp.json()) as { id: number };
   return body.id;
@@ -139,15 +161,18 @@ test("Create new deal — form persists project name after reload", async ({
 });
 
 // ══════════════════════════════════════════════════════════════════════════
-// 2. ADD DILIGENCE ITEM
+// 2. EDIT DILIGENCE ITEM STATUS
 // ══════════════════════════════════════════════════════════════════════════
 
-test("Add diligence item — item persists in workstream list after reload", async ({
+test("Edit diligence item status — toggle Open → Done persists after reload", async ({
   page,
   request,
 }) => {
   const targetId = await createTestTarget(request, `DLG-${RUN_ID}`);
-  const itemDesc = `E2E Diligence ${RUN_ID}`;
+  const itemDesc = `E2E Status Test ${RUN_ID}`;
+
+  // Seed one Open diligence item via the API so we have something to edit.
+  await createDiligenceItem(request, targetId, itemDesc);
 
   await injectTokenAndGo(page, `/targets/${targetId}`);
 
@@ -159,35 +184,39 @@ test("Add diligence item — item persists in workstream list after reload", asy
   // Click the Diligence tab.
   await clickTabAndWait(page, /diligence/i);
 
-  // Open the "Add Item" dialog.
-  const addItemBtn = page.getByRole("button", { name: /add item/i }).first();
-  await expect(addItemBtn).toBeVisible({ timeout: 8_000 });
-  await addItemBtn.click();
-
-  // Dialog "Add Diligence Item" must open.
-  const dialog = page.getByRole("dialog", { name: /add diligence item/i });
-  await expect(dialog).toBeVisible({ timeout: 6_000 });
-
-  // Fill the description field (required).
-  await dialog
-    .locator('input[placeholder="What needs to be done?"]')
-    .fill(itemDesc);
-
-  // Submit — the dialog's submit button is also labelled "Add Item".
-  await dialog.getByRole("button", { name: /add item/i }).click();
-
-  // Dialog closes; new item must appear in the workstream list.
-  await expect(dialog).not.toBeVisible({ timeout: 8_000 });
+  // The seeded item must be visible.
   await expect(page.getByText(itemDesc, { exact: false })).toBeVisible({
     timeout: 10_000,
   });
 
-  // Hard-reload and re-assert — confirms DB persistence, not React state.
+  // The Commercial workstream may be collapsed — expand it if needed.
+  const doneBtn = page.getByRole("button", { name: /^done$/i }).first();
+  if (!(await doneBtn.isVisible().catch(() => false))) {
+    // Click the "Commercial" section header to expand it.
+    const wsHeader = page.getByText("Commercial", { exact: true }).first();
+    if (await wsHeader.isVisible()) await wsHeader.click();
+    await expect(doneBtn).toBeVisible({ timeout: 5_000 });
+  }
+
+  // Click "Done" — toggles status from Open → Completed.
+  await doneBtn.click();
+
+  // The status text "Completed" must appear in the row (the badge changes).
+  await expect(
+    page.getByText(/completed/i, { exact: false }).first()
+  ).toBeVisible({ timeout: 10_000 });
+
+  // Hard-reload and re-check — confirms DB persistence, not React state.
   await page.reload();
   await clickTabAndWait(page, /diligence/i);
+
+  // The item must still be present and its status must still read "Completed".
   await expect(page.getByText(itemDesc, { exact: false })).toBeVisible({
     timeout: 15_000,
   });
+  await expect(
+    page.getByText(/completed/i, { exact: false }).first()
+  ).toBeVisible({ timeout: 10_000 });
 });
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -248,13 +277,15 @@ test("Add IC session — session persists in sessions list after reload", async 
 // 4. KANBAN DRAG TO STAGE
 // ══════════════════════════════════════════════════════════════════════════
 
-test("Kanban drag — stage-change dialog appears, confirms, and card persists", async ({
+test("Kanban drag — stage change persists in target detail after refetch", async ({
   page,
   request,
 }) => {
-  // Ensure at least one draggable card exists by creating a fresh target in
-  // the "Sourcing" stage (the first active stage column).
-  await createTestTarget(request, `KBN-${RUN_ID}`);
+  // Create a fresh Sourcing-stage target so we always have one draggable card.
+  const targetId = await createTestTarget(request, `KBN-${RUN_ID}`);
+  const targetName = `E2E Target KBN-${RUN_ID}`;
+  // Destination stage — must be different from "Sourcing".
+  const destinationStage = "Outreach";
 
   await injectTokenAndGo(page, "/pipeline");
 
@@ -263,67 +294,51 @@ test("Kanban drag — stage-change dialog appears, confirms, and card persists",
   await expect(boardBtn).toBeVisible({ timeout: 10_000 });
   await boardBtn.click();
 
-  // Wait for at least one draggable card (active-stage cards only).
-  const draggable = page.locator(".cursor-grab").first();
-  await expect(draggable).toBeVisible({ timeout: 15_000 });
+  // Find the card for our specific target (by project name fragment).
+  const myCard = page.locator(".cursor-grab").filter({ hasText: `KBN-${RUN_ID}` });
+  await expect(myCard).toBeVisible({ timeout: 15_000 });
 
-  const cardBox = await draggable.boundingBox();
+  const cardBox = await myCard.boundingBox();
   if (!cardBox) {
-    test.skip(true, "Could not obtain card bounding box — skipping");
+    test.skip(true, "Could not get card bounding box — skipping");
     return;
   }
 
-  // Find a stage-column heading that is clearly in a different column
-  // (x-position differs from the card's column by more than 50px).
-  const stageNames = [
-    "Outreach",
-    "Sourcing",
-    "Introductory Discussion",
-    "NDA",
-    "Management Presentation",
-  ];
-  let targetBox: { x: number; y: number; width: number; height: number } | null =
-    null;
-
-  for (const name of stageNames) {
-    const heading = page.getByText(name, { exact: false }).first();
-    if (!(await heading.isVisible().catch(() => false))) continue;
-    const box = await heading.boundingBox();
-    if (!box) continue;
-    if (Math.abs(box.x - cardBox.x) > 50) {
-      targetBox = box;
-      break;
-    }
-  }
-
-  if (!targetBox) {
-    test.skip(true, "Could not find a distinct target column — skipping");
+  // Find the "Outreach" column heading on the board.
+  const outreachHeading = page.getByText(destinationStage, { exact: true }).first();
+  await expect(outreachHeading).toBeVisible({ timeout: 8_000 });
+  const headingBox = await outreachHeading.boundingBox();
+  if (!headingBox) {
+    test.skip(true, "Could not locate Outreach column heading — skipping");
     return;
   }
 
   // Simulate the drag.
   // dnd-kit's PointerSensor uses activationConstraint: { delay: 200, tolerance: 8 }.
-  // We must hold the pointer for ≥ 200 ms before moving to activate the drag.
+  // The pointer must be held for ≥ 200 ms before moving to activate the drag.
   const startX = cardBox.x + cardBox.width / 2;
   const startY = cardBox.y + cardBox.height / 2;
-  const endX = targetBox.x + targetBox.width / 2;
-  // Drop into the column body (below the heading row).
-  const endY = targetBox.y + 120;
+  const endX = headingBox.x + headingBox.width / 2;
+  // Drop into the column body below the heading row.
+  const endY = headingBox.y + 120;
 
   await page.mouse.move(startX, startY);
   await page.mouse.down();
   await page.waitForTimeout(350); // past the 200 ms activation delay
-  await page.mouse.move(endX, endY, { steps: 30 }); // smooth movement triggers drag events
+  await page.mouse.move(endX, endY, { steps: 30 }); // smooth movement
   await page.mouse.up();
 
-  // The KanbanStageChangeDialog should appear ("Move to …?" heading).
+  // KanbanStageChangeDialog must appear ("Move to Outreach?" heading).
   const dialog = page.getByRole("dialog");
   const dialogVisible = await dialog.isVisible({ timeout: 8_000 }).catch(() => false);
 
   if (!dialogVisible) {
-    // Drag didn't activate in this environment (e.g. headless pointer-events
-    // not supported as expected). Skip gracefully rather than hard-failing CI.
-    test.skip(true, "Stage-change dialog did not appear — skipping Kanban drag");
+    test.skip(
+      true,
+      "Stage-change dialog did not appear after drag — " +
+      "pointer-event simulation may not activate dnd-kit in this environment. " +
+      "See follow-up task #315."
+    );
     return;
   }
 
@@ -334,7 +349,6 @@ test("Kanban drag — stage-change dialog appears, confirms, and card persists",
   await reasonCombobox.click();
   const firstOption = page.getByRole("option").first();
   await expect(firstOption).toBeVisible({ timeout: 5_000 });
-  const chosenStage = (await firstOption.textContent()) ?? "";
   await firstOption.click();
 
   // Confirm the stage change.
@@ -345,26 +359,29 @@ test("Kanban drag — stage-change dialog appears, confirms, and card persists",
   // Dialog must close after the API call succeeds.
   await expect(dialog).not.toBeVisible({ timeout: 15_000 });
 
-  // Navigate away and back to confirm the stage change was persisted
-  // (card would have snapped back to its original column on API failure).
-  await page.goto("/pipeline");
-  await boardBtn.click();
+  // ── Persistence check via target detail page ──────────────────────────
 
-  if (chosenStage) {
-    // The chosen stage heading must still be visible on the board.
-    await expect(
-      page.getByText(chosenStage, { exact: false }).first()
-    ).toBeVisible({ timeout: 12_000 });
-  }
-  // At minimum, the board loaded again without error.
-  await expect(draggable).toBeVisible({ timeout: 12_000 });
+  // Navigate to the target's detail page (fresh GET, not cached state).
+  await page.goto(`/targets/${targetId}`);
+  await expect(page.locator('[role="tablist"]')).toBeVisible({ timeout: 15_000 });
+
+  // The target's name must be visible (confirms correct page loaded).
+  await expect(page.getByText(targetName, { exact: false })).toBeVisible({
+    timeout: 10_000,
+  });
+
+  // The stage indicator must show the new stage ("Outreach").
+  // Target detail renders the current stage as a badge/button in the header area.
+  await expect(
+    page.getByText(destinationStage, { exact: false }).first()
+  ).toBeVisible({ timeout: 10_000 });
 });
 
 // ══════════════════════════════════════════════════════════════════════════
 // 5. CSV IMPORT WIZARD
 // ══════════════════════════════════════════════════════════════════════════
 
-test("CSV import wizard — creates target and shows success summary", async ({
+test("CSV import wizard — creates target visible in pipeline after import", async ({
   page,
 }) => {
   const importCode = `IMP-${RUN_ID}`;
@@ -399,14 +416,14 @@ test("CSV import wizard — creates target and shows success summary", async ({
 
   // ── Step 2: Map Columns ─────────────────────────────────────────────────
 
-  // Because we used exact camelCase field names, auto-mapping already applied.
-  // The "Preview Changes" button calls /api/import/validate, then advances to
-  // the Preview step on success.
-  const continueToPreview = page.getByRole("button", {
+  // "Preview Changes" calls POST /api/import/validate, then advances to the
+  // Preview step on success. Because we used exact camelCase headers,
+  // auto-mapping already applied — no manual remapping needed.
+  const previewChangesBtn = page.getByRole("button", {
     name: /preview changes/i,
   });
-  await expect(continueToPreview).toBeVisible({ timeout: 8_000 });
-  await continueToPreview.click();
+  await expect(previewChangesBtn).toBeVisible({ timeout: 8_000 });
+  await previewChangesBtn.click();
 
   // ── Step 3: Preview ─────────────────────────────────────────────────────
 
@@ -419,27 +436,32 @@ test("CSV import wizard — creates target and shows success summary", async ({
   await expect(page.getByText(importCode, { exact: false })).toBeVisible({
     timeout: 8_000,
   });
-
   await continueToApply.click();
 
   // ── Step 4: Apply (confirmation) ────────────────────────────────────────
 
-  // The Apply step shows a summary grid (New Targets / Updates / Skipped) and
-  // a "Confirm & Import N Changes" button that calls POST /api/import/apply.
+  // "Confirm & Import N Changes" calls POST /api/import/apply.
   const applyBtn = page.getByRole("button", { name: /confirm & import/i });
   await expect(applyBtn).toBeVisible({ timeout: 8_000 });
   await applyBtn.click();
 
   // ── Step 5: Done ────────────────────────────────────────────────────────
 
-  // The Done step renders "Import Complete" heading and three count tiles:
-  //   Created / Updated / Skipped
-  // Our CSV had 1 new-code row so the Created count must be ≥ 1.
   await expect(page.getByText("Import Complete")).toBeVisible({
     timeout: 20_000,
   });
-
-  // "Created" label appears directly below the count tile — confirms the
-  // record was actually written to the database, not just held in preview.
+  // "Created" label must appear in the count tiles (≥ 1 new target written).
   await expect(page.getByText("Created")).toBeVisible({ timeout: 5_000 });
+
+  // ── Persistence check: target appears in pipeline list ─────────────────
+
+  // Click "Go to Pipeline" (Done step button) to navigate via the app router.
+  await page.getByRole("button", { name: /go to pipeline/i }).click();
+  await expect(page).toHaveURL(/\/pipeline/, { timeout: 10_000 });
+
+  // The pipeline list must contain the imported target (by project name or code).
+  // This proves the record was written to the DB, not just displayed in preview.
+  await expect(
+    page.getByText(importName, { exact: false }).first()
+  ).toBeVisible({ timeout: 15_000 });
 });
