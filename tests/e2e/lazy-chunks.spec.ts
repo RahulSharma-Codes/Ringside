@@ -333,7 +333,24 @@ test.describe("Target Detail — all tabs render (lazy sub-components)", () => {
         // Skeleton may never appear (data already cached) — that is fine
       });
 
-    // Step 3: read and assert panel text
+    // Step 3: poll until the active panel has non-empty visible text.
+    // A direct read immediately after the skeleton clears can still return ""
+    // on fast CI machines because the React re-render hasn't committed yet.
+    await page.waitForFunction(
+      () => {
+        const panels = document.querySelectorAll('[role="tabpanel"]');
+        for (const p of Array.from(panels)) {
+          const el = p as HTMLElement;
+          const s = window.getComputedStyle(el);
+          if (s.display === "none" || s.visibility === "hidden") continue;
+          if ((el.innerText?.trim().length ?? 0) > 0) return true;
+        }
+        return false;
+      },
+      undefined,
+      { timeout: 12_000, polling: 250 }
+    );
+
     const text = await activePanelText(page);
     expect(
       text.length,
