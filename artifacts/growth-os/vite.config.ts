@@ -57,6 +57,16 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "react-vendor":  ["react", "react-dom", "wouter"],
+          "query-vendor":  ["@tanstack/react-query", "@tanstack/react-table"],
+          "motion-vendor": ["framer-motion"],
+          "charts-vendor": ["recharts"],
+        },
+      },
+    },
   },
   optimizeDeps: {
     include: [

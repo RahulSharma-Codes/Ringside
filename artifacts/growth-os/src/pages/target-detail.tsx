@@ -27,21 +27,25 @@ import { Button as Btn } from "@/components/ui/button";
 import { StageRail } from "@/components/stage-rail";
 import { StageChip } from "@/components/stage-chip";
 import { HealthDot } from "@/components/health-dot";
-import { DiligenceTab } from "@/pages/target-detail-diligence";
-import { DocumentsTab } from "@/pages/target-detail-documents";
-import { ValuationTab } from "@/pages/target-detail-valuation";
-import { SynergiesTab } from "@/pages/target-detail-synergies";
-import { StakeholdersTab } from "@/pages/target-detail-stakeholders";
-import { ComplianceTab } from "@/pages/target-detail-compliance";
-import { AuditTrailTab } from "@/components/audit-trail-tab";
-import { IcTab } from "@/pages/target-detail-ic";
+// Core tabs — always eagerly bundled (default tab + two most common)
 import { OverviewTab } from "@/pages/target-detail-overview";
 import { InteractionsTab } from "@/pages/target-detail-interactions";
 import { ActionsTab } from "@/pages/target-detail-actions";
-import { HistoryTab } from "@/pages/target-detail-history";
-import { ActivityTab } from "@/pages/target-detail-activity";
+// Dialogs — always in the DOM, must be eager
 import { StageChangeDialog } from "@/pages/target-detail-stage-dialog";
 import { EditTargetDialog } from "@/pages/target-detail-edit-dialog";
+
+// Secondary tabs — lazily fetched only when the user first clicks that tab
+const HistoryTab     = React.lazy(() => import("@/pages/target-detail-history").then(m => ({ default: m.HistoryTab })));
+const DiligenceTab   = React.lazy(() => import("@/pages/target-detail-diligence").then(m => ({ default: m.DiligenceTab })));
+const DocumentsTab   = React.lazy(() => import("@/pages/target-detail-documents").then(m => ({ default: m.DocumentsTab })));
+const ValuationTab   = React.lazy(() => import("@/pages/target-detail-valuation").then(m => ({ default: m.ValuationTab })));
+const SynergiesTab   = React.lazy(() => import("@/pages/target-detail-synergies").then(m => ({ default: m.SynergiesTab })));
+const ActivityTab    = React.lazy(() => import("@/pages/target-detail-activity").then(m => ({ default: m.ActivityTab })));
+const IcTab          = React.lazy(() => import("@/pages/target-detail-ic").then(m => ({ default: m.IcTab })));
+const StakeholdersTab = React.lazy(() => import("@/pages/target-detail-stakeholders").then(m => ({ default: m.StakeholdersTab })));
+const ComplianceTab  = React.lazy(() => import("@/pages/target-detail-compliance").then(m => ({ default: m.ComplianceTab })));
+const AuditTrailTab  = React.lazy(() => import("@/components/audit-trail-tab").then(m => ({ default: m.AuditTrailTab })));
 
 export default function TargetDetail() {
   const { id } = useParams();
@@ -303,31 +307,37 @@ export default function TargetDetail() {
                 exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
               >
-                <TabsContent value="overview" className="space-y-4 mt-0">
-                  <OverviewTab targetId={targetId} target={target} />
-                </TabsContent>
-                <TabsContent value="interactions" className="space-y-4 mt-0">
-                  <InteractionsTab targetId={targetId} addOpen={interactionAddOpen} onAddOpenChange={setInteractionAddOpen} />
-                </TabsContent>
-                <TabsContent value="actions" className="space-y-4 mt-0">
-                  <ActionsTab targetId={targetId} addOpen={actionAddOpen} onAddOpenChange={setActionAddOpen} />
-                </TabsContent>
-                <TabsContent value="history" className="mt-0"><HistoryTab targetId={targetId} /></TabsContent>
-                <TabsContent value="ic" className="mt-0"><IcTab targetId={targetId} dealName={target.projectName ?? target.targetCode ?? undefined} /></TabsContent>
-                <TabsContent value="stakeholders" className="mt-0"><StakeholdersTab targetId={targetId} /></TabsContent>
-                <TabsContent value="compliance" className="mt-0"><ComplianceTab targetId={targetId} /></TabsContent>
-                <TabsContent value="audit" className="mt-0"><AuditTrailTab targetId={targetId} /></TabsContent>
-                <TabsContent value="diligence" className="space-y-4 mt-0"><DiligenceTab targetId={targetId} /></TabsContent>
-                <TabsContent value="documents" className="space-y-4 mt-0"><DocumentsTab targetId={targetId} /></TabsContent>
-                <TabsContent value="valuation" className="mt-0">
-                  <ValuationTab targetId={targetId} currentStage={target.currentStage ?? undefined} />
-                </TabsContent>
-                <TabsContent value="synergies" className="mt-0">
-                  <SynergiesTab targetId={targetId} currentStage={target.currentStage ?? "Sourcing"} />
-                </TabsContent>
-                <TabsContent value="activity" className="mt-0">
-                  <ActivityTab targetId={targetId} isActive={activeTab === "activity"} />
-                </TabsContent>
+                <React.Suspense fallback={
+                  <div className="py-10 flex justify-center">
+                    <Loader2 size={18} className="animate-spin text-muted-foreground/30" />
+                  </div>
+                }>
+                  <TabsContent value="overview" className="space-y-4 mt-0">
+                    <OverviewTab targetId={targetId} target={target} />
+                  </TabsContent>
+                  <TabsContent value="interactions" className="space-y-4 mt-0">
+                    <InteractionsTab targetId={targetId} addOpen={interactionAddOpen} onAddOpenChange={setInteractionAddOpen} />
+                  </TabsContent>
+                  <TabsContent value="actions" className="space-y-4 mt-0">
+                    <ActionsTab targetId={targetId} addOpen={actionAddOpen} onAddOpenChange={setActionAddOpen} />
+                  </TabsContent>
+                  <TabsContent value="history" className="mt-0"><HistoryTab targetId={targetId} /></TabsContent>
+                  <TabsContent value="ic" className="mt-0"><IcTab targetId={targetId} dealName={target.projectName ?? target.targetCode ?? undefined} /></TabsContent>
+                  <TabsContent value="stakeholders" className="mt-0"><StakeholdersTab targetId={targetId} /></TabsContent>
+                  <TabsContent value="compliance" className="mt-0"><ComplianceTab targetId={targetId} /></TabsContent>
+                  <TabsContent value="audit" className="mt-0"><AuditTrailTab targetId={targetId} /></TabsContent>
+                  <TabsContent value="diligence" className="space-y-4 mt-0"><DiligenceTab targetId={targetId} /></TabsContent>
+                  <TabsContent value="documents" className="space-y-4 mt-0"><DocumentsTab targetId={targetId} /></TabsContent>
+                  <TabsContent value="valuation" className="mt-0">
+                    <ValuationTab targetId={targetId} currentStage={target.currentStage ?? undefined} />
+                  </TabsContent>
+                  <TabsContent value="synergies" className="mt-0">
+                    <SynergiesTab targetId={targetId} currentStage={target.currentStage ?? "Sourcing"} />
+                  </TabsContent>
+                  <TabsContent value="activity" className="mt-0">
+                    <ActivityTab targetId={targetId} isActive={activeTab === "activity"} />
+                  </TabsContent>
+                </React.Suspense>
               </motion.div>
             </AnimatePresence>
           </Tabs>

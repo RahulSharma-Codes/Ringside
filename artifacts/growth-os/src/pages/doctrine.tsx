@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import jsPDF from "jspdf";
+
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -89,7 +89,8 @@ function stageColor(stage: string) {
 
 // ── PDF export ─────────────────────────────────────────────────────────────
 
-function buildDoctrinePdf(data: DoctrineSummary): jsPDF {
+async function buildDoctrinePdf(data: DoctrineSummary) {
+  const { default: jsPDF } = await import("jspdf");
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const PAGE_W = 210;
   const MARGIN = 16;
@@ -458,7 +459,7 @@ export default function Doctrine() {
     setIsExporting(true);
     try {
       await new Promise<void>((resolve) => setTimeout(resolve, 50)); // yield to paint loading state
-      const pdf = buildDoctrinePdf(data);
+      const pdf = await buildDoctrinePdf(data);
       pdf.save(`ringside-doctrine-${format(new Date(), "yyyy-MM-dd")}.pdf`);
     } finally {
       setIsExporting(false);
