@@ -732,13 +732,13 @@ router.post("/meeting-notes", async (req, res) => {
       parsed = JSON.parse(raw);
     } catch {
       req.log.error({ raw: raw.slice(0, 200) }, "Meeting notes JSON parse failed");
-      return res.json({ suggestions: null, error: "Failed to parse AI response" });
+      return res.status(502).json({ suggestions: null, error: "Failed to parse AI response" });
     }
 
     const validated = SuggestionsSchema.safeParse(parsed);
     if (!validated.success) {
       req.log.error({ issues: validated.error.issues }, "Meeting notes Zod validation failed");
-      return res.json({ suggestions: null, error: "Failed to parse AI response" });
+      return res.status(502).json({ suggestions: null, error: "Failed to parse AI response" });
     }
 
     // Normalize AI-suggested enum fields to known application values
@@ -1071,7 +1071,8 @@ Rules:
     try {
       result = JSON.parse(raw);
     } catch {
-      return res.json({ result: null, error: "Failed to parse AI response" });
+      req.log.error({ raw: raw.slice(0, 200) }, "Valuation sanity JSON parse failed");
+      return res.status(502).json({ result: null, error: "Failed to parse AI response" });
     }
 
     const tokensUsed = completion.usage?.total_tokens;
@@ -1213,7 +1214,8 @@ Rules:
     try {
       result = JSON.parse(raw);
     } catch {
-      return res.json({ result: null, error: "Failed to parse AI response" });
+      req.log.error({ raw: raw.slice(0, 200) }, "DD synthesis JSON parse failed");
+      return res.status(502).json({ result: null, error: "Failed to parse AI response" });
     }
 
     const tokensUsed = completion.usage?.total_tokens;
@@ -1390,7 +1392,8 @@ Rules:
     try {
       result = JSON.parse(raw);
     } catch {
-      return res.json({ result: null, error: "Failed to parse AI response" });
+      req.log.error({ raw: raw.slice(0, 200) }, "IC memo JSON parse failed");
+      return res.status(502).json({ result: null, error: "Failed to parse AI response" });
     }
 
     const tokensUsed = completion.usage?.total_tokens;
