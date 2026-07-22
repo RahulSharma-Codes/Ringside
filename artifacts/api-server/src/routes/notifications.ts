@@ -12,6 +12,10 @@ import {
 } from "@workspace/db";
 import { getAccessScope } from "../lib/target-access";
 
+function requireAuthScope(scope: Awaited<ReturnType<typeof getAccessScope>>) {
+  return !scope.userId;
+}
+
 const router = Router();
 
 // ── Deduplication key helper ───────────────────────────────────────────────────
@@ -35,6 +39,10 @@ async function alreadyExists(type: string, targetId: number | null): Promise<boo
 
 // ── POST /api/notifications/generate ──────────────────────────────────────────
 router.post("/generate", async (req, res) => {
+  const scope = await getAccessScope(req);
+  if (requireAuthScope(scope)) return res.status(401).json({ error: "Authentication required" });
+  if (!scope.isAdmin) return res.status(403).json({ error: "Admin access required" });
+
   const now = new Date();
   const inserted: string[] = [];
 
@@ -197,6 +205,7 @@ router.post("/generate", async (req, res) => {
 // ── GET /api/notifications ─────────────────────────────────────────────────────
 router.get("/", async (req, res) => {
   const scope = await getAccessScope(req);
+  if (requireAuthScope(scope)) return res.status(401).json({ error: "Authentication required" });
   const visibilityFilter = scope.isAdmin
     ? undefined
     : or(isNull(notificationsTable.targetId), inArray(notificationsTable.targetId, scope.accessibleTargetIds));
@@ -213,6 +222,7 @@ router.get("/", async (req, res) => {
 // ── GET /api/notifications/unread-count ───────────────────────────────────────
 router.get("/unread-count", async (req, res) => {
   const scope = await getAccessScope(req);
+  if (requireAuthScope(scope)) return res.status(401).json({ error: "Authentication required" });
   const visibilityFilter = scope.isAdmin
     ? eq(notificationsTable.isRead, false)
     : and(
@@ -233,6 +243,7 @@ router.put("/:id/read", async (req, res) => {
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
 
   const scope = await getAccessScope(req);
+  if (requireAuthScope(scope)) return res.status(401).json({ error: "Authentication required" });
   const [existing] = await db
     .select({ id: notificationsTable.id, targetId: notificationsTable.targetId })
     .from(notificationsTable)
@@ -252,6 +263,7 @@ router.put("/:id/read", async (req, res) => {
 // ── PUT /api/notifications/read-all ───────────────────────────────────────────
 router.put("/read-all", async (req, res) => {
   const scope = await getAccessScope(req);
+  if (requireAuthScope(scope)) return res.status(401).json({ error: "Authentication required" });
   const visibilityFilter = scope.isAdmin
     ? eq(notificationsTable.isRead, false)
     : and(

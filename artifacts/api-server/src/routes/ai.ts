@@ -41,6 +41,7 @@ function classifyAiError(err: unknown): {
   billingRequired: boolean;
   cacheable: boolean;
   message: string;
+  retryAfter: string | null;
 } {
   if (err && typeof err === "object") {
     const e = err as Record<string, unknown>;
@@ -48,10 +49,24 @@ function classifyAiError(err: unknown): {
     const errObj = e["error"] as Record<string, unknown> | undefined;
     const code = errObj?.["code"] ?? e["code"];
     if (httpStatus === 401) {
-      return { status: "key_invalid", setupRequired: true, billingRequired: false, cacheable: true, message: "Invalid API key" };
+      return { status: "key_invalid", setupRequired: true, billingRequired: false, cacheable: true, message: "Invalid API key", retryAfter: null };
     }
     if (httpStatus === 429 || code === "insufficient_quota") {
-      return { status: "billing", setupRequired: false, billingRequired: true, cacheable: true, message: "Billing or quota issue" };
+      // Extract Retry-After header from the OpenAI SDK error object if present.
+      // The SDK exposes response headers as a plain object on APIError instances.
+      let retryAfter: string | null = null;
+      const h = e["headers"];
+      if (h && typeof h === "object") {
+        const headers = h as Record<string, unknown>;
+        const raw = headers["retry-after"];
+        if (typeof raw === "string" || typeof raw === "number") {
+          retryAfter = String(raw);
+        } else if (typeof (headers as { get?: unknown }).get === "function") {
+          const val = (headers as { get: (k: string) => string | null }).get("retry-after");
+          if (val) retryAfter = val;
+        }
+      }
+      return { status: "billing", setupRequired: false, billingRequired: true, cacheable: true, message: "Billing or quota issue", retryAfter };
     }
   }
   // Unknown / transient error — use a neutral "transient" status so the UI
@@ -62,6 +77,7 @@ function classifyAiError(err: unknown): {
     billingRequired: false,
     cacheable: false,
     message: err instanceof Error ? err.message : "Unknown AI error",
+    retryAfter: null,
   };
 }
 
@@ -549,7 +565,7 @@ router.post("/ask", async (req, res) => {
 
     return res.json({ answer, model });
   } catch (err) {
-    const { status, setupRequired, billingRequired, message } = classifyAiError(err);
+    const { status, setupRequired, billingRequired, message, retryAfter } = classifyAiError(err);
     req.log.error({ err, status }, "AI Copilot error");
     // Map provider error kinds to appropriate HTTP status codes so monitoring
     // can distinguish outages from empty results.
@@ -557,6 +573,7 @@ router.post("/ask", async (req, res) => {
       status === "key_invalid" ? 401 :
       status === "billing"     ? 429 :
       502; // transient / unknown provider error
+    if (retryAfter) res.set("Retry-After", retryAfter);
     return res.status(httpStatus).json({ answer: null, setupRequired, billingRequired, error: message });
   }
 });
@@ -745,9 +762,10 @@ router.post("/meeting-notes", async (req, res) => {
     req.log.info({ targetId, noteType: body.noteType }, "Meeting notes parsed");
     return res.json({ suggestions, model });
   } catch (err) {
-    const { status, setupRequired, billingRequired, message } = classifyAiError(err);
+    const { status, setupRequired, billingRequired, message, retryAfter } = classifyAiError(err);
     req.log.error({ err, status }, "Meeting notes AI error");
     const httpStatus = status === "key_invalid" ? 401 : status === "billing" ? 429 : 502;
+    if (retryAfter) res.set("Retry-After", retryAfter);
     return res.status(httpStatus).json({ suggestions: null, setupRequired, billingRequired, error: message });
   }
 });
@@ -784,9 +802,10 @@ router.post("/opportunity-brief", async (req, res) => {
     req.log.info({ targetId }, "Opportunity brief generated");
     return res.json({ brief, model });
   } catch (err) {
-    const { status, setupRequired, billingRequired, message } = classifyAiError(err);
+    const { status, setupRequired, billingRequired, message, retryAfter } = classifyAiError(err);
     req.log.error({ err, status }, "Opportunity brief AI error");
     const httpStatus = status === "key_invalid" ? 401 : status === "billing" ? 429 : 502;
+    if (retryAfter) res.set("Retry-After", retryAfter);
     return res.status(httpStatus).json({ brief: null, setupRequired, billingRequired, error: message });
   }
 });
@@ -849,9 +868,10 @@ router.post("/weekly-brief", async (req, res) => {
     req.log.info("Weekly brief generated");
     return res.json({ brief, model });
   } catch (err) {
-    const { status, setupRequired, billingRequired, message } = classifyAiError(err);
+    const { status, setupRequired, billingRequired, message, retryAfter } = classifyAiError(err);
     req.log.error({ err, status }, "Weekly brief AI error");
     const httpStatus = status === "key_invalid" ? 401 : status === "billing" ? 429 : 502;
+    if (retryAfter) res.set("Retry-After", retryAfter);
     return res.status(httpStatus).json({ brief: null, setupRequired, billingRequired, error: message });
   }
 });
@@ -1059,9 +1079,10 @@ Rules:
     req.log.info({ targetId, tokensUsed }, "Valuation sanity-check completed");
     return res.json({ result, model });
   } catch (err) {
-    const { status, setupRequired, billingRequired, message } = classifyAiError(err);
+    const { status, setupRequired, billingRequired, message, retryAfter } = classifyAiError(err);
     req.log.error({ err, status }, "Valuation sanity-check AI error");
     const httpStatus = status === "key_invalid" ? 401 : status === "billing" ? 429 : 502;
+    if (retryAfter) res.set("Retry-After", retryAfter);
     return res.status(httpStatus).json({ result: null, setupRequired, billingRequired, error: message });
   }
 });
@@ -1200,9 +1221,10 @@ Rules:
     req.log.info({ targetId, tokensUsed }, "DD synthesis completed");
     return res.json({ result, model });
   } catch (err) {
-    const { status, setupRequired, billingRequired, message } = classifyAiError(err);
+    const { status, setupRequired, billingRequired, message, retryAfter } = classifyAiError(err);
     req.log.error({ err, status }, "DD synthesis AI error");
     const httpStatus = status === "key_invalid" ? 401 : status === "billing" ? 429 : 502;
+    if (retryAfter) res.set("Retry-After", retryAfter);
     return res.status(httpStatus).json({ result: null, setupRequired, billingRequired, error: message });
   }
 });
@@ -1376,9 +1398,10 @@ Rules:
     req.log.info({ targetId, tokensUsed }, "IC memo draft generated");
     return res.json({ result, model });
   } catch (err) {
-    const { status, setupRequired, billingRequired, message } = classifyAiError(err);
+    const { status, setupRequired, billingRequired, message, retryAfter } = classifyAiError(err);
     req.log.error({ err, status }, "IC memo AI error");
     const httpStatus = status === "key_invalid" ? 401 : status === "billing" ? 429 : 502;
+    if (retryAfter) res.set("Retry-After", retryAfter);
     return res.status(httpStatus).json({ result: null, setupRequired, billingRequired, error: message });
   }
 });

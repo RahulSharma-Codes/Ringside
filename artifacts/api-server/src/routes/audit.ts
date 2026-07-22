@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, like } from "drizzle-orm";
 import { createHash } from "crypto";
 import { db, getRequestCompanyId } from "@workspace/db";
 import { auditEventsTable } from "@workspace/db";
@@ -31,6 +31,7 @@ async function getLastHash(targetId: number, eventType: string): Promise<string 
     .where(
       and(
         eq(auditEventsTable.targetId, targetId),
+        like(auditEventsTable.eventType, prefix + "%"),
       )
     )
     .orderBy(desc(auditEventsTable.occurredAt))
@@ -99,42 +100,42 @@ router.get("/verify/:id", async (req, res) => {
   const events = await db
     .select()
     .from(auditEventsTable)
-    .where(
-      and(
-        eq(auditEventsTable.targetId, id),
-      )
-    )
+    .where(eq(auditEventsTable.targetId, id))
     .orderBy(auditEventsTable.occurredAt);
 
-  // Only verify chained events
-  const chained = events.filter((e) => shouldChain(e.eventType) && e.hashSelf);
-
-  if (chained.length === 0) {
-    return res.json({ valid: true, checkedCount: 0, firstBrokenAt: null });
-  }
-
+  // Verify each chain class (stage_*, ic_*) independently so they cannot
+  // cross-contaminate each other's hash chain.
+  let totalChecked = 0;
   let firstBrokenAt: string | null = null;
-  let prevHash: string | null = null;
 
-  for (const evt of chained) {
-    const canonical = JSON.stringify({
-      eventType: evt.eventType,
-      targetId: evt.targetId,
-      actor: evt.userIdentifier,
-      payload: evt.payload,
-    });
-    const expectedHash = sha256((prevHash ?? "GENESIS") + canonical);
+  for (const prefix of CHAINED_EVENT_CLASSES) {
+    const classEvents = events.filter(
+      (e) => e.eventType.startsWith(prefix) && e.hashSelf,
+    );
+    if (classEvents.length === 0) continue;
+    totalChecked += classEvents.length;
 
-    if (evt.hashSelf !== expectedHash) {
-      firstBrokenAt = evt.occurredAt.toISOString();
-      break;
+    let prevHash: string | null = null;
+    for (const evt of classEvents) {
+      const canonical = JSON.stringify({
+        eventType: evt.eventType,
+        targetId: evt.targetId,
+        actor: evt.userIdentifier,
+        payload: evt.payload,
+      });
+      const expectedHash = sha256((prevHash ?? "GENESIS") + canonical);
+      if (evt.hashSelf !== expectedHash) {
+        const brokenAt = evt.occurredAt.toISOString();
+        if (!firstBrokenAt || brokenAt < firstBrokenAt) firstBrokenAt = brokenAt;
+        break;
+      }
+      prevHash = evt.hashSelf;
     }
-    prevHash = evt.hashSelf;
   }
 
   return res.json({
     valid: firstBrokenAt === null,
-    checkedCount: chained.length,
+    checkedCount: totalChecked,
     firstBrokenAt,
   });
 });
