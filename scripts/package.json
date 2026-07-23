@@ -6,6 +6,7 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "test-rls": "tsx ./src/test-rls-isolation.ts",
+    "seed:demo": "tsx ./src/seed-demo-data.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
