@@ -24,8 +24,8 @@ Full-stack M&A deal management platform. pnpm workspace monorepo using TypeScrip
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
+- Schema changes are applied by the API server's idempotent startup migrations on boot (`artifacts/api-server/src/index.ts`). The `drizzle-kit push` path was removed — do not reintroduce it (it conflicts with the startup DDL).
 - `pnpm --filter @workspace/tests run test` — run Playwright E2E suite
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.

@@ -20,12 +20,23 @@ function getDatabaseUrl(): string {
   return url;
 }
 
-// Respect PGSSLMODE=disable for Docker/CI environments where postgres runs
-// without SSL. In production on Replit, PGSSLMODE is unset so we enable SSL
-// with rejectUnauthorized:false (self-signed cert on managed Replit Postgres).
+// SSL is controlled solely by PGSSLMODE (the standard libpq env var).
+//
+// We deliberately do NOT force SSL based on NODE_ENV. Replit's bundled
+// Postgres (and many dev/CI databases) run WITHOUT SSL; forcing it broke
+// every production connection — the pool failed to connect, startup
+// migrations retried forever, and every /api request 500'd via
+// companyContextMiddleware. That kept the deployment down for >24h.
+//
+// To enable SSL for a deployment that needs it, set PGSSLMODE=require
+// (optionally with PGSSLROOTCERT / rejectUnauthorized handling).
 function getSslConfig(): pg.PoolConfig["ssl"] {
-  if (process.env["PGSSLMODE"] === "disable") return false;
-  if (process.env["NODE_ENV"] === "production") return { rejectUnauthorized: false };
+  const sslmode = process.env["PGSSLMODE"];
+  if (sslmode === "disable") return false;
+  if (sslmode === "require" || sslmode === "verify-ca" || sslmode === "verify-full") {
+    return { rejectUnauthorized: sslmode === "verify-ca" || sslmode === "verify-full" };
+  }
+  // prefer / allow / unset → no forced SSL (let the connection succeed).
   return undefined;
 }
 
