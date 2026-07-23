@@ -1,26 +1,19 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation, Link } from "wouter";
 import {
   Bot, Send, AlertTriangle, Loader2, Sparkles, CheckCircle2,
-  CreditCard, FileText, CalendarCheck, Zap, KeyRound, Copy, Check, X,
+  CreditCard, FileText, CalendarCheck, Zap, KeyRound, Copy, Check, Square,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { customFetch } from "@workspace/api-client-react";
+import { customFetch, getAuthToken } from "@workspace/api-client-react";
 import { useListTargets, getListTargetsQueryKey } from "@workspace/api-client-react";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
-}
-
-interface AiAskResponse {
-  answer: string | null;
-  model?: string;
-  setupRequired?: boolean;
-  error?: string;
 }
 
 interface AiStatusResponse {
@@ -72,19 +65,117 @@ const AI_WORKFLOW_CARDS = [
   },
 ];
 
-async function askAi(question: string, history: Message[]): Promise<AiAskResponse> {
-  return customFetch<AiAskResponse>("/api/ai/ask", {
+// ── SSE streaming helper ──────────────────────────────────────────────────────
+//
+// Reads a text/event-stream response from /api/ai/ask and calls onChunk for
+// each content piece, onDone when the stream completes, and onError for
+// [ERROR] events or network failures.
+
+async function consumeAskStream(
+  question: string,
+  history: Message[],
+  signal: AbortSignal,
+  callbacks: {
+    onChunk: (chunk: string) => void;
+    onDone: () => void;
+    onError: (message: string) => void;
+    onSetupRequired: () => void;
+    onBillingRequired: () => void;
+  },
+): Promise<void> {
+  const token = getAuthToken();
+  const response = await fetch("/api/ai/ask", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify({ question, history }),
+    signal,
   });
+
+  const contentType = response.headers.get("Content-Type") ?? "";
+
+  // JSON response = early error (no key, validation error, context build error)
+  if (!contentType.includes("text/event-stream")) {
+    const data = await response.json() as {
+      setupRequired?: boolean;
+      billingRequired?: boolean;
+      error?: string;
+    };
+    if (data.setupRequired) { callbacks.onSetupRequired(); return; }
+    if (data.billingRequired) { callbacks.onBillingRequired(); return; }
+    callbacks.onError(data.error ?? "AI request failed. Please try again.");
+    return;
+  }
+
+  if (!response.body) {
+    callbacks.onError("No response body received. Please try again.");
+    return;
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    outer: while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // Split on SSE event boundaries (\n\n). The last element is kept in
+      // the buffer since it may be an incomplete event.
+      const events = buffer.split("\n\n");
+      buffer = events.pop() ?? "";
+
+      for (const event of events) {
+        // Collect all data: lines and join with \n (per SSE spec)
+        const dataLines = event
+          .split("\n")
+          .filter((l) => l.startsWith("data: "))
+          .map((l) => l.slice("data: ".length));
+
+        const rawData = dataLines.join("\n");
+        if (!rawData) continue;
+
+        if (rawData === "[DONE]") break outer;
+
+        if (rawData.startsWith("[ERROR]")) {
+          const msg = rawData.slice("[ERROR]".length).trim();
+          callbacks.onError(msg || "The response failed. Please try again.");
+          return;
+        }
+
+        // Content chunk — JSON-encoded string to safely carry newlines
+        try {
+          const chunk = JSON.parse(rawData) as string;
+          if (chunk) callbacks.onChunk(chunk);
+        } catch {
+          // Malformed chunk — skip silently
+        }
+      }
+    }
+
+    callbacks.onDone();
+  } finally {
+    reader.releaseLock();
+  }
 }
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function Copilot() {
   const [, setLocation] = useLocation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+
+  // isLoading: true while fetching context (before first SSE chunk arrives)
+  // isStreaming: true while SSE chunks are actively flowing
   const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
   const [setupRequired, setSetupRequired] = useState(false);
   const [billingRequired, setBillingRequired] = useState(false);
@@ -92,6 +183,9 @@ export default function Copilot() {
   const [statusLoaded, setStatusLoaded] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  // Accumulates chunk text without triggering extra renders on every keystroke
+  const accumulatorRef = useRef("");
 
   const [weeklyBriefOpen, setWeeklyBriefOpen] = useState(false);
   const [weeklyBriefLoading, setWeeklyBriefLoading] = useState(false);
@@ -114,44 +208,107 @@ export default function Copilot() {
         if (s.status === "billing") setBillingRequired(true);
         if (s.status === "key_missing" || s.status === "key_invalid") setSetupRequired(true);
       })
-      .catch(() => {
-        setStatusLoaded(true);
-      });
+      .catch(() => { setStatusLoaded(true); });
   }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
-  const handleSubmit = async (question: string) => {
-    if (!question.trim() || isLoading) return;
+  // ── Submit: start SSE stream ────────────────────────────────────────────────
+
+  const handleSubmit = useCallback(async (question: string) => {
+    if (!question.trim() || isLoading || isStreaming) return;
+
     setError(null);
+    const historySnapshot = messages; // capture before state update
     const userMsg: Message = { role: "user", content: question.trim() };
-    const nextMessages = [...messages, userMsg];
-    setMessages(nextMessages);
+    setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
 
+    const controller = new AbortController();
+    abortRef.current = controller;
+    accumulatorRef.current = "";
+
     try {
-      const res = await askAi(userMsg.content, messages);
-      if (res.setupRequired) {
-        setSetupRequired(true);
+      await consumeAskStream(
+        userMsg.content,
+        historySnapshot,
+        controller.signal,
+        {
+          onChunk: (chunk) => {
+            // Transition: loading → streaming on first chunk
+            if (!accumulatorRef.current) {
+              setIsLoading(false);
+              setIsStreaming(true);
+              // Add the assistant bubble (starts empty, fills in below)
+              setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+            }
+            accumulatorRef.current += chunk;
+            const accumulated = accumulatorRef.current;
+            setMessages((prev) => {
+              const updated = [...prev];
+              updated[updated.length - 1] = { role: "assistant", content: accumulated };
+              return updated;
+            });
+          },
+
+          onDone: () => {
+            // If no chunks arrived at all, add an empty-looking bubble
+            if (!accumulatorRef.current) {
+              setMessages((prev) => [...prev, { role: "assistant", content: "(No response)" }]);
+            }
+          },
+
+          onError: (msg) => {
+            setError(msg);
+            // Remove the assistant bubble if it's empty (nothing was streamed yet)
+            setMessages((prev) => {
+              const last = prev[prev.length - 1];
+              if (last?.role === "assistant" && !last.content) return prev.slice(0, -1);
+              return prev;
+            });
+          },
+
+          onSetupRequired: () => setSetupRequired(true),
+          onBillingRequired: () => setBillingRequired(true),
+        },
+      );
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        // User pressed Stop — keep any partial content that was streamed
+        if (!accumulatorRef.current) {
+          // Nothing streamed yet; remove the user message too? No — keep it
+          // but remove the empty assistant placeholder if present.
+          setMessages((prev) => {
+            const last = prev[prev.length - 1];
+            if (last?.role === "assistant" && !last.content) return prev.slice(0, -1);
+            return prev;
+          });
+        }
         return;
       }
-      if ((res as { billingRequired?: boolean }).billingRequired) {
-        setBillingRequired(true);
-        return;
-      }
-      if (res.answer) {
-        setMessages([...nextMessages, { role: "assistant", content: res.answer }]);
-      }
-    } catch (_err) {
       setError("Could not reach the AI service. Please try again.");
-      setMessages(nextMessages.slice(0, -1));
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && !last.content) return prev.slice(0, -1);
+        return prev;
+      });
     } finally {
       setIsLoading(false);
+      setIsStreaming(false);
+      abortRef.current = null;
     }
-  };
+  }, [isLoading, isStreaming, messages]);
+
+  // ── Stop streaming ──────────────────────────────────────────────────────────
+
+  const handleStop = useCallback(() => {
+    abortRef.current?.abort();
+  }, []);
+
+  // ── Keyboard ────────────────────────────────────────────────────────────────
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -159,6 +316,8 @@ export default function Copilot() {
       handleSubmit(input);
     }
   };
+
+  // ── Weekly brief ────────────────────────────────────────────────────────────
 
   const handleGenerateWeeklyBrief = async () => {
     setWeeklyBriefOpen(true);
@@ -194,6 +353,9 @@ export default function Copilot() {
     }
   };
 
+  const isBusy = isLoading || isStreaming;
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col h-full max-h-screen">
@@ -263,7 +425,7 @@ export default function Copilot() {
 
       {/* Message area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
-        {messages.length === 0 && !isLoading && (
+        {messages.length === 0 && !isBusy && (
           <div className="space-y-6 pt-4">
             {/* AI Workflow Cards */}
             <div>
@@ -323,6 +485,7 @@ export default function Copilot() {
           </div>
         )}
 
+        {/* Message bubbles */}
         {messages.map((msg, i) => (
           <div
             key={i}
@@ -341,11 +504,16 @@ export default function Copilot() {
               }`}
             >
               {msg.content}
+              {/* Blinking cursor on the last assistant message while streaming */}
+              {msg.role === "assistant" && isStreaming && i === messages.length - 1 && (
+                <span className="inline-block w-0.5 h-[1em] bg-primary/70 align-text-bottom ml-0.5 animate-pulse" />
+              )}
             </div>
           </div>
         ))}
 
-        {isLoading && (
+        {/* Thinking indicator — shown only while waiting for the first chunk */}
+        {isLoading && !isStreaming && (
           <div className="flex gap-3 justify-start">
             <div className="shrink-0 w-7 h-7 rounded-lg bg-primary/10 border border-primary/15 flex items-center justify-center">
               <Bot size={14} className="text-primary" />
@@ -382,16 +550,30 @@ export default function Copilot() {
             placeholder="Ask about your pipeline… (Enter to send)"
             className="resize-none rounded-xl min-h-[44px] max-h-32 text-sm border-border/70 bg-card focus-visible:ring-primary/30"
             rows={1}
-            disabled={isLoading || billingRequired || setupRequired}
+            disabled={isBusy || billingRequired || setupRequired}
           />
-          <Button
-            size="sm"
-            onClick={() => handleSubmit(input)}
-            disabled={!input.trim() || isLoading || billingRequired || setupRequired}
-            className="rounded-xl shrink-0 h-[44px] w-[44px] p-0"
-          >
-            <Send size={15} />
-          </Button>
+
+          {/* Stop button — visible while streaming; Send button otherwise */}
+          {isStreaming ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleStop}
+              className="rounded-xl shrink-0 h-[44px] w-[44px] p-0 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              title="Stop generating"
+            >
+              <Square size={14} fill="currentColor" />
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              onClick={() => handleSubmit(input)}
+              disabled={!input.trim() || isBusy || billingRequired || setupRequired}
+              className="rounded-xl shrink-0 h-[44px] w-[44px] p-0"
+            >
+              {isLoading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+            </Button>
+          )}
         </div>
         <div className="flex items-center justify-between mt-2">
           <p className="text-[10px] text-muted-foreground/60 font-mono leading-relaxed">

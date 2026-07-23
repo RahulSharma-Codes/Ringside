@@ -44,6 +44,18 @@ export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
   _authTokenGetter = getter;
 }
 
+/**
+ * Synchronously resolves the current auth token (if a getter is registered).
+ * Returns null when no getter is set or the getter returns null/undefined.
+ * For async getters, returns null on the first call (before the promise settles).
+ */
+export function getAuthToken(): string | null {
+  if (!_authTokenGetter) return null;
+  const result = _authTokenGetter();
+  if (typeof result === "string") return result;
+  return null; // async getter — caller must use customFetch or await separately
+}
+
 function isRequest(input: RequestInfo | URL): input is Request {
   return typeof Request !== "undefined" && input instanceof Request;
 }

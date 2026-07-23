@@ -530,16 +530,23 @@ Rules:
 - Do not provide legal, tax, or financial advice as fact.
 - Keep the brief under 500 words.`;
 
-// POST /api/ai/ask (existing)
+// POST /api/ai/ask — Server-Sent Events streaming with 60-second hard timeout.
+//
+// Protocol:
+//   Each content chunk:  data: <JSON-encoded string>\n\n
+//   Stream complete:     data: [DONE]\n\n
+//   Error / timeout:     data: [ERROR] <message>\n\n
+//
+// The endpoint stays in JSON mode for early errors (no key, bad request,
+// context-build failure) so the client can parse them before switching to SSE.
 router.post("/ask", aiWriteRateLimiter, async (req, res) => {
+  // ── 1. Early-exit guards — JSON responses, headers not yet committed ────────
+
   if (!openai) {
     return res.json({ answer: null, setupRequired: true, error: "OPENAI_API_KEY is not configured" });
   }
 
-  const body = req.body as {
-    question?: unknown;
-    history?: unknown;
-  };
+  const body = req.body as { question?: unknown; history?: unknown };
 
   if (typeof body.question !== "string" || !body.question.trim()) {
     return res.status(400).json({ error: "question is required and must be a non-empty string" });
@@ -561,39 +568,96 @@ router.post("/ask", aiWriteRateLimiter, async (req, res) => {
     }
   }
 
+  // Build context before switching to SSE — allows a clean JSON error response
+  // if context build itself fails (e.g. DB error, auth scope failure).
+  let context: Awaited<ReturnType<typeof buildAiContext>>;
   try {
     const scope = await getAccessScope(req);
-    const context = await buildAiContext(scope.isAdmin ? undefined : scope.accessibleTargetIds);
-    const contextBlock = buildContextBlock(context);
-
-    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-      { role: "system", content: `${SYSTEM_PROMPT}\n\n${contextBlock}` },
-      ...history,
-      { role: "user", content: question },
-    ];
-
-    const completion = await openai.chat.completions.create({
-      model,
-      max_completion_tokens: 1024,
-      messages,
-    });
-
-    const answer = completion.choices[0]?.message?.content ?? "";
-    req.log.info({ model, question: question.slice(0, 80) }, "AI Copilot answered");
-
-    return res.json({ answer, model });
+    context = await buildAiContext(scope.isAdmin ? undefined : scope.accessibleTargetIds);
   } catch (err) {
     const { status, setupRequired, billingRequired, message, retryAfter } = classifyAiError(err);
-    req.log.error({ err, status }, "AI Copilot error");
-    // Map provider error kinds to appropriate HTTP status codes so monitoring
-    // can distinguish outages from empty results.
-    const httpStatus =
-      status === "key_invalid" ? 401 :
-      status === "billing"     ? 429 :
-      502; // transient / unknown provider error
+    req.log.error({ err, status }, "AI Copilot context build error");
+    const httpStatus = status === "key_invalid" ? 401 : status === "billing" ? 429 : 502;
     if (retryAfter) res.set("Retry-After", retryAfter);
     return res.status(httpStatus).json({ answer: null, setupRequired, billingRequired, error: message });
   }
+
+  const contextBlock = buildContextBlock(context);
+  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    { role: "system", content: `${SYSTEM_PROMPT}\n\n${contextBlock}` },
+    ...history,
+    { role: "user", content: question },
+  ];
+
+  // ── 2. Switch to SSE mode ────────────────────────────────────────────────────
+
+  res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no"); // disable nginx / proxy response buffering
+  res.flushHeaders();
+
+  // Write one SSE data frame. Chunks are JSON-encoded so newlines inside AI
+  // output don't corrupt the event framing.
+  const sendChunk = (text: string) => {
+    try { res.write(`data: ${JSON.stringify(text)}\n\n`); } catch { /* client gone */ }
+  };
+  const sendControl = (token: string) => {
+    try { res.write(`data: ${token}\n\n`); } catch { /* client gone */ }
+  };
+
+  let streamDone = false;
+
+  // Hard 60-second timeout — fires even if the OpenAI stream is still open.
+  const timeoutId = setTimeout(() => {
+    if (!streamDone) {
+      streamDone = true;
+      req.log.warn({ question: question.slice(0, 80) }, "AI Copilot stream timed out");
+      sendControl("[ERROR] Request timed out. Please try again.");
+      res.end();
+    }
+  }, 60_000);
+
+  // When the client disconnects (navigation, tab close, abort), stop iterating.
+  req.on("close", () => {
+    streamDone = true;
+    clearTimeout(timeoutId);
+  });
+
+  // ── 3. Stream OpenAI response ─────────────────────────────────────────────────
+
+  try {
+    const stream = await openai.chat.completions.create({
+      model,
+      max_completion_tokens: 1024,
+      messages,
+      stream: true,
+    });
+
+    for await (const chunk of stream) {
+      if (streamDone) break;
+      const text = chunk.choices[0]?.delta?.content ?? "";
+      if (text) sendChunk(text);
+    }
+
+    if (!streamDone) {
+      streamDone = true;
+      clearTimeout(timeoutId);
+      sendControl("[DONE]");
+      res.end();
+      req.log.info({ model, question: question.slice(0, 80) }, "AI Copilot answered (streaming)");
+    }
+  } catch (err) {
+    if (!streamDone) {
+      streamDone = true;
+      clearTimeout(timeoutId);
+      const { message } = classifyAiError(err);
+      req.log.error({ err }, "AI Copilot stream error");
+      sendControl(`[ERROR] ${message}`);
+      res.end();
+    }
+  }
+  return;
 });
 
 // GET /api/ai/status
