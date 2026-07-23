@@ -16,7 +16,10 @@ this repository.
 ```bash
 pnpm install          # install all workspace dependencies
 pnpm run typecheck    # full TypeScript check across all packages
-pnpm --filter @workspace/db run push   # apply schema changes to dev DB
+# Schema changes: edit lib/db/src/schema/*.ts, then boot the API server — its
+# idempotent startup migrations (artifacts/api-server/src/index.ts) apply them.
+# (drizzle-kit push was removed: it conflicts with the startup DDL and mangles
+# the company_id/RLS state. Do not reintroduce it.)
 ```
 
 Start services via the Replit workflow runner (Run button) or individually:
