@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/layout";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -483,11 +484,13 @@ function App() {
               <AcceptInvitePage onLogin={() => setIsAuthenticated(true)} />
             </Suspense>
           ) : isAuthenticated ? (
-            <AuthProvider>
-              <WouterRouter base={base}>
-                <Router />
-              </WouterRouter>
-            </AuthProvider>
+            <ErrorBoundary>
+              <AuthProvider>
+                <WouterRouter base={base}>
+                  <Router />
+                </WouterRouter>
+              </AuthProvider>
+            </ErrorBoundary>
           ) : (
             <LoginScreen onLogin={() => setIsAuthenticated(true)} />
           )}
