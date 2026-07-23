@@ -668,11 +668,15 @@ async function applyMigrations(): Promise<void> {
     // 3a: NOT NULL — safe after backfill; idempotent in Postgres
     await db.execute(sql.raw(`ALTER TABLE ${table} ALTER COLUMN company_id SET NOT NULL`));
 
-    // 3b: GUC-based DEFAULT so inserts without an explicit company_id are automatically
-    //     scoped to the current tenant — makes existing INSERT routes RLS-compliant.
+    // 3b: DEFAULT is the literal default-company UUID — NOT a current_setting() expression.
+    //     Replit's publish-time dev→prod schema differ cannot round-trip a current_setting()
+    //     default: it re-serializes it as `DEFAULT (NULLIF(current_setting('app.company_id' NOT NULL`
+    //     (truncated, invalid SQL), which blocks every deploy. A literal default serializes
+    //     cleanly. RLS isolation is unaffected — the policy in step 4 still scopes reads by the
+    //     request's app.company_id GUC; inserts that omit company_id land in the default company
+    //     (correct for single-tenant; multi-tenant inserts set company_id via the write context).
     await db.execute(sql.raw(
-      `ALTER TABLE ${table} ALTER COLUMN company_id ` +
-      `SET DEFAULT (nullif(current_setting('app.company_id', true), '')::uuid)`
+      `ALTER TABLE ${table} ALTER COLUMN company_id SET DEFAULT '${DEFAULT_COMPANY_ID}'`
     ));
 
     // 3c: FK to companies — add idempotently via DO block
