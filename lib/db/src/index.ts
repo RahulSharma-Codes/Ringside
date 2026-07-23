@@ -20,19 +20,26 @@ function getDatabaseUrl(): string {
   return url;
 }
 
-// SSL is controlled by PGSSLMODE (the standard libpq env var).
+// SSL detection — auto-disables for Replit's internal Postgres (hostname
+// "helium"), which does not support SSL. All other hosts (production managed
+// Postgres, Supabase, etc.) default to SSL-on so the server's "connection is
+// insecure" rejection is avoided without any env var.
 //
-// DEFAULT IS SSL ON. The production database requires SSL — connecting
-// without it fails with: "connection is insecure (try using `sslmode=require`)".
-// (Earlier this defaulted to no-SSL on the assumption the DB was Helium/no-SSL;
-// that was wrong and broke every connection. Reverted.)
-//
-// Set PGSSLMODE=disable ONLY for databases that run without SSL
-// (local dev, Docker Compose, CI). For everything else, SSL is used with
-// rejectUnauthorized:false (i.e. sslmode=require semantics).
+// PGSSLMODE can still override: set to "disable" to force no-SSL, or
+// "require" / anything else to force SSL. Leave it unset in both dev and
+// prod — the hostname check handles it automatically.
 function getSslConfig(): pg.PoolConfig["ssl"] {
   const sslmode = process.env["PGSSLMODE"];
   if (sslmode === "disable") return false;
+  if (sslmode && sslmode !== "disable") return { rejectUnauthorized: false };
+
+  // Auto-detect: Replit's internal dev Postgres runs on the "helium" host
+  // without SSL support. Any other host (production, external) needs SSL.
+  const host = process.env["PGHOST"] ?? "";
+  if (host === "helium" || host === "localhost" || host === "127.0.0.1") {
+    return false;
+  }
+
   return { rejectUnauthorized: false };
 }
 
