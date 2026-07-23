@@ -20,24 +20,20 @@ function getDatabaseUrl(): string {
   return url;
 }
 
-// SSL is controlled solely by PGSSLMODE (the standard libpq env var).
+// SSL is controlled by PGSSLMODE (the standard libpq env var).
 //
-// We deliberately do NOT force SSL based on NODE_ENV. Replit's bundled
-// Postgres (and many dev/CI databases) run WITHOUT SSL; forcing it broke
-// every production connection — the pool failed to connect, startup
-// migrations retried forever, and every /api request 500'd via
-// companyContextMiddleware. That kept the deployment down for >24h.
+// DEFAULT IS SSL ON. The production database requires SSL — connecting
+// without it fails with: "connection is insecure (try using `sslmode=require`)".
+// (Earlier this defaulted to no-SSL on the assumption the DB was Helium/no-SSL;
+// that was wrong and broke every connection. Reverted.)
 //
-// To enable SSL for a deployment that needs it, set PGSSLMODE=require
-// (optionally with PGSSLROOTCERT / rejectUnauthorized handling).
+// Set PGSSLMODE=disable ONLY for databases that run without SSL
+// (local dev, Docker Compose, CI). For everything else, SSL is used with
+// rejectUnauthorized:false (i.e. sslmode=require semantics).
 function getSslConfig(): pg.PoolConfig["ssl"] {
   const sslmode = process.env["PGSSLMODE"];
   if (sslmode === "disable") return false;
-  if (sslmode === "require" || sslmode === "verify-ca" || sslmode === "verify-full") {
-    return { rejectUnauthorized: sslmode === "verify-ca" || sslmode === "verify-full" };
-  }
-  // prefer / allow / unset → no forced SSL (let the connection succeed).
-  return undefined;
+  return { rejectUnauthorized: false };
 }
 
 export const pool = new Pool({
