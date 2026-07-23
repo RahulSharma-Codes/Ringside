@@ -562,7 +562,7 @@ const DEALS: DealSeed[] = [
 
 async function run() {
   console.log("Ringside Demo Data Seed");
-  console.log(`  DB: ${getDatabaseUrl().replace(/:([^@]+)@/, ":***@")}`);
+  console.log("  DB: [configured]");
   console.log(`  Company: ${DEFAULT_COMPANY_ID}`);
   console.log(`  Deals: ${DEALS.length} (all synthetic, DEMO-* target codes)\n`);
 
