@@ -29,12 +29,19 @@ function getDatabaseUrl(): string {
 // "require" / anything else to force SSL. Leave it unset in both dev and
 // prod — the hostname check handles it automatically.
 function getSslConfig(): pg.PoolConfig["ssl"] {
+  // PGSSLMODE always wins — explicit operator override.
   const sslmode = process.env["PGSSLMODE"];
   if (sslmode === "disable") return false;
   if (sslmode && sslmode !== "disable") return { rejectUnauthorized: false };
 
-  // Auto-detect: Replit's internal dev Postgres runs on the "helium" host
-  // without SSL support. Any other host (production, external) needs SSL.
+  // In production (NODE_ENV=production, injected by the artifact run config)
+  // always enable SSL — managed Postgres instances require it.
+  if (process.env["NODE_ENV"] === "production") {
+    return { rejectUnauthorized: false };
+  }
+
+  // Dev auto-detect: Replit's internal dev Postgres runs on the "helium" host
+  // without SSL support. Localhost variants also skip SSL in dev.
   const host = process.env["PGHOST"] ?? "";
   if (host === "helium" || host === "localhost" || host === "127.0.0.1") {
     return false;
