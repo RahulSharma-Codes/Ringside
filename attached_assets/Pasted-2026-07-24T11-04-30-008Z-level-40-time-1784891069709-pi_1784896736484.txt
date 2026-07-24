@@ -1,0 +1,101 @@
+2026-07-24T11:04:30.008Z {"level":40,"time":1784891069709,"pid":19,"hostname":"localhost","attempt":2,"retryInMs":15000,"msg":"Migration attempt failed, will retry"}
+2026-07-24T11:04:44.922Z {"level":40,"time":1784891084921,"pid":19,"hostname":"localhost","attempt":3,"retryInMs":30000,"msg":"Migration attempt failed, will retry"}
+2026-07-24T11:05:15.208Z {"level":40,"time":1784891115122,"pid":19,"hostname":"localhost","attempt":4,"retryInMs":60000,"msg":"Migration attempt failed, will retry"}
+2026-07-24T11:06:15.409Z {"level":50,"time":1784891175408,"pid":19,"hostname":"localhost","err":{"type":"_DrizzleQueryError","message":"Failed query: SELECT set_config('app.company_id', $1, false)\nparams: 00000000-0000-0000-0000-000000000001: connection is insecure (try using `sslmode=require`)","stack":"Error: Failed query: SELECT set_config('app.company_id', $1, false)\nparams: 00000000-0000-0000-0000-000000000001\n    at NodePgPreparedQuery.queryWithCache (/home/runner/workspace/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_@types+pg@8.18.0_pg@8.20.0/node_modules/src/pg-core/session.ts:73:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async applyMigrations (/home/runner/workspace/artifacts/api-server/src/index.ts:56:3)\n    at async runMigrationsWithRetry (/home/runner/workspace/artifacts/api-server/src/index.ts:27:7)\ncaused by: error: connection is insecure (try using `sslmode=require`)\n    at <anonymous> (/home/runner/workspace/node_modules/.pnpm/pg-pool@3.13.0_pg@8.20.0/node_modules/pg-pool/index.js:45:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async <anonymous> (/home/runner/workspace/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_@types+pg@8.18.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:149:14)\n    at async NodePgPreparedQuery.queryWithCache (/home/runner/workspace/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_@types+pg@8.18.0_pg@8.20.0/node_modules/src/pg-core/session.ts:71:12)\n    at async applyMigrations (/home/runner/workspace/artifacts/api-server/src/index.ts:56:3)\n    at async runMigrationsWithRetry (/home/runner/workspace/artifacts/api-server/src/index.ts:27:7)","query":"SELECT set_config('app.company_id', $1, false)","params":["00000000-0000-0000-0000-000000000001"]},"msg":"Migration failed after all retries — exiting to prevent serving on stale schema"}
+2026-07-24T11:06:21.808Z sending SIGTERM to artifact process artifact=artifacts/api-server
+2026-07-24T11:06:21.808Z an artifact process exited unexpectedly
+2026-07-24T11:06:21.808Z all artifact processes stopped
+2026-07-24T11:06:21.808Z artifact process exited with error error=exit status 1 artifact=artifacts/api-server
+2026-07-24T11:06:21.908Z crash loop detected
+2026-07-24T12:32:09.594Z starting up user application
+2026-07-24T12:32:09.594Z artifact mode enabled runnable=1 static=1
+2026-07-24T12:32:09.594Z metasidecar: loaded enterprise status from environment is_enterprise=false
+2026-07-24T12:32:09.595Z waiting for runnable artifact ports ports=[8080]
+2026-07-24T12:32:09.595Z forwarding local port 0 to external port 80 (mapped as 1104)
+2026-07-24T12:32:09.595Z starting artifact processes for monorepo deployment
+2026-07-24T12:32:09.595Z registered static handler for artifact path=/ publicDir=artifacts/growth-os/dist/public
+2026-07-24T12:32:09.596Z baseline ports snapshot before artifact start ports=[1105 1106 1104]
+2026-07-24T12:32:09.597Z starting artifact processes count=1
+2026-07-24T12:32:09.598Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:32:09.598Z starting artifact process port=8080 artifact=artifacts/api-server args=[node --enable-source-maps artifacts/api-server/dist/index.mjs]
+2026-07-24T12:32:09.604Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:32:09.609Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:32:09.615Z artifact process started artifact=artifacts/api-server pid=19
+2026-07-24T12:32:09.644Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:32:09.693Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:32:09.772Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:32:10.033Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:32:10.447Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:32:11.340Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:32:12.942Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:32:12.961Z {"level":30,"time":1784896332960,"pid":19,"hostname":"localhost","model":"gpt-4o","msg":"AI Copilot initialised"}
+2026-07-24T12:32:13.040Z artifact processes running, waiting for signal or process exit
+2026-07-24T12:32:13.040Z all artifact ports detected
+2026-07-24T12:32:13.040Z artifact port detected port=8080 detected=1 expected=1
+2026-07-24T12:32:13.055Z {"level":30,"time":1784896333054,"pid":19,"hostname":"localhost","port":8080,"msg":"Server listening"}
+2026-07-24T12:32:13.104Z {"level":40,"time":1784896333104,"pid":19,"hostname":"localhost","attempt":1,"retryInMs":5000,"msg":"Migration attempt failed, will retry"}
+2026-07-24T12:32:14.364Z {"level":30,"time":1784896334364,"pid":19,"hostname":"localhost","req":{"id":1,"method":"GET","url":"/api/healthz"},"res":{"statusCode":200},"responseTime":58,"msg":"request completed"}
+2026-07-24T12:32:18.317Z {"level":40,"time":1784896338317,"pid":19,"hostname":"localhost","attempt":2,"retryInMs":15000,"msg":"Migration attempt failed, will retry"}
+2026-07-24T12:32:33.531Z {"level":40,"time":1784896353530,"pid":19,"hostname":"localhost","attempt":3,"retryInMs":30000,"msg":"Migration attempt failed, will retry"}
+2026-07-24T12:33:03.817Z {"level":40,"time":1784896383816,"pid":19,"hostname":"localhost","attempt":4,"retryInMs":60000,"msg":"Migration attempt failed, will retry"}
+2026-07-24T12:34:04.217Z {"level":50,"time":1784896444117,"pid":19,"hostname":"localhost","err":{"type":"_DrizzleQueryError","message":"Failed query: SELECT set_config('app.company_id', $1, false)\nparams: 00000000-0000-0000-0000-000000000001: connection is insecure (try using `sslmode=require`)","stack":"Error: Failed query: SELECT set_config('app.company_id', $1, false)\nparams: 00000000-0000-0000-0000-000000000001\n    at NodePgPreparedQuery.queryWithCache (/home/runner/workspace/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_@types+pg@8.18.0_pg@8.20.0/node_modules/src/pg-core/session.ts:73:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async applyMigrations (/home/runner/workspace/artifacts/api-server/src/index.ts:56:3)\n    at async runMigrationsWithRetry (/home/runner/workspace/artifacts/api-server/src/index.ts:27:7)\ncaused by: error: connection is insecure (try using `sslmode=require`)\n    at <anonymous> (/home/runner/workspace/node_modules/.pnpm/pg-pool@3.13.0_pg@8.20.0/node_modules/pg-pool/index.js:45:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async <anonymous> (/home/runner/workspace/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_@types+pg@8.18.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:149:14)\n    at async NodePgPreparedQuery.queryWithCache (/home/runner/workspace/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_@types+pg@8.18.0_pg@8.20.0/node_modules/src/pg-core/session.ts:71:12)\n    at async applyMigrations (/home/runner/workspace/artifacts/api-server/src/index.ts:56:3)\n    at async runMigrationsWithRetry (/home/runner/workspace/artifacts/api-server/src/index.ts:27:7)","query":"SELECT set_config('app.company_id', $1, false)","params":["00000000-0000-0000-0000-000000000001"]},"msg":"Migration failed after all retries — exiting to prevent serving on stale schema"}
+2026-07-24T12:34:08.516Z all artifact processes stopped
+2026-07-24T12:34:08.516Z artifact process exited with error artifact=artifacts/api-server error=exit status 1
+2026-07-24T12:34:08.516Z sending SIGTERM to artifact process artifact=artifacts/api-server
+2026-07-24T12:34:08.516Z an artifact process exited unexpectedly
+2026-07-24T12:34:08.516Z crash loop detected
+2026-07-24T12:34:21.828Z artifact mode enabled runnable=1 static=1
+2026-07-24T12:34:21.828Z starting up user application
+2026-07-24T12:34:21.829Z starting artifact processes for monorepo deployment
+2026-07-24T12:34:21.830Z metasidecar: loaded enterprise status from environment is_enterprise=false
+2026-07-24T12:34:21.831Z waiting for runnable artifact ports ports=[8080]
+2026-07-24T12:34:21.831Z forwarding local port 0 to external port 80 (mapped as 1104)
+2026-07-24T12:34:21.832Z healthcheck failed error=healthcheck /api: Get "http://127.0.0.1:1104/api": dial tcp 127.0.0.1:1104: connect: connection refused
+2026-07-24T12:34:21.832Z baseline ports snapshot before artifact start ports=[1106 1105 1104]
+2026-07-24T12:34:21.834Z starting artifact processes count=1
+2026-07-24T12:34:21.834Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:34:21.835Z starting artifact process port=8080 artifact=artifacts/api-server args=[node --enable-source-maps artifacts/api-server/dist/index.mjs]
+2026-07-24T12:34:21.849Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:34:21.857Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:34:21.857Z artifact process started artifact=artifacts/api-server pid=20
+2026-07-24T12:34:21.879Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:34:22.022Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:34:22.042Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:34:22.311Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:34:22.378Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:34:22.711Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:34:30.188Z {"level":40,"time":1784896470188,"pid":20,"hostname":"localhost","attempt":2,"retryInMs":15000,"msg":"Migration attempt failed, will retry"}
+2026-07-24T12:34:45.374Z {"level":40,"time":1784896485374,"pid":20,"hostname":"localhost","attempt":3,"retryInMs":30000,"msg":"Migration attempt failed, will retry"}
+2026-07-24T12:35:15.488Z {"level":40,"time":1784896515488,"pid":20,"hostname":"localhost","attempt":4,"retryInMs":60000,"msg":"Migration attempt failed, will retry"}
+2026-07-24T12:36:15.675Z {"level":50,"time":1784896575674,"pid":20,"hostname":"localhost","err":{"type":"_DrizzleQueryError","message":"Failed query: SELECT set_config('app.company_id', $1, false)\nparams: 00000000-0000-0000-0000-000000000001: connection is insecure (try using `sslmode=require`)","stack":"Error: Failed query: SELECT set_config('app.company_id', $1, false)\nparams: 00000000-0000-0000-0000-000000000001\n    at NodePgPreparedQuery.queryWithCache (/home/runner/workspace/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_@types+pg@8.18.0_pg@8.20.0/node_modules/src/pg-core/session.ts:73:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async applyMigrations (/home/runner/workspace/artifacts/api-server/src/index.ts:56:3)\n    at async runMigrationsWithRetry (/home/runner/workspace/artifacts/api-server/src/index.ts:27:7)\ncaused by: error: connection is insecure (try using `sslmode=require`)\n    at <anonymous> (/home/runner/workspace/node_modules/.pnpm/pg-pool@3.13.0_pg@8.20.0/node_modules/pg-pool/index.js:45:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async <anonymous> (/home/runner/workspace/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_@types+pg@8.18.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:149:14)\n    at async NodePgPreparedQuery.queryWithCache (/home/runner/workspace/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_@types+pg@8.18.0_pg@8.20.0/node_modules/src/pg-core/session.ts:71:12)\n    at async applyMigrations (/home/runner/workspace/artifacts/api-server/src/index.ts:56:3)\n    at async runMigrationsWithRetry (/home/runner/workspace/artifacts/api-server/src/index.ts:27:7)","query":"SELECT set_config('app.company_id', $1, false)","params":["00000000-0000-0000-0000-000000000001"]},"msg":"Migration failed after all retries — exiting to prevent serving on stale schema"}
+2026-07-24T12:36:19.774Z an artifact process exited unexpectedly
+2026-07-24T12:36:19.774Z artifact process exited with error error=exit status 1 artifact=artifacts/api-server
+2026-07-24T12:36:19.774Z crash loop detected
+2026-07-24T12:36:19.774Z all artifact processes stopped
+2026-07-24T12:36:19.774Z sending SIGTERM to artifact process artifact=artifacts/api-server
+2026-07-24T12:37:31.660Z starting up user application
+2026-07-24T12:37:31.660Z artifact mode enabled runnable=1 static=1
+2026-07-24T12:37:31.661Z starting artifact processes for monorepo deployment
+2026-07-24T12:37:31.661Z metasidecar: loaded enterprise status from environment is_enterprise=false
+2026-07-24T12:37:31.662Z forwarding local port 0 to external port 80 (mapped as 1104)
+2026-07-24T12:37:31.662Z registered static handler for artifact path=/ publicDir=artifacts/growth-os/dist/public
+2026-07-24T12:37:31.664Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:37:31.665Z baseline ports snapshot before artifact start ports=[1105 1106 1104]
+2026-07-24T12:37:31.667Z starting artifact processes count=1
+2026-07-24T12:37:31.668Z starting artifact process artifact=artifacts/api-server args=[node --enable-source-maps artifacts/api-server/dist/index.mjs] port=8080
+2026-07-24T12:37:31.672Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:37:31.688Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:37:31.691Z artifact process started artifact=artifacts/api-server pid=19
+2026-07-24T12:37:31.873Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:37:32.077Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:37:32.716Z healthcheck failed error=healthcheck /api returned status 500
+2026-07-24T12:37:33.571Z {"level":30,"time":1784896653570,"pid":19,"hostname":"localhost","model":"gpt-4o","msg":"AI Copilot initialised"}
+2026-07-24T12:37:33.658Z all artifact ports detected
+2026-07-24T12:37:33.658Z artifact port detected port=8080 detected=1 expected=1
+2026-07-24T12:37:33.659Z artifact processes running, waiting for signal or process exit
+2026-07-24T12:37:39.051Z {"level":40,"time":1784896659050,"pid":19,"hostname":"localhost","attempt":2,"retryInMs":15000,"msg":"Migration attempt failed, will retry"}
+2026-07-24T12:37:50.141Z {"level":50,"time":1784896670140,"pid":19,"hostname":"localhost","err":{"type":"_DrizzleQueryError","message":"Failed query: select \"id\", \"company_id\", \"email\", \"display_name\", \"role\", \"password_hash\", \"failed_password_attempts\", \"password_locked_until\", \"created_at\" from \"users\" where \"users\".\"email\" = $1 limit $2\nparams: rahul.sharma@manipalgroup.info,1: connection is insecure (try using `sslmode=require`)","stack":"Error: Failed query: select \"id\", \"company_id\", \"email\", \"display_name\", \"role\", \"password_hash\", \"failed_password_attempts\", \"password_locked_until\", \"created_at\" from \"users\" where \"users\".\"email\" = $1 limit $2\nparams: rahul.sharma@manipalgroup.info,1\n    at NodePgPreparedQuery.queryWithCache (/home/runner/workspace/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_@types+pg@8.18.0_pg@8.20.0/node_modules/src/pg-core/session.ts:73:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async <anonymous> (/home/runner/workspace/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_@types+pg@8.18.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:154:19)\n    at async <anonymous> (/home/runner/workspace/artifacts/api-server/src/routes/auth.ts:88:18)\ncaused by: error: connection is insecure (try using `sslmode=require`)\n    at <anonymous> (/home/runner/workspace/node_modules/.pnpm/pg-pool@3.13.0_pg@8.20.0/node_modules/pg-pool/index.js:45:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async <anonymous> (/home/runner/workspace/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_@types+pg@8.18.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:161:13)\n    at async NodePgPreparedQuery.queryWithCache (/home/runner/workspace/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_@types+pg@8.18.0_pg@8.20.0/node_modules/src/pg-core/session.ts:71:12)\n    at async <anonymous> (/home/runner/workspace/node_modules/.pnpm/drizzle-orm@0.45.2_@opentelemetry+api@1.9.1_@types+pg@8.18.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:154:19)\n    at async <anonymous> (/home/runner/workspace/artifacts/api-server/src/routes/auth.ts:88:18)","query":"select \"id\", \"company_id\", \"email\", \"display_name\", \"role\", \"password_hash\", \"failed_password_attempts\", \"password_locked_until\", \"created_at\" from \"users\" where \"users\".\"email\" = $1 limit $2","params":["rahul.sharma@manipalgroup.info",1]},"cause":"connection is insecure (try using `sslmode=require`)","msg":"unhandled error"}
+2026-07-24T12:37:50.143Z {"level":30,"time":1784896670142,"pid":19,"hostname":"localhost","req":{"id":3,"method":"POST","url":"/api/auth/login"},"res":{"statusCode":500},"err":{"type":"Error","message":"failed with status code 500","stack":"Error: failed with status code 500\n    at onResFinished (/home/runner/workspace/node_modules/.pnpm/pino-http@10.5.0/node_modules/pino-http/logger.js:115:39)\n    at ServerResponse.onResponseComplete (/home/runner/workspace/node_modules/.pnpm/pino-http@10.5.0/node_modules/pino-http/logger.js:178:14)\n    at ServerResponse.emit (node:events:520:35)\n    at onFinish (node:_http_outgoing:1026:10)\n    at callback (node:internal/streams/writable:764:21)\n    at afterWrite (node:internal/streams/writable:708:5)\n    at afterWriteTick (node:internal/streams/writable:694:10)\n    at process.processTicksAndRejections (node:internal/process/task_queues:88:21)"},"responseTime":47,"msg":"request errored"}
+2026-07-24T12:37:54.237Z {"level":40,"time":1784896674236,"pid":19,"hostname":"localhost","attempt":3,"retryInMs":30000,"msg":"Migration attempt failed, will retry"}
+2026-07-24T12:38:24.337Z {"level":40,"time":1784896704336,"pid":19,"hostname":"localhost","attempt":4,"retryInMs":60000,"msg":"Migration attempt failed, will retry"}
+2026-07-24T12:38:24.337Z {"level":40,"time":1784896704336,"pid":19,"hostname":"localhost","attempt":4,"retryInMs":60000,"msg":"Migration attempt failed, will retry"}
