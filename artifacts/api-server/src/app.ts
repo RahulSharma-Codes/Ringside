@@ -155,7 +155,7 @@ app.use("/api", apiRateLimiter);
  * GUC visible for RLS enforcement.
  */
 async function companyContextMiddleware(req: Request, res: Response, next: NextFunction) {
-  if (req.method === "OPTIONS" || req.path === "/healthz" || req.path === "/readyz" || req.path.startsWith("/auth/")) {
+  if (req.method === "OPTIONS" || req.path === "/healthz" || req.path === "/readyz" || req.path === "/healthz/db" || req.path.startsWith("/auth/")) {
     return next();
   }
 

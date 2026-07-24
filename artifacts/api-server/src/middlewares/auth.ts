@@ -72,7 +72,7 @@ export function requireRole(...roles: string[]) {
  *  Per-user password/OTP login are the only ways to obtain a JWT — there is no shared-secret fallback. */
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (req.method === "OPTIONS") return next();
-  if (req.path === "/healthz" || req.path === "/readyz" || req.path.startsWith("/auth/")) return next();
+  if (req.path === "/healthz" || req.path === "/readyz" || req.path === "/healthz/db" || req.path.startsWith("/auth/")) return next();
 
   const bearerToken = extractBearerToken(req.get("authorization"));
   if (!bearerToken) {

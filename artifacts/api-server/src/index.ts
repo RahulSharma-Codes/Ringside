@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/node";
 import app from "./app";
 import { logger } from "./lib/logger";
-import { db } from "@workspace/db";
+import { db, pool } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { setMigrationsComplete } from "./routes/health";
@@ -20,6 +20,47 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
+// ── DB health probe ───────────────────────────────────────────────────────────
+// Runs a trivial SELECT 1 against the pool every 5 minutes.  A failure is
+// logged as a structured error (picked up by any log-based alerting) and
+// captured to Sentry when configured — surfacing a DB outage before any user
+// experiences a 500.
+const DB_PROBE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+async function probeDatabase(): Promise<void> {
+  try {
+    const client = await pool.connect();
+    try {
+      await client.query("SELECT 1");
+      // Successful probe — silent at INFO to avoid log spam.
+      // Uncomment the line below to get per-probe confirmation in logs:
+      // logger.debug("db_probe: ok");
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error(
+      { err, alert: "db_probe_failed", detail: message },
+      "DB health probe failed — database may be unreachable",
+    );
+    Sentry.captureException(err, {
+      tags: { probe: "db_healthz", alert: "db_outage" },
+    });
+  }
+}
+
+function startDbProbe(): void {
+  // Run an immediate check on startup so any existing outage is caught right away,
+  // then repeat on the configured interval.
+  void probeDatabase();
+  setInterval(() => void probeDatabase(), DB_PROBE_INTERVAL_MS);
+  logger.info(
+    { intervalMs: DB_PROBE_INTERVAL_MS },
+    "DB health probe started",
+  );
+}
+
 async function runMigrationsWithRetry(): Promise<void> {
   const delays = [5_000, 15_000, 30_000, 60_000];
   for (let attempt = 0; attempt <= delays.length; attempt++) {
@@ -27,6 +68,7 @@ async function runMigrationsWithRetry(): Promise<void> {
       await applyMigrations();
       setMigrationsComplete();
       logger.info("Startup migrations complete");
+      startDbProbe();
       return;
     } catch (err) {
       if (attempt < delays.length) {
