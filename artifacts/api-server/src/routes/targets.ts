@@ -3,7 +3,7 @@ import { requireRole } from "../middlewares/auth";
 import interactionsSubRouter from "./target-interactions";
 import actionsSubRouter from "./target-actions";
 import { eq, and, ilike, or, desc, isNull, isNotNull, inArray, type SQL } from "drizzle-orm";
-import { db, targetAccessTable, withRlsTransaction } from "@workspace/db";
+import { db, targetAccessTable, withCompanyTransaction } from "@workspace/db";
 import {
   targetsTable, milestonesTable, interactionsTable, actionItemsTable, stageChangeLogTable, usersTable,
 } from "@workspace/db";
@@ -127,7 +127,7 @@ router.put("/reorder", async (req, res) => {
   // Run all updates inside an RLS-aware transaction so a partial failure
   // leaves no mixed state and company isolation is maintained.
   const companyId = req.jwtClaims?.companyId ?? "00000000-0000-0000-0000-000000000001";
-  await withRlsTransaction(companyId, async () => {
+  await withCompanyTransaction(companyId, async () => {
     for (const { id, sortOrder } of authorizedOrders) {
       await db
         .update(targetsTable)
@@ -153,7 +153,7 @@ router.post("/", async (req, res) => {
 
   // Wrap all 5 writes in a single RLS-aware transaction so a partial failure
   // (e.g. milestone insert failing) doesn't leave an orphan target row.
-  const { target, milestone } = await withRlsTransaction(companyId, async () => {
+  const { target, milestone } = await withCompanyTransaction(companyId, async () => {
     const [target] = await db
       .insert(targetsTable)
       .values({

@@ -129,7 +129,7 @@ export function getRequestCompanyId(): string | undefined {
  *
  * Pattern: acquire → set GUC → BEGIN → callback → COMMIT/ROLLBACK → release.
  */
-export async function withRlsTransaction<T>(
+export async function withCompanyTransaction<T>(
   companyId: string,
   fn: () => Promise<T>,
 ): Promise<T> {

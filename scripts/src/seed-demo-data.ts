@@ -571,7 +571,7 @@ async function run() {
 
   // All writes go through the app's RLS path: set the tenant GUC, then switch
   // to the non-superuser app_rls role so company_isolation policies enforce.
-  // Mirrors acquireRequestContext / withRlsTransaction in lib/db.
+  // Mirrors acquireRequestContext / withCompanyTransaction in lib/db.
   await client.query(`SELECT set_config('app.company_id', $1, false)`, [DEFAULT_COMPANY_ID]);
   await client.query(`SET ROLE app_rls`);
 
