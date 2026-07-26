@@ -7,3 +7,4 @@
 - [Floating nav rail + command palette](floating-nav-rail.md) — CSS group-hover expand 48px→220px; CommandPalette uses onClose not onOpenChange prop
 - [Access filtering pattern](access-filtering-pattern.md) — per-user visibility grants must be wired into every endpoint that independently queries the restricted table, not just the main list route
 - [Auth model](auth-model.md) — password login is default, OTP is backup/first-login path; no shared-secret auth exists anymore
+- [Production SSL PGSSLMODE trap](prod-ssl-pgsslmode-trap.md) — stale PGSSLMODE=disable bypasses NODE_ENV guard; fix: NODE_ENV check must be FIRST; use individual pg params not connectionString

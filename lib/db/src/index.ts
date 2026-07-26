@@ -29,16 +29,17 @@ function getDatabaseUrl(): string {
 // "require" / anything else to force SSL. Leave it unset in both dev and
 // prod — the hostname check handles it automatically.
 function getSslConfig(): pg.PoolConfig["ssl"] {
-  // PGSSLMODE always wins — explicit operator override.
-  const sslmode = process.env["PGSSLMODE"];
-  if (sslmode === "disable") return false;
-  if (sslmode && sslmode !== "disable") return { rejectUnauthorized: false };
-
-  // In production (NODE_ENV=production, injected by the artifact run config)
-  // always enable SSL — managed Postgres instances require it.
+  // Production ALWAYS uses SSL — managed Postgres requires it.
+  // This check is intentionally first so that a stale PGSSLMODE=disable env
+  // var in the deployment environment cannot accidentally disable SSL.
   if (process.env["NODE_ENV"] === "production") {
     return { rejectUnauthorized: false };
   }
+
+  // Dev: respect an explicit PGSSLMODE override.
+  const sslmode = process.env["PGSSLMODE"];
+  if (sslmode === "disable") return false;
+  if (sslmode) return { rejectUnauthorized: false };
 
   // Dev auto-detect: Replit's internal dev Postgres runs on the "helium" host
   // without SSL support. Localhost variants also skip SSL in dev.
@@ -50,10 +51,39 @@ function getSslConfig(): pg.PoolConfig["ssl"] {
   return { rejectUnauthorized: false };
 }
 
-export const pool = new Pool({
-  connectionString: getDatabaseUrl(),
-  ssl: getSslConfig(),
-});
+function getPoolConfig(): pg.PoolConfig {
+  const ssl = getSslConfig();
+  const { PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE } = process.env;
+
+  // Prefer individual params when available — avoids pg-connection-string's
+  // URL parser from potentially overriding the ssl config we computed above.
+  if (PGHOST && PGUSER && PGPASSWORD && PGDATABASE) {
+    return {
+      host: PGHOST,
+      port: PGPORT ? parseInt(PGPORT, 10) : 5432,
+      user: PGUSER,
+      password: PGPASSWORD,
+      database: PGDATABASE,
+      ssl,
+    };
+  }
+
+  const url = process.env["DATABASE_URL"];
+  if (!url) {
+    throw new Error(
+      "DATABASE_URL must be set, or PGHOST/PGUSER/PGPASSWORD/PGDATABASE for Replit Postgres.",
+    );
+  }
+  return { connectionString: url, ssl };
+}
+
+const _poolConfig = getPoolConfig();
+// Log SSL status at startup so it's visible in production deployment logs.
+console.log(
+  `[db] SSL config: ${JSON.stringify(_poolConfig.ssl)} | NODE_ENV=${process.env["NODE_ENV"]} | PGHOST=${process.env["PGHOST"]} | PGSSLMODE=${process.env["PGSSLMODE"]}`,
+);
+
+export const pool = new Pool(_poolConfig);
 
 // ── Per-request client routing ────────────────────────────────────────────────
 // Stores the dedicated PoolClient for the current HTTP request so that every
