@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/node";
+import { randomBytes } from "node:crypto";
 import app from "./app";
 import { logger } from "./lib/logger";
 import { db, pool } from "@workspace/db";
@@ -562,40 +563,58 @@ async function applyMigrations(): Promise<void> {
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_password_attempts integer NOT NULL DEFAULT 0`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_locked_until timestamptz`);
   // ── Admin bootstrap seed ──────────────────────────────────────────────────
-  // Runs only when:
-  //   (a) NODE_ENV !== "production"  — dev / staging convenience seed, OR
-  //   (b) BOOTSTRAP_ADMIN_EMAIL + BOOTSTRAP_ADMIN_PASSWORD are both set AND
-  //       the users table is empty  — production first-run bootstrap
+  // Always runs on an empty users table, regardless of NODE_ENV.
   //
-  // This is intentionally idempotent: a second run when the table already has
-  // rows is a no-op regardless of env vars.
+  // Credentials resolution (strict — partial config is treated as invalid):
+  //   • Both BOOTSTRAP_ADMIN_EMAIL + BOOTSTRAP_ADMIN_PASSWORD set → use them.
+  //   • Only one set → reject partial config, warn, fall back to generated creds.
+  //   • Neither set → generate a cryptographically random one-time password and
+  //     log it ONCE to deployment logs (the only place operators can retrieve it).
+  //     The default email admin@ringside.local is used in this case.
+  //
+  // Idempotent: a second run when the table already has rows is a no-op.
   const userCountResult = await db.execute(sql`SELECT COUNT(*) AS count FROM users`);
   const isEmpty = parseInt(String((userCountResult.rows[0] as { count: string }).count), 10) === 0;
 
-  const bootstrapEmail    = process.env.BOOTSTRAP_ADMIN_EMAIL;
-  const bootstrapPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+  if (isEmpty) {
+    const bootstrapEmail    = process.env.BOOTSTRAP_ADMIN_EMAIL;
+    const bootstrapPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+    const hasBoth           = !!(bootstrapEmail && bootstrapPassword);
+    const hasPartial        = !!(bootstrapEmail || bootstrapPassword) && !hasBoth;
 
-  const shouldSeed =
-    (process.env.NODE_ENV !== "production") ||
-    (bootstrapEmail && bootstrapPassword && isEmpty);
+    if (hasPartial) {
+      logger.error(
+        "Bootstrap misconfiguration: BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD " +
+          "must both be set together. Partial config ignored — generating random credentials.",
+      );
+    }
 
-  if (shouldSeed && isEmpty) {
-    const seedEmail    = bootstrapEmail    ?? "admin@ringside.local";
-    const seedPassword = bootstrapPassword ?? "ChangeMe@Dev1";
+    // When both vars are provided, use them. Otherwise generate a random
+    // one-time password that is visible only in deployment logs.
+    const seedEmail    = hasBoth ? bootstrapEmail! : "admin@ringside.local";
+    const generatedPwd = hasBoth ? null : randomBytes(20).toString("base64url");
+    const seedPassword = hasBoth ? bootstrapPassword! : generatedPwd!;
     const seedHash     = await bcrypt.hash(seedPassword, 10);
+
     // Upsert by email — idempotent if the row already exists (e.g. concurrent starts)
     await db.execute(sql`
       INSERT INTO users (company_id, email, display_name, role, password_hash)
       VALUES ('00000000-0000-0000-0000-000000000001', ${seedEmail}, 'Admin', 'Admin', ${seedHash})
       ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash
     `);
-    logger.info({ email: seedEmail }, "Admin seed account created");
-  } else if (isEmpty) {
-    // Production with no bootstrap env vars and no users — warn operator
-    logger.warn(
-      "No users exist and BOOTSTRAP_ADMIN_EMAIL/BOOTSTRAP_ADMIN_PASSWORD are not set. " +
-      "Set these env vars on first deploy to create the initial admin account."
-    );
+
+    if (hasBoth) {
+      logger.info({ email: seedEmail }, "Admin seed account created via BOOTSTRAP env vars");
+    } else {
+      // Log the generated password to deployment logs — the only secure operator channel.
+      // This appears exactly once. After logging in, change the password immediately.
+      logger.warn(
+        { email: seedEmail, generatedPassword: generatedPwd },
+        "BOOTSTRAP_ADMIN_EMAIL/PASSWORD not set — admin account created with a " +
+          "one-time generated password shown above. Log in and change it immediately. " +
+          "Set BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD before the next fresh deploy.",
+      );
+    }
   }
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS otp_attempts (
