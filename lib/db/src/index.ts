@@ -5,58 +5,21 @@ import * as schema from "./schema";
 
 const { Pool } = pg;
 
-function getDatabaseUrl(): string {
-  const { PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE } = process.env;
-  if (PGHOST && PGUSER && PGPASSWORD && PGDATABASE) {
-    const port = PGPORT ?? "5432";
-    return `postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}:${port}/${PGDATABASE}`;
-  }
-  const url = process.env.DATABASE_URL;
-  if (!url) {
-    throw new Error(
-      "DATABASE_URL must be set, or PGHOST/PGUSER/PGPASSWORD/PGDATABASE for Replit Postgres.",
-    );
-  }
-  return url;
-}
-
-// SSL detection — auto-disables for Replit's internal Postgres (hostname
-// "helium"), which does not support SSL. All other hosts (production managed
-// Postgres, Supabase, etc.) default to SSL-on so the server's "connection is
-// insecure" rejection is avoided without any env var.
+// SSL is controlled via the PGSSLMODE environment variable, which pg reads
+// natively via readSSLConfigFromEnvironment() when no ssl option is passed.
 //
-// PGSSLMODE can still override: set to "disable" to force no-SSL, or
-// "require" / anything else to force SSL. Leave it unset in both dev and
-// prod — the hostname check handles it automatically.
-function getSslConfig(): pg.PoolConfig["ssl"] {
-  // Production ALWAYS uses SSL — managed Postgres requires it.
-  // This check is intentionally first so that a stale PGSSLMODE=disable env
-  // var in the deployment environment cannot accidentally disable SSL.
-  if (process.env["NODE_ENV"] === "production") {
-    return { rejectUnauthorized: false };
-  }
-
-  // Dev: respect an explicit PGSSLMODE override.
-  const sslmode = process.env["PGSSLMODE"];
-  if (sslmode === "disable") return false;
-  if (sslmode) return { rejectUnauthorized: false };
-
-  // Dev auto-detect: Replit's internal dev Postgres runs on the "helium" host
-  // without SSL support. Localhost variants also skip SSL in dev.
-  const host = process.env["PGHOST"] ?? "";
-  if (host === "helium" || host === "localhost" || host === "127.0.0.1") {
-    return false;
-  }
-
-  return { rejectUnauthorized: false };
-}
+// Production: PGSSLMODE=no-verify (set in the production env) → pg enables SSL
+//             with rejectUnauthorized: false (accepts self-signed certs).
+// Dev:        PGSSLMODE is not set → pg defaults to no SSL → helium works.
+//
+// We intentionally do NOT set ssl in the Pool config so that pg's native env
+// var handling takes over rather than any custom detection logic.
 
 function getPoolConfig(): pg.PoolConfig {
-  const ssl = getSslConfig();
   const { PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE } = process.env;
 
   // Prefer individual params when available — avoids pg-connection-string's
-  // URL parser from potentially overriding the ssl config we computed above.
+  // URL parser from interfering with the connection config.
   if (PGHOST && PGUSER && PGPASSWORD && PGDATABASE) {
     return {
       host: PGHOST,
@@ -64,7 +27,7 @@ function getPoolConfig(): pg.PoolConfig {
       user: PGUSER,
       password: PGPASSWORD,
       database: PGDATABASE,
-      ssl,
+      // ssl intentionally omitted — pg reads PGSSLMODE from env
     };
   }
 
@@ -74,16 +37,11 @@ function getPoolConfig(): pg.PoolConfig {
       "DATABASE_URL must be set, or PGHOST/PGUSER/PGPASSWORD/PGDATABASE for Replit Postgres.",
     );
   }
-  return { connectionString: url, ssl };
+  return { connectionString: url };
+  // ssl intentionally omitted — pg reads PGSSLMODE from env
 }
 
-const _poolConfig = getPoolConfig();
-// Log SSL status at startup so it's visible in production deployment logs.
-console.log(
-  `[db] SSL config: ${JSON.stringify(_poolConfig.ssl)} | NODE_ENV=${process.env["NODE_ENV"]} | PGHOST=${process.env["PGHOST"]} | PGSSLMODE=${process.env["PGSSLMODE"]}`,
-);
-
-export const pool = new Pool(_poolConfig);
+export const pool = new Pool(getPoolConfig());
 
 // ── Per-request client routing ────────────────────────────────────────────────
 // Stores the dedicated PoolClient for the current HTTP request so that every

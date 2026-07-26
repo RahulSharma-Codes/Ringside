@@ -60,3 +60,8 @@ channel = "stable-25_05"
 
 [objectStorage]
 defaultBucketID = "replit-objstore-f05d61ab-70fb-4551-9e66-e650ed065710"
+
+[userenv]
+
+[userenv.production]
+PGSSLMODE = "no-verify"
