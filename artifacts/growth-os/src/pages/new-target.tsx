@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,11 +12,34 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { ArrowLeft, Save, Shield, ChevronDown, ChevronRight, Check, ChevronsUpDown } from "lucide-react";
+import { ArrowLeft, Save, Shield, ChevronDown, ChevronRight, Check, ChevronsUpDown, Paperclip, X, Loader2 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+// ── Teaser upload helpers ─────────────────────────────────────────────────────
+const TEASER_ACCEPTED_MIMES = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+]);
+const TEASER_MAX_SIZE = 25 * 1024 * 1024; // 25 MB
+const TEASER_ACCEPT = ".pdf,.doc,.docx,.xls,.xlsx";
+
+const AUTH_TOKEN_KEY = "ig_os_auth_token";
+function authHeaders(): Record<string, string> {
+  const token = typeof window !== "undefined" ? window.localStorage.getItem(AUTH_TOKEN_KEY) : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 const DEAL_TYPES = [
   "Acquisition",
@@ -79,6 +102,11 @@ export default function NewTarget() {
   const createTarget = useCreateTarget();
   const [scoringOpen, setScoringOpen] = useState(false);
   const [ownerPickerOpen, setOwnerPickerOpen] = useState(false);
+  const [teaserFile, setTeaserFile] = useState<File | null>(null);
+  const [teaserFileError, setTeaserFileError] = useState<string | null>(null);
+  const [uploadingTeaser, setUploadingTeaser] = useState(false);
+  const teaserInputRef = useRef<HTMLInputElement>(null);
+
   const { data: teamMembers = [] } = useListUsers({
     query: { queryKey: getListUsersQueryKey() },
   });
@@ -92,6 +120,55 @@ export default function NewTarget() {
       isConfidential: true,
     }
   });
+
+  const handleTeaserFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!TEASER_ACCEPTED_MIMES.has(file.type)) {
+      setTeaserFileError("File type not allowed. Accepted: PDF, Word, Excel (max 25 MB).");
+      setTeaserFile(null);
+      return;
+    }
+    if (file.size > TEASER_MAX_SIZE) {
+      setTeaserFileError(`File too large (${formatBytes(file.size)}). Maximum is 25 MB.`);
+      setTeaserFile(null);
+      return;
+    }
+    setTeaserFileError(null);
+    setTeaserFile(file);
+  }, []);
+
+  async function uploadTeaserForTarget(targetId: number, file: File): Promise<void> {
+    // Step 1: create the document record
+    const createRes = await fetch(`/api/targets/${targetId}/documents`, {
+      method: "POST",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: file.name.replace(/\.[^.]+$/, "") || "Teaser",
+        documentType: "Teaser",
+        classification: "Restricted",
+        status: "Received",
+      }),
+    });
+    if (!createRes.ok) {
+      throw new Error("Failed to create Teaser document record.");
+    }
+    const doc = await createRes.json() as { id: number };
+
+    // Step 2: upload the file to the created record
+    const formData = new FormData();
+    formData.append("file", file);
+    const uploadRes = await fetch(`/api/documents/${doc.id}/upload`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: formData,
+    });
+    if (!uploadRes.ok) {
+      const data = await uploadRes.json().catch(() => ({})) as Record<string, unknown>;
+      throw new Error((data.error as string) ?? "File upload failed.");
+    }
+  }
 
   function onSubmit(data: FormValues) {
     const scorePayload = scoringOpen ? {
@@ -108,11 +185,30 @@ export default function NewTarget() {
         ...scorePayload,
       }
     }, {
-      onSuccess: (res) => {
-        toast({
-          title: "Target Created",
-          description: "New evaluation record established.",
-        });
+      onSuccess: async (res) => {
+        if (teaserFile) {
+          setUploadingTeaser(true);
+          try {
+            await uploadTeaserForTarget(res.id, teaserFile);
+            toast({
+              title: "Target Created",
+              description: "New evaluation record established with Teaser attached.",
+            });
+          } catch {
+            toast({
+              title: "Target Created",
+              description: "Deal created successfully, but Teaser upload failed. You can upload it from the Documents tab.",
+              variant: "destructive",
+            });
+          } finally {
+            setUploadingTeaser(false);
+          }
+        } else {
+          toast({
+            title: "Target Created",
+            description: "New evaluation record established.",
+          });
+        }
         setLocation(`/targets/${res.id}`);
       },
       onError: () => {
@@ -569,8 +665,73 @@ export default function NewTarget() {
                 </CardContent>
               </Card>
 
-              <Button type="submit" disabled={createTarget.isPending} className="w-full rounded-sm font-mono uppercase tracking-widest text-[11px] gap-2 h-12">
-                {createTarget.isPending ? "Processing..." : (
+              {/* Teaser attachment (optional) */}
+              <Card className="bg-card/50 backdrop-blur border-border rounded-sm">
+                <CardHeader className="border-b border-border pb-4">
+                  <CardTitle className="font-sans font-semibold text-sm text-primary">Attach Teaser</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-5 space-y-3">
+                  <p className="text-[11px] text-muted-foreground font-mono leading-relaxed">
+                    Optional — attach the Teaser document now. It will be saved as{" "}
+                    <span className="text-amber-400">Restricted</span> in the Document Vault.
+                  </p>
+
+                  {teaserFile ? (
+                    <div className="flex items-start gap-3 p-3 rounded-sm border border-amber-500/20 bg-amber-500/5">
+                      <Paperclip size={14} className="text-amber-400 shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate text-foreground">{teaserFile.name}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono">{formatBytes(teaserFile.size)}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setTeaserFile(null); setTeaserFileError(null); }}
+                        className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+                        aria-label="Remove file"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => teaserInputRef.current?.click()}
+                      className="w-full flex items-center justify-center gap-2 border border-dashed border-border/60 rounded-sm py-4 text-xs text-muted-foreground hover:border-border hover:text-foreground hover:bg-muted/10 transition-colors"
+                    >
+                      <Paperclip size={13} />
+                      Attach Teaser (optional)
+                    </button>
+                  )}
+
+                  {teaserFileError && (
+                    <p className="text-[11px] text-destructive font-mono">{teaserFileError}</p>
+                  )}
+
+                  <input
+                    ref={teaserInputRef}
+                    type="file"
+                    accept={TEASER_ACCEPT}
+                    className="hidden"
+                    onChange={handleTeaserFileChange}
+                  />
+
+                  <p className="text-[10px] text-muted-foreground/60 font-mono">
+                    PDF, DOCX, XLSX · max 25 MB
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Button
+                type="submit"
+                disabled={createTarget.isPending || uploadingTeaser}
+                className="w-full rounded-sm font-mono uppercase tracking-widest text-[11px] gap-2 h-12"
+              >
+                {(createTarget.isPending || uploadingTeaser) ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    {uploadingTeaser ? "Uploading Teaser…" : "Processing..."}
+                  </>
+                ) : (
                   <>
                     <Save size={16} />
                     Commit Record
