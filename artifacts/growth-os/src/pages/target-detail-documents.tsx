@@ -56,6 +56,7 @@ function mimeLabel(mime: string): string {
 const DOCUMENT_TYPES = [
   "Teaser",
   "IM",
+  "Business Model",
   "Management Presentation",
   "NDA",
   "IOI",
