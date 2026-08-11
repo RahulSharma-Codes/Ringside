@@ -2,33 +2,325 @@
 
 **Manipal Group · Corporate Development & Strategy**
 
+> **Maintenance note**: This file is the living source of truth for the project. Update it whenever architecture changes, new env vars are added, migrations are added, or significant decisions are made.
+
+---
+
 ## Overview
 
-Full-stack M&A deal management platform. pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+Full-stack M&A deal management platform for tracking acquisition targets through the full deal lifecycle — from initial screening through IC approval. Single-tenant (one company), deployed on Replit managed infrastructure.
+
+**Production URL**: `https://ringside-tmg.replit.app`
+
+---
 
 ## Stack
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **Frontend**: React 19 + Vite + TailwindCSS + shadcn/ui
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM (Replit Postgres via PGHOST)
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec → React Query hooks + Zod schemas)
-- **Build**: esbuild (CJS bundle)
-- **Testing**: Playwright E2E (`tests/` workspace package)
+| Layer | Technology |
+|---|---|
+| Monorepo | pnpm workspaces |
+| Node.js | 24 |
+| Frontend | React 19 + Vite + TailwindCSS + shadcn/ui |
+| API | Express 5 |
+| Database | PostgreSQL (Replit Postgres, PGHOST) + Drizzle ORM |
+| Validation | Zod (`zod/v4`), `drizzle-zod` |
+| API codegen | Orval (OpenAPI spec → React Query hooks + Zod schemas) |
+| Auth | JWT (password login primary, OTP backup/first-login) |
+| Build | esbuild (for API server bundle) |
+| Testing | Playwright E2E (`tests/` workspace) |
+| Observability | Pino logging, Sentry error tracking |
+
+---
+
+## Monorepo Structure
+
+```
+/
+├── artifacts/
+│   ├── api-server/          # Express 5 API — the backend
+│   │   ├── src/
+│   │   │   ├── index.ts     # Startup: migrations, server bootstrap
+│   │   │   ├── app.ts       # Express app, middleware chain, route mounts
+│   │   │   ├── routes/      # Feature routers (targets, actions, ai, …)
+│   │   │   ├── middlewares/ # auth.ts, company-context
+│   │   │   └── lib/         # target-access.ts, logger.ts, …
+│   │   └── build.mjs        # esbuild bundle config
+│   ├── growth-os/           # React frontend (Vite)
+│   │   └── src/
+│   │       ├── pages/       # Route-level page components
+│   │       ├── components/  # Shared UI components
+│   │       └── hooks/       # React Query + custom hooks
+│   ├── backup-worker/       # Scheduled DB dump → object storage
+│   └── mockup-sandbox/      # Canvas / design preview (Vite)
+├── lib/
+│   ├── db/                  # @workspace/db — Pool, Drizzle instance, schema
+│   │   └── src/
+│   │       ├── index.ts     # Pool config, acquireRequestContext, withCompanyTransaction
+│   │       └── schema/      # Drizzle table definitions
+│   ├── api-spec/            # OpenAPI spec source
+│   ├── api-client-react/    # Generated React Query hooks
+│   └── api-zod/             # Generated Zod schemas
+├── scripts/                 # seed-demo-data, test-rls-isolation
+└── tests/                   # Playwright E2E suite
+```
+
+---
 
 ## Key Commands
 
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
-- Schema changes are applied by the API server's idempotent startup migrations on boot (`artifacts/api-server/src/index.ts`). The `drizzle-kit push` path was removed — do not reintroduce it (it conflicts with the startup DDL).
-- `pnpm --filter @workspace/tests run test` — run Playwright E2E suite
+```bash
+# Development
+pnpm --filter @workspace/api-server run dev       # API server (builds then starts)
+pnpm --filter @workspace/growth-os run dev        # Frontend (Vite HMR)
 
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+# Typecheck / build
+pnpm run typecheck                                 # All packages
+pnpm run build                                     # Typecheck + build all
+
+# API codegen (after editing lib/api-spec/src/)
+pnpm --filter @workspace/api-spec run codegen
+
+# E2E tests
+pnpm --filter @workspace/tests run test
+
+# Demo data
+pnpm --filter @workspace/scripts run seed:demo    # Seed sample pipeline data
+```
+
+---
+
+## Running the App
+
+### Dev (Replit workflows)
+
+Four workflows run automatically:
+
+| Workflow | Command | Port | Path |
+|---|---|---|---|
+| API Server | `pnpm --filter @workspace/api-server run dev` | 8080 | `/api` |
+| Frontend | `pnpm --filter @workspace/growth-os run dev` | 18539 | `/` |
+| Backup Worker | `pnpm --filter @workspace/backup-worker run dev` | — | — |
+| Mockup Sandbox | `pnpm --filter @workspace/mockup-sandbox run dev` | 8081 | `/__mockup` |
+
+The API server dev command builds the dist first, then runs the compiled output. Schema changes take effect on the next restart (startup migrations are idempotent).
+
+### Production
+
+Production runs the pre-built API bundle:
+```bash
+node --enable-source-maps artifacts/api-server/dist/index.mjs
+```
+
+The frontend is served as a static site from `artifacts/growth-os/dist/public`.
+
+---
+
+## Environment Variables
+
+### Required in production
+
+| Variable | Description |
+|---|---|
+| `PORT` | API server port (set to `8080` by artifact config) |
+| `SESSION_SECRET` | JWT signing secret — **must be ≥ 32 characters** |
+| `PGHOST` | Replit Postgres host |
+| `PGUSER` | Replit Postgres user |
+| `PGPASSWORD` | Replit Postgres password |
+| `PGDATABASE` | Replit Postgres database name |
+| `PGSSLMODE` | **Set to `no-verify` in production only** (Replit managed Postgres needs SSL but uses self-signed cert) |
+
+### First-deploy bootstrap (production)
+
+| Variable | Description |
+|---|---|
+| `BOOTSTRAP_ADMIN_EMAIL` | Admin account email for first deploy |
+| `BOOTSTRAP_ADMIN_PASSWORD` | Admin account password for first deploy |
+
+If neither is set when the `users` table is empty, a **cryptographically random one-time password** is generated and logged **once** to the deployment log. Set these before the first publish or check deployment logs immediately after to retrieve the generated password.
+
+If only one is set, both are ignored (partial config is rejected) and random credentials are used.
+
+### Optional / feature-gated
+
+| Variable | Description | Default |
+|---|---|---|
+| `OPENAI_API_KEY` | Enables AI Copilot | — (Copilot disabled) |
+| `OPENAI_MODEL` | OpenAI model name | `gpt-4o` |
+| `SENTRY_DSN` | Sentry error tracking | — (disabled) |
+| `SMTP_HOST` | SMTP server for OTP emails | — (OTP email disabled) |
+| `SMTP_PORT` | SMTP port | `587` |
+| `SMTP_USER` | SMTP username | — |
+| `SMTP_PASS` | SMTP password | — |
+| `SMTP_FROM` | Sender address | — |
+| `DEFAULT_OBJECT_STORAGE_BUCKET_ID` | Object storage bucket (backup worker, document uploads) | — |
+| `PROBE_SECRET` | Secret for `GET /api/healthz/db` (monitoring probe) | — (endpoint returns 501) |
+| `LOG_LEVEL` | Pino log level | `info` |
+
+### Dev-only (auto-set or unused in prod)
+
+| Variable | Notes |
+|---|---|
+| `NODE_ENV` | `development` in dev workflow, `production` in prod artifact |
+| `REPLIT_DOMAINS` | Used to build allowed CORS origins in production |
+| `BASE_PATH` | Frontend base path prefix (set by artifact config) |
+
+---
+
+## Database
+
+### Connection
+
+`lib/db/src/index.ts` — prefers individual `PG*` env vars over `DATABASE_URL`. SSL is controlled entirely by the `PGSSLMODE` env var (pg reads it natively). No `ssl` key is set in the Pool config.
+
+```
+Dev:        PGSSLMODE unset → no SSL (Replit Postgres helium, plain TCP)
+Production: PGSSLMODE=no-verify → SSL with rejectUnauthorized:false
+```
+
+### Migrations
+
+Migrations are **idempotent DDL** that run at every server startup inside `applyMigrations()` in `artifacts/api-server/src/index.ts`. All DDL uses `IF NOT EXISTS` / `IF NOT EXISTS` guards. `drizzle-kit push` is not used — do not reintroduce it (it cannot reach the DB from the shell and conflicts with the startup DDL pattern).
+
+Schema changes: add new DDL to `applyMigrations()`, add the Drizzle column to `lib/db/src/schema/`, rebuild the API server.
+
+### Per-request tenant isolation
+
+`acquireRequestContext(companyId)` in `lib/db/src/index.ts`:
+
+1. Acquires a dedicated `PoolClient` from the pool (bypasses the pool.query intercept)
+2. Calls `set_config('app.company_id', companyId, false)` — session-level GUC
+3. Returns `{ run, release }` helpers
+
+The pool.query is intercepted via a monkey-patch: when inside a request async context (AsyncLocalStorage), all `db.*` Drizzle calls route through the per-request client, so the GUC is visible to every query.
+
+RLS `company_isolation` policies on every table use `current_setting('app.company_id', true)::uuid` as the row filter. This is sufficient for the single-tenant deployment.
+
+**No role switching** — `SET ROLE app_rls` / `RESET ROLE` was removed. Replit's managed Postgres doesn't allow the connecting user to assume a custom role. For a single-tenant app the GUC-based filter is equivalent.
+
+### Transactions
+
+`withCompanyTransaction(companyId, fn)` — sets GUC, opens `BEGIN`, runs `fn` (all `db.*` calls inside route to the transaction client via AsyncLocalStorage), `COMMIT` on success, `ROLLBACK` on error.
+
+---
+
+## Auth
+
+- **Password login**: `POST /api/auth/login` — bcrypt compare, returns JWT
+- **OTP login**: `POST /api/auth/otp/request` + `/api/auth/otp/verify` — 6-digit code, 10-minute expiry, email delivery (requires SMTP vars)
+- **JWT**: RS256 (or HS256 with SESSION_SECRET), 24h expiry; `jti` stored in `session_blocklist` on logout
+- **Roles**: `Admin` (full access, all deals) · `Member` (restricted to granted deals)
+- **Per-deal access**: `target_access` table — Members see no deals until an Admin grants access. Creating a target auto-grants the creator.
+
+### Middleware chain (`app.ts`)
+
+```
+Sentry → Helmet CSP → CORS → Auth rate limiter → API rate limiter
+→ Pino HTTP logging → JSON body parser
+→ /api/auth  (auth router, no requireAuth)
+→ /api/launch (launch router, public)
+→ /api  (requireAuth + companyContextMiddleware + main router)
+→ Sentry error handler → generic 500 handler
+```
+
+---
+
+## API Health Endpoints
+
+| Endpoint | Auth | Behavior |
+|---|---|---|
+| `GET /api/healthz` | None | Always `{status:'ok'}` — liveness |
+| `GET /api/readyz` | None | `{ready:false}` until migrations complete, then pool ping |
+| `GET /api/healthz/db` | `X-Probe-Secret` header | DB connectivity check, returns 503 on failure |
+
+---
+
+## Production Deployment
+
+### Publish flow
+
+1. The frontend must be built into `artifacts/growth-os/dist/public` before publish
+2. The API server bundle must be built into `artifacts/api-server/dist/`
+3. Publish via Replit's deploy UI — this builds both and deploys
+
+### First-deploy checklist
+
+- [ ] `SESSION_SECRET` set as a production secret (≥ 32 chars)
+- [ ] `PGSSLMODE=no-verify` set as a production-only env var
+- [ ] `BOOTSTRAP_ADMIN_EMAIL` + `BOOTSTRAP_ADMIN_PASSWORD` set (or be ready to retrieve generated password from deployment logs immediately after first deploy)
+- [ ] `OPENAI_API_KEY` set if AI Copilot is needed
+- [ ] `DEFAULT_OBJECT_STORAGE_BUCKET_ID` set if backup worker is running
+
+### First login
+
+On first deploy with an empty database:
+- If `BOOTSTRAP_ADMIN_EMAIL` + `BOOTSTRAP_ADMIN_PASSWORD` are set → use those credentials
+- If not → a random password is generated, logged once to deployment logs, and the admin account is created at `admin@ringside.local`. Check deployment logs immediately — the password is not stored in plaintext anywhere after that log line.
+
+---
+
+## Key Architectural Decisions
+
+### Supabase → Replit Postgres (PGHOST)
+
+Supabase's connection pooler became unreachable from async tasks (ENOTFOUND on the pooler hostname). The DB layer was switched to Replit Postgres using individual `PG*` env vars (`PGHOST/PGUSER/PGPASSWORD/PGDATABASE`). `DATABASE_URL` is still accepted as a fallback but `PG*` vars take priority.
+
+### SSL: PGSSLMODE env var (not Pool config)
+
+Multiple attempts to set `ssl: { rejectUnauthorized: false }` in the Pool config failed in production (pg's internal client chain didn't thread it through). The working solution: **no ssl key in Pool config at all** — pg reads `PGSSLMODE` natively via `readSSLConfigFromEnvironment()`. `PGSSLMODE=no-verify` is set as a production-only env var in Replit's secrets.
+
+Dev has no `PGSSLMODE` set → pg defaults to no SSL → works with Replit's helium host over plain TCP.
+
+### app_rls role removed
+
+Originally the code used `SET ROLE app_rls` on every request to force PostgreSQL to apply RLS policies (superusers bypass RLS unconditionally). This failed in production because Replit's managed Postgres doesn't allow the connecting user to assume a custom role — the `GRANT app_rls TO session_user` migration step fails silently.
+
+**Resolution**: Removed `SET ROLE` / `RESET ROLE` entirely. For a single-tenant app with one `company_id`, the GUC-based `company_isolation` policies still correctly filter every row. The risk of superuser RLS bypass is irrelevant when all data belongs to one company.
+
+The `app_rls` role creation/grant migration block was also removed from startup migrations.
+
+### Startup migrations (not drizzle-kit)
+
+`drizzle-kit push` cannot reach the database from the Replit shell (SSL configuration issues, no direct psql access). All DDL runs inside `applyMigrations()` at server startup using idempotent `IF NOT EXISTS` guards. This runs on every boot — it is safe and fast because no-op DDL in Postgres is cheap.
+
+### First-run bootstrap seed
+
+The admin bootstrap seed runs whenever the `users` table is empty, regardless of `NODE_ENV`. Credentials:
+- Both `BOOTSTRAP_ADMIN_EMAIL` + `BOOTSTRAP_ADMIN_PASSWORD` set → use them
+- Partial config (only one set) → rejected, random credentials generated
+- Neither set → `randomBytes(20).toString('base64url')` password, logged once to deployment logs
+
+Static fallback passwords (`ChangeMe@Dev1`) were removed to avoid predictable production credentials.
+
+### Connection management pattern
+
+```
+pool.connect()                    → dedicated PoolClient (bypasses intercept)
+set_config('app.company_id', …)   → session GUC for RLS filtering
+[pool.query intercept routes db.* calls through this client via AsyncLocalStorage]
+release()                         → client.release() back to pool
+```
+
+The pool.query monkey-patch ensures all Drizzle ORM calls within a request go through the connection that has the GUC set, without needing to thread the client through every function call.
+
+---
+
+## RLS Policies
+
+Every data table has a `company_isolation` policy:
+
+```sql
+CREATE POLICY company_isolation ON <table>
+  USING (company_id = nullif(current_setting('app.company_id', true), '')::uuid)
+  WITH CHECK (company_id = nullif(current_setting('app.company_id', true), '')::uuid);
+```
+
+The `true` argument to `current_setting` makes it return NULL (not error) if the GUC is unset — this safely excludes all rows if the middleware hasn't set the GUC (e.g., migration queries run under the default company ID set at startup).
+
+---
+
+## Backup Worker
+
+Runs every 6 hours. Dumps the full database with `pg_dump`, gzips it, uploads to object storage under `backups/db/YYYY-MM-DDTHH.sql.gz`. Retains the 14 most recent dumps. Requires `DEFAULT_OBJECT_STORAGE_BUCKET_ID` secret.
 
 ---
 
@@ -47,8 +339,6 @@ Executive dashboard with KPI tiles, needs-attention flags, pipeline stage chart,
 - Preview step: classified rows (create / update / skip) with changedFields shown for updates
 - Apply step: creates new targets with milestone/stage-log, updates existing ones (stage-change logic reused from PUT /:id/stage)
 - Done step: summary of created/updated/skipped with per-row error details
-- Import button added to Pipeline page header
-- Backend: `POST /api/import/validate` + `POST /api/import/apply` at `/api/import/*`
 - Safety rules: never overwrite non-blank DB values with blank; never update targetCode on existing records; partial failures isolated per-row; invalid tier/stage skipped with reason
 
 ### Phase 3A — AI Copilot
@@ -57,209 +347,64 @@ Chat interface at `/copilot` backed by `POST /api/ai/ask`. Reads a live DB snaps
 ### Phase 4A — Action Command Center + Weekly Review
 
 **Action Command Center** (`/actions`):
-- Card-based mobile-first layout replacing the old desktop table
+- Card-based mobile-first layout
 - Groups: Overdue / Blocked / Due This Week / Upcoming / No Due Date / Recently Completed (14d)
-- Filters: owner dropdown, priority dropdown, Must-Win toggle, Overdue Only toggle, text search
-- Quick Complete / Reopen buttons reuse existing `PUT /api/actions/:id`
-- New endpoint: `GET /api/actions/command-center` — enriches each action with `targetCode`, `priorityTier`, `currentStage` (via left join on targets + milestones)
+- Filters: owner, priority, Must-Win toggle, Overdue Only toggle, text search
+- New endpoint: `GET /api/actions/command-center` — enriches each action with `targetCode`, `priorityTier`, `currentStage`
 
 **Weekly Review** (`/weekly-review`):
-- 8 collapsible sections, all rendered with empty states even when empty
-- Sections: Must-Win Opportunities, Needs Attention, Overdue Actions, Actions Due This Week, Stage Changes (last 7d), Recently Updated Targets, No Open Actions, No Interaction 30+ Days
-- New endpoint: `GET /api/review/weekly` — single batch read (4 parallel DB queries) → 8 computed arrays
-- Refresh button with timestamp
-- No-interaction guardrail: newly created targets (<30d old) are never flagged
-
-**Nav**: Weekly Review added to sidebar with CalendarCheck icon.
+- 8 collapsible sections: Must-Win Opportunities, Needs Attention, Overdue Actions, Actions Due This Week, Stage Changes (last 7d), Recently Updated Targets, No Open Actions, No Interaction 30+ Days
+- New endpoint: `GET /api/review/weekly` — single batch read (4 parallel DB queries)
 
 ### Phase 4B — Diligence Workspace + Deal Readiness
 
-**Diligence Tab** (per-target, inside Target Detail at `/targets/:id`):
-- 5th tab "Diligence" with ClipboardCheck icon in Target Detail
-- 8 collapsible workstream sections: Commercial, Financial, Legal, Tax, HR, Technology, Operations, Integration
-- Readiness Score card: % complete progress bar, blocked/overdue/missing workstream counts
-- Add Item dialog: workstream, description, owner, due date, priority, status, notes fields
-- Edit Item dialog: same fields, pre-filled from existing item
-- Quick Complete / Reopen buttons per item; Delete with confirmation dialog
-- Items isolated from regular Actions tab (workstream IS NULL vs IS NOT NULL filter)
-- Component extracted to `target-detail-diligence.tsx` for maintainability
-- New backend routes: `GET /api/targets/:id/diligence`, `POST /api/targets/:id/diligence`
+**Diligence Tab** (per-target): 8 workstream sections (Commercial/Financial/Legal/Tax/HR/Technology/Operations/Integration), readiness score, add/edit/delete items, separated from regular Actions by `workstream IS NULL` filter.
 
-**Diligence Review** (`/diligence-review`):
-- Pipeline-wide diligence health view with collapsible sections
-- Sections: Must-Win Incomplete, Blocked Items, Overdue Items, Completion by Target (progress bars), Missing Workstreams, Recently Completed (14d)
-- Per-target progress bars colored by completion % (red → amber → blue → green)
-- All rows link to the target detail Diligence tab
-- Refresh button with timestamp
-- New backend endpoint: `GET /api/diligence/review` (diligence router)
+**Diligence Review** (`/diligence-review`): Pipeline-wide health — blocked, overdue, completion by target, missing workstreams.
 
-**Schema changes**:
-- `actions` table: added `workstream text` and `notes text` nullable columns
-- OpenAPI: new `diligence` tag, 3 new paths, 7 new schemas
-- `workstream` and `notes` fields added to ActionItem, CreateActionBody, UpdateActionBody
-
-**Other updates**:
-- `GET /api/actions/open` and `GET /api/actions/command-center` now filter `workstream IS NULL` (diligence items excluded from Action Command Center)
-- `GET /api/targets/:id/actions` filters `workstream IS NULL` (keeps Actions and Diligence tabs cleanly separated)
-- `PUT /api/actions/:id` extended to accept `workstream` and `notes` (handles diligence item edits)
-
-**Nav**: Diligence Review added to sidebar with ClipboardCheck icon.
+Schema: `actions` table gained `workstream text` and `notes text` columns.
 
 ### Phase 7E — IC Log + Stage Gate UI
 
-**IC Sessions Tab** (per-target, inside Target Detail at `/targets/:id`):
-- 6th tab "IC" with Scale icon in Target Detail
-- Lists IC sessions with outcome badges (Approved green, Rejected red, Conditional amber, Deferred grey)
-- Add Session dialog: session date, attendees, outcome, conditions, notes
-- Delete session with confirmation
-- New backend routes: `GET /api/targets/:id/ic-sessions`, `POST /api/targets/:id/ic-sessions`, `DELETE /api/ic-sessions/:id`
+**IC Sessions Tab** (per-target): Lists IC sessions with outcome badges. Add/Delete sessions. Schema: `ic_sessions` table.
 
-**Stage Gate Advisory** (in stage-change dialog):
-- Pre-flight `GET /api/targets/:id/stage-gate?newStage=X` called when a stage-change is initiated
-- Renders advisory banner (pass/warn/block) with checklist items inside the Confirm Stage Change dialog
-
-**Schema changes**:
-- `ic_sessions` table added: id, target_id, session_date, attendees, outcome, conditions, notes, created_at
-- OpenAPI: new `ic` tag, 3 new paths, `IcSession` and `CreateIcSessionBody` schemas
-
-**Database migration**:
-- Switched from Supabase pooler (became unreachable) to Replit Postgres (PGHOST)
-- `lib/db/src/index.ts` now prefers `PGHOST/PGUSER/PGPASSWORD/PGDATABASE` env vars over `DATABASE_URL` secret
-- `artifacts/api-server/src/index.ts` runs idempotent startup migrations (rename `action_items`→`actions`, create `milestones`, `deal_documents`, `ic_sessions` tables with IF NOT EXISTS guards)
+**Stage Gate Advisory**: Pre-flight `GET /api/targets/:id/stage-gate?newStage=X` renders advisory banner (pass/warn/block) in stage-change dialog.
 
 ### Phase 8F — NDA Register + Regulatory Clearance Map
 
-**Compliance Tab** (per-target, inside Target Detail at `/targets/:id`):
-- 8th tab "Compliance" with ShieldCheck icon in Target Detail
-- **NDA Register section**: table of NDA records per deal — counterparty, effective date, expiry date, scope (One-way / Mutual), confidentiality term (months), document reference/link, status (Active / Expired / Extended); Add/Edit/Delete NDA record; NDAs expiring within 30 days shown with amber badge; expired NDAs shown in red
-- **Regulatory Clearance Map section**: structured list of clearance items; each item has: category (Antitrust-CCI / RBI / SEBI / IRDAI / FEMA-FDI / DPDP / Sanctions-PEP / ABAC / Other), description, owner name, status (Not Required / Pending / Filed / Cleared / Blocked), target clearance date, evidence document link, notes; Add/Edit/Delete item; overdue items (past target date, not cleared) flagged red
-- Global alert banner shown at top of tab if any NDA is expiring/expired or any clearance is overdue/blocked
-- Component extracted to `target-detail-compliance.tsx`
+**Compliance Tab** (per-target): NDA Register (counterparty, dates, scope, status) + Regulatory Clearance Map (CCI/RBI/SEBI/IRDAI/FEMA/DPDP/Sanctions/ABAC). Expiry and overdue alerts.
 
-**Backend routes**:
-- `GET/POST /api/targets/:id/nda-records` — list and create NDA records
-- `PUT/DELETE /api/nda-records/:id` — update/delete NDA record
-- `GET/POST /api/targets/:id/regulatory-clearances` — list and create clearance items
-- `PUT/DELETE /api/regulatory-clearances/:id` — update/delete clearance item
-
-**Schema changes**:
-- `nda_records` table: id, target_id, counterparty, effective_date, expiry_date, scope, term_months, doc_reference, status, notes, created_at
-- `regulatory_clearances` table: id, target_id, category, description, owner_name, status, target_clearance_date, evidence_reference, notes, created_at, updated_at
-- OpenAPI: new `compliance` tag; 6 new paths; 6 new schemas
+Schema: `nda_records`, `regulatory_clearances` tables.
 
 ### Phase 8H — In-App Notification Inbox
 
-**Notification Bell** (mobile header, all pages):
-- Bell icon with unread count badge (red, hides when 0) in top mobile header
-- Clicking opens dropdown panel: unread notifications listed first, each with icon, title, body, timestamp, blue dot; "Mark all read" button
-- Clicking a notification navigates to the relevant deal/tab and marks it read
-- Auto-generates notifications on app load if last generation > 15 min ago (localStorage TTL)
-
-**Generation engine** (`POST /api/notifications/generate`) — 4 check types:
-- **Stage stagnation**: active deal in current stage > 45 days with no progression
-- **Action overdue**: open (non-diligence) action past its due date
-- **NDA expiring**: active NDA with expiry_date within 30 days
-- **Must-Win no activity**: Must-Win deal with no interaction logged in 14+ days
-- All checks are idempotent: deduplication within 24h per type+target combo
-
-**Backend routes**: `POST /api/notifications/generate`, `GET /api/notifications`, `GET /api/notifications/unread-count`, `PUT /api/notifications/:id/read`, `PUT /api/notifications/read-all`
-
-**Schema**: `notifications` table (id, target_id nullable, type, title, body, link_path, is_read, created_at) added via startup migration
-
-**OpenAPI + codegen**: 5 new paths; 3 new schemas (AppNotification, NotificationGenerateResult, UnreadCountResult); hooks generated
+Bell icon with unread count. Notification types: stage stagnation (45d), overdue action, NDA expiring (30d), Must-Win no activity (14d). Idempotent 24h dedup. Schema: `notifications` table.
 
 ### Phase 8J — Drag-and-Drop Kanban
 
-**Draggable deal cards** on Kanban board (`/pipeline` → Kanban view):
-- Cards in active pipeline stage columns are draggable via `@dnd-kit/core` (PointerSensor with 8px threshold to avoid accidental drags on tap)
-- Off-track column cards (On Hold / Dropped / Rejected) are click-only links, not draggable; column is collapsed by default
-- Drag overlay shows a floating rotated card while dragging; droppable columns highlight with primary glow when hovered during drag
-- Dropping on a different column opens **KanbanStageChangeDialog** — reason select with preset options plus "Other" with free-text fallback — before any API call is made
-- On confirm: calls existing `PUT /api/targets/:id/stage` with `changeReason`; success toast + query invalidation; error toast on failure with card snapping back
-- Library: `@dnd-kit/core` + `@dnd-kit/utilities` added to `@workspace/growth-os`
+Cards draggable via `@dnd-kit/core`. Dropping on a different column opens a reason dialog before calling `PUT /api/targets/:id/stage`. Off-track columns (On Hold/Dropped/Rejected) are click-only.
 
-### Phase 9A — Stakeholders Tab (Counterparty & Advisor Management)
+### Phase 9A — Stakeholders Tab
 
-**Stakeholders Tab** (per-target, inside Target Detail at `/targets/:id`):
-- 7th tab "Stakeholders" with Users icon in Target Detail
-- **Counterparty section**: structured record — legal entity name, CIN/reg no., founders, key management, controlling shareholders, website, notes; editable via Edit dialog
-- **Internal Sponsors section**: list of internal champions — name, role/title, email, notes; Add/Edit/Delete
-- **External Advisors (Buy-side)**: advisor type, firm name, contact, engagement date, fee structure, conflicts-check status (Pending/Cleared/Flagged); Add/Edit/Delete
-- **Counterparty Advisors (Sell-side)**: same structure; tracked for negotiation visibility
-- Flagged advisor warning banner shown at top of tab when any advisor has conflicts_status = "Flagged"
-- Component extracted to `target-detail-stakeholders.tsx`
-
-**Backend routes**:
-- `GET/PUT /api/targets/:id/counterparty` — structured counterparty fields
-- `GET/POST /api/targets/:id/advisors` — list and create advisors (buy-side and sell-side)
-- `PUT/DELETE /api/advisors/:id` — update/delete advisor
-- `GET/POST /api/targets/:id/sponsors` — list and create internal sponsors
-- `PUT/DELETE /api/sponsors/:id` — update/delete sponsor
-
-**Schema changes**:
-- `deal_advisors` table: id, target_id, side, advisor_type, firm_name, contact_name, contact_email, engagement_date, fee_structure, conflicts_status, notes, created_at
-- `deal_sponsors` table: id, target_id, name, role_title, email, notes, created_at
-- Counterparty columns added to `targets` via ALTER TABLE: cp_cin, cp_founders, cp_key_management, cp_controlling_shareholders, cp_website, cp_notes
-- OpenAPI: new `advisors` and `sponsors` tags; 7 new paths; 8 new schemas
+Counterparty record, Internal Sponsors, External (Buy-side) Advisors, Counterparty (Sell-side) Advisors. Conflicts-check status with warning banner. Schema: `deal_advisors`, `deal_sponsors` tables + counterparty columns on `targets`.
 
 ### Phase 10A — Per-User Deal Visibility
 
-**Access model**:
-- Non-admin users see NO deals until an Admin explicitly grants access; Admins always see all deals.
-- `target_access` table: `id, targetId, userId, grantedBy, grantedAt` (+ `companyId` via RLS), unique on `(targetId, userId)`.
-- `getAccessScope(req)` / `canAccessTarget(req, targetId)` / `grantTargetAccess(...)` helpers in `artifacts/api-server/src/lib/target-access.ts`. Admin role bypasses; everyone else needs an explicit grant row.
-- Creating a target auto-grants the creator access to it.
+Non-admin users see no deals until an Admin grants access. `target_access` table. `getAccessScope(req)` / `canAccessTarget(req, targetId)` helpers. Enforced in all list/detail endpoints. Admin console for managing access per-user.
 
-**Enforced in**: `routes/targets.ts` (list, summary, by-stage, top-priority, needs-attention, get-by-id), `routes/review.ts` (`/weekly` — all 4 parallel queries), `routes/diligence.ts` (`/review`), `routes/actions.ts` (`/open`, `/command-center`). Each short-circuits to an empty/zeroed response when a non-admin has zero grants, rather than passing an empty id list into `inArray(...)`.
+### Engineering & Infrastructure
 
-**Admin-only management routes**:
-- `GET/POST /api/targets/:id/access`, `DELETE /api/targets/:id/access/:userId` — per-target grant list.
-- `GET/PUT /api/admin/users/:id/access` — per-user checklist (replace-all-grants) — backs the Admin Console "Access" dialog on the Users list (`pages/admin.tsx`), a simple checkbox list of all deals.
+**Floating rail sidebar**: Collapsed width 56px (was 48px) — icon was clipping at 48px.
 
-**OpenAPI**: new `access` tag; 4 new paths; `TargetAccessGrant`, `GrantTargetAccessBody`, `UserAccessList` schemas.
+**Route-level code splitting**: 17 page imports converted to `React.lazy()` dynamic imports. Dashboard stays eagerly loaded.
 
----
+**Playwright E2E Suite** (`tests/`): 25 tests — login, lazy chunk rendering (7 routes), target detail all 13 tabs, 4 navigation flows. JWT cached globally to avoid rate limiter.
 
-## Engineering & Infrastructure
-
-### Nav Bar Fix + Performance (code splitting)
-
-**Floating rail sidebar icon clipping fix**:
-- Collapsed width increased from `w-12` (48px) to `w-[56px]` (56px) in `FloatingRail` (`components/layout.tsx`)
-- Root cause: 48px container − 2px border − 16px nav padding = 30px for a 32px (`w-8`) icon; fix gives 38px clear
-
-**Route-level code splitting** (`App.tsx`):
-- 17 page imports converted from static to `React.lazy()` dynamic imports
-- Dashboard stays eagerly loaded (always the first page after login)
-- All lazy routes share a single `<Suspense fallback={<PageLoader />}>` in `Router`
-- Eliminates parse/eval cost of all secondary pages on initial load
-
-**Dashboard query cleanup** (`pages/dashboard.tsx`):
-- "Total Pipeline" KPI now reads `summary.activeTargets` (from the fast `/api/targets/summary` call) instead of waiting for the full `useListTargets` response
-
-### Playwright E2E Test Suite (`tests/` workspace package)
-
-25 tests across 4 groups, run with `pnpm --filter @workspace/tests run test`:
-
-**Login (1 test)**: fills email/password in headless Chromium, asserts dashboard appears.
-
-**Lazy-loaded route chunks (7 tests)**: direct URL navigation to each page asserts real content is rendered (not the Suspense spinner fallback) — covers Dashboard, Pipeline List, Pipeline Board (after toggle), Actions Command Center, AI Copilot, Weekly Review, Diligence Review.
-
-**Target Detail — all 13 tabs (13 tests)**: Overview, Log, Actions, Timeline, Diligence, Documents, Valuation, Synergies, Activity, IC, Stakeholders, Compliance, Audit. Tab assertion strategy: click → wait for `aria-selected="true"` → wait for `.animate-pulse` skeletons to detach → assert active panel has content. This avoids the race where the old panel's text satisfies a generic poll before the new panel finishes loading.
-
-**Navigation flows (4 tests)**: Dashboard → Pipeline, Dashboard → Actions, Pipeline → Target Detail (conditional skip if no cards visible), Target Detail → Actions tab.
-
-Key decisions:
-- Nav links selected by `href` attribute (`a[href="/pipeline"]`) not accessible name — collapsed rail hides label text with `display:none`
-- Chromium resolved via `which chromium` at config load time; env override takes priority
-- Global setup fetches a JWT once per suite run and caches it to avoid rate-limiter (30 req/15 min)
-- CORS: `api-server` always allows `http://localhost` so headless Chromium can reach the auth endpoint
+**Corporate brand video**: 60s animated film in mockup-sandbox (`/__mockup`). 6 scenes, Framer Motion, cinematic audio.
 
 ---
 
 ## Target Detail — Tab Reference
-
-The target detail page (`/targets/:id`) has 13 tabs:
 
 | # | Tab | Icon | Phase |
 |---|---|---|---|
@@ -279,35 +424,11 @@ The target detail page (`/targets/:id`) has 13 tabs:
 
 ---
 
-## Corporate Brand Video
-
-60-second animated product launch film for Ringside. Lives in the Canvas / mockup-sandbox artifact at `/__mockup`. Stack: React + Framer Motion, dark navy palette (`#06090f`), Inter font.
-
-**Structure** — 6 scenes, 60 seconds total:
-
-| Scene | Duration | Headline copy | Feature shown |
-|---|---|---|---|
-| 1 — Opening | 9s | *"Every great acquisition starts with the right intelligence."* | RINGSIDE brand reveal + stat counters |
-| 2 — Dashboard | 10s | *"Your entire pipeline — scored, staged, and surfaced instantly."* | KPI tiles, stage distribution bars, attention banner |
-| 3 — Pipeline | 10s | *"Move deals forward. Drag, drop, and record your reasoning."* | Kanban board with deal cards and tier badges |
-| 4 — Diligence | 10s | *"8 workstreams, one view. Nothing falls through the cracks."* | Workstream grid with progress bars and blocked states |
-| 5 — AI Copilot | 10s | *"An AI advisor who has read every deal, action, and interaction."* | Chat panel with typing-dots animation |
-| 6 — Closing | 11s | *"Deal intelligence, built for the Manipal Group Corporate Development team."* | RINGSIDE wordmark + 8 feature chips |
-
-**Animation approach**: all transitions use GPU-composited `transform` + `opacity` only. No `filter:blur` or `clipPath` animations in continuous loops. Headline lines use `overflow:hidden` wrappers with `y: '105%' → 0` clip reveals. Numbers use a custom `Counter` component with RAF-based easing.
-
-**Audio**: AI-generated 65-second ambient instrumental track (`public/audio/ringside_bg.mp3`) — cinematic dark pads, 60 BPM. Auto-plays on load; mute toggle button (🔊) bottom-right. Scene counter (1/6) top-right; timeline progress bar at bottom.
-
-**Files**:
-- `artifacts/mockup-sandbox/src/components/video/VideoTemplate.tsx` — container, audio, progress bar
-- `artifacts/mockup-sandbox/src/components/video/Counter.tsx` — animated number counter
-- `artifacts/mockup-sandbox/src/lib/video/hooks.ts` — `useVideoPlayer` with elapsed-time tracking
-- `artifacts/mockup-sandbox/src/components/video/video_scenes/Scene{1–6}.tsx` — individual scenes
-
----
-
 ## Checkpoints
 
 | Label | Commit | Notes |
 |---|---|---|
-| working-supabase-read-write-baseline | 7243ed55 | Full stack working: API + React frontend + seeded DB. DB uses Replit Postgres (helium) with fallback from any supabase DATABASE_URL secret. |
+| working-supabase-read-write-baseline | 7243ed55 | Full stack working: API + React + seeded DB. DB uses Replit Postgres (helium). |
+| fix-production-ssl-and-bootstrap | (Task #334) | SSL fixed via PGSSLMODE=no-verify; secure random bootstrap seed; app_rls graceful degradation |
+| remove-apprls-role-switch | 085cea0034 | SET ROLE / RESET ROLE / app_rls migration block removed entirely; clean GUC-only connection pattern |
+| rename-withRlsTransaction | 085cea0034 | Renamed to withCompanyTransaction to match actual behavior (no role switch) |
