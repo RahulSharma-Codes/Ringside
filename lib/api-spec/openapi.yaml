@@ -4126,11 +4126,27 @@ components:
           type: integer
       required: [targetId]
 
+    BraveSearchResult:
+      type: object
+      properties:
+        title:
+          type: string
+        url:
+          type: string
+        snippet:
+          type: string
+      required: [title, url, snippet]
+
     BriefResponse:
       type: object
       properties:
         brief:
           type: string
+          nullable: true
+        searchResults:
+          type: array
+          items:
+            $ref: "#/components/schemas/BraveSearchResult"
           nullable: true
         model:
           type: string

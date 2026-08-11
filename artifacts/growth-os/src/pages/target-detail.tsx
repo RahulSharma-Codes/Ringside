@@ -19,7 +19,7 @@ import {
   MessageSquare, ListChecks, GitBranch,
   LayoutGrid, ClipboardCheck, FolderOpen, Sparkles, Loader2, Copy, Check, Bot,
   Activity as ActivityIcon, Scale, TrendingUp, AlertTriangle, Users,
-  ShieldCheck, ClipboardList, Printer,
+  ShieldCheck, ClipboardList, Printer, ChevronDown, ChevronRight, ExternalLink,
 } from "lucide-react";
 import { differenceInDays, parseISO, format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -47,6 +47,128 @@ const StakeholdersTab = React.lazy(() => import("@/pages/target-detail-stakehold
 const ComplianceTab  = React.lazy(() => import("@/pages/target-detail-compliance").then(m => ({ default: m.ComplianceTab })));
 const AuditTrailTab  = React.lazy(() => import("@/components/audit-trail-tab").then(m => ({ default: m.AuditTrailTab })));
 
+/**
+ * Renders a [Source: X] tag as a small inline grey badge.
+ */
+function SourceBadge({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center ml-1 px-1.5 py-0 rounded text-[9px] font-mono bg-muted/80 text-muted-foreground/70 border border-border/50 align-middle whitespace-nowrap">
+      {label}
+    </span>
+  );
+}
+
+/**
+ * Renders a line of brief text, replacing [Source: X] tags with SourceBadge components.
+ */
+function BriefLine({ text }: { text: string }) {
+  const parts = text.split(/(\[Source:[^\]]+\])/g);
+  return (
+    <span>
+      {parts.map((part, i) => {
+        const match = part.match(/^\[Source:(.+)\]$/);
+        if (match) {
+          return <SourceBadge key={i} label={`Source:${match[1]}`} />;
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </span>
+  );
+}
+
+const MISSING_DATA_HINTS: Record<string, string> = {
+  "## 1. Teaser / IM Check": "No Teaser or IM attached — upload documents to unlock this section.",
+  "## 2. Public Information Review": "No web search key configured — set BRAVE_SEARCH_API_KEY to enable public data.",
+  "## 3. Tracxn Data": "",
+  "## 4. Competitive Landscape": "",
+  "## 5. Screening Result": "",
+};
+
+/**
+ * Renders the AI brief as structured sections with source-tag inline badges.
+ * Each `## N. Section` heading gets its own styled panel.
+ */
+function BriefSections({ content }: { content: string }) {
+  const lines = content.split("\n");
+
+  // Group lines into sections by markdown ## headings
+  const sections: { heading: string; lines: string[] }[] = [];
+  let current: { heading: string; lines: string[] } | null = null;
+  let preamble: string[] = [];
+
+  for (const line of lines) {
+    if (line.startsWith("## ")) {
+      if (current) sections.push(current);
+      current = { heading: line, lines: [] };
+    } else if (current) {
+      current.lines.push(line);
+    } else {
+      preamble.push(line);
+    }
+  }
+  if (current) sections.push(current);
+
+  const preambleText = preamble.join("\n").trim();
+
+  const isSectionEmpty = (sLines: string[]) => {
+    const joined = sLines.join(" ").toLowerCase();
+    return (
+      joined.includes("not available") ||
+      joined.includes("no documents") ||
+      joined.includes("no web") ||
+      joined.includes("no public")
+    );
+  };
+
+  return (
+    <div className="space-y-3">
+      {preambleText && (
+        <p className="text-sm text-muted-foreground leading-relaxed">{preambleText}</p>
+      )}
+      {sections.map((section, si) => {
+        const isEmpty = isSectionEmpty(section.lines);
+        const missingHint = MISSING_DATA_HINTS[section.heading];
+        return (
+          <div key={si} className={`rounded-lg border p-3 space-y-2 ${isEmpty ? "border-border/30 bg-muted/20" : "border-border/50 bg-background/50"}`}>
+            <h3 className="text-[12px] font-semibold text-foreground/80 font-sans">{section.heading.replace(/^## /, "")}</h3>
+            {isEmpty && missingHint && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded px-2 py-1.5 flex items-start gap-1.5">
+                <AlertTriangle size={10} className="mt-0.5 shrink-0" />
+                {missingHint}
+              </p>
+            )}
+            <div className="text-[12px] leading-relaxed text-foreground/85 font-sans space-y-0.5">
+              {section.lines.map((line, li) => {
+                if (!line.trim()) return <div key={li} className="h-1" />;
+                if (line.startsWith("- ") || line.startsWith("* ")) {
+                  return (
+                    <div key={li} className="flex gap-1.5 items-start">
+                      <span className="text-muted-foreground/50 mt-0.5 shrink-0">•</span>
+                      <BriefLine text={line.slice(2)} />
+                    </div>
+                  );
+                }
+                if (line.startsWith("**") && line.endsWith("**")) {
+                  return (
+                    <p key={li} className="font-semibold text-foreground/90">
+                      <BriefLine text={line.replace(/\*\*/g, "")} />
+                    </p>
+                  );
+                }
+                return (
+                  <p key={li}>
+                    <BriefLine text={line} />
+                  </p>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function TargetDetail() {
   const { id } = useParams();
   const targetId = Number(id);
@@ -64,10 +186,12 @@ export default function TargetDetail() {
 
   const [aiBriefOpen, setAiBriefOpen] = useState(false);
   const [briefContent, setBriefContent] = useState<string | null>(null);
+  const [briefSearchResults, setBriefSearchResults] = useState<Array<{ title: string; url: string; snippet: string }>>([]);
   const [briefLoading, setBriefLoading] = useState(false);
   const [briefSetupRequired, setBriefSetupRequired] = useState(false);
   const [briefBillingRequired, setBriefBillingRequired] = useState(false);
   const [briefCopied, setBriefCopied] = useState(false);
+  const [briefSourcesOpen, setBriefSourcesOpen] = useState(false);
 
   const { data: target, isLoading: loadingTarget } = useGetTarget(targetId, {
     query: { enabled: !!targetId, queryKey: getGetTargetQueryKey(targetId) },
@@ -90,12 +214,18 @@ export default function TargetDetail() {
   const handleGenerateBrief = async () => {
     setBriefLoading(true);
     setBriefContent(null);
+    setBriefSearchResults([]);
     setBriefSetupRequired(false);
     setBriefBillingRequired(false);
+    setBriefSourcesOpen(false);
     setAiBriefOpen(true);
     try {
       const resp = await customFetch<{
-        brief: string | null; setupRequired?: boolean; billingRequired?: boolean; error?: string;
+        brief: string | null;
+        searchResults?: Array<{ title: string; url: string; snippet: string }>;
+        setupRequired?: boolean;
+        billingRequired?: boolean;
+        error?: string;
       }>("/api/ai/opportunity-brief", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -104,6 +234,7 @@ export default function TargetDetail() {
       if (resp.setupRequired) { setBriefSetupRequired(true); return; }
       if (resp.billingRequired) { setBriefBillingRequired(true); return; }
       setBriefContent(resp.brief ?? "No brief generated.");
+      setBriefSearchResults(resp.searchResults ?? []);
     } catch {
       setBriefContent("Failed to generate brief. Please try again.");
     } finally {
@@ -419,8 +550,8 @@ export default function TargetDetail() {
       </Dialog>
 
       {/* AI Opportunity Brief */}
-      <Dialog open={aiBriefOpen} onOpenChange={(open) => { setAiBriefOpen(open); if (!open) setBriefContent(null); }}>
-        <DialogContent className="sm:max-w-[680px] border-border bg-sidebar rounded-sm max-h-[85vh] overflow-hidden flex flex-col">
+      <Dialog open={aiBriefOpen} onOpenChange={(open) => { setAiBriefOpen(open); if (!open) { setBriefContent(null); setBriefSearchResults([]); } }}>
+        <DialogContent className="sm:max-w-[720px] border-border bg-sidebar rounded-sm max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader className="shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
@@ -434,13 +565,14 @@ export default function TargetDetail() {
               )}
             </div>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto py-2 min-h-0">
+          <div className="flex-1 overflow-y-auto py-2 min-h-0 space-y-4">
             {briefLoading && (
               <div className="flex flex-col items-center justify-center gap-4 py-12">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                   <Loader2 size={18} className="text-primary animate-spin" />
                 </div>
                 <p className="text-sm text-muted-foreground">Generating AI brief…</p>
+                <p className="text-xs text-muted-foreground/60">Running web searches and analysing documents</p>
               </div>
             )}
             {!briefLoading && briefSetupRequired && (
@@ -457,7 +589,43 @@ export default function TargetDetail() {
               </div>
             )}
             {!briefLoading && briefContent && !briefSetupRequired && !briefBillingRequired && (
-              <div className="text-sm leading-relaxed whitespace-pre-wrap font-sans text-foreground/90">{briefContent}</div>
+              <>
+                <BriefSections content={briefContent} />
+                {/* Sources used collapsible */}
+                {briefSearchResults.length > 0 && (
+                  <div className="border border-border/40 rounded-lg overflow-hidden">
+                    <button
+                      className="w-full flex items-center justify-between px-3 py-2.5 text-[11px] font-mono text-muted-foreground hover:bg-muted/40 transition-colors"
+                      onClick={() => setBriefSourcesOpen((v) => !v)}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <ExternalLink size={10} />
+                        Web sources used ({briefSearchResults.length})
+                      </span>
+                      {briefSourcesOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                    </button>
+                    {briefSourcesOpen && (
+                      <div className="border-t border-border/40 divide-y divide-border/30">
+                        {briefSearchResults.map((r, i) => (
+                          <div key={i} className="px-3 py-2 space-y-0.5">
+                            <a
+                              href={r.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] font-medium text-primary hover:underline flex items-center gap-1"
+                            >
+                              {r.title || r.url}
+                              <ExternalLink size={9} className="shrink-0 opacity-60" />
+                            </a>
+                            <p className="text-[10px] text-muted-foreground/70 line-clamp-2">{r.snippet}</p>
+                            <p className="text-[9px] font-mono text-muted-foreground/40">{r.url}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </div>
           <DialogFooter className="shrink-0 border-t border-border/60 pt-3 mt-0">

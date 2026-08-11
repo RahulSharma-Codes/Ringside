@@ -863,8 +863,15 @@ export interface OpportunityBriefRequest {
   targetId: number;
 }
 
+export interface BraveSearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+}
+
 export interface BriefResponse {
   brief?: string | null;
+  searchResults?: BraveSearchResult[] | null;
   model?: string | null;
   setupRequired?: boolean | null;
   billingRequired?: boolean | null;

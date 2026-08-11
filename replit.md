@@ -146,6 +146,8 @@ If only one is set, both are ignored (partial config is rejected) and random cre
 |---|---|---|
 | `OPENAI_API_KEY` | Enables AI Copilot | — (Copilot disabled) |
 | `OPENAI_MODEL` | OpenAI model name | `gpt-4o` |
+| `BRAVE_SEARCH_API_KEY` | Enables web search in AI opportunity briefs (Brave Search API) | — (web search skipped, briefs degrade gracefully) |
+| `TRACXN_API_KEY` | Future Tracxn integration for startup/PE data in AI briefs (not yet implemented) | — (briefs show "Tracxn not connected" notice) |
 | `SENTRY_DSN` | Sentry error tracking | — (disabled) |
 | `SMTP_HOST` | SMTP server for OTP emails | — (OTP email disabled) |
 | `SMTP_PORT` | SMTP port | `587` |

@@ -18,6 +18,8 @@ import {
 import { eq, and, desc, isNull, isNotNull, gte, inArray } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { canAccessTarget, getAccessScope } from "../lib/target-access";
+import { searchBrave, type BraveResult } from "../lib/brave-search";
+import { getTracxnData } from "../lib/tracxn";
 
 const router = Router();
 
@@ -340,7 +342,13 @@ STRICT RULES:
 
 // Opportunity brief context builder
 
-async function buildOpportunityBriefContext(targetId: number): Promise<string> {
+interface OpportunityBriefContext {
+  contextBlock: string;
+  searchResults: BraveResult[];
+  documentsSummary: { type: string; status: string }[];
+}
+
+async function buildOpportunityBriefContext(targetId: number): Promise<OpportunityBriefContext> {
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const [row] = await db
@@ -362,75 +370,111 @@ async function buildOpportunityBriefContext(targetId: number): Promise<string> {
     .leftJoin(milestonesTable, eq(milestonesTable.targetId, targetsTable.id))
     .where(eq(targetsTable.id, targetId));
 
-  if (!row) return "Target not found.";
+  if (!row) {
+    return { contextBlock: "Target not found.", searchResults: [], documentsSummary: [] };
+  }
 
-  const interactions = await db
-    .select({
-      interactionType: interactionsTable.interactionType,
-      interactionDatetime: interactionsTable.interactionDatetime,
-      summary: interactionsTable.summary,
-      sentiment: interactionsTable.sentiment,
-    })
-    .from(interactionsTable)
-    .where(eq(interactionsTable.targetId, targetId))
-    .orderBy(desc(interactionsTable.interactionDatetime))
-    .limit(5);
+  const [interactions, allActions, stageHistory, diligenceItems, documents] = await Promise.all([
+    db
+      .select({
+        interactionType: interactionsTable.interactionType,
+        interactionDatetime: interactionsTable.interactionDatetime,
+        summary: interactionsTable.summary,
+        sentiment: interactionsTable.sentiment,
+      })
+      .from(interactionsTable)
+      .where(eq(interactionsTable.targetId, targetId))
+      .orderBy(desc(interactionsTable.interactionDatetime))
+      .limit(5),
 
-  const allActions = await db
-    .select({
-      status: actionItemsTable.status,
-      dueDate: actionItemsTable.dueDate,
-    })
-    .from(actionItemsTable)
-    .where(and(eq(actionItemsTable.targetId, targetId), isNull(actionItemsTable.workstream)));
+    db
+      .select({
+        status: actionItemsTable.status,
+        dueDate: actionItemsTable.dueDate,
+      })
+      .from(actionItemsTable)
+      .where(and(eq(actionItemsTable.targetId, targetId), isNull(actionItemsTable.workstream))),
+
+    db
+      .select({
+        previousStage: stageChangeLogTable.previousStage,
+        newStage: stageChangeLogTable.newStage,
+        changedBy: stageChangeLogTable.changedBy,
+        changedAt: stageChangeLogTable.changedAt,
+      })
+      .from(stageChangeLogTable)
+      .where(eq(stageChangeLogTable.targetId, targetId))
+      .orderBy(desc(stageChangeLogTable.changedAt))
+      .limit(5),
+
+    db
+      .select({ status: actionItemsTable.status })
+      .from(actionItemsTable)
+      .where(and(eq(actionItemsTable.targetId, targetId), isNotNull(actionItemsTable.workstream))),
+
+    db
+      .select({
+        id: dealDocumentsTable.id,
+        title: dealDocumentsTable.title,
+        documentType: dealDocumentsTable.documentType,
+        extractedText: dealDocumentsTable.extractedText,
+        extractionStatus: dealDocumentsTable.extractionStatus,
+      })
+      .from(dealDocumentsTable)
+      .where(eq(dealDocumentsTable.targetId, targetId)),
+  ]);
 
   const openActions = allActions.filter((a) => a.status !== "Completed");
   const overdueActions = openActions.filter((a) => a.dueDate && String(a.dueDate) < todayStr);
-
-  const stageHistory = await db
-    .select({
-      previousStage: stageChangeLogTable.previousStage,
-      newStage: stageChangeLogTable.newStage,
-      changedBy: stageChangeLogTable.changedBy,
-      changedAt: stageChangeLogTable.changedAt,
-    })
-    .from(stageChangeLogTable)
-    .where(eq(stageChangeLogTable.targetId, targetId))
-    .orderBy(desc(stageChangeLogTable.changedAt))
-    .limit(5);
-
-  const diligenceItems = await db
-    .select({ status: actionItemsTable.status })
-    .from(actionItemsTable)
-    .where(and(eq(actionItemsTable.targetId, targetId), isNotNull(actionItemsTable.workstream)));
-
   const diligenceTotal = diligenceItems.length;
   const diligenceDone = diligenceItems.filter((d) => d.status === "Completed").length;
 
-  // Fetch all documents for count, plus extracted text for eligible types.
-  // extractedText is only populated for Teaser/IM/Business Model docs with
-  // extraction_status = 'done' or 'truncated'; Highly-Restricted is excluded
-  // at upload time so those rows will always have null extractedText.
-  const documents = await db
-    .select({
-      id: dealDocumentsTable.id,
-      title: dealDocumentsTable.title,
-      documentType: dealDocumentsTable.documentType,
-      extractedText: dealDocumentsTable.extractedText,
-      extractionStatus: dealDocumentsTable.extractionStatus,
-    })
-    .from(dealDocumentsTable)
-    .where(eq(dealDocumentsTable.targetId, targetId));
-
-  // Eligible sourced docs: Teaser, IM, Business Model with extracted text ready.
+  // ── Teaser / IM / Business Model documents ─────────────────────────────────
   const ELIGIBLE_DOC_TYPES = new Set(["Teaser", "IM", "Business Model"]);
-  const sourcedDocs = documents.filter(
-    (d) =>
-      ELIGIBLE_DOC_TYPES.has(d.documentType) &&
-      d.extractedText != null &&
-      (d.extractionStatus === "done" || d.extractionStatus === "truncated"),
-  );
+  const eligibleDocs = documents.filter((d) => ELIGIBLE_DOC_TYPES.has(d.documentType));
+  const documentsSummary = eligibleDocs.map((d) => ({
+    type: d.documentType,
+    status: d.extractionStatus ?? "unknown",
+  }));
 
+  // ── Tracxn data ─────────────────────────────────────────────────────────────
+  let tracxnBlock = "Tracxn not connected — contact your admin to configure the TRACXN_API_KEY.";
+  try {
+    const tracxn = await getTracxnData(row.projectName ?? "");
+    if (tracxn !== null) {
+      // Key is present and adapter returned data — format it
+      const fields: string[] = [];
+      if (tracxn.description) fields.push(`Description: ${tracxn.description}`);
+      if (tracxn.fundingTotal) fields.push(`Total funding: ${tracxn.fundingTotal}`);
+      if (tracxn.lastRoundType) fields.push(`Last round: ${tracxn.lastRoundType} (${tracxn.lastRoundDate ?? "date unknown"})`);
+      if (tracxn.investors?.length) fields.push(`Investors: ${tracxn.investors.join(", ")}`);
+      if (tracxn.headcount) fields.push(`Headcount: ${tracxn.headcount}`);
+      if (tracxn.hq) fields.push(`HQ: ${tracxn.hq}`);
+      if (tracxn.founded) fields.push(`Founded: ${tracxn.founded}`);
+      tracxnBlock = fields.length > 0 ? fields.join("\n") : "No Tracxn data returned.";
+    }
+    // else: key absent → keep default "not connected" message
+  } catch {
+    // Key present but adapter throws "not yet implemented" — show not connected
+    // to avoid surfacing a raw error to the model
+    tracxnBlock = "Tracxn not connected — contact your admin to configure the TRACXN_API_KEY.";
+  }
+
+  // ── Brave web search ────────────────────────────────────────────────────────
+  const companyName = row.projectName ?? row.targetCode ?? "Unknown";
+  const [overviewResults, fundingResults, competitorResults] = await Promise.all([
+    searchBrave(`"${companyName}" company overview`, 5),
+    searchBrave(`"${companyName}" funding investors`, 5),
+    searchBrave(`"${companyName}" competitors market`, 5),
+  ]);
+
+  const allSearchResults: BraveResult[] = [
+    ...overviewResults,
+    ...fundingResults,
+    ...competitorResults,
+  ];
+
+  // ── Build context block ─────────────────────────────────────────────────────
   const lines: string[] = [
     `=== OPPORTUNITY BRIEF CONTEXT ===`,
     `Project: ${row.projectName} (${row.targetCode ?? "N/A"})`,
@@ -445,24 +489,46 @@ async function buildOpportunityBriefContext(targetId: number): Promise<string> {
     `Open Actions: ${openActions.length} (${overdueActions.length} overdue)`,
     `Diligence: ${diligenceDone}/${diligenceTotal} items complete`,
     `Documents on file: ${documents.length}`,
-    ``,
-    `--- RECENT INTERACTIONS (last 5) ---`,
   ];
 
-  // Append extracted content from Teaser/IM/Business Model documents.
-  // Each section is clearly bounded so the model can attribute its analysis.
-  if (sourcedDocs.length > 0) {
-    lines.push(``, `--- SOURCED DOCUMENT CONTENT ---`);
-    for (const d of sourcedDocs) {
-      // Hard cap at 20 000 chars per document to bound total prompt size.
-      const cap = 20_000;
-      const text = d.extractedText!.length > cap
-        ? d.extractedText!.slice(0, cap) + "\n[TRUNCATED FOR CONTEXT]"
-        : d.extractedText!;
-      lines.push(``, `[${d.documentType.toUpperCase()}] ${d.title}`, text);
+  // ── Section 1: Teaser / IM / Business Model documents ──────────────────────
+  lines.push(``, `--- SECTION 1: TEASER / IM / BUSINESS MODEL DOCUMENTS ---`);
+  if (eligibleDocs.length === 0) {
+    lines.push("No Teaser, IM, or Business Model documents on file.");
+  } else {
+    for (const d of eligibleDocs) {
+      const statusNote = d.extractionStatus === "done" || d.extractionStatus === "truncated"
+        ? ""
+        : ` [TEXT UNAVAILABLE — extraction_status: ${d.extractionStatus ?? "unknown"}]`;
+      lines.push(``, `--- DOCUMENT: ${d.documentType} (extraction_status: ${d.extractionStatus ?? "unknown"}) --- ${d.title}${statusNote}`);
+      if (d.extractedText && (d.extractionStatus === "done" || d.extractionStatus === "truncated")) {
+        const cap = 20_000;
+        const text = d.extractedText.length > cap
+          ? d.extractedText.slice(0, cap) + "\n[TRUNCATED FOR CONTEXT]"
+          : d.extractedText;
+        lines.push(text);
+      } else {
+        lines.push("Text not available — document may be pending extraction or extraction failed.");
+      }
     }
   }
 
+  // ── Section 2: Web search results ──────────────────────────────────────────
+  lines.push(``, `--- SECTION 2: PUBLIC WEB SEARCH RESULTS ---`);
+  if (allSearchResults.length === 0) {
+    lines.push("No web search results available (BRAVE_SEARCH_API_KEY not configured or no results returned).");
+  } else {
+    for (const r of allSearchResults) {
+      lines.push(`[Web: ${r.title} | ${r.url}]`, r.snippet, ``);
+    }
+  }
+
+  // ── Section 3: Tracxn ───────────────────────────────────────────────────────
+  lines.push(`--- SECTION 3: TRACXN DATA ---`);
+  lines.push(tracxnBlock);
+
+  // ── Recent interactions ────────────────────────────────────────────────────
+  lines.push(``, `--- RECENT INTERACTIONS (last 5) ---`);
   if (interactions.length === 0) {
     lines.push("None recorded.");
   } else {
@@ -470,9 +536,7 @@ async function buildOpportunityBriefContext(targetId: number): Promise<string> {
       const dt = i.interactionDatetime instanceof Date
         ? i.interactionDatetime.toISOString().slice(0, 10)
         : String(i.interactionDatetime ?? "").slice(0, 10);
-      lines.push(
-        `[${i.interactionType}] ${dt} | Sentiment: ${i.sentiment ?? "N/A"} | ${i.summary}`
-      );
+      lines.push(`[${i.interactionType}] ${dt} | Sentiment: ${i.sentiment ?? "N/A"} | ${i.summary}`);
     }
   }
 
@@ -486,7 +550,7 @@ async function buildOpportunityBriefContext(targetId: number): Promise<string> {
     }
   }
 
-  // Sector calibration: prior deals in same sector with Phase 1 verdicts
+  // ── Sector calibration ─────────────────────────────────────────────────────
   if (row.sector) {
     const priorDeals = await db
       .select({
@@ -524,25 +588,43 @@ async function buildOpportunityBriefContext(targetId: number): Promise<string> {
     }
   }
 
-  return lines.join("\n");
+  return {
+    contextBlock: lines.join("\n"),
+    searchResults: allSearchResults,
+    documentsSummary,
+  };
 }
 
-const OPPORTUNITY_BRIEF_PROMPT = `You are an M&A analyst assistant. Write a concise, leadership-ready opportunity brief from the provided deal data.
+const OPPORTUNITY_BRIEF_PROMPT = `You are an M&A screening analyst. Write a sourced, leadership-ready opportunity brief from the provided deal data.
 
-Structure the brief with these sections (use markdown headings):
-## Overview
-## Current Status
-## Recent Activity
-## Actions & Risks
-## Diligence & Documents
-## Recommended Next Steps
+CRITICAL ACCURACY RULE — READ FIRST:
+You MUST append [Source: X] to EVERY factual claim in your output, where X identifies where the fact came from:
+  - [Source: Teaser] / [Source: IM] / [Source: Business Model] — from an uploaded document
+  - [Source: Brave Search — <domain> <YYYY-MM>] — from a web search result (use the URL domain and approximate date)
+  - [Source: Internal DB — interactions] / [Source: Internal DB — stage history] — from pipeline data
+If you have NO source for a claim, write "not available" instead. NEVER infer, estimate, extrapolate, or fabricate financial figures, funding amounts, headcount, or valuations. A fabricated number in an M&A screening document is worse than a blank field.
 
-Rules:
-- Use only the data provided. Do not invent facts, targets, or financials.
-- Write in executive language — concise bullets where appropriate.
-- Flag overdue actions and diligence gaps clearly.
-- Do not provide legal, tax, or financial advice as fact.
-- Keep the brief under 400 words.`;
+Structure the brief with EXACTLY these five sections in this order (use markdown headings):
+
+## 1. Teaser / IM Check
+List which of Teaser, IM, Business Model documents are present. For each present document, summarise the key data it contains (revenue, EBITDA, business model, key customers, geography, growth rate — only what is explicitly stated). Explicitly call out what data is MISSING from the documents. If no documents are present, say so clearly.
+
+## 2. Public Information Review
+Summarise what is publicly known about this company based on the web search results provided. Cite each fact with [Source: Brave Search — <domain> <date>]. If no web results are available, state "No public web data available."
+
+## 3. Tracxn Data
+If Tracxn data is provided, present key funding, investor, and headcount data from it with [Source: Tracxn]. If the section says "Tracxn not connected", reproduce that message verbatim: "Tracxn not connected — contact your admin to configure the TRACXN_API_KEY."
+
+## 4. Competitive Landscape
+Describe the competitive environment and the company's positioning. Source every competitor name and market claim. Use web search results and document content only — do not invent competitors.
+
+## 5. Screening Result
+Give a clear recommendation: **Proceed**, **Hold**, or **Pass**. Support it with bullet-pointed reasoning sourced from sections 1–4. List any risk flags explicitly. Cite sources for all supporting evidence.
+
+Additional rules:
+- Use executive language — concise bullets where appropriate.
+- Flag overdue actions and diligence gaps.
+- Do not provide legal, tax, or financial advice as fact.`;
 
 // Weekly brief system prompt
 
@@ -888,7 +970,7 @@ router.post("/meeting-notes", aiWriteRateLimiter, async (req, res) => {
 // POST /api/ai/opportunity-brief
 router.post("/opportunity-brief", aiWriteRateLimiter, async (req, res) => {
   if (!openai) {
-    return res.json({ brief: null, setupRequired: true, billingRequired: false });
+    return res.json({ brief: null, searchResults: [], setupRequired: true, billingRequired: false });
   }
 
   const body = req.body as { targetId?: unknown };
@@ -902,11 +984,11 @@ router.post("/opportunity-brief", aiWriteRateLimiter, async (req, res) => {
   }
 
   try {
-    const contextBlock = await buildOpportunityBriefContext(targetId);
+    const { contextBlock, searchResults, documentsSummary } = await buildOpportunityBriefContext(targetId);
 
     const completion = await openai.chat.completions.create({
       model,
-      max_completion_tokens: 1024,
+      max_completion_tokens: 2048,
       messages: [
         { role: "system", content: OPPORTUNITY_BRIEF_PROMPT },
         { role: "user", content: contextBlock },
@@ -914,14 +996,20 @@ router.post("/opportunity-brief", aiWriteRateLimiter, async (req, res) => {
     });
 
     const brief = completion.choices[0]?.message?.content ?? "";
-    req.log.info({ targetId }, "Opportunity brief generated");
-    return res.json({ brief, model });
+    const tokensUsed = completion.usage?.total_tokens;
+
+    // Persist this run to ai_phase_runs so it appears in run history
+    const outputJson = { brief, searchResults, documentsSummary };
+    await saveRun(targetId, "opportunity-brief", outputJson, model, tokensUsed);
+
+    req.log.info({ targetId, tokensUsed }, "Opportunity brief generated");
+    return res.json({ brief, searchResults, model });
   } catch (err) {
     const { status, setupRequired, billingRequired, message, retryAfter } = classifyAiError(err);
     req.log.error({ err, status }, "Opportunity brief AI error");
     const httpStatus = status === "key_invalid" ? 401 : status === "billing" ? 429 : 502;
     if (retryAfter) res.set("Retry-After", retryAfter);
-    return res.status(httpStatus).json({ brief: null, setupRequired, billingRequired, error: message });
+    return res.status(httpStatus).json({ brief: null, searchResults: [], setupRequired, billingRequired, error: message });
   }
 });
 

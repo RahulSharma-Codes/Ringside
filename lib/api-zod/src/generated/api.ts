@@ -2741,6 +2741,15 @@ export const GenerateOpportunityBriefBody = zod.object({
 
 export const GenerateOpportunityBriefResponse = zod.object({
   brief: zod.string().nullish(),
+  searchResults: zod
+    .array(
+      zod.object({
+        title: zod.string(),
+        url: zod.string(),
+        snippet: zod.string(),
+      }),
+    )
+    .nullish(),
   model: zod.string().nullish(),
   setupRequired: zod.boolean().nullish(),
   billingRequired: zod.boolean().nullish(),
@@ -2752,6 +2761,15 @@ export const GenerateOpportunityBriefResponse = zod.object({
  */
 export const GenerateWeeklyBriefResponse = zod.object({
   brief: zod.string().nullish(),
+  searchResults: zod
+    .array(
+      zod.object({
+        title: zod.string(),
+        url: zod.string(),
+        snippet: zod.string(),
+      }),
+    )
+    .nullish(),
   model: zod.string().nullish(),
   setupRequired: zod.boolean().nullish(),
   billingRequired: zod.boolean().nullish(),
