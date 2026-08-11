@@ -1,0 +1,110 @@
+You are working on Ringside, an M&A deal management platform. Read the project
+README/replit.md first — it is the source of truth for architecture and conventions.
+
+MODE: Produce a detailed implementation plan first. Do not write code yet.
+
+=== HARD CONSTRAINTS (violating these breaks production) ===
+1. Schema changes: add idempotent DDL (IF NOT EXISTS guards) to applyMigrations()
+   in artifacts/api-server/src/index.ts AND add the column to lib/db/src/schema/.
+   Do NOT use drizzle-kit push. Do NOT introduce a migration library.
+2. Do NOT add an `ssl` key to the Pool config in lib/db/src/index.ts. SSL is
+   controlled only by the PGSSLMODE env var.
+3. Do NOT modify the pool.query monkey-patch, acquireRequestContext, or
+   withCompanyTransaction. Work within the existing pattern.
+4. API changes: edit lib/api-spec/src/, then run codegen. Never hand-edit
+   lib/api-client-react/ or lib/api-zod/ — they are generated.
+5. Every new endpoint must enforce access control using the existing
+   getAccessScope(req) / canAccessTarget(req, targetId) helpers.
+6. No destructive migrations. Do not drop columns or tables. If a feature is
+   being simplified, hide it in the UI — keep the data.
+7. Reuse existing components and stage-change logic rather than duplicating it.
+
+=== WORK ITEMS, IN PRIORITY ORDER ===
+
+S1 — BLOCKER: Fix the Change Pipeline Stage dialog.
+The stage-change popup is visually broken and unusable, which blocks all
+downstream testing. Diagnose the actual cause before proposing a fix. Check it
+in all four places it is invoked: the progression rail on target detail, the
+Kanban drag-and-drop reason dialog, the mobile viewport, and the quick actions.
+It must render correctly at 375px width and at desktop width, the stage-gate
+advisory banner must display, the reason field must be reachable, and the
+confirm button must be visible without scrolling on mobile.
+Report what was actually wrong — do not just restyle it.
+
+S2 — Owning entity field (this replaces BOTH "no company field" and "Business Unit").
+There must be exactly ONE field identifying which group entity owns the deal.
+- Rename the existing "Business Unit" field to "Entity" everywhere it appears
+  (labels, forms, filters, exports, import wizard column mapping).
+- Convert it from free text to a dropdown. Options: MTL, TMG.
+  Store as a stable code, display a human-readable label.
+- Preserve existing Business Unit values: migrate them onto the new field where
+  they map cleanly, and report any values that do not map instead of discarding them.
+- Surface it on: the new-target form, target detail header, pipeline list and
+  Kanban cards, pipeline filters, and CSV export.
+- Do NOT confuse this with company_id, which is the internal tenant identifier
+  used by RLS. These are different things. Do not repurpose company_id.
+BEFORE IMPLEMENTING: confirm with me whether the option list is exactly [MTL, TMG]
+or whether more entities are needed, and confirm the full display names.
+
+S3 — Simplify Deal Team / Origination to a single Deal Owner.
+The Stakeholders tab and origination section expose too many roles.
+- The primary, always-visible field is a single "Deal Owner" (one user).
+- Everything else (internal sponsors, buy-side advisors, sell-side advisors,
+  counterparty contacts) moves behind a collapsed "Additional stakeholders"
+  section, closed by default.
+- Do NOT delete the deal_advisors or deal_sponsors tables or their data. The
+  conflicts-check and compliance features depend on them.
+- If a deal currently has multiple owner-ish records, propose a deterministic
+  rule for picking the Deal Owner and show me the rule before running it.
+
+S4 — Attach a Teaser at deal creation.
+Add an optional Teaser upload to the new-target form, using the existing
+document vault infrastructure and its classification tiers. Do not build a
+parallel upload path. Default classification: confirm with me which tier.
+
+S5 — Add IM and Business Model document types.
+Extend the document vault with distinct document types: Teaser, Information
+Memorandum (IM), Business Model, Other. Type must be selectable on upload and
+filterable in the vault. These types are what the AI brief will consume, so the
+type must be stored as a queryable field, not inferred from filename.
+
+S6 — Extract text from Teaser / IM / Business Model documents.
+For the AI brief to use these documents, their text must be extracted and stored.
+Propose an approach for PDF/DOCX/XLSX text extraction, where extracted text is
+stored, how you will handle documents too large for the model context window, and
+what happens when extraction fails. Flag the added dependencies.
+
+S7 — Rebuild the AI brief with explicit sections.
+The AI brief must produce these sections, in order:
+  1. Teaser / IM check — which of Teaser, IM, Business Model are present, what
+     key data each contains, and explicitly what is MISSING.
+  2. Public information review — what is publicly known about the target.
+  3. Tracxn data — funding, investors, comparable companies.
+  4. Competitive landscape.
+  5. Screening result — a recommendation with reasoning.
+CRITICAL ACCURACY REQUIREMENT: every factual claim must be labelled with its
+source (which document, which URL, Tracxn, or internal DB record). If the model
+does not have a source for something, it must state "not available" rather than
+producing a plausible figure. Fabricated financials in an M&A screening document
+are worse than a blank field. Show me how you will enforce this in the prompt
+structure and how the UI will display provenance.
+Preserve the existing AI analysis history so old briefs remain comparable.
+
+=== THINGS YOU MUST NOT ASSUME — ASK ME INSTEAD ===
+- Tracxn: this is a paid third-party data service. Do we have an API key and a
+  subscription tier that permits this? Do NOT scrape Tracxn, and do NOT build a
+  fake or placeholder Tracxn integration that silently returns nothing. If there
+  is no key, design the section to render "Tracxn not connected" and tell me what
+  credentials you need.
+- Public information sources: state exactly how the server will fetch these
+  (which search or web API, what it costs, what the rate limits are). Do not
+  assume the OpenAI model can browse.
+- Anything else where you would otherwise guess: list it under OPEN QUESTIONS.
+
+=== DELIVER THE PLAN IN THIS FORMAT ===
+For each work item: root cause or rationale; every file to be created or modified;
+the exact DDL to be added to applyMigrations(); API spec changes; UI changes;
+new dependencies; risks; and how I can manually verify it works.
+Then: a consolidated OPEN QUESTIONS list, and a recommended execution order noting
+which items can ship independently.
+Do not begin implementation until I approve the plan.
