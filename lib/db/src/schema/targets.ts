@@ -68,6 +68,7 @@ export const targetsTable = pgTable("targets", {
   financialAttractivenessScore: integer("financial_attractiveness_score"),
   processMaturityScore: integer("process_maturity_score"),
   riskPenaltyScore: integer("risk_penalty_score"),
+  entity: text("entity"),
   dealType: text("deal_type"),
   closeReasonCode: text("close_reason_code"),
   phase1VerdictAccuracy: text("phase1_verdict_accuracy"),

@@ -136,6 +136,11 @@ export default function Pipeline() {
     const dt = params.get("dealType");
     return dt && dt.trim().length > 0 ? dt.trim() : "all";
   });
+  const [entity, setEntity]               = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const en = params.get("entity");
+    return en && en.trim().length > 0 ? en.trim() : "all";
+  });
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(true);
 
@@ -148,10 +153,11 @@ export default function Pipeline() {
     if (country !== "all")   params.set("country", country);
     if (attentionOnly)       params.set("attention", "1");
     if (dealType !== "all")  params.set("dealType", dealType);
+    if (entity !== "all")    params.set("entity", entity);
     const qs = params.toString();
     const newUrl = qs ? `/pipeline?${qs}` : "/pipeline";
     window.history.replaceState(null, "", newUrl);
-  }, [search, stage, tier, owner, country, attentionOnly, dealType]);
+  }, [search, stage, tier, owner, country, attentionOnly, dealType, entity]);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -191,17 +197,18 @@ export default function Pipeline() {
       country:        country !== "all" ? country : undefined,
       needsAttention: attentionOnly ? true : undefined,
       dealType:       dealType !== "all" ? dealType : undefined,
+      entity:         entity !== "all" ? entity : undefined,
       isActive:       stage !== "Closed" && stage !== "Dropped" ? true : undefined,
       myDeals:        myDeals ? true : undefined,
     },
     {
       query: {
-        queryKey: getListTargetsQueryKey({ search, stage, priorityTier: tier, owner, country, needsAttention: attentionOnly, dealType, myDeals }),
+        queryKey: getListTargetsQueryKey({ search, stage, priorityTier: tier, owner, country, needsAttention: attentionOnly, dealType, entity, myDeals }),
       },
     },
   );
 
-  const hasActiveFilters = search || stage !== "all" || tier !== "all" || owner !== "all" || country !== "all" || attentionOnly || dealType !== "all" || myDeals;
+  const hasActiveFilters = search || stage !== "all" || tier !== "all" || owner !== "all" || country !== "all" || attentionOnly || dealType !== "all" || entity !== "all" || myDeals;
 
   const aiMode = (() => {
     const params = new URLSearchParams(window.location.search);
@@ -209,7 +216,7 @@ export default function Pipeline() {
   })();
 
   function clearFilters() {
-    setSearch(""); setStage("all"); setTier("all"); setOwner("all"); setCountry("all"); setAttentionOnly(false); setDealType("all"); handleMyDealsToggle(false);
+    setSearch(""); setStage("all"); setTier("all"); setOwner("all"); setCountry("all"); setAttentionOnly(false); setDealType("all"); setEntity("all"); handleMyDealsToggle(false);
   }
 
   return (
@@ -390,6 +397,18 @@ export default function Pipeline() {
             </SelectContent>
           </Select>
 
+          <Select value={entity} onValueChange={setEntity}>
+            <SelectTrigger className="w-[110px] rounded-lg font-sans text-[11px] border-border/60 bg-background/60 h-7">
+              <SelectValue placeholder="Entity" />
+            </SelectTrigger>
+            <SelectContent className="font-sans text-[11px] max-h-60 overflow-y-auto">
+              <SelectItem value="all">All Entities</SelectItem>
+              {(filterOptions?.entities ?? ["MTL", "MPi", "PIPL", "MGPS", "MMNL", "MEIL", "MBS", "MFPL", "MDS", "ADS", "WEPL", "EKAM", "ABPL", "ES"]).map((e) => (
+                <SelectItem key={e} value={e}>{e}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <button
             onClick={() => setAttentionOnly(!attentionOnly)}
             className={`h-7 px-2.5 rounded-lg text-[11px] font-sans border transition-all duration-150 active:scale-[0.97] flex items-center gap-1.5 shrink-0 ${
@@ -505,6 +524,7 @@ export default function Pipeline() {
         if (owner !== "all")    p.set("owner", owner);
         if (country !== "all")  p.set("country", country);
         if (dealType !== "all") p.set("dealType", dealType);
+        if (entity !== "all")   p.set("entity", entity);
         return (
           <ExportDialog
             open={exportDialogOpen}

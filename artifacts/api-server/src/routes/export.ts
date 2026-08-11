@@ -20,6 +20,7 @@ export const PIPELINE_COLUMNS = [
   { key: "targetCode",                   header: "Target Code",     width: 14 },
   { key: "projectName",                  header: "Project Name",    width: 30 },
   { key: "legalName",                    header: "Legal Name",      width: 28 },
+  { key: "entity",                       header: "Entity",          width: 12 },
   { key: "sector",                       header: "Sector",          width: 16 },
   { key: "country",                      header: "Country",         width: 14 },
   { key: "dealType",                     header: "Deal Type",       width: 14 },
@@ -38,7 +39,7 @@ export const PIPELINE_COLUMNS = [
 // ── XLSX: Pipeline Export ─────────────────────────────────────────────────
 // GET /api/export/pipeline
 router.get("/pipeline", async (req, res) => {
-  const { sector, priorityTier, stage, owner, country, dealType, isActive, columns } = req.query as Record<string, string | undefined>;
+  const { sector, priorityTier, stage, owner, country, dealType, entity, isActive, columns } = req.query as Record<string, string | undefined>;
 
   const conditions: ReturnType<typeof eq>[] = [];
   if (isActive === "false") conditions.push(eq(targetsTable.isActive, false));
@@ -48,6 +49,7 @@ router.get("/pipeline", async (req, res) => {
   if (owner) conditions.push(eq(targetsTable.dealOwner, owner));
   if (country) conditions.push(eq(targetsTable.country, country));
   if (dealType) conditions.push(eq(targetsTable.dealType, dealType));
+  if (entity) conditions.push(eq(targetsTable.entity, entity));
   if (stage) conditions.push(eq(milestonesTable.currentStage, stage));
 
   const scope = await getAccessScope(req);
@@ -97,6 +99,7 @@ router.get("/pipeline", async (req, res) => {
       targetCode: t.targetCode,
       projectName: t.projectName,
       legalName: t.legalName ?? "",
+      entity: t.entity ?? "",
       sector: t.sector ?? "",
       country: t.country ?? "",
       dealType: t.dealType ?? "",
@@ -222,7 +225,8 @@ router.get("/memo/:id", async (req, res) => {
   if (t.country)         field("Country", t.country);
   if (t.dealType)        field("Deal Type", t.dealType);
   if (t.dealOwner)       field("Deal Owner", t.dealOwner);
-  if (t.businessUnit)    field("Business Unit", t.businessUnit);
+  if (t.entity)          field("Entity", t.entity);
+  if (t.businessUnit)    field("Business Unit (legacy)", t.businessUnit);
   if (t.sourcingChannel) field("Sourcing Channel", t.sourcingChannel);
 
   // ── Scores ─────────────────────────────────────────────────────────────

@@ -139,6 +139,48 @@ async function applyMigrations(): Promise<void> {
     )
   `);
 
+  // Add entity column (idempotent)
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='targets' AND column_name='entity') THEN
+        ALTER TABLE targets ADD COLUMN entity text;
+      END IF;
+    END $$;
+  `);
+
+  // One-time migration: populate entity from business_unit for known aliases.
+  // All known aliases (including former TMG codes) map to the single code MTL.
+  await db.execute(sql`
+    UPDATE targets
+    SET entity = 'MTL'
+    WHERE entity IS NULL
+      AND business_unit IS NOT NULL
+      AND LOWER(business_unit) IN (
+        'mtl', 'manipal technologies limited', 'manipal technologies',
+        'tmg', 'manipal group', 'manipal technologies group', 'mtg', 'manipal'
+      )
+  `);
+
+  // Normalise any legacy TMG rows to MTL (single entity)
+  await db.execute(sql`
+    UPDATE targets SET entity = 'MTL' WHERE entity = 'TMG'
+  `);
+
+  // Report unmapped business_unit rows so operators can investigate
+  const unmappedResult = await db.execute(sql`
+    SELECT COUNT(*) AS cnt
+    FROM targets
+    WHERE entity IS NULL AND business_unit IS NOT NULL AND business_unit <> ''
+  `);
+  const unmappedCount = Number((unmappedResult.rows[0] as { cnt: string })?.cnt ?? 0);
+  if (unmappedCount > 0) {
+    logger.warn(
+      { unmappedCount },
+      "Entity migration: rows with non-null business_unit that could not be mapped to MTL/TMG. Review the business_unit column for these rows.",
+    );
+  }
+
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS interactions (
       id                    serial PRIMARY KEY,

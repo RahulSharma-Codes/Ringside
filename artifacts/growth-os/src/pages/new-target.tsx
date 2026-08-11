@@ -26,6 +26,23 @@ const DEAL_TYPES = [
   "Other",
 ] as const;
 
+const ENTITY_OPTIONS = [
+  { value: "MTL",  label: "MTL — Manipal Technologies Limited" },
+  { value: "MPi",  label: "MPi — Manipal Payment & Identity Solutions" },
+  { value: "PIPL", label: "PIPL — Primacy Industries Private Limited" },
+  { value: "MGPS", label: "MGPS — Manipal Global Print Solutions" },
+  { value: "MMNL", label: "MMNL — Manipal Media Network Limited" },
+  { value: "MEIL", label: "MEIL — Manipal Energy & Infrastructures Limited" },
+  { value: "MBS",  label: "MBS — Manipal Business Solutions" },
+  { value: "MFPL", label: "MFPL — Manipal Fintech Private Limited" },
+  { value: "MDS",  label: "MDS — Manipal Digital Solutions" },
+  { value: "ADS",  label: "ADS — Adsyndicate Services Private Limited" },
+  { value: "WEPL", label: "WEPL — Westtek Enterprises Private Limited" },
+  { value: "EKAM", label: "EKAM" },
+  { value: "ABPL", label: "ABPL — Aromee Brands Pvt. Ltd." },
+  { value: "ES",   label: "ES — CrossFraud" },
+] as const;
+
 const formSchema = z.object({
   projectName: z.string().min(2, "Project name is required"),
   targetCode: z.string().min(2, "Target code is required"),
@@ -34,7 +51,7 @@ const formSchema = z.object({
   subsector: z.string().optional(),
   country: z.string().optional(),
   geographyRegion: z.string().optional(),
-  businessUnit: z.string().optional(),
+  entity: z.enum(["MTL", "MPi", "PIPL", "MGPS", "MMNL", "MEIL", "MBS", "MFPL", "MDS", "ADS", "WEPL", "EKAM", "ABPL", "ES"]).optional(),
   dealOwner: z.string().optional(),
   dealChampion: z.string().optional(),
   executiveSponsor: z.string().optional(),
@@ -268,13 +285,23 @@ export default function NewTarget() {
                     />
                     <FormField
                       control={form.control}
-                      name="businessUnit"
+                      name="entity"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Business Unit</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g. Corp Dev, Growth" className="rounded-sm bg-background/50" {...field} />
-                          </FormControl>
+                          <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Entity</FormLabel>
+                          <Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={field.value ?? "__none__"}>
+                            <FormControl>
+                              <SelectTrigger className="rounded-sm bg-background/50">
+                                <SelectValue placeholder="Select entity" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="rounded-sm max-h-60 overflow-y-auto">
+                              <SelectItem value="__none__">— None —</SelectItem>
+                              {ENTITY_OPTIONS.map((e) => (
+                                <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}

@@ -101,6 +101,10 @@ paths:
           in: query
           schema:
             type: string
+        - name: entity
+          in: query
+          schema:
+            type: string
         - name: myDeals
           in: query
           schema:
@@ -2464,6 +2468,11 @@ components:
         businessUnit:
           type: string
           nullable: true
+          deprecated: true
+        entity:
+          type: string
+          enum: [MTL, MPi, PIPL, MGPS, MMNL, MEIL, MBS, MFPL, MDS, ADS, WEPL, EKAM, ABPL, ES]
+          nullable: true
         sector:
           type: string
           nullable: true
@@ -2591,6 +2600,11 @@ components:
         businessUnit:
           type: string
           nullable: true
+          deprecated: true
+        entity:
+          type: string
+          enum: [MTL, MPi, PIPL, MGPS, MMNL, MEIL, MBS, MFPL, MDS, ADS, WEPL, EKAM, ABPL, ES]
+          nullable: true
         sector:
           type: string
           nullable: true
@@ -2657,6 +2671,11 @@ components:
           nullable: true
         businessUnit:
           type: string
+          nullable: true
+          deprecated: true
+        entity:
+          type: string
+          enum: [MTL, MPi, PIPL, MGPS, MMNL, MEIL, MBS, MFPL, MDS, ADS, WEPL, EKAM, ABPL, ES]
           nullable: true
         sector:
           type: string
@@ -3091,7 +3110,11 @@ components:
           type: array
           items:
             type: string
-      required: [owners, countries, sectors, dealTypes]
+        entities:
+          type: array
+          items:
+            type: string
+      required: [owners, countries, sectors, dealTypes, entities]
 
     ImportRow:
       type: object
@@ -3105,6 +3128,11 @@ components:
           nullable: true
         businessUnit:
           type: string
+          nullable: true
+          deprecated: true
+        entity:
+          type: string
+          enum: [MTL, MPi, PIPL, MGPS, MMNL, MEIL, MBS, MFPL, MDS, ADS, WEPL, EKAM, ABPL, ES]
           nullable: true
         sector:
           type: string

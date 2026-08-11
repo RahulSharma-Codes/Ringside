@@ -11,12 +11,29 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 
 const PRIORITY_TIERS = ["Must-Win", "Priority 1", "Priority 2", "Watchlist"];
 const DEAL_TYPES = ["Acquisition", "Minority Investment", "Divestiture", "JV", "Partnership", "Strategic Alliance", "Other"];
+const ENTITY_OPTIONS = [
+  { value: "MTL",  label: "MTL — Manipal Technologies Limited" },
+  { value: "MPi",  label: "MPi — Manipal Payment & Identity Solutions" },
+  { value: "PIPL", label: "PIPL — Primacy Industries Private Limited" },
+  { value: "MGPS", label: "MGPS — Manipal Global Print Solutions" },
+  { value: "MMNL", label: "MMNL — Manipal Media Network Limited" },
+  { value: "MEIL", label: "MEIL — Manipal Energy & Infrastructures Limited" },
+  { value: "MBS",  label: "MBS — Manipal Business Solutions" },
+  { value: "MFPL", label: "MFPL — Manipal Fintech Private Limited" },
+  { value: "MDS",  label: "MDS — Manipal Digital Solutions" },
+  { value: "ADS",  label: "ADS — Adsyndicate Services Private Limited" },
+  { value: "WEPL", label: "WEPL — Westtek Enterprises Private Limited" },
+  { value: "EKAM", label: "EKAM" },
+  { value: "ABPL", label: "ABPL — Aromee Brands Pvt. Ltd." },
+  { value: "ES",   label: "ES — CrossFraud" },
+];
 const EARLY_STAGES = new Set(["Sourcing", "Outreach", "Introductory Discussion", "NDA / CIM"]);
 
 type EditTargetData = {
   projectName: string; priorityTier: string; dealType: string; strategicRationale: string;
   sector: string; subsector: string; geographyRegion: string; country: string;
   dealOwner: string; dealChampion: string; executiveSponsor: string;
+  entity: "MTL" | "MPi" | "PIPL" | "MGPS" | "MMNL" | "MEIL" | "MBS" | "MFPL" | "MDS" | "ADS" | "WEPL" | "EKAM" | "ABPL" | "ES" | "";
   strategicFitScore: number; synergyScore: number; financialAttractivenessScore: number;
   processMaturityScore: number; riskPenaltyScore: number;
 };
@@ -26,6 +43,7 @@ interface TargetLike {
   strategicRationale?: string | null; sector?: string | null; subsector?: string | null;
   geographyRegion?: string | null; country?: string | null; dealOwner?: string | null;
   dealChampion?: string | null; executiveSponsor?: string | null;
+  entity?: string | null;
   strategicFitScore?: number | null; synergyScore?: number | null;
   financialAttractivenessScore?: number | null; processMaturityScore?: number | null;
   riskPenaltyScore?: number | null; currentStage?: string | null;
@@ -48,6 +66,7 @@ export function EditTargetDialog({ open, onOpenChange, targetId, target, onSucce
     projectName: "", priorityTier: "", dealType: "", strategicRationale: "",
     sector: "", subsector: "", geographyRegion: "", country: "",
     dealOwner: "", dealChampion: "", executiveSponsor: "",
+    entity: "",
     strategicFitScore: 50, synergyScore: 50, financialAttractivenessScore: 50,
     processMaturityScore: 50, riskPenaltyScore: 0,
   });
@@ -66,6 +85,7 @@ export function EditTargetDialog({ open, onOpenChange, targetId, target, onSucce
         dealOwner: target.dealOwner ?? "",
         dealChampion: target.dealChampion ?? "",
         executiveSponsor: target.executiveSponsor ?? "",
+        entity: (target.entity as "MTL" | "MPi" | "PIPL" | "MGPS" | "MMNL" | "MEIL" | "MBS" | "MFPL" | "MDS" | "ADS" | "WEPL" | "EKAM" | "ABPL" | "ES" | undefined) ?? "",
         strategicFitScore: target.strategicFitScore ?? 50,
         synergyScore: target.synergyScore ?? 50,
         financialAttractivenessScore: target.financialAttractivenessScore ?? 50,
@@ -92,6 +112,7 @@ export function EditTargetDialog({ open, onOpenChange, targetId, target, onSucce
           dealOwner: editData.dealOwner || undefined,
           dealChampion: editData.dealChampion || undefined,
           executiveSponsor: editData.executiveSponsor || undefined,
+          entity: editData.entity || null,
           strategicFitScore: editData.strategicFitScore,
           synergyScore: editData.synergyScore,
           financialAttractivenessScore: editData.financialAttractivenessScore,
@@ -171,6 +192,16 @@ export function EditTargetDialog({ open, onOpenChange, targetId, target, onSucce
               <div className="space-y-2">
                 <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Geography Region</label>
                 <Input value={editData.geographyRegion} onChange={(e) => setEditData((d) => ({ ...d, geographyRegion: e.target.value }))} className="rounded-sm bg-background/50" />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Entity</label>
+                <Select value={editData.entity || "__none__"} onValueChange={(v) => setEditData((d) => ({ ...d, entity: v === "__none__" ? "" : v as EditTargetData["entity"] }))}>
+                  <SelectTrigger className="rounded-sm bg-background/50"><SelectValue placeholder="Select entity…" /></SelectTrigger>
+                  <SelectContent className="rounded-sm max-h-60 overflow-y-auto">
+                    <SelectItem value="__none__">— None —</SelectItem>
+                    {ENTITY_OPTIONS.map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>

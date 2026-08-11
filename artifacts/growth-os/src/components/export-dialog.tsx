@@ -18,6 +18,7 @@ export const PIPELINE_EXPORT_COLUMNS = [
   { key: "targetCode",                   label: "Target Code",      group: "Identity" },
   { key: "projectName",                  label: "Project Name",     group: "Identity" },
   { key: "legalName",                    label: "Legal Name",       group: "Identity" },
+  { key: "entity",                       label: "Entity",           group: "Identity" },
   { key: "sector",                       label: "Sector",           group: "Identity" },
   { key: "country",                      label: "Country",          group: "Identity" },
   { key: "dealType",                     label: "Deal Type",        group: "Identity" },

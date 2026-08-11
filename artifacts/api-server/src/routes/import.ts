@@ -14,11 +14,14 @@ const router = Router();
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+const VALID_ENTITY_CODES = new Set(["MTL", "MPi", "PIPL", "MGPS", "MMNL", "MEIL", "MBS", "MFPL", "MDS", "ADS", "WEPL", "EKAM", "ABPL", "ES"]);
+
 interface ImportRow {
   targetCode?: string;
   projectName?: string;
   legalName?: string;
   businessUnit?: string;
+  entity?: string;
   sector?: string;
   subsector?: string;
   geographyRegion?: string;
@@ -84,7 +87,7 @@ function defaultMilestoneValues(targetId: number, now: Date, stage = "Sourcing")
 
 // Allowed importable fields — score fields are explicitly excluded (out of scope)
 const ALLOWED_FIELDS = new Set([
-  "targetCode", "projectName", "legalName", "businessUnit", "sector",
+  "targetCode", "projectName", "legalName", "businessUnit", "entity", "sector",
   "subsector", "geographyRegion", "country", "sourcingChannel", "sourcingFirm",
   "dealOwner", "dealChampion", "executiveSponsor", "dealType", "priorityTier",
   "stage", "strategicRationale", "notes",
@@ -122,6 +125,36 @@ export function applyColumnMap(
   result.projectName = s("projectName");
   result.legalName = s("legalName");
   result.businessUnit = s("businessUnit");
+  // Normalize entity: accept "entity" column directly, or fall back to legacy "businessUnit" column.
+  // Lookup order: 1) exact canonical code match (case-sensitive), 2) case-insensitive canonical match,
+  // 3) well-known legacy/alias lookup, 4) keep raw value for validation to reject with a clear message.
+  const LEGACY_ENTITY_ALIASES: Record<string, string> = {
+    "tmg": "MTL", "manipal group": "MTL", "manipal technologies group": "MTL",
+    "mtg": "MTL", "manipal": "MTL", "manipal technologies limited": "MTL",
+    "manipal technologies": "MTL",
+  };
+  // Build a case-insensitive lookup map from canonical codes: lowercase → canonical
+  const CANONICAL_CODE_MAP = new Map<string, string>(
+    [...VALID_ENTITY_CODES].map((c) => [c.toLowerCase(), c])
+  );
+  const rawEntity = s("entity") ?? s("businessUnit");
+  if (rawEntity) {
+    const trimmed = rawEntity.trim();
+    const lowerKey = trimmed.toLowerCase();
+    if (VALID_ENTITY_CODES.has(trimmed)) {
+      // Exact canonical match (e.g. "MPi" → "MPi")
+      result.entity = trimmed;
+    } else if (CANONICAL_CODE_MAP.has(lowerKey)) {
+      // Case-insensitive canonical match (e.g. "mpi" → "MPi")
+      result.entity = CANONICAL_CODE_MAP.get(lowerKey)!;
+    } else if (LEGACY_ENTITY_ALIASES[lowerKey]) {
+      // Legacy free-text aliases (e.g. "Manipal Group" → "MTL")
+      result.entity = LEGACY_ENTITY_ALIASES[lowerKey];
+    } else {
+      // Keep raw value — validation will reject it with a clear message
+      result.entity = trimmed;
+    }
+  }
   result.sector = s("sector");
   result.subsector = s("subsector");
   result.geographyRegion = s("geographyRegion");
@@ -177,6 +210,7 @@ router.post("/validate", async (req, res) => {
       projectName: targetsTable.projectName,
       legalName: targetsTable.legalName,
       businessUnit: targetsTable.businessUnit,
+      entity: targetsTable.entity,
       sector: targetsTable.sector,
       subsector: targetsTable.subsector,
       geographyRegion: targetsTable.geographyRegion,
@@ -219,6 +253,15 @@ router.post("/validate", async (req, res) => {
       continue;
     }
 
+    if (data.entity && !VALID_ENTITY_CODES.has(data.entity)) {
+      toSkip.push({
+        rowIndex,
+        targetCode: data.targetCode,
+        reason: `Invalid entity code: "${data.entity}". Valid values: ${[...VALID_ENTITY_CODES].join(", ")}`,
+      });
+      continue;
+    }
+
     if (data.stage && !VALID_STAGES.has(data.stage)) {
       toSkip.push({
         rowIndex,
@@ -237,13 +280,13 @@ router.post("/validate", async (req, res) => {
       const existingValues: Record<string, string> = {};
 
       type StringField = keyof Pick<ImportRow,
-        "projectName" | "legalName" | "businessUnit" | "sector" | "subsector" |
+        "projectName" | "legalName" | "businessUnit" | "entity" | "sector" | "subsector" |
         "geographyRegion" | "country" | "sourcingChannel" | "sourcingFirm" |
         "dealOwner" | "dealChampion" | "executiveSponsor" | "priorityTier" | "strategicRationale"
       >;
 
       const STRING_FIELDS: StringField[] = [
-        "projectName", "legalName", "businessUnit", "sector", "subsector",
+        "projectName", "legalName", "businessUnit", "entity", "sector", "subsector",
         "geographyRegion", "country", "sourcingChannel", "sourcingFirm",
         "dealOwner", "dealChampion", "executiveSponsor", "priorityTier", "strategicRationale",
       ];
@@ -351,6 +394,13 @@ router.post("/apply", async (req, res) => {
       const now = new Date();
       const initialStage = data.stage && VALID_STAGES.has(data.stage) ? data.stage : "Sourcing";
 
+      // Re-validate entity before write (apply may receive a payload not via /validate)
+      if (data.entity && !VALID_ENTITY_CODES.has(data.entity)) {
+        errors.push({ rowIndex, message: `Invalid entity code: "${data.entity}". Valid values: ${[...VALID_ENTITY_CODES].join(", ")}` });
+        skipped++;
+        continue;
+      }
+
       const [target] = await db
         .insert(targetsTable)
         .values({
@@ -358,6 +408,7 @@ router.post("/apply", async (req, res) => {
           projectName: data.projectName,
           legalName: data.legalName ?? null,
           businessUnit: data.businessUnit ?? null,
+          entity: data.entity ?? null,
           sector: data.sector ?? null,
           subsector: data.subsector ?? null,
           geographyRegion: data.geographyRegion ?? null,
@@ -434,6 +485,13 @@ router.post("/apply", async (req, res) => {
 
       const now = new Date();
 
+      // Re-validate entity before write (apply may receive a payload not via /validate)
+      if (data.entity && !VALID_ENTITY_CODES.has(data.entity)) {
+        errors.push({ rowIndex, message: `Invalid entity code: "${data.entity}". Valid values: ${[...VALID_ENTITY_CODES].join(", ")}` });
+        skipped++;
+        continue;
+      }
+
       // Build patch for non-stage fields — never include score fields
       const patch: Partial<typeof targetsTable.$inferInsert> & { updatedAt: Date } = {
         updatedAt: now,
@@ -445,6 +503,8 @@ router.post("/apply", async (req, res) => {
         patch.legalName = data.legalName!;
       if (changedFields.includes("businessUnit") && !isBlank(data.businessUnit))
         patch.businessUnit = data.businessUnit!;
+      if (changedFields.includes("entity") && !isBlank(data.entity))
+        patch.entity = data.entity!;
       if (changedFields.includes("sector") && !isBlank(data.sector))
         patch.sector = data.sector!;
       if (changedFields.includes("subsector") && !isBlank(data.subsector))

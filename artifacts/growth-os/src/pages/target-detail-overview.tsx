@@ -33,6 +33,7 @@ export type OverviewTarget = {
   priorityTier?: string | null;
   strategicRationale?: string | null;
   businessUnit?: string | null;
+  entity?: string | null;
   createdAt?: string | null;
   priorityScore: number;
   strategicFitScore?: number | null;
@@ -61,6 +62,23 @@ export type OverviewAction = {
 };
 
 // ── Constants ─────────────────────────────────────────────────────────────────
+
+const ENTITY_LABELS: Record<string, string> = {
+  MTL:  "Manipal Technologies Limited",
+  MPi:  "Manipal Payment & Identity Solutions",
+  PIPL: "Primacy Industries Private Limited",
+  MGPS: "Manipal Global Print Solutions",
+  MMNL: "Manipal Media Network Limited",
+  MEIL: "Manipal Energy & Infrastructures Limited",
+  MBS:  "Manipal Business Solutions",
+  MFPL: "Manipal Fintech Private Limited",
+  MDS:  "Manipal Digital Solutions",
+  ADS:  "Adsyndicate Services Private Limited",
+  WEPL: "Westtek Enterprises Private Limited",
+  EKAM: "EKAM",
+  ABPL: "Aromee Brands Pvt. Ltd.",
+  ES:   "CrossFraud",
+};
 
 const SCREENING_STAGE = "NDA / CIM";
 const DILIGENCE_STAGE = "Preliminary Due Diligence";
@@ -295,7 +313,7 @@ function OverviewSections({ target, actions }: { target: OverviewTarget; actions
                 {[
                   { label: "Deal Champion", value: target.dealChampion },
                   { label: "Exec Sponsor", value: target.executiveSponsor },
-                  { label: "Business Unit", value: target.businessUnit },
+                  { label: "Entity", value: target.entity ? (ENTITY_LABELS[target.entity] ?? target.entity) : null },
                   { label: "Added", value: target.createdAt ? format(parseISO(target.createdAt), "yyyy-MM-dd") : null },
                 ].map(({ label, value }) => (
                   <div key={label}>

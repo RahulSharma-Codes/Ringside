@@ -43,7 +43,7 @@ router.get("/", async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.flatten() });
   }
-  const { sector, priorityTier, stage, search, isActive, owner, country, needsAttention, dealType, myDeals } =
+  const { sector, priorityTier, stage, search, isActive, owner, country, needsAttention, dealType, entity, myDeals } =
     parsed.data;
 
   const conditions: SQL[] = [];
@@ -70,6 +70,7 @@ router.get("/", async (req, res) => {
   }
   if (country) conditions.push(eq(targetsTable.country, country));
   if (dealType) conditions.push(eq(targetsTable.dealType, dealType));
+  if (entity) conditions.push(eq(targetsTable.entity, entity));
   if (search) {
     conditions.push(
       or(
@@ -161,6 +162,7 @@ router.post("/", async (req, res) => {
         projectName: data.projectName,
         legalName: data.legalName ?? null,
         businessUnit: data.businessUnit ?? null,
+        entity: data.entity ?? null,
         sector: data.sector ?? null,
         subsector: data.subsector ?? null,
         geographyRegion: data.geographyRegion ?? null,
@@ -386,17 +388,21 @@ router.get("/top-priority", async (req, res) => {
 async function getFilterOptions(req: import("express").Request) {
   const scope = await getAccessScope(req);
   if (!scope.isAdmin && scope.accessibleTargetIds.length === 0) {
-    return { owners: [], countries: [], sectors: [], dealTypes: [] };
+    return { owners: [], countries: [], sectors: [], dealTypes: [], entities: [] };
   }
   const rows = await db
-    .select({ dealOwner: targetsTable.dealOwner, country: targetsTable.country, sector: targetsTable.sector, dealType: targetsTable.dealType })
+    .select({ dealOwner: targetsTable.dealOwner, country: targetsTable.country, sector: targetsTable.sector, dealType: targetsTable.dealType, entity: targetsTable.entity })
     .from(targetsTable)
     .where(scope.isAdmin ? undefined : inArray(targetsTable.id, scope.accessibleTargetIds));
+  // Always return the full canonical entity list so every code is selectable in the filter,
+  // regardless of how many targets currently have that entity assigned.
+  const CANONICAL_ENTITIES = ["MTL", "MPi", "PIPL", "MGPS", "MMNL", "MEIL", "MBS", "MFPL", "MDS", "ADS", "WEPL", "EKAM", "ABPL", "ES"] as const;
   return {
     owners: [...new Set(rows.map((r) => r.dealOwner).filter((v): v is string => v !== null))].sort(),
     countries: [...new Set(rows.map((r) => r.country).filter((v): v is string => v !== null))].sort(),
     sectors: [...new Set(rows.map((r) => r.sector).filter((v): v is string => v !== null))].sort(),
     dealTypes: [...new Set(rows.map((r) => r.dealType).filter((v): v is string => v !== null))].sort(),
+    entities: [...CANONICAL_ENTITIES],
   };
 }
 
@@ -521,6 +527,7 @@ router.put("/:id", async (req, res) => {
   if (d.projectName !== undefined) updates.projectName = d.projectName;
   if (d.legalName !== undefined) updates.legalName = d.legalName;
   if (d.businessUnit !== undefined) updates.businessUnit = d.businessUnit;
+  if (d.entity !== undefined) updates.entity = d.entity;
   if (d.sector !== undefined) updates.sector = d.sector;
   if (d.subsector !== undefined) updates.subsector = d.subsector;
   if (d.geographyRegion !== undefined) updates.geographyRegion = d.geographyRegion;

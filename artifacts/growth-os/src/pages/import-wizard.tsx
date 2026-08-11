@@ -24,7 +24,7 @@ const DB_FIELDS = [
   { value: "targetCode", label: "Target Code" },
   { value: "projectName", label: "Project Name" },
   { value: "legalName", label: "Legal Name" },
-  { value: "businessUnit", label: "Business Unit" },
+  { value: "entity", label: "Entity" },
   { value: "sector", label: "Sector" },
   { value: "subsector", label: "Subsector" },
   { value: "geographyRegion", label: "Geography Region" },
@@ -69,9 +69,9 @@ function autoMap(header: string): string {
     dealname: "projectName", companyname: "projectName", targetcompany: "projectName",
     targetname: "projectName", company: "projectName", target: "projectName",
     legalname: "legalName", legal: "legalName", registeredname: "legalName",
-    // Organisation
-    businessunit: "businessUnit", bu: "businessUnit", division: "businessUnit",
-    department: "businessUnit", team: "businessUnit",
+    // Organisation / Entity
+    businessunit: "entity", bu: "entity", division: "entity",
+    department: "entity", team: "entity", entity: "entity",
     sector: "sector", industry: "sector", vertical: "sector",
     subsector: "subsector", subindustry: "subsector", subvertical: "subsector",
     // Geography
@@ -320,7 +320,7 @@ const TEMPLATE_SAMPLE: Record<string, string> = {
   targetCode: "TGT-001",
   projectName: "Acme Corp",
   legalName: "Acme Corporation Ltd.",
-  businessUnit: "Corporate Development",
+  entity: "MTL",
   sector: "Technology",
   subsector: "Software",
   geographyRegion: "North America",

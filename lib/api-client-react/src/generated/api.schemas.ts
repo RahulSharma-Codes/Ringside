@@ -50,6 +50,27 @@ export interface HealthStatus {
   status: string;
 }
 
+export type TargetEntity =
+  | (typeof TargetEntity)[keyof typeof TargetEntity]
+  | null;
+
+export const TargetEntity = {
+  MTL: "MTL",
+  MPi: "MPi",
+  PIPL: "PIPL",
+  MGPS: "MGPS",
+  MMNL: "MMNL",
+  MEIL: "MEIL",
+  MBS: "MBS",
+  MFPL: "MFPL",
+  MDS: "MDS",
+  ADS: "ADS",
+  WEPL: "WEPL",
+  EKAM: "EKAM",
+  ABPL: "ABPL",
+  ES: "ES",
+} as const;
+
 export type TargetHealthScore =
   (typeof TargetHealthScore)[keyof typeof TargetHealthScore];
 
@@ -64,7 +85,9 @@ export interface Target {
   targetCode: string;
   projectName: string;
   legalName?: string | null;
+  /** @deprecated */
   businessUnit?: string | null;
+  entity?: TargetEntity;
   sector?: string | null;
   subsector?: string | null;
   geographyRegion?: string | null;
@@ -149,11 +172,34 @@ export type TargetDetail = Target & {
   stageHistory: StageChange[];
 };
 
+export type CreateTargetBodyEntity =
+  | (typeof CreateTargetBodyEntity)[keyof typeof CreateTargetBodyEntity]
+  | null;
+
+export const CreateTargetBodyEntity = {
+  MTL: "MTL",
+  MPi: "MPi",
+  PIPL: "PIPL",
+  MGPS: "MGPS",
+  MMNL: "MMNL",
+  MEIL: "MEIL",
+  MBS: "MBS",
+  MFPL: "MFPL",
+  MDS: "MDS",
+  ADS: "ADS",
+  WEPL: "WEPL",
+  EKAM: "EKAM",
+  ABPL: "ABPL",
+  ES: "ES",
+} as const;
+
 export interface CreateTargetBody {
   targetCode: string;
   projectName: string;
   legalName?: string | null;
+  /** @deprecated */
   businessUnit?: string | null;
+  entity?: CreateTargetBodyEntity;
   sector?: string | null;
   subsector?: string | null;
   geographyRegion?: string | null;
@@ -174,10 +220,33 @@ export interface CreateTargetBody {
   isConfidential?: boolean;
 }
 
+export type UpdateTargetBodyEntity =
+  | (typeof UpdateTargetBodyEntity)[keyof typeof UpdateTargetBodyEntity]
+  | null;
+
+export const UpdateTargetBodyEntity = {
+  MTL: "MTL",
+  MPi: "MPi",
+  PIPL: "PIPL",
+  MGPS: "MGPS",
+  MMNL: "MMNL",
+  MEIL: "MEIL",
+  MBS: "MBS",
+  MFPL: "MFPL",
+  MDS: "MDS",
+  ADS: "ADS",
+  WEPL: "WEPL",
+  EKAM: "EKAM",
+  ABPL: "ABPL",
+  ES: "ES",
+} as const;
+
 export interface UpdateTargetBody {
   projectName?: string;
   legalName?: string | null;
+  /** @deprecated */
   businessUnit?: string | null;
+  entity?: UpdateTargetBodyEntity;
   sector?: string | null;
   subsector?: string | null;
   geographyRegion?: string | null;
@@ -304,13 +373,37 @@ export interface FilterOptions {
   countries: string[];
   sectors: string[];
   dealTypes: string[];
+  entities: string[];
 }
+
+export type ImportRowEntity =
+  | (typeof ImportRowEntity)[keyof typeof ImportRowEntity]
+  | null;
+
+export const ImportRowEntity = {
+  MTL: "MTL",
+  MPi: "MPi",
+  PIPL: "PIPL",
+  MGPS: "MGPS",
+  MMNL: "MMNL",
+  MEIL: "MEIL",
+  MBS: "MBS",
+  MFPL: "MFPL",
+  MDS: "MDS",
+  ADS: "ADS",
+  WEPL: "WEPL",
+  EKAM: "EKAM",
+  ABPL: "ABPL",
+  ES: "ES",
+} as const;
 
 export interface ImportRow {
   targetCode?: string;
   projectName?: string;
   legalName?: string | null;
+  /** @deprecated */
   businessUnit?: string | null;
+  entity?: ImportRowEntity;
   sector?: string | null;
   subsector?: string | null;
   geographyRegion?: string | null;
@@ -1964,6 +2057,7 @@ export type ListTargetsParams = {
   country?: string;
   needsAttention?: boolean;
   dealType?: string;
+  entity?: string;
   myDeals?: boolean;
 };
 
