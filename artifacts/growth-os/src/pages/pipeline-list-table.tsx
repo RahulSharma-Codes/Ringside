@@ -163,11 +163,15 @@ const columns: ColumnDef<PipelineRow>[] = [
   {
     id: "owner",
     header: "Owner",
-    accessorFn: (r) => r.dealOwner ?? "",
+    accessorFn: (r) => {
+      const u = (r as any).dealOwnerUser as { displayName?: string | null; email: string } | null | undefined;
+      return u?.displayName || u?.email || r.dealOwner || "";
+    },
     size: 110,
     minSize: 70,
     cell: ({ row }) => {
-      const owner = row.original.dealOwner;
+      const u = (row.original as any).dealOwnerUser as { displayName?: string | null; email: string } | null | undefined;
+      const owner = u?.displayName || u?.email || row.original.dealOwner;
       if (!owner) return <span className="text-[10px] font-mono text-muted-foreground/40">—</span>;
       return (
         <div className="flex items-center gap-1.5">

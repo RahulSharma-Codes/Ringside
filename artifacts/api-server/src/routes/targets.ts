@@ -152,6 +152,16 @@ router.post("/", async (req, res) => {
   const scope = await getAccessScope(req);
   const companyId = req.jwtClaims?.companyId ?? "00000000-0000-0000-0000-000000000001";
 
+  // Validate dealOwnerId belongs to the same company before starting the transaction.
+  if (data.dealOwnerId) {
+    const [ownerUser] = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(and(eq(usersTable.id, data.dealOwnerId), eq(usersTable.companyId, companyId)))
+      .limit(1);
+    if (!ownerUser) return res.status(400).json({ error: "User not found in this company" });
+  }
+
   // Wrap all 5 writes in a single RLS-aware transaction so a partial failure
   // (e.g. milestone insert failing) doesn't leave an orphan target row.
   const { target, milestone } = await withCompanyTransaction(companyId, async () => {
@@ -170,6 +180,7 @@ router.post("/", async (req, res) => {
         sourcingChannel: data.sourcingChannel ?? null,
         sourcingFirm: data.sourcingFirm ?? null,
         dealOwner: data.dealOwner ?? null,
+        dealOwnerId: data.dealOwnerId ?? null,
         dealChampion: data.dealChampion ?? null,
         executiveSponsor: data.executiveSponsor ?? null,
         priorityTier: data.priorityTier ?? "Watchlist",
@@ -454,6 +465,17 @@ router.get("/:id", async (req, res) => {
       .where(and(eq(actionItemsTable.targetId, id), isNotNull(actionItemsTable.workstream))),
   ]);
 
+  // Fetch deal owner user if set
+  let dealOwnerUser: { id: string; email: string; displayName: string | null } | null = null;
+  if (row.target.dealOwnerId) {
+    const [ownerRow] = await db
+      .select({ id: usersTable.id, email: usersTable.email, displayName: usersTable.displayName })
+      .from(usersTable)
+      .where(eq(usersTable.id, row.target.dealOwnerId))
+      .limit(1);
+    dealOwnerUser = ownerRow ?? null;
+  }
+
   const now = new Date();
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
@@ -493,6 +515,7 @@ router.get("/:id", async (req, res) => {
 
   return res.json({
     ...formatTarget(row.target, row.milestone),
+    dealOwnerUser,
     healthScore,
     openActionCount: openActions.length,
     overdueActionCount: overdueActions.length,
@@ -535,6 +558,19 @@ router.put("/:id", async (req, res) => {
   if (d.sourcingChannel !== undefined) updates.sourcingChannel = d.sourcingChannel;
   if (d.sourcingFirm !== undefined) updates.sourcingFirm = d.sourcingFirm;
   if (d.dealOwner !== undefined) updates.dealOwner = d.dealOwner;
+  if (d.dealOwnerId !== undefined) {
+    // Validate the user belongs to the same company
+    if (d.dealOwnerId !== null) {
+      const companyId = req.jwtClaims?.companyId ?? "00000000-0000-0000-0000-000000000001";
+      const [ownerUser] = await db
+        .select({ id: usersTable.id })
+        .from(usersTable)
+        .where(and(eq(usersTable.id, d.dealOwnerId), eq(usersTable.companyId, companyId)))
+        .limit(1);
+      if (!ownerUser) return res.status(400).json({ error: "User not found in this company" });
+    }
+    updates.dealOwnerId = d.dealOwnerId;
+  }
   if (d.dealChampion !== undefined) updates.dealChampion = d.dealChampion;
   if (d.executiveSponsor !== undefined) updates.executiveSponsor = d.executiveSponsor;
   if (d.priorityTier !== undefined) updates.priorityTier = d.priorityTier;

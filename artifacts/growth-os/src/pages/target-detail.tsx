@@ -236,6 +236,22 @@ export default function TargetDetail() {
                 {target.country}
               </span>
             )}
+            {(() => {
+              const ownerUser = (target as any).dealOwnerUser as { id: string; displayName?: string | null; email: string } | null | undefined;
+              const ownerName = ownerUser?.displayName || ownerUser?.email;
+              if (!ownerName) return null;
+              return (
+                <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-mono text-muted-foreground/60 bg-muted/40 border border-border/30">
+                  <span
+                    className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-primary/20 text-primary text-[7px] font-bold uppercase shrink-0"
+                    title={ownerName}
+                  >
+                    {ownerName.slice(0, 2)}
+                  </span>
+                  {ownerName}
+                </span>
+              );
+            })()}
             {(target as { diligencePct?: number | null }).diligencePct != null && (
               <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-mono text-muted-foreground/60 bg-muted/40 border border-border/30">
                 <ClipboardList size={8} />

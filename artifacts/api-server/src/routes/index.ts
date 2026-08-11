@@ -24,6 +24,7 @@ import auditRouter from "./audit";
 import adminRouter from "./admin";
 import doctrineRouter from "./doctrine";
 import icBriefRouter from "./ic-brief";
+import usersRouter from "./users";
 import { requireRole } from "../middlewares/auth";
 
 const router: IRouter = Router();
@@ -53,6 +54,7 @@ router.use("/audit", auditRouter);
 router.use("/admin", requireRole("Admin"), adminRouter);
 router.use("/doctrine", doctrineRouter);
 router.use("/targets", icBriefRouter);
+router.use("/users", usersRouter);
 
 export default router;
 

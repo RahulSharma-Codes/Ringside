@@ -6,6 +6,8 @@ import {
   useListAdvisors, getListAdvisorsQueryKey, useCreateAdvisor, useUpdateAdvisor, useDeleteAdvisor,
   useListAdvisorConflictNotes, getListAdvisorConflictNotesQueryKey, useCreateAdvisorConflictNote,
   useListSponsors, getListSponsorsQueryKey, useCreateSponsor, useUpdateSponsor, useDeleteSponsor,
+  useGetTarget, getGetTargetQueryKey, useUpdateTarget,
+  useListUsers, getListUsersQueryKey,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,8 +25,15 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
   Users, Briefcase, Edit, Trash2, Plus, AlertTriangle, Building2, Shield,
-  ChevronDown, ChevronRight, FileText,
+  ChevronDown, ChevronRight, FileText, UserCircle, Check, ChevronsUpDown,
 } from "lucide-react";
 
 const ADVISOR_TYPES = [
@@ -96,6 +105,35 @@ function sideBadge(side: string) {
 export function StakeholdersTab({ targetId }: { targetId: number }) {
   const qc = useQueryClient();
   const { toast } = useToast();
+
+  // ── Deal Owner ──────────────────────────────────────────────────────────────
+  const { data: target } = useGetTarget(targetId, {
+    query: { queryKey: getGetTargetQueryKey(targetId) },
+  });
+  const { data: teamMembers = [] } = useListUsers({
+    query: { queryKey: getListUsersQueryKey() },
+  });
+  const [ownerPickerOpen, setOwnerPickerOpen] = useState(false);
+  const [additionalOpen, setAdditionalOpen] = useState(false);
+
+  const updateTarget = useUpdateTarget({
+    mutation: {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: getGetTargetQueryKey(targetId) });
+        toast({ title: "Deal Owner updated" });
+      },
+      onError: () => toast({ title: "Error", description: "Could not update deal owner", variant: "destructive" }),
+    },
+  });
+
+  function handleSetOwner(userId: string | null) {
+    updateTarget.mutate({ id: targetId, data: { dealOwnerId: userId } });
+    setOwnerPickerOpen(false);
+  }
+
+  const currentOwner = (target as any)?.dealOwnerUser as { id: string; email: string; displayName?: string | null } | null | undefined;
+  const ownerLabel = currentOwner?.displayName || currentOwner?.email || null;
+  const ownerInitials = ownerLabel ? ownerLabel.slice(0, 2).toUpperCase() : null;
 
   // ── Counterparty ────────────────────────────────────────────────────────────
   const { data: cpData, isLoading: cpLoading } = useGetCounterparty(targetId);
@@ -298,6 +336,93 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
 
   return (
     <div className="space-y-6">
+
+      {/* ── Deal Owner ── */}
+      <Card className="bg-card/30 border-border rounded-sm">
+        <CardHeader className="pb-3 pt-4 px-4">
+          <CardTitle className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground/70 flex items-center gap-2">
+            <UserCircle size={13} /> Deal Owner
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          <div className="flex items-center gap-3">
+            {ownerInitials ? (
+              <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-primary/15 text-primary text-[13px] font-mono font-bold uppercase shrink-0">
+                {ownerInitials}
+              </span>
+            ) : (
+              <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-muted/60 text-muted-foreground/40 shrink-0">
+                <UserCircle size={18} />
+              </span>
+            )}
+            <div className="flex-1 min-w-0">
+              {ownerLabel ? (
+                <>
+                  <div className="text-sm font-semibold">{ownerLabel}</div>
+                  {currentOwner?.email && currentOwner.displayName && (
+                    <div className="text-xs text-muted-foreground">{currentOwner.email}</div>
+                  )}
+                </>
+              ) : (
+                <div className="text-sm text-muted-foreground/50 italic">Unassigned</div>
+              )}
+            </div>
+            <Popover open={ownerPickerOpen} onOpenChange={setOwnerPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-sm font-mono text-[10px] uppercase border-border h-7 px-2 shrink-0"
+                  disabled={updateTarget.isPending}
+                >
+                  <ChevronsUpDown size={10} className="mr-1" />
+                  {ownerLabel ? "Change" : "Assign"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[260px] p-0 rounded-sm" align="end">
+                <Command>
+                  <CommandInput placeholder="Search team member…" className="h-8 text-xs" />
+                  <CommandList>
+                    <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">No users found</CommandEmpty>
+                    <CommandGroup>
+                      {(teamMembers as any[]).map((u: any) => (
+                        <CommandItem
+                          key={u.id}
+                          value={u.displayName || u.email}
+                          onSelect={() => handleSetOwner(u.id)}
+                          className="text-xs gap-2"
+                        >
+                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/15 text-primary text-[8px] font-mono font-bold uppercase shrink-0">
+                            {(u.displayName || u.email).slice(0, 2).toUpperCase()}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">{u.displayName || u.email}</div>
+                            {u.displayName && <div className="text-[10px] text-muted-foreground truncate">{u.email}</div>}
+                          </div>
+                          {currentOwner?.id === u.id && <Check size={12} className="text-primary shrink-0" />}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                    {ownerLabel && (
+                      <CommandGroup>
+                        <CommandItem
+                          value="__unassign__"
+                          onSelect={() => handleSetOwner(null)}
+                          className="text-xs text-destructive/70 gap-2"
+                        >
+                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-destructive/10 text-destructive/60 text-[8px] font-mono shrink-0">×</span>
+                          Remove deal owner
+                        </CommandItem>
+                      </CommandGroup>
+                    )}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Flagged advisor warning */}
       {flaggedAdvisors.length > 0 && (
         <div className="flex items-start gap-3 rounded-sm border border-destructive/30 bg-destructive/5 px-4 py-3">
@@ -308,6 +433,21 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
           </div>
         </div>
       )}
+
+      {/* ── Additional Stakeholders (collapsible) ── */}
+      <Collapsible open={additionalOpen} onOpenChange={setAdditionalOpen}>
+        <CollapsibleTrigger asChild>
+          <button className="flex items-center gap-2 w-full text-left">
+            <span className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground/60">
+              Additional Stakeholders
+            </span>
+            <ChevronDown
+              size={12}
+              className={`text-muted-foreground/40 transition-transform duration-200 ${additionalOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-6 mt-4">
 
       {/* ── Counterparty ── */}
       <Card className="bg-card/30 border-border rounded-sm">
@@ -482,6 +622,9 @@ export function StakeholdersTab({ targetId }: { targetId: number }) {
           )}
         </CardContent>
       </Card>
+
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* ── Counterparty Edit Dialog ── */}
       <Dialog open={cpEditOpen} onOpenChange={setCpEditOpen}>

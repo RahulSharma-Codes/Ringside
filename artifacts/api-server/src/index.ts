@@ -149,6 +149,31 @@ async function applyMigrations(): Promise<void> {
     END $$;
   `);
 
+  // Add deal_owner_id FK column (idempotent)
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='targets' AND column_name='deal_owner_id') THEN
+        ALTER TABLE targets ADD COLUMN deal_owner_id uuid REFERENCES users(id) ON DELETE SET NULL;
+      END IF;
+    END $$;
+  `);
+
+  // Migration: match free-text deal_owner to a user by email or display_name (case-insensitive).
+  // Only updates rows where deal_owner_id is still null and deal_owner text is set.
+  await db.execute(sql`
+    UPDATE targets t
+    SET deal_owner_id = u.id
+    FROM users u
+    WHERE t.deal_owner_id IS NULL
+      AND t.deal_owner IS NOT NULL
+      AND t.deal_owner <> ''
+      AND (
+        LOWER(t.deal_owner) = LOWER(u.email)
+        OR (u.display_name IS NOT NULL AND LOWER(t.deal_owner) = LOWER(u.display_name))
+      )
+  `);
+
   // One-time migration: populate entity from business_unit for known aliases.
   // All known aliases (including former TMG codes) map to the single code MTL.
   await db.execute(sql`

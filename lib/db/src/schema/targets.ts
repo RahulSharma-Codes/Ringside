@@ -59,6 +59,7 @@ export const targetsTable = pgTable("targets", {
   sourcingChannel: text("sourcing_channel"),
   sourcingFirm: text("sourcing_firm"),
   dealOwner: text("deal_owner"),
+  dealOwnerId: uuid("deal_owner_id").references(() => usersTable.id),
   dealChampion: text("deal_champion"),
   executiveSponsor: text("executive_sponsor"),
   priorityTier: text("priority_tier").notNull().default("Watchlist"),

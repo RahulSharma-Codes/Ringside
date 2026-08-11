@@ -15,6 +15,16 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
+ * @summary List team members (for deal-owner picker)
+ */
+export const ListUsersResponseItem = zod.object({
+  id: zod.string().uuid(),
+  email: zod.string(),
+  displayName: zod.string().nullish(),
+});
+export const ListUsersResponse = zod.array(ListUsersResponseItem);
+
+/**
  * @summary List all deal targets
  */
 export const ListTargetsQueryParams = zod.object({
@@ -62,6 +72,14 @@ export const ListTargetsResponseItem = zod.object({
   sourcingChannel: zod.string().nullish(),
   sourcingFirm: zod.string().nullish(),
   dealOwner: zod.string().nullish(),
+  dealOwnerId: zod.string().uuid().nullish(),
+  dealOwnerUser: zod
+    .object({
+      id: zod.string().uuid(),
+      email: zod.string(),
+      displayName: zod.string().nullish(),
+    })
+    .nullish(),
   dealChampion: zod.string().nullish(),
   executiveSponsor: zod.string().nullish(),
   dealType: zod.string().nullish(),
@@ -123,6 +141,7 @@ export const CreateTargetBody = zod.object({
   sourcingChannel: zod.string().nullish(),
   sourcingFirm: zod.string().nullish(),
   dealOwner: zod.string().nullish(),
+  dealOwnerId: zod.string().uuid().nullish(),
   dealChampion: zod.string().nullish(),
   executiveSponsor: zod.string().nullish(),
   dealType: zod.string().nullish(),
@@ -216,6 +235,14 @@ export const GetTopPriorityTargetsResponseItem = zod.object({
   sourcingChannel: zod.string().nullish(),
   sourcingFirm: zod.string().nullish(),
   dealOwner: zod.string().nullish(),
+  dealOwnerId: zod.string().uuid().nullish(),
+  dealOwnerUser: zod
+    .object({
+      id: zod.string().uuid(),
+      email: zod.string(),
+      displayName: zod.string().nullish(),
+    })
+    .nullish(),
   dealChampion: zod.string().nullish(),
   executiveSponsor: zod.string().nullish(),
   dealType: zod.string().nullish(),
@@ -289,6 +316,14 @@ export const GetTargetsNeedingAttentionResponseItem = zod
     sourcingChannel: zod.string().nullish(),
     sourcingFirm: zod.string().nullish(),
     dealOwner: zod.string().nullish(),
+    dealOwnerId: zod.string().uuid().nullish(),
+    dealOwnerUser: zod
+      .object({
+        id: zod.string().uuid(),
+        email: zod.string(),
+        displayName: zod.string().nullish(),
+      })
+      .nullish(),
     dealChampion: zod.string().nullish(),
     executiveSponsor: zod.string().nullish(),
     dealType: zod.string().nullish(),
@@ -376,6 +411,14 @@ export const GetTargetResponse = zod
     sourcingChannel: zod.string().nullish(),
     sourcingFirm: zod.string().nullish(),
     dealOwner: zod.string().nullish(),
+    dealOwnerId: zod.string().uuid().nullish(),
+    dealOwnerUser: zod
+      .object({
+        id: zod.string().uuid(),
+        email: zod.string(),
+        displayName: zod.string().nullish(),
+      })
+      .nullish(),
     dealChampion: zod.string().nullish(),
     executiveSponsor: zod.string().nullish(),
     dealType: zod.string().nullish(),
@@ -492,6 +535,7 @@ export const UpdateTargetBody = zod.object({
   sourcingChannel: zod.string().nullish(),
   sourcingFirm: zod.string().nullish(),
   dealOwner: zod.string().nullish(),
+  dealOwnerId: zod.string().uuid().nullish(),
   dealChampion: zod.string().nullish(),
   executiveSponsor: zod.string().nullish(),
   dealType: zod.string().nullish(),
@@ -537,6 +581,14 @@ export const UpdateTargetResponse = zod.object({
   sourcingChannel: zod.string().nullish(),
   sourcingFirm: zod.string().nullish(),
   dealOwner: zod.string().nullish(),
+  dealOwnerId: zod.string().uuid().nullish(),
+  dealOwnerUser: zod
+    .object({
+      id: zod.string().uuid(),
+      email: zod.string(),
+      displayName: zod.string().nullish(),
+    })
+    .nullish(),
   dealChampion: zod.string().nullish(),
   executiveSponsor: zod.string().nullish(),
   dealType: zod.string().nullish(),
@@ -639,6 +691,14 @@ export const UpdateTargetStageResponse = zod
     sourcingChannel: zod.string().nullish(),
     sourcingFirm: zod.string().nullish(),
     dealOwner: zod.string().nullish(),
+    dealOwnerId: zod.string().uuid().nullish(),
+    dealOwnerUser: zod
+      .object({
+        id: zod.string().uuid(),
+        email: zod.string(),
+        displayName: zod.string().nullish(),
+      })
+      .nullish(),
     dealChampion: zod.string().nullish(),
     executiveSponsor: zod.string().nullish(),
     dealType: zod.string().nullish(),

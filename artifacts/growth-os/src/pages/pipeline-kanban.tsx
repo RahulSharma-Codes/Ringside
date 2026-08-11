@@ -196,14 +196,18 @@ function SortableCard({
 
         {/* Owner + actions row */}
         <div className="flex items-center justify-between gap-1.5">
-          {target.dealOwner ? (
-            <span
-              className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/15 text-primary text-[8px] font-mono font-bold uppercase shrink-0"
-              title={target.dealOwner}
-            >
-              {target.dealOwner.slice(0, 2)}
-            </span>
-          ) : <span />}
+          {(() => {
+            const u = (target as any).dealOwnerUser as { displayName?: string | null; email: string } | null | undefined;
+            const ownerName = u?.displayName || u?.email || target.dealOwner;
+            return ownerName ? (
+              <span
+                className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/15 text-primary text-[8px] font-mono font-bold uppercase shrink-0"
+                title={ownerName}
+              >
+                {ownerName.slice(0, 2)}
+              </span>
+            ) : <span />;
+          })()}
           <div className="flex items-center gap-1.5 shrink-0">
             {openCount > 0 && (
               <span className={`text-[9px] font-mono ${overdueCount > 0 ? "text-destructive" : "text-amber-500"}`}>

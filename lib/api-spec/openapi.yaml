@@ -59,6 +59,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List team members (for deal-owner picker)
+      responses:
+        "200":
+          description: List of users in the same company
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserSummary"
+
   /targets:
     get:
       operationId: listTargets
@@ -2453,6 +2468,19 @@ components:
           type: string
       required: [status]
 
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+      required: [id, email]
+
     Target:
       type: object
       properties:
@@ -2494,6 +2522,14 @@ components:
         dealOwner:
           type: string
           nullable: true
+        dealOwnerId:
+          type: string
+          format: uuid
+          nullable: true
+        dealOwnerUser:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/UserSummary'
         dealChampion:
           type: string
           nullable: true
@@ -2626,6 +2662,10 @@ components:
         dealOwner:
           type: string
           nullable: true
+        dealOwnerId:
+          type: string
+          format: uuid
+          nullable: true
         dealChampion:
           type: string
           nullable: true
@@ -2697,6 +2737,10 @@ components:
           nullable: true
         dealOwner:
           type: string
+          nullable: true
+        dealOwnerId:
+          type: string
+          format: uuid
           nullable: true
         dealChampion:
           type: string

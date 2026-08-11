@@ -502,6 +502,7 @@ export default function Pipeline() {
                 sector: (t as { sector?: string | null }).sector ?? null,
                 country: (t as { country?: string | null }).country ?? null,
                 dealOwner: (t as { dealOwner?: string | null }).dealOwner ?? null,
+                dealOwnerUser: (t as { dealOwnerUser?: { id: string; email: string; displayName?: string | null } | null }).dealOwnerUser ?? null,
                 dealType: (t as { dealType?: string | null }).dealType ?? null,
                 needsAttention: (t as { needsAttention?: boolean | null }).needsAttention ?? null,
                 openActionCount: (t as { openActionCount?: number | null }).openActionCount ?? null,

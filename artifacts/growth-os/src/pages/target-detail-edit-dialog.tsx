@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useUpdateTarget, getGetTargetQueryKey } from "@workspace/api-client-react";
+import { useUpdateTarget, getGetTargetQueryKey, useListUsers, getListUsersQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
 
 const PRIORITY_TIERS = ["Must-Win", "Priority 1", "Priority 2", "Watchlist"];
 const DEAL_TYPES = ["Acquisition", "Minority Investment", "Divestiture", "JV", "Partnership", "Strategic Alliance", "Other"];
@@ -32,7 +35,7 @@ const EARLY_STAGES = new Set(["Sourcing", "Outreach", "Introductory Discussion",
 type EditTargetData = {
   projectName: string; priorityTier: string; dealType: string; strategicRationale: string;
   sector: string; subsector: string; geographyRegion: string; country: string;
-  dealOwner: string; dealChampion: string; executiveSponsor: string;
+  dealOwner: string; dealOwnerId: string | null; dealChampion: string; executiveSponsor: string;
   entity: "MTL" | "MPi" | "PIPL" | "MGPS" | "MMNL" | "MEIL" | "MBS" | "MFPL" | "MDS" | "ADS" | "WEPL" | "EKAM" | "ABPL" | "ES" | "";
   strategicFitScore: number; synergyScore: number; financialAttractivenessScore: number;
   processMaturityScore: number; riskPenaltyScore: number;
@@ -42,6 +45,8 @@ interface TargetLike {
   projectName?: string | null; priorityTier?: string | null; dealType?: string | null;
   strategicRationale?: string | null; sector?: string | null; subsector?: string | null;
   geographyRegion?: string | null; country?: string | null; dealOwner?: string | null;
+  dealOwnerId?: string | null;
+  dealOwnerUser?: { id: string; email: string; displayName?: string | null } | null;
   dealChampion?: string | null; executiveSponsor?: string | null;
   entity?: string | null;
   strategicFitScore?: number | null; synergyScore?: number | null;
@@ -62,10 +67,14 @@ export function EditTargetDialog({ open, onOpenChange, targetId, target, onSucce
   const queryClient = useQueryClient();
   const updateTarget = useUpdateTarget();
   const [dealTypeWarning, setDealTypeWarning] = useState<string | null>(null);
+  const [ownerPickerOpen, setOwnerPickerOpen] = useState(false);
+  const { data: teamMembers = [] } = useListUsers({
+    query: { queryKey: getListUsersQueryKey() },
+  });
   const [editData, setEditData] = useState<EditTargetData>({
     projectName: "", priorityTier: "", dealType: "", strategicRationale: "",
     sector: "", subsector: "", geographyRegion: "", country: "",
-    dealOwner: "", dealChampion: "", executiveSponsor: "",
+    dealOwner: "", dealOwnerId: null, dealChampion: "", executiveSponsor: "",
     entity: "",
     strategicFitScore: 50, synergyScore: 50, financialAttractivenessScore: 50,
     processMaturityScore: 50, riskPenaltyScore: 0,
@@ -83,6 +92,7 @@ export function EditTargetDialog({ open, onOpenChange, targetId, target, onSucce
         geographyRegion: target.geographyRegion ?? "",
         country: target.country ?? "",
         dealOwner: target.dealOwner ?? "",
+        dealOwnerId: target.dealOwnerId ?? null,
         dealChampion: target.dealChampion ?? "",
         executiveSponsor: target.executiveSponsor ?? "",
         entity: (target.entity as "MTL" | "MPi" | "PIPL" | "MGPS" | "MMNL" | "MEIL" | "MBS" | "MFPL" | "MDS" | "ADS" | "WEPL" | "EKAM" | "ABPL" | "ES" | undefined) ?? "",
@@ -95,6 +105,9 @@ export function EditTargetDialog({ open, onOpenChange, targetId, target, onSucce
       setDealTypeWarning(null);
     }
   }, [target, open]);
+
+  const selectedOwnerUser = (teamMembers as any[]).find((u: any) => u.id === editData.dealOwnerId) ?? null;
+  const ownerDisplayName = selectedOwnerUser?.displayName || selectedOwnerUser?.email || editData.dealOwner || null;
 
   function handleUpdateTarget() {
     updateTarget.mutate(
@@ -110,6 +123,7 @@ export function EditTargetDialog({ open, onOpenChange, targetId, target, onSucce
           geographyRegion: editData.geographyRegion || undefined,
           country: editData.country || undefined,
           dealOwner: editData.dealOwner || undefined,
+          dealOwnerId: editData.dealOwnerId,
           dealChampion: editData.dealChampion || undefined,
           executiveSponsor: editData.executiveSponsor || undefined,
           entity: editData.entity || null,
@@ -209,9 +223,62 @@ export function EditTargetDialog({ open, onOpenChange, targetId, target, onSucce
           <div>
             <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-3 border-b border-border pb-1">Team</div>
             <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
+              <div className="space-y-2 col-span-3 sm:col-span-1">
                 <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Deal Owner</label>
-                <Input value={editData.dealOwner} onChange={(e) => setEditData((d) => ({ ...d, dealOwner: e.target.value }))} className="rounded-sm bg-background/50" />
+                <Popover open={ownerPickerOpen} onOpenChange={setOwnerPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-sm bg-background/50 h-9 text-sm justify-between font-normal"
+                    >
+                      <span className="truncate text-left">
+                        {ownerDisplayName ?? <span className="text-muted-foreground/50">Unassigned</span>}
+                      </span>
+                      <ChevronsUpDown size={12} className="shrink-0 text-muted-foreground/50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[220px] p-0 rounded-sm" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search…" className="h-8 text-xs" />
+                      <CommandList>
+                        <CommandEmpty className="py-3 text-center text-xs text-muted-foreground">No users found</CommandEmpty>
+                        <CommandGroup>
+                          {(teamMembers as any[]).map((u: any) => (
+                            <CommandItem
+                              key={u.id}
+                              value={u.displayName || u.email}
+                              onSelect={() => {
+                                setEditData((d) => ({ ...d, dealOwnerId: u.id }));
+                                setOwnerPickerOpen(false);
+                              }}
+                              className="text-xs gap-2"
+                            >
+                              <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/15 text-primary text-[7px] font-bold uppercase shrink-0">
+                                {(u.displayName || u.email).slice(0, 2).toUpperCase()}
+                              </span>
+                              <span className="truncate">{u.displayName || u.email}</span>
+                              {editData.dealOwnerId === u.id && <Check size={11} className="ml-auto text-primary shrink-0" />}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                        {editData.dealOwnerId && (
+                          <CommandGroup>
+                            <CommandItem
+                              value="__clear__"
+                              onSelect={() => {
+                                setEditData((d) => ({ ...d, dealOwnerId: null }));
+                                setOwnerPickerOpen(false);
+                              }}
+                              className="text-xs text-destructive/70"
+                            >
+                              Clear owner
+                            </CommandItem>
+                          </CommandGroup>
+                        )}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Deal Champion</label>

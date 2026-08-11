@@ -50,6 +50,12 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface UserSummary {
+  id: string;
+  email: string;
+  displayName?: string | null;
+}
+
 export type TargetEntity =
   | (typeof TargetEntity)[keyof typeof TargetEntity]
   | null;
@@ -95,6 +101,8 @@ export interface Target {
   sourcingChannel?: string | null;
   sourcingFirm?: string | null;
   dealOwner?: string | null;
+  dealOwnerId?: string | null;
+  dealOwnerUser?: UserSummary | null;
   dealChampion?: string | null;
   executiveSponsor?: string | null;
   dealType?: string | null;
@@ -207,6 +215,7 @@ export interface CreateTargetBody {
   sourcingChannel?: string | null;
   sourcingFirm?: string | null;
   dealOwner?: string | null;
+  dealOwnerId?: string | null;
   dealChampion?: string | null;
   executiveSponsor?: string | null;
   dealType?: string | null;
@@ -254,6 +263,7 @@ export interface UpdateTargetBody {
   sourcingChannel?: string | null;
   sourcingFirm?: string | null;
   dealOwner?: string | null;
+  dealOwnerId?: string | null;
   dealChampion?: string | null;
   executiveSponsor?: string | null;
   dealType?: string | null;

@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useCreateTarget } from "@workspace/api-client-react";
+import { useCreateTarget, useListUsers, getListUsersQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { ArrowLeft, Save, Shield, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, Save, Shield, ChevronDown, ChevronRight, Check, ChevronsUpDown } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const DEAL_TYPES = [
   "Acquisition",
@@ -53,6 +55,7 @@ const formSchema = z.object({
   geographyRegion: z.string().optional(),
   entity: z.enum(["MTL", "MPi", "PIPL", "MGPS", "MMNL", "MEIL", "MBS", "MFPL", "MDS", "ADS", "WEPL", "EKAM", "ABPL", "ES"]).optional(),
   dealOwner: z.string().optional(),
+  dealOwnerId: z.string().uuid().nullable().optional(),
   dealChampion: z.string().optional(),
   executiveSponsor: z.string().optional(),
   sourcingChannel: z.string().optional(),
@@ -75,6 +78,10 @@ export default function NewTarget() {
   const { toast } = useToast();
   const createTarget = useCreateTarget();
   const [scoringOpen, setScoringOpen] = useState(false);
+  const [ownerPickerOpen, setOwnerPickerOpen] = useState(false);
+  const { data: teamMembers = [] } = useListUsers({
+    query: { queryKey: getListUsersQueryKey() },
+  });
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -97,6 +104,7 @@ export default function NewTarget() {
     createTarget.mutate({
       data: {
         ...data,
+        dealOwnerId: data.dealOwnerId ?? null,
         ...scorePayload,
       }
     }, {
@@ -317,12 +325,74 @@ export default function NewTarget() {
                 <CardContent className="pt-6 space-y-4">
                   <FormField
                     control={form.control}
-                    name="dealOwner"
+                    name="dealOwnerId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Deal Owner / Lead</FormLabel>
+                        <FormLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Deal Owner</FormLabel>
                         <FormControl>
-                          <Input placeholder="Primary deal lead" className="rounded-sm bg-background/50" {...field} />
+                          <Popover open={ownerPickerOpen} onOpenChange={setOwnerPickerOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="w-full rounded-sm bg-background/50 h-9 text-sm justify-between font-normal"
+                                type="button"
+                              >
+                                <span className="truncate text-left">
+                                  {field.value
+                                    ? (() => {
+                                        const u = (teamMembers as any[]).find((m: any) => m.id === field.value);
+                                        return u ? (u.displayName || u.email) : "Unknown user";
+                                      })()
+                                    : <span className="text-muted-foreground/50">Select team member…</span>}
+                                </span>
+                                <ChevronsUpDown size={12} className="shrink-0 text-muted-foreground/50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[260px] p-0 rounded-sm" align="start">
+                              <Command>
+                                <CommandInput placeholder="Search…" className="h-8 text-xs" />
+                                <CommandList>
+                                  <CommandEmpty className="py-3 text-center text-xs text-muted-foreground">No users found</CommandEmpty>
+                                  <CommandGroup>
+                                    {(teamMembers as any[]).map((u: any) => (
+                                      <CommandItem
+                                        key={u.id}
+                                        value={u.displayName || u.email}
+                                        onSelect={() => {
+                                          field.onChange(u.id);
+                                          setOwnerPickerOpen(false);
+                                        }}
+                                        className="text-xs gap-2"
+                                      >
+                                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/15 text-primary text-[8px] font-bold uppercase shrink-0">
+                                          {(u.displayName || u.email).slice(0, 2).toUpperCase()}
+                                        </span>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="font-medium truncate">{u.displayName || u.email}</div>
+                                          {u.displayName && <div className="text-[10px] text-muted-foreground truncate">{u.email}</div>}
+                                        </div>
+                                        {field.value === u.id && <Check size={12} className="text-primary shrink-0" />}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                  {field.value && (
+                                    <CommandGroup>
+                                      <CommandItem
+                                        value="__clear__"
+                                        onSelect={() => {
+                                          field.onChange(null);
+                                          setOwnerPickerOpen(false);
+                                        }}
+                                        className="text-xs text-destructive/70"
+                                      >
+                                        Clear owner
+                                      </CommandItem>
+                                    </CommandGroup>
+                                  )}
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                         </FormControl>
                         <FormMessage />
                       </FormItem>

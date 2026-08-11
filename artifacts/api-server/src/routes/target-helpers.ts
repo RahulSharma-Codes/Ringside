@@ -7,6 +7,7 @@ import {
   interactionsTable,
   actionItemsTable,
   stageChangeLogTable,
+  usersTable,
 } from "@workspace/db";
 
 export type TargetRow = typeof targetsTable.$inferSelect;
@@ -146,11 +147,23 @@ export async function enrichTargetRows(rows: { target: TargetRow; milestone: Mil
     diligenceStatsByTarget.set(item.targetId, s);
   }
 
+  // Batch-fetch deal owners for all unique dealOwnerIds
+  const ownerIds = [...new Set(rows.map(r => r.target.dealOwnerId).filter((id): id is string => id != null))];
+  const ownerMap = new Map<string, { id: string; email: string; displayName: string | null }>();
+  if (ownerIds.length > 0) {
+    const ownerRows = await db
+      .select({ id: usersTable.id, email: usersTable.email, displayName: usersTable.displayName })
+      .from(usersTable)
+      .where(inArray(usersTable.id, ownerIds));
+    for (const u of ownerRows) ownerMap.set(u.id, u);
+  }
+
   return rows.map(({ target, milestone }) => {
     const actions = actionsByTarget.get(target.id) ?? [];
     const interactions = interactionsByTarget.get(target.id) ?? [];
     const latestStageChange = latestStageChangeByTarget.get(target.id);
     const diligenceStats = diligenceStatsByTarget.get(target.id) ?? { total: 0, completed: 0 };
+    const dealOwnerUser = target.dealOwnerId ? (ownerMap.get(target.dealOwnerId) ?? null) : null;
 
     const openActions = actions.filter((a) => ["Open", "In Progress", "Blocked"].includes(a.status));
     const overdueActions = openActions.filter((a) => a.dueDate && new Date(a.dueDate) < today);
@@ -188,6 +201,7 @@ export async function enrichTargetRows(rows: { target: TargetRow; milestone: Mil
 
     return {
       ...formatTarget(target, milestone),
+      dealOwnerUser,
       openActionCount: openActions.length,
       overdueActionCount: overdueActions.length,
       lastInteractionDate,
