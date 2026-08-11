@@ -1,5 +1,6 @@
+import { randomUUID } from "node:crypto";
 import { Router, type Request, type Response, type NextFunction } from "express";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, inArray, ne } from "drizzle-orm";
 import multer from "multer";
 import { db } from "@workspace/db";
 import { dealDocumentsTable, targetsTable, milestonesTable } from "@workspace/db";
@@ -14,10 +15,117 @@ import {
 } from "../lib/object-storage";
 import { writeAuditEvent } from "./audit";
 import { canAccessTarget, getAccessScope } from "../lib/target-access";
+import { extractText } from "../lib/extract-text";
 
 const router = Router();
 
 const CRITICAL_DOC_TYPES = ["NDA", "CIM", "Financials", "Legal", "Tax", "Integration"];
+
+/**
+ * Document types that are eligible for text extraction.
+ * Only Teaser, IM, and Business Model documents feed the AI brief (S7);
+ * all other types — including Highly-Restricted classified documents — are
+ * skipped to avoid creating plaintext copies of confidential material.
+ */
+const EXTRACTABLE_DOC_TYPES = new Set(["Teaser", "IM", "Business Model"]);
+const EXTRACTABLE_DOC_TYPES_ARRAY = [...EXTRACTABLE_DOC_TYPES];
+
+function shouldExtract(documentType: string, classification: string): boolean {
+  return (
+    EXTRACTABLE_DOC_TYPES.has(documentType) &&
+    classification !== "Highly-Restricted"
+  );
+}
+
+/**
+ * Schedules a fire-and-forget text extraction job after a file upload.
+ *
+ * Race-safety: the final UPDATE is guarded by two WHERE conditions:
+ *   1. upload_version = expectedUploadVersion — an immutable UUID generated fresh
+ *      on every upload/replacement. Because storage paths are deterministic
+ *      (documentId + filename), same-name replacements produce the same path;
+ *      only the upload_version column is guaranteed to change each time, making
+ *      it a reliable per-version sentinel. A stale extraction from a prior
+ *      replacement cannot overwrite the current extraction because the version
+ *      will no longer match.
+ *   2. document_type IN (...extractable) AND classification != 'Highly-Restricted' —
+ *      ensures we never write extracted text if the document was reclassified
+ *      or its type changed to ineligible while extraction was in flight.
+ *
+ * If either condition fails the UPDATE is a no-op, leaving the row unchanged.
+ * Status stays 'pending' in that case; a subsequent eligible write or
+ * metadata PUT will set the correct final state.
+ *
+ * For ineligible documents, schedules an immediate 'unsupported' status write
+ * (also guarded by uploadVersion so it doesn't stomp a concurrent replacement).
+ */
+function scheduleExtraction({
+  documentId,
+  expectedUploadVersion,
+  documentType,
+  classification,
+  fileBuffer,
+  fileMime,
+  logFn,
+}: {
+  documentId: number;
+  expectedUploadVersion: string;
+  documentType: string;
+  classification: string;
+  fileBuffer: Buffer;
+  fileMime: string;
+  logFn: (err: unknown) => void;
+}): void {
+  if (shouldExtract(documentType, classification)) {
+    setImmediate(() => {
+      extractText(fileBuffer, fileMime)
+        .then(({ text, status }) => {
+          // Conditional write: only applies when the upload version and eligibility match.
+          return db
+            .update(dealDocumentsTable)
+            .set({ extractedText: text, extractionStatus: status, updatedAt: new Date() })
+            .where(
+              and(
+                eq(dealDocumentsTable.id, documentId),
+                eq(dealDocumentsTable.uploadVersion, expectedUploadVersion),
+                inArray(dealDocumentsTable.documentType, EXTRACTABLE_DOC_TYPES_ARRAY),
+                ne(dealDocumentsTable.classification, "Highly-Restricted"),
+              ),
+            );
+        })
+        .catch((err: unknown) => {
+          logFn(err);
+          // On extraction failure, write 'failed' — but only for the same upload version.
+          return db
+            .update(dealDocumentsTable)
+            .set({ extractionStatus: "failed", updatedAt: new Date() })
+            .where(
+              and(
+                eq(dealDocumentsTable.id, documentId),
+                eq(dealDocumentsTable.uploadVersion, expectedUploadVersion),
+                inArray(dealDocumentsTable.documentType, EXTRACTABLE_DOC_TYPES_ARRAY),
+                ne(dealDocumentsTable.classification, "Highly-Restricted"),
+              ),
+            )
+            .catch(() => undefined);
+        });
+    });
+  } else {
+    // Ineligible — set status immediately so it is never left as 'pending'.
+    // Guard by uploadVersion so concurrent replacements don't collide.
+    setImmediate(() => {
+      db.update(dealDocumentsTable)
+        .set({ extractedText: null, extractionStatus: "unsupported", updatedAt: new Date() })
+        .where(
+          and(
+            eq(dealDocumentsTable.id, documentId),
+            eq(dealDocumentsTable.uploadVersion, expectedUploadVersion),
+          ),
+        )
+        .catch(() => undefined);
+    });
+  }
+}
 
 // ─── GET /api/documents/storage-config ──────────────────────────────────────
 // Returns whether object storage is configured. Registered before /:id routes.
@@ -55,8 +163,13 @@ function toDateString(value: Date | string | null | undefined): string | null {
 }
 
 function formatDoc(d: typeof dealDocumentsTable.$inferSelect) {
+  // extractedText is omitted intentionally — it is large, classification-sensitive,
+  // and consumed server-side only (AI brief S7 via direct DB JOIN).
+  // extractionStatus is included for UI/observability.
+  const { extractedText: _omit, ...rest } = d;
+  void _omit;
   return {
-    ...d,
+    ...rest,
     documentDate: toDateString(d.documentDate),
     uploadedAt: d.uploadedAt ? toIso(d.uploadedAt) : null,
     createdAt: toIso(d.createdAt)!,
@@ -342,6 +455,10 @@ router.post("/:id/upload", upload.single("file"), async (req, res) => {
       buffer: req.file.buffer,
     });
 
+    // A fresh UUID is generated on every upload so the background extraction
+    // callback can guard against stale writes even when the same filename is
+    // re-uploaded (which would otherwise produce the same storage path).
+    const uploadVersion = randomUUID();
     const now = new Date();
     const [updated] = await db
       .update(dealDocumentsTable)
@@ -351,10 +468,27 @@ router.post("/:id/upload", upload.single("file"), async (req, res) => {
         fileSize: req.file.size,
         mimeType: req.file.mimetype,
         uploadedAt: now,
+        // Reset extraction state atomically so no stale content persists
+        // from a prior upload while the new extraction is in flight.
+        extractedText: null,
+        extractionStatus: "pending",
+        uploadVersion,
         updatedAt: now,
       })
       .where(eq(dealDocumentsTable.id, id))
       .returning();
+
+    // Fire-and-forget text extraction — does not block the HTTP response.
+    // The conditional UPDATE uses uploadVersion to guard against stale writes.
+    scheduleExtraction({
+      documentId: id,
+      expectedUploadVersion: uploadVersion,
+      documentType: doc.documentType,
+      classification: doc.classification,
+      fileBuffer: req.file.buffer,
+      fileMime: req.file.mimetype,
+      logFn: (err) => req.log.error({ err, documentId: id }, "Text extraction failed after upload"),
+    });
 
     return res.json(formatDoc(updated));
   } catch (err) {
@@ -398,6 +532,9 @@ router.put("/:id/replace-file", upload.single("file"), async (req, res) => {
       buffer: req.file.buffer,
     });
 
+    // Fresh UUID per replacement — storage paths are deterministic so this
+    // is the only reliable way to distinguish one replacement from the next.
+    const uploadVersion = randomUUID();
     const now = new Date();
     const [updated] = await db
       .update(dealDocumentsTable)
@@ -407,6 +544,11 @@ router.put("/:id/replace-file", upload.single("file"), async (req, res) => {
         fileSize: req.file.size,
         mimeType: req.file.mimetype,
         uploadedAt: now,
+        // Reset extraction state atomically — no stale content from the old
+        // file persists to the new version while extraction is in flight.
+        extractedText: null,
+        extractionStatus: "pending",
+        uploadVersion,
         updatedAt: now,
       })
       .where(eq(dealDocumentsTable.id, id))
@@ -418,6 +560,18 @@ router.put("/:id/replace-file", upload.single("file"), async (req, res) => {
         // Non-fatal: old object becomes orphaned but DB is already consistent
       });
     }
+
+    // Fire-and-forget text extraction — does not block the HTTP response.
+    // Re-checks eligibility on replacement; uses uploadVersion to guard stale writes.
+    scheduleExtraction({
+      documentId: id,
+      expectedUploadVersion: uploadVersion,
+      documentType: doc.documentType,
+      classification: doc.classification,
+      fileBuffer: req.file.buffer,
+      fileMime: req.file.mimetype,
+      logFn: (err) => req.log.error({ err, documentId: id }, "Text extraction failed after file replace"),
+    });
 
     return res.json(formatDoc(updated));
   } catch (err) {
@@ -440,6 +594,18 @@ router.put("/:id", async (req, res) => {
   const d = parsed.data;
   const now = new Date();
 
+  // Whenever the resulting metadata makes the document ineligible for extraction
+  // (wrong type or Highly-Restricted), unconditionally clear any stored plaintext.
+  // This covers both transitions from eligible→ineligible and the edge case where
+  // the document was already ineligible but a stale background callback may have
+  // written text since the last metadata update.
+  const newDocType = d.documentType !== undefined ? d.documentType : existing.documentType;
+  const newClassification = d.classification !== undefined ? d.classification : existing.classification;
+  const nowEligible = shouldExtract(newDocType, newClassification);
+  const extractionClearFields = !nowEligible
+    ? { extractedText: null as string | null, extractionStatus: "unsupported" }
+    : {};
+
   const [doc] = await db
     .update(dealDocumentsTable)
     .set({
@@ -452,6 +618,7 @@ router.put("/:id", async (req, res) => {
       ...(d.url !== undefined ? { url: d.url ?? null } : {}),
       ...(d.workstream !== undefined ? { workstream: d.workstream ?? null } : {}),
       ...(d.notes !== undefined ? { notes: d.notes ?? null } : {}),
+      ...extractionClearFields,
       updatedAt: now,
     })
     .where(eq(dealDocumentsTable.id, id))

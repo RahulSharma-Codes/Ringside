@@ -2099,6 +2099,7 @@ export const ListDocumentsParams = zod.object({
 });
 
 export const listDocumentsResponseClassificationDefault = `Restricted`;
+export const listDocumentsResponseExtractionStatusDefault = `pending`;
 
 export const ListDocumentsResponseItem = zod.object({
   id: zod.number(),
@@ -2122,6 +2123,12 @@ export const ListDocumentsResponseItem = zod.object({
   fileSize: zod.number().nullish(),
   mimeType: zod.string().nullish(),
   uploadedAt: zod.coerce.date().nullish(),
+  extractionStatus: zod
+    .string()
+    .default(listDocumentsResponseExtractionStatusDefault)
+    .describe(
+      "Status of text extraction: pending | done | truncated | failed | unsupported. Extraction only runs for Teaser, IM, and Business Model document types.",
+    ),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -2306,6 +2313,7 @@ export const UpdateDocumentBody = zod.object({
 });
 
 export const updateDocumentResponseClassificationDefault = `Restricted`;
+export const updateDocumentResponseExtractionStatusDefault = `pending`;
 
 export const UpdateDocumentResponse = zod.object({
   id: zod.number(),
@@ -2329,6 +2337,12 @@ export const UpdateDocumentResponse = zod.object({
   fileSize: zod.number().nullish(),
   mimeType: zod.string().nullish(),
   uploadedAt: zod.coerce.date().nullish(),
+  extractionStatus: zod
+    .string()
+    .default(updateDocumentResponseExtractionStatusDefault)
+    .describe(
+      "Status of text extraction: pending | done | truncated | failed | unsupported. Extraction only runs for Teaser, IM, and Business Model document types.",
+    ),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });

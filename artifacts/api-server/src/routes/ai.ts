@@ -407,10 +407,29 @@ async function buildOpportunityBriefContext(targetId: number): Promise<string> {
   const diligenceTotal = diligenceItems.length;
   const diligenceDone = diligenceItems.filter((d) => d.status === "Completed").length;
 
+  // Fetch all documents for count, plus extracted text for eligible types.
+  // extractedText is only populated for Teaser/IM/Business Model docs with
+  // extraction_status = 'done' or 'truncated'; Highly-Restricted is excluded
+  // at upload time so those rows will always have null extractedText.
   const documents = await db
-    .select({ id: dealDocumentsTable.id })
+    .select({
+      id: dealDocumentsTable.id,
+      title: dealDocumentsTable.title,
+      documentType: dealDocumentsTable.documentType,
+      extractedText: dealDocumentsTable.extractedText,
+      extractionStatus: dealDocumentsTable.extractionStatus,
+    })
     .from(dealDocumentsTable)
     .where(eq(dealDocumentsTable.targetId, targetId));
+
+  // Eligible sourced docs: Teaser, IM, Business Model with extracted text ready.
+  const ELIGIBLE_DOC_TYPES = new Set(["Teaser", "IM", "Business Model"]);
+  const sourcedDocs = documents.filter(
+    (d) =>
+      ELIGIBLE_DOC_TYPES.has(d.documentType) &&
+      d.extractedText != null &&
+      (d.extractionStatus === "done" || d.extractionStatus === "truncated"),
+  );
 
   const lines: string[] = [
     `=== OPPORTUNITY BRIEF CONTEXT ===`,
@@ -429,6 +448,20 @@ async function buildOpportunityBriefContext(targetId: number): Promise<string> {
     ``,
     `--- RECENT INTERACTIONS (last 5) ---`,
   ];
+
+  // Append extracted content from Teaser/IM/Business Model documents.
+  // Each section is clearly bounded so the model can attribute its analysis.
+  if (sourcedDocs.length > 0) {
+    lines.push(``, `--- SOURCED DOCUMENT CONTENT ---`);
+    for (const d of sourcedDocs) {
+      // Hard cap at 20 000 chars per document to bound total prompt size.
+      const cap = 20_000;
+      const text = d.extractedText!.length > cap
+        ? d.extractedText!.slice(0, cap) + "\n[TRUNCATED FOR CONTEXT]"
+        : d.extractedText!;
+      lines.push(``, `[${d.documentType.toUpperCase()}] ${d.title}`, text);
+    }
+  }
 
   if (interactions.length === 0) {
     lines.push("None recorded.");

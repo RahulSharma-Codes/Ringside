@@ -182,6 +182,9 @@ export const dealDocumentsTable = pgTable("deal_documents", {
   fileSize: bigint("file_size", { mode: "number" }),
   mimeType: text("mime_type"),
   uploadedAt: timestamp("uploaded_at", { withTimezone: true }),
+  extractedText: text("extracted_text"),
+  extractionStatus: text("extraction_status").notNull().default("pending"),
+  uploadVersion: uuid("upload_version"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

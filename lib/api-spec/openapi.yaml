@@ -3708,13 +3708,17 @@ components:
           type: string
           format: date-time
           nullable: true
+        extractionStatus:
+          type: string
+          description: "Status of text extraction: pending | done | truncated | failed | unsupported. Extraction only runs for Teaser, IM, and Business Model document types."
+          default: pending
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
-      required: [id, targetId, title, documentType, status, classification, createdAt, updatedAt]
+      required: [id, targetId, title, documentType, status, classification, extractionStatus, createdAt, updatedAt]
 
     CreateDocumentBody:
       type: object

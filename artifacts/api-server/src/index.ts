@@ -284,23 +284,26 @@ async function applyMigrations(): Promise<void> {
   // Create deal_documents table
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS deal_documents (
-      id             serial PRIMARY KEY,
-      target_id      integer NOT NULL REFERENCES targets(id),
-      title          text NOT NULL,
-      document_type  text NOT NULL DEFAULT 'Other',
-      status         text NOT NULL DEFAULT 'Requested',
-      owner          text,
-      document_date  date,
-      url            text,
-      workstream     text,
-      notes          text,
-      storage_path   text,
-      file_name      text,
-      file_size      bigint,
-      mime_type      text,
-      uploaded_at    timestamptz,
-      created_at     timestamp NOT NULL DEFAULT now(),
-      updated_at     timestamp NOT NULL DEFAULT now()
+      id                 serial PRIMARY KEY,
+      target_id          integer NOT NULL REFERENCES targets(id),
+      title              text NOT NULL,
+      document_type      text NOT NULL DEFAULT 'Other',
+      status             text NOT NULL DEFAULT 'Requested',
+      owner              text,
+      document_date      date,
+      url                text,
+      workstream         text,
+      notes              text,
+      storage_path       text,
+      file_name          text,
+      file_size          bigint,
+      mime_type          text,
+      uploaded_at        timestamptz,
+      extracted_text     text,
+      extraction_status  text NOT NULL DEFAULT 'pending',
+      upload_version     uuid,
+      created_at         timestamp NOT NULL DEFAULT now(),
+      updated_at         timestamp NOT NULL DEFAULT now()
     )
   `);
 
@@ -851,6 +854,11 @@ async function applyMigrations(): Promise<void> {
   // REVOKE is idempotent: re-revoking a privilege that was never granted is a
   // no-op (Postgres silently ignores it).
   await db.execute(sql`REVOKE UPDATE, DELETE ON audit_events FROM CURRENT_USER`);
+
+  // ── Document text extraction columns ─────────────────────────────────────
+  await db.execute(sql`ALTER TABLE deal_documents ADD COLUMN IF NOT EXISTS extracted_text text`);
+  await db.execute(sql`ALTER TABLE deal_documents ADD COLUMN IF NOT EXISTS extraction_status text NOT NULL DEFAULT 'pending'`);
+  await db.execute(sql`ALTER TABLE deal_documents ADD COLUMN IF NOT EXISTS upload_version uuid`);
 
   // ── Score nullable migration ───────────────────────────────────────────────
   // Drops NOT NULL + DEFAULT on all five score columns so newly created targets

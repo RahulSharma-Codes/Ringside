@@ -108,7 +108,14 @@ router.get("/:id/activity", async (req, res) => {
       db.select().from(interactionsTable).where(eq(interactionsTable.targetId, targetId)).orderBy(desc(interactionsTable.interactionDatetime)),
       db.select().from(actionItemsTable).where(and(eq(actionItemsTable.targetId, targetId), isNull(actionItemsTable.workstream))).orderBy(desc(actionItemsTable.createdAt)),
       db.select().from(actionItemsTable).where(and(eq(actionItemsTable.targetId, targetId), eq(actionItemsTable.status, "Completed"), isNotNull(actionItemsTable.workstream))).orderBy(desc(actionItemsTable.completedAt)),
-      db.select().from(dealDocumentsTable).where(eq(dealDocumentsTable.targetId, targetId)).orderBy(desc(dealDocumentsTable.createdAt)),
+      // Explicit column selection — excludes extractedText (server-side AI only).
+      db.select({
+        id: dealDocumentsTable.id,
+        title: dealDocumentsTable.title,
+        documentType: dealDocumentsTable.documentType,
+        uploadedAt: dealDocumentsTable.uploadedAt,
+        createdAt: dealDocumentsTable.createdAt,
+      }).from(dealDocumentsTable).where(eq(dealDocumentsTable.targetId, targetId)).orderBy(desc(dealDocumentsTable.createdAt)),
     ]);
 
   type ActivityEvent = { type: string; timestamp: string; title: string; detail: string | null };
@@ -167,12 +174,17 @@ router.get("/:id/documents", async (req, res) => {
   const targetId = id(req);
   const docs = await db.select().from(dealDocumentsTable).where(eq(dealDocumentsTable.targetId, targetId)).orderBy(desc(dealDocumentsTable.createdAt));
   return res.json(
-    docs.map((d) => ({
-      ...d,
-      documentDate: d.documentDate ? String(d.documentDate).slice(0, 10) : null,
-      createdAt: d.createdAt instanceof Date ? d.createdAt.toISOString() : new Date(d.createdAt).toISOString(),
-      updatedAt: d.updatedAt instanceof Date ? d.updatedAt.toISOString() : new Date(d.updatedAt).toISOString(),
-    })),
+    docs.map((d) => {
+      // extractedText is server-side only (AI brief S7 via direct DB JOIN) — never surfaced to clients.
+      const { extractedText: _omit, ...rest } = d;
+      void _omit;
+      return {
+        ...rest,
+        documentDate: d.documentDate ? String(d.documentDate).slice(0, 10) : null,
+        createdAt: d.createdAt instanceof Date ? d.createdAt.toISOString() : new Date(d.createdAt).toISOString(),
+        updatedAt: d.updatedAt instanceof Date ? d.updatedAt.toISOString() : new Date(d.updatedAt).toISOString(),
+      };
+    }),
   );
 });
 
@@ -196,8 +208,11 @@ router.post("/:id/documents", async (req, res) => {
     })
     .returning();
   await writeAuditEvent("document_uploaded", targetId, d.owner ?? null, { documentId: doc.id, title: doc.title, documentType: doc.documentType });
+  // extractedText is server-side only — never surfaced to clients.
+  const { extractedText: _omit, ...docPublic } = doc;
+  void _omit;
   return res.status(201).json({
-    ...doc,
+    ...docPublic,
     documentDate: doc.documentDate ? String(doc.documentDate).slice(0, 10) : null,
     createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : new Date(doc.createdAt).toISOString(),
     updatedAt: doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : new Date(doc.updatedAt).toISOString(),

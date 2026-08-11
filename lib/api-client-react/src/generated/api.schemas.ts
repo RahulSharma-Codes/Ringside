@@ -668,6 +668,8 @@ export interface DealDocument {
   fileSize?: number | null;
   mimeType?: string | null;
   uploadedAt?: string | null;
+  /** Status of text extraction: pending | done | truncated | failed | unsupported. Extraction only runs for Teaser, IM, and Business Model document types. */
+  extractionStatus: string;
   createdAt: string;
   updatedAt: string;
 }

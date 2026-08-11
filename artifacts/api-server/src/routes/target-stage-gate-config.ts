@@ -20,7 +20,7 @@ export type GateContext = {
   milestone: typeof milestonesTable.$inferSelect | null;
   interactions: (typeof interactionsTable.$inferSelect)[];
   diligenceItems: (typeof actionItemsTable.$inferSelect)[];
-  documents: (typeof dealDocumentsTable.$inferSelect)[];
+  documents: Omit<typeof dealDocumentsTable.$inferSelect, "extractedText">[];
 };
 type GateCheckFn = (ctx: GateContext) => GateItem;
 
@@ -278,7 +278,29 @@ export async function fetchGateContext(
       .select()
       .from(actionItemsTable)
       .where(and(eq(actionItemsTable.targetId, targetId), isNotNull(actionItemsTable.workstream))),
-    db.select().from(dealDocumentsTable).where(eq(dealDocumentsTable.targetId, targetId)),
+    // Explicit column selection — excludes extractedText (server-side AI only).
+    db.select({
+      id: dealDocumentsTable.id,
+      targetId: dealDocumentsTable.targetId,
+      title: dealDocumentsTable.title,
+      documentType: dealDocumentsTable.documentType,
+      status: dealDocumentsTable.status,
+      classification: dealDocumentsTable.classification,
+      owner: dealDocumentsTable.owner,
+      documentDate: dealDocumentsTable.documentDate,
+      url: dealDocumentsTable.url,
+      workstream: dealDocumentsTable.workstream,
+      notes: dealDocumentsTable.notes,
+      storagePath: dealDocumentsTable.storagePath,
+      fileName: dealDocumentsTable.fileName,
+      fileSize: dealDocumentsTable.fileSize,
+      mimeType: dealDocumentsTable.mimeType,
+      uploadedAt: dealDocumentsTable.uploadedAt,
+      extractionStatus: dealDocumentsTable.extractionStatus,
+      uploadVersion: dealDocumentsTable.uploadVersion,
+      createdAt: dealDocumentsTable.createdAt,
+      updatedAt: dealDocumentsTable.updatedAt,
+    }).from(dealDocumentsTable).where(eq(dealDocumentsTable.targetId, targetId)),
   ]);
   return { target, milestone, interactions, diligenceItems, documents };
 }
