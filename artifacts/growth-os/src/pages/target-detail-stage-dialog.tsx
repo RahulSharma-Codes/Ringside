@@ -81,11 +81,11 @@ export function StageChangeDialog({ open, onOpenChange, targetId, target, onSucc
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else onOpenChange(true); }}>
-      <DialogContent className="sm:max-w-[600px] border-border bg-sidebar rounded-sm">
+      <DialogContent className="sm:max-w-[600px] border-border bg-sidebar rounded-sm overflow-hidden">
         <DialogHeader>
           <DialogTitle className="font-sans font-semibold text-lg">Change Pipeline Stage</DialogTitle>
         </DialogHeader>
-        <div className="py-4 space-y-5">
+        <div className="py-4 space-y-5 max-h-[calc(90vh-8rem)] overflow-y-auto pb-1">
           <div className="space-y-1.5">
             <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2">Current Stage</div>
             <span className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/40 text-primary font-mono text-[11px] px-2.5 py-1 rounded-lg">
