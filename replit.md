@@ -432,3 +432,254 @@ Non-admin users see no deals until an Admin grants access. `target_access` table
 | fix-production-ssl-and-bootstrap | (Task #334) | SSL fixed via PGSSLMODE=no-verify; secure random bootstrap seed; app_rls graceful degradation |
 | remove-apprls-role-switch | 085cea0034 | SET ROLE / RESET ROLE / app_rls migration block removed entirely; clean GUC-only connection pattern |
 | rename-withRlsTransaction | 085cea0034 | Renamed to withCompanyTransaction to match actual behavior (no role switch) |
+
+---
+
+## Project Task Log
+
+All tasks that have been completed or are awaiting approval, in order. Tasks are grouped by area. Refs link to the project task system.
+
+### ✅ Completed — Core Platform Build
+
+| # | Task | Why it was done |
+|---|---|---|
+| #1 | Phase 1A: Opportunity Detail Cockpit | Foundation of the app — full target detail page with stage progression, scoring, interaction log, action items, and audit trail |
+| #2 | Phase 1A QA Validation | Code review pass after Phase 1A to catch regressions and polish UX before moving forward |
+| #13 | Phase 2A: CSV / Excel Import Wizard | Teams needed to bulk-load existing pipeline data from spreadsheets rather than entering deals one by one |
+| #22 | Phase 4B: Diligence Workspace + Deal Readiness | Structured 8-workstream diligence tracking per deal with completion scoring and a pipeline-wide review page |
+| #41 | Phase 6A: AI Assist Layer | AI Copilot chat interface backed by live DB snapshot sent to OpenAI — answers deal questions instantly |
+| #42 | Phase 6A: AI Layer fixes (code review) | Follow-up code review to fix issues found after Phase 6A merged |
+| #43 | Phase 6B: Deal Journey & Score UX | Score display, deal journey timeline, and score confidence badges surfaced through the UI |
+| #44 | Phase 6B: Auth Architecture & Launch Readiness | JWT auth, rate limiting, CORS, Sentry, and hardened session management wired up for production |
+| #50 | Phase 7A: Kanban Pipeline Board View | Alternate pipeline view showing deals as draggable cards in stage columns |
+| #51 | Phase 7B: Deal Type + ESG & Regulatory Workstreams | Deal-type field (Public M&A / Private / Asset) with stage variants; ESG and Regulatory diligence workstreams |
+| #52 | Phase 7C: Stage Gate Enforcement (Backend) | Pre-flight stage gate checks that warn or block stage moves based on readiness criteria |
+| #53 | Phase 7D: Deal Activity Log | Unified activity feed showing interactions, stage changes, and notes per deal |
+| #54 | Phase 7E: IC Log + Stage Gate UI | IC sessions tab per deal; stage gate advisory shown in the stage-change dialog |
+| #61 | Valuation Module | Structured valuation tab with multiple methods, ranges, and rationale |
+| #62 | Synergies Register | Synergies tab with revenue, cost, and financial synergy line items |
+| #63 | IC Voting Workflow | IC voting on proposals with vote records and outcome tracking |
+| #64 | Pipeline Analytics Dashboards | Charts and KPIs for pipeline health, stage distribution, and deal velocity |
+| #65 | Export & Report Generation | CSV/PDF export of deal data with column selection |
+| #66 | NDA Register + Regulatory Clearance Map | Compliance tab with NDA expiry tracking and regulatory clearance status |
+| #67 | Deal-Type Stage Variants | Stage list adapts per deal type (public vs private vs asset deal stages differ) |
+| #68 | In-App Notification Inbox | Bell icon with unread count; 4 notification types auto-generated (stagnation, overdue, NDA expiry, Must-Win silence) |
+| #69 | Counterparty & Advisor Management | Stakeholders tab with counterparty record, internal sponsors, buy-side and sell-side advisors |
+| #70 | Drag-and-Drop Kanban | `@dnd-kit` drag with reason dialog before any stage change is committed |
+| #71 | Tamper-Evident Audit Store | DB-level REVOKE prevents the API process from ever UPDATE/DELETE-ing audit_events rows |
+| #72 | Multi-Tenancy Foundation | RLS `company_isolation` policies on all tables; `app.company_id` GUC set per request |
+| #73 | Authentication Upgrade — Email OTP + SSO Stub | OTP 6-digit email login flow; SSO stub endpoint for future OIDC integration |
+| #74 | Learning Loop & Doctrine Dashboard | Phase 1 verdict accuracy tracking and deterioration alerts |
+| #75 | AI Phases 4 & 5 — Valuation Sanity-Check + DD Synthesis | AI sanity-checks valuation against comps; AI synthesises diligence findings |
+| #76 | Document Security Tiers & Classification | Document vault with Highly-Restricted / Restricted / Internal / Public tiers |
+
+### ✅ Completed — UX Polish & Incremental Features
+
+| # | Task | Why it was done |
+|---|---|---|
+| #3 | Add a way to delete individual interactions and actions | Missing CRUD — users couldn't remove incorrect log entries |
+| #4 | Make the Change Stage button accessible on mobile | Button was off-screen on small viewports; critical action for mobile users |
+| #14 | Let users download a template CSV | Users needed a correctly-formatted file to import rather than guessing column names |
+| #18 | Auto-map template columns perfectly when template is re-imported | Friction: users re-uploading the template CSV had to remap every column manually |
+| #24 | Add diligence completion to the Weekly Review report | Weekly Review was missing diligence status; teams needed it in one place |
+| #25 | Add document/evidence attachment links to diligence items | Items needed a URL link field for evidence without requiring file upload infrastructure |
+| #32 | Premium pipeline stage visualization & stage movement UX | Stage rail redesigned; smoother, clearer stage movement dialog |
+| #33 | Add click-to-navigate from stage cards on the dashboard board | Dashboard stage tiles were informational-only; clicking should navigate to filtered pipeline |
+| #35 | Keep stage filter active when navigating back to pipeline | Filter was resetting on back navigation — frustrating in typical review workflows |
+| #36 | Show visual indicator on stage cards when they are clickable | Cards looked static; hover state and cursor cues added |
+| #37 | Make stage cards keyboard-accessible with focus ring | Accessibility gap — mouse-only interaction |
+| #89 | Show which columns will be in the export before downloading | Users were exporting to find out what was included; preview added to export dialog |
+| #93 | Show deal-type stage variant as a badge on each target card | Stage name alone was ambiguous across deal types |
+| #95 | Add deal-type filter to Weekly Review and Diligence Review | Teams reviewing only Public M&A deals couldn't filter; had to scroll through all |
+| #101 | Log how advisor conflicts were resolved | Conflict-check had no resolution notes field; regulators need a paper trail |
+| #102 | Export the Doctrine dashboard to a shareable PDF | Learning Loop data needed to be shareable offline in board presentations |
+| #103 | Show historic Phase 1 verdict accuracy trends over time | Point-in-time accuracy wasn't enough; trend line shows if predictions are improving |
+| #104 | Surface verdict tags on each deal's overview tab | Verdict data existed in the DB but wasn't visible anywhere on the deal detail page |
+| #105 | Prevent a deal card from disappearing during slow drag-and-drop save | Optimistic UI update removed the card before the server confirmed — race condition on slow connections |
+| #106 | Let users reorder cards within a stage column by dragging | Stage columns had no ordering; teams wanted to prioritise within a stage |
+| #112 | Prevent database tampering via audit_events | API-level guard wasn't enough; DB-level REVOKE added for belt-and-suspenders |
+| #113 | Add deal-type filter to the Action Command Center | Action Command Center had no deal-type filter; mixed deal types made prioritisation hard |
+| #115 | Let deal teams generate an IC memo draft with one click | IC prep was manual; AI-drafted memo sections from live deal data saves hours |
+| #116 | Show AI analysis history | Previous AI runs were overwritten; teams needed to compare current vs prior assessments |
+| #121 | Prevent data leaking between companies | Multi-tenancy groundwork — RLS policies ensure one company cannot see another's data |
+| #122 | Let admins invite teammates by email | New users had no path to join other than sharing a password; proper invite flow added |
+| #126 | Flag when Phase 1 accuracy is deteriorating | Accuracy trend alert so teams know when their scoring model needs recalibration |
+| #129 | Send OTP code by email instead of showing it on screen | OTP was displayed in the API response (dev shortcut) — security gap for production |
+| #130 | Protect Admin panel and critical API routes from Members | Members could call write endpoints directly; role guard on all admin routes |
+| #131 | Let admins create and manage user accounts | No user management UI existed; admins had to rely on bootstrap env var |
+| #132 | Prevent expired or logged-out sessions from passing auth check | JTI blocklist check was missing on session validation; logout wasn't fully enforced |
+| #138 | Show deal-type variant badge on Weekly Review and Diligence Review | Consistency — badge was on pipeline cards but not on review page rows |
+| #140 | Prevent login from failing silently when email server is misconfigured | SMTP errors were swallowed; users saw a generic error with no actionable message |
+| #142 | Make login work when SMTP is partially configured | Partial SMTP env vars (e.g., host set but no user) caused a crash instead of a graceful fallback |
+| #153 | Fix broken type errors in Stakeholders tab | TypeScript errors were blocking clean builds after the Stakeholders feature merged |
+| #154 | Split oversized core files to unblock parallel development | Single 3000-line files were causing merge conflicts and making parallel task work impossible |
+| #155 | Add a deal health traffic-light to every pipeline card | Teams needed at-a-glance risk signal (Green/Amber/Red) without opening the deal |
+| #156 | Generate a print-ready IC briefing pack from live deal data | IC meetings needed a formatted PDF pulling live deal data automatically |
+| #157 | Log a call or meeting directly from the pipeline card | Friction — users had to open a deal to log an interaction; quick-log from card added |
+| #158 | Let each team member see only their own deals and actions | Per-user deal visibility grants; non-admins see no deals until explicitly granted access |
+| #159 | Visual uplift — dashboard, pipeline cards, and target header | Design refresh pass on the three highest-traffic surfaces |
+
+### ✅ Completed — Production Infrastructure
+
+| # | Task | Why it was done |
+|---|---|---|
+| #334 | Fix production 500s and first-run bootstrap | Every API request was returning 500 in production due to `SET ROLE app_rls` failing; no admin user was being created on fresh deploy. Fixed by: (1) graceful role degradation, (2) unconditional empty-DB seed with cryptographically random one-time password |
+| #338 | Remove SET ROLE workaround — clean up request context | The graceful-degradation approach from #334 was still complex machinery that never worked in production. Removed entirely: no `SET ROLE`, no `RESET ROLE`, no app_rls migration block. Clean GUC-only pattern is sufficient for single-tenant deployment |
+| #339 | Rename withRlsTransaction to withCompanyTransaction | After removing the role switch, the function name implied RLS role enforcement that no longer existed — misleading for future developers |
+
+---
+
+### 🕐 Pending Approval — Import
+
+| # | Task | What it does |
+|---|---|---|
+| #17 | Let users also download a pre-filled Excel template (.xlsx) | Currently only CSV template is downloadable; Excel format is more familiar to deal teams |
+| #19 | Warn users when they upload a file with unmapped (skipped) columns | Silent skips mean data loss; user should be warned before apply |
+| #23 | Add bulk import of diligence checklists from templates | Copy a standard diligence checklist template into a deal with one action |
+
+### 🕐 Pending Approval — Diligence
+
+| # | Task | What it does |
+|---|---|---|
+| #26 | Show a diligence completion progress bar on each target card | Inline completion % on pipeline cards without opening the deal |
+| #27 | Add diligence completion percentage to each target's detail page header | Header-level summary so teams see readiness before clicking into the tab |
+| #29 | Let users attach evidence links directly from the diligence review page | Currently evidence links require opening the deal; should be addable inline |
+| #30 | Show evidence link count on the diligence item in the weekly review | Visibility of how much evidence is attached without opening the deal |
+| #31 | Validate that evidence link URLs are real before saving | URLs are saved without checking format or reachability |
+| #57 | Include ESG and Regulatory workstreams in the Diligence Review | Two workstreams were added in Phase 7B but not wired into the Diligence Review page |
+
+### 🕐 Pending Approval — Pipeline & Kanban
+
+| # | Task | What it does |
+|---|---|---|
+| #34 | Show days-in-stage for all stages on the progression rail | Currently only current stage shows days; historical stage durations hidden |
+| #38 | Let users copy and share a pipeline link with filters applied | Sharing a filtered view requires the recipient to manually re-apply filters |
+| #39 | Remember the last pipeline view when the app is reopened | View preference (List vs Kanban, active filters) resets on every page load |
+| #40 | Make progression rail stage buttons show a focus ring | Keyboard accessibility gap on the stage progression UI |
+| #56 | Let users edit deal type from the target detail page | Deal type is set on creation but can only be changed via import; no in-app edit UI |
+| #107 | Make sure drag-and-drop stage changes can't be lost on a bad connection | Stage drop on poor connection can appear to succeed but the server update fails silently |
+| #160 | Show the current rank position on each Kanban card while reordering | When dragging to reorder within a column, users lose track of the card's position |
+| #161 | Let users reset a column back to default order (by priority score) | After manual reordering, there's no way to restore the default priority-score order |
+| #162 | Carry Kanban order through to Weekly Review and Action Command Center | Manual card order is only reflected in Kanban; list views still use default sort |
+| #166 | Filter pipeline by health status (At Risk / On Track) | No way to instantly surface all At Risk deals without scrolling the full pipeline |
+| #254 | Confirm drag-and-drop Kanban still works after navigating away and back | Regression test — DnD state may not reinitialise cleanly after React router navigation |
+
+### 🕐 Pending Approval — Scoring & Dashboard
+
+| # | Task | What it does |
+|---|---|---|
+| #45 | Apply the score nullable migration to stop showing default scores | Unscored deals show `0` as if they were assessed; should show "Not scored" |
+| #46 | Let users set scores directly from the target detail overview | Score editing requires the full edit dialog; inline score widget would be faster |
+| #47 | Carry the score confidence badge through to pipeline card and target list views | Confidence badge exists on detail page but is absent from the pipeline card |
+| #55 | Show deal type breakdown chart on the dashboard | Dashboard KPIs have no breakdown by deal type; chart would show portfolio mix |
+| #260 | Surface deal score trends over time | Point-in-time scores don't show trajectory; trend line shows whether portfolio quality is improving |
+
+### 🕐 Pending Approval — Notifications
+
+| # | Task | What it does |
+|---|---|---|
+| #96 | Let users control which types of alerts they receive | All 4 notification types fire for all users; no per-user preference controls |
+| #97 | Show notifications as a dedicated inbox page | Current bell dropdown is small; a full inbox page would be more usable |
+| #98 | Keep the unread badge accurate in real time without manual refresh | Badge only updates on page load; missed notifications until next refresh |
+
+### 🕐 Pending Approval — Stakeholders & Advisors
+
+| # | Task | What it does |
+|---|---|---|
+| #99 | Surface flagged advisor conflicts in the Weekly Review | Conflict flags exist per deal but don't roll up into the weekly review |
+| #100 | Let users export a deal's stakeholder list as a CSV | No export path for stakeholder/advisor data; needed for legal/compliance |
+
+### 🕐 Pending Approval — Doctrine & Learning Loop
+
+| # | Task | What it does |
+|---|---|---|
+| #108 | Let users filter the Doctrine PDF export by date range | Full Doctrine export includes all history; date range would scope to a period |
+| #109 | Include deal-by-deal accuracy breakdown per sector in the Doctrine report | Aggregate accuracy hides sector-level differences in prediction quality |
+| #124 | Let users drill into the deals behind each accuracy data point | Accuracy charts show numbers but don't link to the underlying deals |
+| #125 | Export the accuracy trend chart as part of the Doctrine PDF | Chart is web-only; operators presenting to boards need it in the PDF |
+| #127 | Let teams correct or update a verdict after a deal is closed | Verdicts are set at close but can't be amended if the initial classification was wrong |
+
+### 🕐 Pending Approval — Audit & Compliance
+
+| # | Task | What it does |
+|---|---|---|
+| #110 | Show the audit trail across all deals in one compliance-ready export | Audit events are per-deal; no cross-deal audit report for compliance purposes |
+| #111 | Prevent silent audit failures from hiding when a write fails | Audit event writes can fail without surfacing an error to the API caller |
+
+### 🕐 Pending Approval — Documents & Security
+
+| # | Task | What it does |
+|---|---|---|
+| #118 | Show Highly-Restricted documents in the pipeline-wide Document Review page | Highly-Restricted docs are filtered out of the review page; should be visible to Admins |
+| #119 | Enforce Highly-Restricted download protection when auth is in place | Download guard currently checks auth but doesn't enforce tier restrictions in production |
+| #120 | Let users filter the document vault by classification tier | No tier filter on the document list; users scroll through all tiers to find restricted docs |
+
+### 🕐 Pending Approval — Filters & Preferences
+
+| # | Task | What it does |
+|---|---|---|
+| #114 | Remember the last-used deal-type filter across page visits | Filter resets on every navigation; preference should persist per session |
+| #133 | Remember which export columns were last used | Column selection resets every export; teams use the same columns every time |
+| #134 | Let users export only the deals currently visible (with search/filter) | Export always includes all deals regardless of active filters |
+| #139 | Filter pipeline stage dropdown to only valid stages for the selected deal type | Stage dropdown shows all stages regardless of deal type; invalid stages cause errors |
+
+### 🕐 Pending Approval — Valuation
+
+| # | Task | What it does |
+|---|---|---|
+| #117 | Prevent valuation sanity-check from returning 'insufficient data' for active deals | AI sanity-check bails with "insufficient data" even when meaningful valuation data exists |
+
+### 🕐 Pending Approval — Admin & User Management
+
+| # | Task | What it does |
+|---|---|---|
+| #135 | Prevent admins from accidentally deleting their own account | No guard on self-delete; an admin can remove themselves and lock everyone out |
+| #136 | Let admins edit a user's display name without re-inviting them | Display name can only be set at invite time; no edit UI after creation |
+| #137 | Prevent the last admin from being downgraded or deleted | If the only admin is removed, the app becomes unmanageable |
+| #141 | Let admins configure SMTP settings from inside the app | SMTP requires env var changes and a redeploy; in-app config would be faster |
+
+### 🕐 Pending Approval — Auth & Session Security
+
+| # | Task | What it does |
+|---|---|---|
+| #143 | Prevent Members from reaching write-only pages (Import, New Target) | Frontend routes for Import and New Target are accessible to Members who shouldn't be able to write |
+| #144 | Lock down API write endpoints so Members can't modify data via direct API calls | Role guard on read routes; write routes lack a Member exclusion check at the API level |
+| #145 | Confirm that logging out truly blocks further API access — end-to-end test | Logout is implemented but no e2e test verifies the token is actually blocked server-side |
+| #146 | Prevent revoked tokens from passing after a server restart | JTI blocklist lives in the DB but the in-memory cache is cleared on restart; window of vulnerability |
+| #123 | Keep all deals accessible even if the RLS GUC is accidentally unset | If `set_config` fails silently, the GUC is empty and RLS filters out every row — users see a blank app |
+
+### 🕐 Pending Approval — IC Brief
+
+| # | Task | What it does |
+|---|---|---|
+| #168 | Add a deal-summary narrative block to the IC brief | IC brief lacks a human-readable summary section; AI or manual notes should fill it |
+| #169 | Let the IC brief open to a specific deal without requiring a second login | Shared IC brief links require the recipient to log in again before seeing the deal |
+| #170 | Include NDA status and regulatory clearance alerts in the IC brief | IC brief doesn't surface compliance red flags that IC members need to know |
+| #187 | Pre-populate the IC Proposal form with the AI-drafted memo sections | IC Proposal form is blank; AI memo sections should pre-fill the relevant fields |
+
+### 🕐 Pending Approval — AI & Analysis
+
+| # | Task | What it does |
+|---|---|---|
+| #191 | Auto-rerun AI analysis after significant diligence changes | AI analysis is run manually; stale results shown after major diligence updates |
+
+### 🕐 Pending Approval — UX / Empty States
+
+| # | Task | What it does |
+|---|---|---|
+| #177 | Add empty-state icons to all blank list pages | Blank pages with just "No items" text; icons and guidance make the first-use experience clearer |
+| #203 | Show the alert threshold line on the PDF export too | Alert threshold is shown on the web chart but not on the exported PDF version |
+| #236 | Extend rich text notes to compliance, stakeholder, and valuation tabs | Rich text is available in some tabs but not in Compliance, Stakeholders, or Valuation |
+
+### 🕐 Pending Approval — Deal Health
+
+| # | Task | What it does |
+|---|---|---|
+| #128 | Show the Deal Verdict on target cards in the pipeline view | Verdict badge exists on deal detail but is absent from the pipeline list and Kanban card |
+| #167 | Include deal health ratings in the Weekly Review PDF export | Health traffic-lights are on Kanban cards but not in the Weekly Review PDF |
+
+### 🕐 Pending Approval — Infrastructure & Reliability
+
+| # | Task | What it does |
+|---|---|---|
+| #287 | Confirm backup restore works end-to-end before a real incident requires it | Backup uploads run automatically but the restore path has never been tested; needed before any production incident |
