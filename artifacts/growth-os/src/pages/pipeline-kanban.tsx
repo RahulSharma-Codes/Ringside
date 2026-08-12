@@ -56,6 +56,7 @@ interface KanbanTarget {
   openActionCount?: number | null;
   overdueActionCount?: number | null;
   dealType?: string | null;
+  entity?: string | null;
   healthScore?: string | null;
   kanbanSortOrder?: number | null;
   daysInCurrentStage?: number | null;
@@ -192,6 +193,13 @@ function SortableCard({
             </div>
             <span className="text-[9px] font-mono text-muted-foreground/40">{target.diligencePct}%</span>
           </div>
+        )}
+
+        {/* Entity badge */}
+        {target.entity && (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-mono font-semibold uppercase bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+            {target.entity}
+          </span>
         )}
 
         {/* Owner + actions row */}

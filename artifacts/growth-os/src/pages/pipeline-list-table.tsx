@@ -65,6 +65,7 @@ export type PipelineRow = {
   country: string | null;
   dealOwner: string | null;
   dealType: string | null;
+  entity: string | null;
   needsAttention: boolean | null;
   openActionCount: number | null;
   overdueActionCount: number | null;
@@ -183,6 +184,22 @@ const columns: ColumnDef<PipelineRow>[] = [
           </span>
           <span className="text-[10px] font-mono truncate">{owner}</span>
         </div>
+      );
+    },
+  },
+  {
+    id: "entity",
+    header: "Entity",
+    accessorFn: (r) => r.entity ?? "",
+    size: 75,
+    minSize: 55,
+    cell: ({ row }) => {
+      const entity = row.original.entity;
+      if (!entity) return null;
+      return (
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-mono font-semibold uppercase bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+          {entity}
+        </span>
       );
     },
   },

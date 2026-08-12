@@ -504,6 +504,7 @@ export default function Pipeline() {
                 dealOwner: (t as { dealOwner?: string | null }).dealOwner ?? null,
                 dealOwnerUser: (t as { dealOwnerUser?: { id: string; email: string; displayName?: string | null } | null }).dealOwnerUser ?? null,
                 dealType: (t as { dealType?: string | null }).dealType ?? null,
+                entity: t.entity ?? null,
                 needsAttention: (t as { needsAttention?: boolean | null }).needsAttention ?? null,
                 openActionCount: (t as { openActionCount?: number | null }).openActionCount ?? null,
                 overdueActionCount: (t as { overdueActionCount?: number | null }).overdueActionCount ?? null,
